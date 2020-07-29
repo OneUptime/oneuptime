@@ -48,7 +48,7 @@ class NewIncidentMessage extends Component {
                 : values[`incident_state`];
         let mode = 'NEW';
         if (this.props.data.edit) {
-            postObj.id = this.props.incidentMessage._id;
+            postObj.id = this.props.data.incidentMessage._id;
         } else {
             postObj.type = this.props.data.type;
             mode = 'EDIT';
@@ -104,11 +104,11 @@ class NewIncidentMessage extends Component {
     };
     handleKeyBoard = e => {
         const { closeModal } = this.props;
-        const { createMessageModalId } = this.props.data;
+        const { incidentMessageModalId } = this.props.data;
         switch (e.key) {
             case 'Escape':
                 return closeModal({
-                    id: createMessageModalId,
+                    id: incidentMessageModalId,
                 });
             default:
                 return false;
@@ -120,7 +120,7 @@ class NewIncidentMessage extends Component {
             incidentMessageState,
             incident_state,
         } = this.props;
-        const { edit, type, createMessageModalId } = this.props.data;
+        const { edit, type, incidentMessageModalId } = this.props.data;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -139,8 +139,14 @@ class NewIncidentMessage extends Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span id="incidentTitleLabel">
-                                        Add New Incident Note
+                                    <span id="incidentMessageTitleLabel">
+                                        {`${
+                                            edit ? 'Edit' : 'Add New'
+                                        } ${type
+                                            .charAt(0)
+                                            .toUpperCase()}${type.slice(
+                                            1
+                                        )} Note`}
                                     </span>
                                 </span>
                             </div>
@@ -311,7 +317,7 @@ class NewIncidentMessage extends Component {
                                             type="button"
                                             onClick={() => {
                                                 closeModal({
-                                                    id: createMessageModalId,
+                                                    id: incidentMessageModalId,
                                                 });
                                             }}
                                         >
@@ -360,14 +366,30 @@ class NewIncidentMessage extends Component {
                                 <ShouldRender if={edit}>
                                     <div>
                                         <button
-                                            className="bs-Button"
-                                            disabled={
-                                                incidentMessageState.edit
-                                                    .requesting
-                                            }
-                                            onClick={this.cancelEdit}
+                                            className="bs-Button bs-DeprecatedButton"
+                                            type="button"
+                                            onClick={() => {
+                                                closeModal({
+                                                    id: incidentMessageModalId,
+                                                });
+                                            }}
                                         >
-                                            <span>Cancel</span>
+                                            <ShouldRender
+                                                if={
+                                                    !incidentMessageState.create
+                                                        .requesting
+                                                }
+                                            >
+                                                <span>Cancel</span>
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={
+                                                    incidentMessageState.create
+                                                        .requesting
+                                                }
+                                            >
+                                                <FormLoader />
+                                            </ShouldRender>
                                         </button>
                                         <button
                                             id={`${type}-editButton`}
@@ -420,13 +442,29 @@ const mapStateToProps = (state, ownProps) => {
         ownProps.data.type === 'investigation'
             ? state.incident.investigationNotes
             : state.incident.internalNotes;
-    const initialValues = {
-        content: ownProps.data.incidentMessage
-            ? ownProps.data.incidentMessage.content
-            : '',
-    };
+    let initialValues = null;
+
+    if (ownProps.data.incidentMessage) {
+        const isCustomState = !['investigation', 'update'].includes(
+            ownProps.data.incidentMessage.incident_state
+        );
+        initialValues = {
+            content: ownProps.data.incidentMessage.content,
+            incident_state: isCustomState
+                ? 'others'
+                : ownProps.data.incidentMessage.incident_state,
+            custom_incident_state: isCustomState
+                ? ownProps.data.incidentMessage.incident_state
+                : '',
+        };
+    } else {
+        initialValues = {
+            content: '',
+            incident_state: '',
+            custom_incident_state: '',
+        };
+    }
     const currentProject = state.project.currentProject;
-    // TODO if incident state is for an edit
     const incident_state = state.form[ownProps.data.formId]
         ? state.form[ownProps.data.formId].values
             ? state.form[ownProps.data.formId].values.incident_state
@@ -461,7 +499,7 @@ NewIncidentMessage.propTypes = {
     editIncidentMessageSwitch: PropTypes.func,
     setInternalNote: PropTypes.func,
     closeModal: PropTypes.func,
-    createMessageModalId: PropTypes.string,
+    incidentMessageModalId: PropTypes.string,
     incident_state: PropTypes.string,
 };
 export default connect(
