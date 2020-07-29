@@ -180,7 +180,7 @@ export class Component extends React.Component {
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage">
-                                {settings.error && (
+                                {!settings.requesting && settings.error && (
                                     <div id="errors" className="bs-Tail-copy">
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
