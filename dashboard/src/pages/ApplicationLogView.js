@@ -51,9 +51,20 @@ class ApplicationLogView extends Component {
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-log'
+                        )}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-logs'
+                        )}
                         name="Logs"
                     />
                     <BreadCrumbItem
