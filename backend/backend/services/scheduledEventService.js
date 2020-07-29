@@ -125,11 +125,11 @@ module.exports = {
             if (!limit) limit = 0;
 
             if (typeof skip === 'string') {
-                skip = parseInt(skip);
+                skip = Number(skip);
             }
 
             if (typeof limit === 'string') {
-                limit = parseInt(limit);
+                limit = Number(limit);
             }
 
             if (!query) {
@@ -141,29 +141,9 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('monitorId', 'name')
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
                 .lean();
-
-            await Promise.all(
-                scheduledEvents.map(async event => {
-                    if (event.createdById === 'API') {
-                        event.createdById = {
-                            name: 'API',
-                            _id: null,
-                        };
-                        return event;
-                    } else {
-                        const user = await UserModel.findOne({
-                            _id: event.createdById,
-                        }).lean();
-                        event.createdById = {
-                            _id: user._id,
-                            name: user.name,
-                        };
-                        return event;
-                    }
-                })
-            );
 
             return scheduledEvents;
         } catch (error) {
