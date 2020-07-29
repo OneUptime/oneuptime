@@ -6,12 +6,7 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-import {
-    fetchSettings,
-    saveSettings,
-} from '../../actions/settings';
-import { openModal, closeModal } from '../../actions/modal';
-
+import { fetchSettings, saveSettings } from '../../actions/settings';
 
 // Client side validation
 function validate(values) {
@@ -103,19 +98,9 @@ const fields = [
 ];
 
 export class Component extends React.Component {
-
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
-
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.testModalId });
-            default:
-                return false;
-        }
-    };
 
     submitForm = values => {
         this.props.saveSettings(settingsType, values);
@@ -241,9 +226,6 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     saveSettings: PropTypes.func.isRequired,
     fetchSettings: PropTypes.func.isRequired,
-    openModal: PropTypes.func,
-    closeModal: PropTypes.func,
-    twilioForm: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -251,8 +233,6 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
-            openModal,
-            closeModal,
         },
         dispatch
     );
