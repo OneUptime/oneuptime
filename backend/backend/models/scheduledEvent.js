@@ -7,11 +7,11 @@ const scheduledEventsSchema = new Schema({
         ref: 'Project',
         alias: 'project',
     },
-    monitorId: {
-        type: String,
-        ref: 'Monitor',
-        alias: 'monitor',
-    },
+    monitors: [
+        {
+            monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+        },
+    ],
     name: String,
     createdById: {
         type: String,
