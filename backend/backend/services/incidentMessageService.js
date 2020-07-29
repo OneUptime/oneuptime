@@ -73,7 +73,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-
+            if (!query.deleted) query.deleted = false;
             const incidentMessages = await IncidentMessageModel.find(query)
                 .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
@@ -92,6 +92,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            if (!query.deleted) query.deleted = false;
 
             const count = await IncidentMessageModel.countDocuments(query);
 

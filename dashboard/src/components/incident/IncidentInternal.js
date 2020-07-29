@@ -3,14 +3,25 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-    editIncidentMessageSwitch,
     fetchIncidentMessages,
+    deleteIncidentMessage,
 } from '../../actions/incident';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
+import { openModal } from '../../actions/modal';
+import uuid from 'uuid';
 
 export class IncidentInternal extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            createMessageModalId: uuid.v4(),
+            editMessageModalId: uuid.v4(),
+            deleteMessageModalId: uuid.v4(),
+        };
+    }
     olderInternalMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
@@ -50,6 +61,23 @@ export class IncidentInternal extends Component {
             );
         }
     };
+    deleteInvestigationMessage = incidentMessageId => {
+        const promise = this.props.deleteIncidentMessage(
+            this.props.currentProject._id,
+            this.props.incident._id,
+            incidentMessageId
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INTERNAL MESSAGE DELETED',
+                {
+                    ProjectId: this.props.currentProject._id,
+                    incidentMessageId: incidentMessageId,
+                }
+            );
+        }
+        return promise;
+    };
     render() {
         let count = 0;
         let skip = 0;
@@ -58,11 +86,12 @@ export class IncidentInternal extends Component {
         let canSeeOlder = false;
         let canSeeNewer = false;
         let error;
+        const { incidentMessages, incident, openModal } = this.props;
         const {
-            incidentMessages,
-            editIncidentMessageSwitch,
-            incident,
-        } = this.props;
+            createMessageModalId,
+            editMessageModalId,
+            deleteMessageModalId,
+        } = this.state;
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -105,12 +134,16 @@ export class IncidentInternal extends Component {
                         canSeeOlder={canSeeOlder}
                         canSeeNewer={canSeeNewer}
                         requesting={requesting}
-                        editIncidentMessageSwitch={editIncidentMessageSwitch}
                         incident={incident}
                         type={'internal'}
                         error={error}
                         newerMessage={this.newerInternalMessage}
                         olderMessage={this.olderInternalMessage}
+                        createMessageModalId={createMessageModalId}
+                        openModal={openModal}
+                        editMessageModalId={editMessageModalId}
+                        deleteMessageModalId={deleteMessageModalId}
+                        deleteIncidentMessage={this.deleteInvestigationMessage}
                     />
                 </div>
             </div>
@@ -123,8 +156,9 @@ IncidentInternal.displayName = 'IncidentInternal';
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            editIncidentMessageSwitch,
             fetchIncidentMessages,
+            openModal,
+            deleteIncidentMessage,
         },
         dispatch
     );
@@ -146,8 +180,9 @@ IncidentInternal.propTypes = {
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     currentProject: PropTypes.object,
-    editIncidentMessageSwitch: PropTypes.func,
     fetchIncidentMessages: PropTypes.func,
+    openModal: PropTypes.func,
+    deleteIncidentMessage: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentInternal);
