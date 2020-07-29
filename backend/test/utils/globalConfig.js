@@ -25,7 +25,6 @@ module.exports = {
                 'authentication-token': '79a35156d9967f0f6d8cc0761ef7d48d',
                 phone: '+15005550006',
                 'alert-limit': 100,
-                'verification-sid': 'VA44d9243692d457bfca301300781fc7a6',
             },
         });
     },
