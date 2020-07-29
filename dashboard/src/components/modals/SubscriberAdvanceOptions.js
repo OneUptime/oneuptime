@@ -69,12 +69,13 @@ class SubscriberAdvanceOption extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Advanced options for subscribers</span>
+                                    <span>
+                                        Advanced options for subscribers
+                                    </span>
                                 </span>
                                 <p>
                                     <span>
-                                        Manage options for 
-                                        external subscribers.
+                                        Manage options for external subscribers.
                                     </span>
                                 </p>
                             </div>

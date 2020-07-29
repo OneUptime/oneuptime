@@ -204,7 +204,7 @@ describe('Stripe payment API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
-                    'No such token: tok_invalid'
+                    'No such token: "tok_invalid"'
                 );
                 done();
             });
