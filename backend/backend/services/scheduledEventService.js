@@ -23,6 +23,7 @@ module.exports = {
             }
             // reassign data.monitors with the restructured monitor data
             data.monitors = monitorData;
+            data.projectId = projectId;
 
             const scheduledEvent = await ScheduledEventModel.create({
                 ...data,
@@ -101,6 +102,15 @@ module.exports = {
                 },
                 { new: true }
             );
+
+            if (!scheduledEvent) {
+                const error = new Error(
+                    'Scheduled Event not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.deleteBy', error);
