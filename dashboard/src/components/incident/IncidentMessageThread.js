@@ -338,7 +338,9 @@ export class IncidentMessageThread extends Component {
                                                                                                     onClose: () =>
                                                                                                         '',
                                                                                                     onConfirm: () =>
-                                                                                                        deleteIncidentMessage(),
+                                                                                                        deleteIncidentMessage(
+                                                                                                            incidentMessage._id
+                                                                                                        ),
                                                                                                     content: DataPathHoC(
                                                                                                         DeleteIncidentMessage,
                                                                                                         {
