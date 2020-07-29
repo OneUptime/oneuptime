@@ -119,7 +119,12 @@ class MonitorView extends React.Component {
         const subProjectId = this.props.monitor
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
-        const componentName = component.length > 0 ? component[0].name : '';
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : component[1].name
+                : null;
         const monitorName = monitor ? monitor.name : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);

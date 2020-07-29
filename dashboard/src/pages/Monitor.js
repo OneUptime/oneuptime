@@ -257,8 +257,12 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
-
-        const componentName = components.length > 0 ? components[0].name : '';
+        const componentName =
+            components.length > 0
+                ? components[0]
+                    ? components[0].name
+                    : components[1].name
+                : null;
 
         return (
             <Dashboard ready={this.ready}>

@@ -172,28 +172,24 @@ export function resetSubProjectToken(subProjectId) {
 
         dispatch(resetSubProjectTokenRequest());
 
-        promise
-            .then(
-                function(subProject) {
-                    dispatch(resetSubProjectTokenSuccess(subProject));
-                },
-                function(error) {
-                    if (error && error.response && error.response.data)
-                        error = error.response.data;
-                    if (error && error.data) {
-                        error = error.data;
-                    }
-                    if (error && error.message) {
-                        error = error.message;
-                    } else {
-                        error = 'Network Error';
-                    }
-                    dispatch(resetSubProjectTokenError(errors(error)));
+        promise.then(
+            function(subProject) {
+                dispatch(resetSubProjectTokenSuccess(subProject));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
                 }
-            )
-            .then(function() {
-                dispatch(resetSubProjectTokenReset());
-            });
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetSubProjectTokenError(errors(error)));
+            }
+        );
 
         return promise;
     };
