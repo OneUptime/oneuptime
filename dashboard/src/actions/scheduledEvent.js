@@ -2,43 +2,39 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/scheduledEvent';
 import errors from '../errors';
 
-export function fetchscheduledEvents(projectId, monitorId, skip, limit) {
-    skip = parseInt(skip);
-    limit = parseInt(limit);
-    return function(dispatch) {
-        let promise = null;
-        if (skip >= 0 && limit >= 0) {
-            promise = getApi(
-                `scheduledEvent/${projectId}/${monitorId}?skip=${skip}&limit=${limit}`
+export const fetchscheduledEvents = (
+    projectId,
+    skip,
+    limit
+) => async dispatch => {
+    skip = Number(skip);
+    limit = Number(limit);
+    dispatch(fetchscheduledEventsRequest());
+
+    try {
+        let response = {};
+        if (!skip && !limit) {
+            response = await getApi(
+                `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
             );
         } else {
-            promise = getApi(
-                `scheduledEvent/${projectId}/${monitorId}?skip=${0}&limit=${10}`
+            response = await getApi(
+                `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        dispatch(fetchscheduledEventsRequest());
-
-        promise.then(
-            function(scheduledEvents) {
-                dispatch(fetchscheduledEventsSuccess(scheduledEvents.data));
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(fetchscheduledEventsFailure(errors(error)));
-            }
-        );
-        return promise;
-    };
-}
+        dispatch(fetchscheduledEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchscheduledEventsFailure(errorMsg));
+    }
+};
 
 export function fetchscheduledEventsSuccess(scheduledEvents) {
     return {
