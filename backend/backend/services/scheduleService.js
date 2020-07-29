@@ -343,7 +343,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let schedule = await _this.findBy(query);
+        const schedule = await _this.findBy(query);
         if (schedule && schedule.length > 1) {
             const schedules = await Promise.all(
                 schedule.map(async schedule => {
@@ -364,24 +364,6 @@ module.exports = {
                 })
             );
             return schedules;
-        } else {
-            schedule = schedule[0];
-            if (schedule) {
-                const scheduleId = schedule._id;
-                schedule = await _this.updateOneBy(
-                    { _id: scheduleId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-                await EscalationService.restoreBy({
-                    scheduleId,
-                    deleted: true,
-                });
-            }
-            return schedule;
         }
     },
 };
