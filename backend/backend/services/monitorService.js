@@ -228,6 +228,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
+                .populate('componentId', 'name')
                 .populate('monitorCategoryId', 'name');
             return monitors;
         } catch (error) {
@@ -245,6 +246,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name')
+                .populate('componentId', 'name')
                 .populate('monitorCategoryId', 'name');
             return monitor;
         } catch (error) {

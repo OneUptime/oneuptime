@@ -438,7 +438,7 @@ const mapStateToProps = (state, props) => {
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId === componentId
+            monitor => monitor.componentId._id === componentId
         );
     });
 
