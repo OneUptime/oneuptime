@@ -81,6 +81,52 @@ describe('Twilio Settings API', () => {
     );
 
     test(
+        'Should show server error if an invalide account-so is used.',
+        async () => {
+            expect.assertions(2);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#settings');
+                await page.click('#settings');
+
+                await page.waitForSelector('#twilio');
+                await page.click('#twilio a');
+                await page.waitForSelector('#twilio-form');
+
+                await page.click('input[name=account-sid]');
+                await page.type(
+                    'input[name=account-sid]',
+                    '3ee3290aia22s1i9290qw9'
+                );
+                await page.click('input[name=authentication-token]');
+                await page.type(
+                    'input[name=authentication-token]',
+                    '1233|do22'
+                );
+                await page.click('input[name=phone');
+                await page.type('input[name=phone', '+12992019922');
+
+                await page.click('input[name=alert-limit]');
+                await page.type('input[name=alert-limit]', '5');
+
+                await page.click('button[type=submit]');
+                await page.waitFor(2000);
+                await page.waitForSelector('#errors');
+                const errorMessage= await page.$eval('#errors', element=> element.textContent);
+                expect(errorMessage).toEqual('Server Error.')
+                await page.reload();
+
+                const value = await page.$eval(
+                    'input[name=account-sid]',
+                    e => e.value
+                );
+                expect(value).toEqual('');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should save valid form data',
         async () => {
             expect.assertions(1);
