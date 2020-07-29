@@ -213,11 +213,15 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId._id,
+                _id: monitor.componentId._id
+                    ? monitor.componentId._id
+                    : monitor.componentId,
             });
             const meta = {
                 type: 'Incident',
-                componentId: monitor.componentId,
+                componentId: monitor.componentId._id
+                    ? monitor.componentId._id
+                    : monitor.componentId,
                 incidentId: incident._id,
             };
 
@@ -345,7 +349,9 @@ module.exports = {
                     _id: incident.monitorId,
                 });
                 const component = await ComponentService.findOneBy({
-                    _id: monitor.componentId._id,
+                    _id: monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
                 });
                 incident = await _this.findOneBy({ _id: incident._id });
 
@@ -541,7 +547,9 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId._id,
+                _id: monitor.componentId._id
+                    ? monitor.componentId._id
+                    : monitor.componentId,
             });
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,
