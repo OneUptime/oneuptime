@@ -155,18 +155,14 @@ router.delete(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const { eventId } = req.params;
+
             const event = await ScheduledEventService.deleteBy(
-                { _id: req.params.eventId },
+                { _id: eventId },
                 userId
             );
-            if (event) {
-                return sendItemResponse(req, res, event);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Event not found',
-                });
-            }
+
+            return sendItemResponse(req, res, event);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
