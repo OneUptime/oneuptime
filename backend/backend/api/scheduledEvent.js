@@ -169,13 +169,9 @@ router.delete(
     }
 );
 
-router.get('/:projectId/:monitorId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
+router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
-        const projectId = req.params.projectId;
-        const monitorId = req.params.monitorId;
+        const { projectId } = req.params;
 
         const query = req.query;
 
@@ -193,27 +189,13 @@ router.get('/:projectId/:monitorId', getUser, isAuthorized, async function(
             });
         }
 
-        if (!monitorId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID is required.',
-            });
-        }
-
-        if (typeof monitorId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID is not of string type.',
-            });
-        }
         const events = await ScheduledEventService.findBy(
-            { projectId, monitorId },
+            { projectId },
             query.limit,
             query.skip
         );
         const count = await ScheduledEventService.countBy({
             projectId,
-            monitorId,
         });
         return sendListResponse(req, res, events, count);
     } catch (error) {
