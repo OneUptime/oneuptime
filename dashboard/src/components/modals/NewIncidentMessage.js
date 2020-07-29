@@ -103,15 +103,13 @@ class NewIncidentMessage extends Component {
                     }
                 );
         }
+        this.props.closeThisDialog();
     };
     handleKeyBoard = e => {
-        const { closeModal } = this.props;
-        const { incidentMessageModalId } = this.props.data;
+        const { closeThisDialog } = this.props;
         switch (e.key) {
             case 'Escape':
-                return closeModal({
-                    id: incidentMessageModalId,
-                });
+                return closeThisDialog();
             default:
                 return false;
         }
@@ -123,7 +121,7 @@ class NewIncidentMessage extends Component {
             incident_state,
             content,
         } = this.props;
-        const { edit, type, incidentMessageModalId } = this.props.data;
+        const { edit, type } = this.props.data;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -312,11 +310,7 @@ class NewIncidentMessage extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton"
                                             type="button"
-                                            onClick={() => {
-                                                closeModal({
-                                                    id: incidentMessageModalId,
-                                                });
-                                            }}
+                                            onClick={this.props.closeThisDialog}
                                         >
                                             <ShouldRender
                                                 if={
@@ -365,11 +359,7 @@ class NewIncidentMessage extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton"
                                             type="button"
-                                            onClick={() => {
-                                                closeModal({
-                                                    id: incidentMessageModalId,
-                                                });
-                                            }}
+                                            onClick={this.props.closeThisDialog}
                                         >
                                             <ShouldRender
                                                 if={
@@ -502,11 +492,10 @@ NewIncidentMessage.propTypes = {
     type: PropTypes.string,
     editIncidentMessageSwitch: PropTypes.func,
     setInternalNote: PropTypes.func,
-    closeModal: PropTypes.func,
-    incidentMessageModalId: PropTypes.string,
     incident_state: PropTypes.string,
     content: PropTypes.string,
     change: PropTypes.func,
+    closeThisDialog: PropTypes.func,
 };
 export default connect(
     mapStateToProps,
