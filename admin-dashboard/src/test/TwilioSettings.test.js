@@ -105,11 +105,7 @@ describe('Twilio Settings API', () => {
                 );
                 await page.click('input[name=phone');
                 await page.type('input[name=phone', '+12992019922');
-                await page.click('input[name=verification-sid]');
-                await page.type(
-                    'input[name=verification-sid]',
-                    '3ee3290aia22s1i9290qw9'
-                );
+
                 await page.click('input[name=alert-limit]');
                 await page.type('input[name=alert-limit]', '5');
 
