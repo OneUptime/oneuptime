@@ -1056,7 +1056,12 @@ class NewMonitor extends Component {
                                                                 type="url"
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
-                                                                placeholder={`https://mywebsite.com${type==='api'? '/api':''}`}
+                                                                placeholder={`https://mywebsite.com${
+                                                                    type ===
+                                                                    'api'
+                                                                        ? '/api'
+                                                                        : ''
+                                                                }`}
                                                                 disabled={
                                                                     requesting
                                                                 }

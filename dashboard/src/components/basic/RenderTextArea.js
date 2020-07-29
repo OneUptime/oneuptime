@@ -57,6 +57,7 @@ RenderTextArea.propTypes = {
     rows: PropTypes.string,
     disabled: PropTypes.bool,
     style: PropTypes.object.isRequired,
+    id: PropTypes.string,
 };
 
 export { RenderTextArea };
