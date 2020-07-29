@@ -66,7 +66,7 @@ describe('Twilio Settings API', () => {
 
                 // All fields should validate false
                 expect((await page.$$('span.field-error')).length).toEqual(
-                    (await page.$$('input')).length
+                    (await page.$$('input[type=text],input[type=number]')).length
                 );
 
                 await page.reload();
