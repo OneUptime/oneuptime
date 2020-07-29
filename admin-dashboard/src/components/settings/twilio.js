@@ -32,10 +32,6 @@ function validate(values) {
         errors.phone = 'Phone is not valid.';
     }
 
-    if (!Validate.text(values['verification-sid'])) {
-        errors['verification-sid'] = 'Verification SID is not valid.';
-    }
-
     if (!Validate.number(values['alert-limit'])) {
         errors['alert-limit'] = 'Alert limit is not valid.';
     }
