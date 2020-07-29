@@ -6,7 +6,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const { getUser, checkUserBelongToProject } = require('../middlewares/user');
 const { isUserAdmin } = require('../middlewares/project');
 
-const RealTimeService = require('../services/realTimeService');
 const ScheduledEventService = require('../services/scheduledEventService');
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -124,39 +123,24 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
-            const eventId = req.params.eventId;
+            const { eventId, projectId } = req.params;
             const existingScheduledEvent = await ScheduledEventService.findOneBy(
-                { name: data.name }
+                { name: data.name, projectId }
             );
 
-            if (
-                existingScheduledEvent &&
-                eventId !== existingScheduledEvent._id.toString()
-            ) {
+            if (existingScheduledEvent) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Scheduled event name already exists',
                 });
             }
 
-            let scheduledEvent = await ScheduledEventService.updateOneBy(
+            const scheduledEvent = await ScheduledEventService.updateOneBy(
                 { _id: eventId },
                 data
             );
-            if (scheduledEvent) {
-                scheduledEvent = await ScheduledEventService.findOneBy({
-                    _id: scheduledEvent._id,
-                    projectId: scheduledEvent.projectId,
-                });
-                await RealTimeService.updateScheduledEvent(scheduledEvent);
 
-                return sendItemResponse(req, res, scheduledEvent);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Event not found.',
-                });
-            }
+            return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
