@@ -3,9 +3,8 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
-import { Field, reduxForm, formValueSelector } from 'redux-form';
+import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
-import { RenderTextArea } from '../basic/RenderTextArea';
 import {
     setInvestigationNote,
     editIncidentMessageSwitch,
@@ -16,7 +15,7 @@ import { bindActionCreators } from 'redux';
 import { logEvent } from '../../analytics';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-const selector = formValueSelector('NewIncidentMessage');
+import CodeEditor from '../basic/CodeEditor';
 
 class NewIncidentMessage extends Component {
     validate = values => {
@@ -37,6 +36,9 @@ class NewIncidentMessage extends Component {
     };
     cancelEdit = () => {
         this.props.editIncidentMessageSwitch(this.props.incidentMessage);
+    };
+    onContentChange = val => {
+        this.props.change('content', val);
     };
     submitForm = values => {
         const thisObj = this;
@@ -119,6 +121,7 @@ class NewIncidentMessage extends Component {
             handleSubmit,
             incidentMessageState,
             incident_state,
+            content,
         } = this.props;
         const { edit, type, incidentMessageModalId } = this.props.data;
         return (
@@ -238,24 +241,18 @@ class NewIncidentMessage extends Component {
                                                         </label>
                                                     </ShouldRender>
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <Field
-                                                            component={
-                                                                RenderTextArea
+                                                        <CodeEditor
+                                                            code={content}
+                                                            onCodeChange={
+                                                                this
+                                                                    .onContentChange
                                                             }
-                                                            type="text"
-                                                            name={`content`}
-                                                            id={`${
+                                                            textareaId={`${
                                                                 edit
                                                                     ? 'edit'
                                                                     : 'new'
                                                             }-${type}`}
-                                                            className="bs-TextArea"
-                                                            rows="2"
                                                             placeholder="Add a message to the thread"
-                                                            validate={
-                                                                ValidateField.text
-                                                            }
-                                                            style={``}
                                                         />
                                                     </div>
                                                 </div>
@@ -432,12 +429,12 @@ const mapDispatchToProps = dispatch =>
             editIncidentMessageSwitch,
             setInternalNote,
             closeModal,
+            change,
         },
         dispatch
     );
 
 const mapStateToProps = (state, ownProps) => {
-    const content = selector(state, 'content');
     const incidentMessageState =
         ownProps.data.type === 'investigation'
             ? state.incident.investigationNotes
@@ -472,6 +469,13 @@ const mapStateToProps = (state, ownProps) => {
                 : ''
             : ''
         : '';
+    const content = state.form[ownProps.data.formId]
+        ? state.form[ownProps.data.formId].values
+            ? state.form[ownProps.data.formId].values.content
+                ? state.form[ownProps.data.formId].values.content
+                : ''
+            : ''
+        : '';
     return {
         content,
         initialValues,
@@ -501,6 +505,8 @@ NewIncidentMessage.propTypes = {
     closeModal: PropTypes.func,
     incidentMessageModalId: PropTypes.string,
     incident_state: PropTypes.string,
+    content: PropTypes.string,
+    change: PropTypes.func,
 };
 export default connect(
     mapStateToProps,

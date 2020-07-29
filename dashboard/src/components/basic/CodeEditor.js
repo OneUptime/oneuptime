@@ -1,0 +1,37 @@
+import React, { Component } from 'react';
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/themes/prism.css';
+import PropTypes from 'prop-types';
+
+class CodeEditor extends Component {
+    render() {
+        return (
+            <Editor
+                {...this.props}
+                value={this.props.code}
+                onValueChange={this.props.onCodeChange}
+                highlight={() =>
+                    Prism.highlight(this.props.code, Prism.languages.markdown)
+                }
+                padding={10}
+                style={{
+                    fontFamily: '"Fira code", "Fira Mono", monospace',
+                    fontSize: 12,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    border: 'solid 1px #cccccc',
+                    borderRadius: '4px',
+                }}
+            />
+        );
+    }
+}
+
+CodeEditor.displayName = 'CodeEditor';
+CodeEditor.propTypes = {
+    code: PropTypes.string,
+    onCodeChange: PropTypes.func,
+};
+export default CodeEditor;
