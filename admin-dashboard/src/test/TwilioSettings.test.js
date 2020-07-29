@@ -188,15 +188,18 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=account-sid]');
                 await page.type(
                     'input[name=account-sid]',
-                    '3ee3290aia22s1i9290qw9'
+                    process.env.TEST_TWILIO_ACCOUNT_SID
                 );
                 await page.click('input[name=authentication-token]');
                 await page.type(
                     'input[name=authentication-token]',
-                    '1233|do22'
+                    process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
                 );
                 await page.click('input[name=phone');
-                await page.type('input[name=phone', '+12992019922');
+                await page.type(
+                    'input[name=phone',
+                    process.env.TEST_TWILIO_PHONE 
+                );
 
                 await page.click('input[name=alert-limit]');
                 await page.type('input[name=alert-limit]', '5');
@@ -210,7 +213,7 @@ describe('Twilio Settings API', () => {
                     e => e.value
                 );
 
-                expect(value).toEqual('3ee3290aia22s1i9290qw9');
+                expect(value).toEqual(process.env.TEST_TWILIO_ACCOUNT_SID);
             });
         },
         operationTimeOut
