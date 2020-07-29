@@ -23,7 +23,7 @@ const headers = {
  */
 const defaultErrorHandler = error => {
     if (error.response) {
-        logger.error(error.response.data);
+        logger.debug(error.response.data);
         logger.debug(error.response.status);
         logger.debug(error.response.headers);
         throw error.response.data;
@@ -34,9 +34,7 @@ const defaultErrorHandler = error => {
             logger.debug('Error', error.message);
         }
     }
-    logger.error(error);
     logger.debug(error.config);
-
     throw error;
 };
 

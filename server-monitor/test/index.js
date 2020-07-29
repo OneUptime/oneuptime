@@ -144,6 +144,46 @@ describe('Server Monitor', function() {
         });
     });
 
+    it('Should disconnect when project id is correct and api key is incorrect', done => {
+        const monitor = serverMonitor({
+            projectId,
+            apiKey: badApiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal(
+                'No Project found with this API Key and Project ID.'
+            );
+            expect(stopJob).to.equal(undefined);
+
+            done();
+        });
+    });
+
+    it('Should disconnect when project id is incorrect and api key is correct', done => {
+        const monitor = serverMonitor({
+            projectId: badProjectId,
+            apiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal(
+                'No Project found with this API Key and Project ID.'
+            );
+            expect(stopJob).to.equal(undefined);
+
+            done();
+        });
+    });
+
     it('Should disconnect when timeout provided is exceeded', done => {
         const monitor = serverMonitor({
             projectId,

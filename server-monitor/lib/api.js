@@ -171,6 +171,8 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                     }
                 })
                 .catch(error => {
+                    logger.error(error);
+
                     const errorCode = typeof error === 'number' ? error : 1;
                     process.exitCode = errorCode;
 
