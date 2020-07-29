@@ -20,13 +20,13 @@ export class IncidentMessageThread extends Component {
             canSeeOlder,
             canSeeNewer,
             requesting,
-            editIncidentMessageSwitch,
             type,
             error,
             olderMessage,
             newerMessage,
             createMessageModalId,
             openModal,
+            editMessageModalId,
         } = this.props;
         return (
             <div className="Box-root">
@@ -48,9 +48,10 @@ export class IncidentMessageThread extends Component {
                                 openModal({
                                     id: createMessageModalId,
                                     content: DataPathHoC(NewIncidentMessage, {
-                                        incident: incident,
+                                        incident,
                                         formId: `New${type}Form`,
-                                        type: type,
+                                        type,
+                                        incidentMessageModalId: createMessageModalId,
                                     }),
                                 })
                             }
@@ -151,9 +152,20 @@ export class IncidentMessageThread extends Component {
                                                             cursor: 'pointer',
                                                         }}
                                                         onClick={() =>
-                                                            editIncidentMessageSwitch(
-                                                                incidentMessage
-                                                            )
+                                                            openModal({
+                                                                id: editMessageModalId,
+                                                                content: DataPathHoC(
+                                                                    NewIncidentMessage,
+                                                                    {
+                                                                        incident,
+                                                                        formId: `Edit${type}Form`,
+                                                                        type,
+                                                                        incidentMessage,
+                                                                        edit: true,
+                                                                        incidentMessageModalId: editMessageModalId,
+                                                                    }
+                                                                ),
+                                                            })
                                                         }
                                                         id={`edit_${type}_incident_message_${index}`}
                                                     >
@@ -166,7 +178,7 @@ export class IncidentMessageThread extends Component {
                                                                 width: '10px',
                                                             }}
                                                         />
-                                                        Edit Response
+                                                        Edit Note
                                                     </p>
                                                 </ShouldRender>
                                             </div>
@@ -259,7 +271,6 @@ IncidentMessageThread.propTypes = {
     description: PropTypes.string,
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
-    editIncidentMessageSwitch: PropTypes.func,
     count: PropTypes.number,
     canSeeOlder: PropTypes.bool,
     canSeeNewer: PropTypes.bool,
@@ -270,6 +281,7 @@ IncidentMessageThread.propTypes = {
     newerMessage: PropTypes.func,
     openModal: PropTypes.func,
     createMessageModalId: PropTypes.string,
+    editMessageModalId: PropTypes.string,
 };
 
 export default IncidentMessageThread;

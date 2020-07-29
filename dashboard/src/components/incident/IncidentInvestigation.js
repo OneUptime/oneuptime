@@ -2,10 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import {
-    editIncidentMessageSwitch,
-    fetchIncidentMessages,
-} from '../../actions/incident';
+import { fetchIncidentMessages } from '../../actions/incident';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
@@ -18,6 +15,7 @@ export class IncidentInvestigation extends Component {
         this.props = props;
         this.state = {
             createMessageModalId: uuid.v4(),
+            editMessageModalId: uuid.v4(),
         };
     }
     olderInvestigationMessage = () => {
@@ -65,13 +63,8 @@ export class IncidentInvestigation extends Component {
         let canSeeOlder = false;
         let canSeeNewer = false;
         let error;
-        const {
-            incidentMessages,
-            editIncidentMessageSwitch,
-            incident,
-            openModal,
-        } = this.props;
-        const { createMessageModalId } = this.state;
+        const { incidentMessages, incident, openModal } = this.props;
+        const { createMessageModalId, editMessageModalId } = this.state;
         if (incidentMessages) {
             count = incidentMessages.count;
             skip = incidentMessages.skip;
@@ -112,7 +105,6 @@ export class IncidentInvestigation extends Component {
                         canSeeOlder={canSeeOlder}
                         canSeeNewer={canSeeNewer}
                         requesting={requesting}
-                        editIncidentMessageSwitch={editIncidentMessageSwitch}
                         incident={incident}
                         type={'investigation'}
                         error={error}
@@ -120,6 +112,7 @@ export class IncidentInvestigation extends Component {
                         olderMessage={this.olderInvestigationMessage}
                         createMessageModalId={createMessageModalId}
                         openModal={openModal}
+                        editMessageModalId={editMessageModalId}
                     />
                 </div>
             </div>
@@ -132,7 +125,6 @@ IncidentInvestigation.displayName = 'IncidentInvestigation';
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            editIncidentMessageSwitch,
             fetchIncidentMessages,
             openModal,
         },
@@ -158,7 +150,6 @@ IncidentInvestigation.propTypes = {
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     currentProject: PropTypes.object,
-    editIncidentMessageSwitch: PropTypes.func,
     fetchIncidentMessages: PropTypes.func,
     openModal: PropTypes.func,
 };
