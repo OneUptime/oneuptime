@@ -7,6 +7,42 @@ function getParentRoute(childRoute, projectId = null, type) {
     if (lastNode === 'incident-log' || lastNode === 'application-log') {
         return urlParts.join('/').concat('/monitoring');
     }
+    if (type === 'incidents') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('incidents'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
+    if (type === 'incident-log') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('incidents'),
+            urlParts.length,
+            'incident-log'
+        );
+        return urlParts.join('/');
+    }
+    if (type === 'application-log') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('application-logs'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
+    if (type === 'application-logs') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('application-logs'),
+            urlParts.length,
+            'application-log'
+        );
+        return urlParts.join('/');
+    }
     if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');

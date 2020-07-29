@@ -76,7 +76,7 @@ class CreateWebHook extends React.Component {
             .flat();
         const getParentComponent = monitor =>
             allComponents.filter(
-                component => component._id === monitor.componentId
+                component => component._id === monitor.componentId._id
             )[0];
 
         return (

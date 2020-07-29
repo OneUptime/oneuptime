@@ -41,6 +41,11 @@ class Incident extends React.Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
+    componentDidUpdate(prevProps) {
+        if (this.props.location.pathname !== prevProps.location.pathname) {
+            this.ready();
+        }
+    }
     internalNote = note => {
         this.props.setinternalNote(
             this.props.match.params.projectId,
@@ -246,12 +251,19 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
+        const componentId =
+            this.props.component.length > 0
+                ? this.props.component[0]
+                    ? this.props.component[0]._id
+                    : this.props.component[1]._id
+                : null;
         if (this.props.incident) {
             variable = (
                 <div>
                     <IncidentDescription
                         incident={this.props.incident}
                         projectId={this.props.currentProject._id}
+                        componentId={componentId}
                     />
                     <IncidentStatus incident={this.props.incident} />
                     <IncidentAlert
@@ -334,19 +346,17 @@ class Incident extends React.Component {
             component,
             location: { pathname },
         } = this.props;
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
+        const componentName = component.length > 0 ? component[0].name : '';
 
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(pathname, null, 'incidents')}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname, null, 'incident-log')}
                         name="Incident Log"
                     />
                     <BreadCrumbItem route={pathname} name="Incident" />
@@ -372,7 +382,9 @@ class Incident extends React.Component {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
     });
 
     return {
@@ -431,6 +443,7 @@ Incident.propTypes = {
     component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
+            _id: PropTypes.string,
         })
     ),
 };

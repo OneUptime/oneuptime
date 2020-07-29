@@ -77,7 +77,10 @@ export class SubscriberAlert extends Component {
                                         overflowX: 'auto',
                                     }}
                                 >
-                                    <table className="Table">
+                                    <table
+                                        id="subscriberAlertTable"
+                                        className="Table"
+                                    >
                                         <thead className="Table-body">
                                             <SubscriberAlertTableHeader />
                                         </thead>

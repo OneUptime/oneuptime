@@ -174,7 +174,7 @@ class DashboardView extends Component {
             subProjects,
             currentProject,
             location: { pathname },
-            component,
+            components,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -257,12 +257,8 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
+
+        const componentName = components.length > 0 ? components[0].name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -427,16 +423,22 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const componentId = props.match.params.componentId;
+    const { componentId } = props.match.params;
     const monitor = state.monitor;
-
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
-    });
+    const components = [];
+    // filter to get the actual component
+    state.component.componentList.components.map(item =>
+        item.components.map(component => {
+            if (String(component._id) === String(componentId)) {
+                components.push(component);
+            }
+            return component;
+        })
+    );
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId === componentId
+            monitor => monitor.componentId._id === componentId
         );
     });
 
@@ -462,7 +464,7 @@ const mapStateToProps = (state, props) => {
         monitorTutorial: state.tutorial.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
-        component,
+        components,
     };
 };
 
@@ -498,7 +500,7 @@ DashboardView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
+    components: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })

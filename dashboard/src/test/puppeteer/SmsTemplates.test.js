@@ -12,10 +12,11 @@ const password = '1234567890';
 describe('SMS Templates API', () => {
     const operationTimeOut = 100000;
 
+    let cluster, initialTemplate;
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -27,69 +28,80 @@ describe('SMS Templates API', () => {
         });
 
         // Register user
-        await cluster.task(async ({ page, data }) => {
+        await cluster.execute({ email, password }, async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
             };
             // user
             await init.registerUser(user, page);
+            await init.loginUser(user, page);
         });
 
-        await cluster.queue({ email, password });
+        done();
+    });
 
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
     });
 
-    afterAll(async done => {
-        done();
-    });
-
     test(
-        'Should update default sms template',
+        'should not show reset button if sms template is not saved yet',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 100000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
                 await page.waitForSelector('#sms');
                 await page.click('#sms');
-                await page.waitFor(5000);
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+                await page.waitForSelector('#templateField');
+                initialTemplate = await page.$eval(
+                    '#templateField',
+                    elem => elem.value
+                );
+                const resetBtn = await page.waitForSelector('#templateReset', {
+                    hidden: true,
+                });
+                expect(resetBtn).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should update default sms template',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#sms');
+                await page.click('#sms');
+                await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
                     'Subscriber Incident Created',
                     page
                 );
                 await page.waitForSelector('#frmSmsTemplate');
+                const newTemplate = 'New Body';
                 await page.click('textarea[name=body]', { clickCount: 3 });
-                await page.type('textarea[name=body]', 'New Body');
-                await page.click('button[type=submit]');
-                await page.waitFor(10000);
+                await page.type('textarea[name=body]', newTemplate);
+                await page.click('#saveTemplate');
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({
                     waitUntil: ['networkidle0', 'domcontentloaded'],
                 });
-                await page.waitFor(5000);
                 await init.selectByText(
                     '#type',
                     'Subscriber Incident Created',
@@ -101,12 +113,79 @@ describe('SMS Templates API', () => {
                     'textarea[name=body]',
                     el => el.value
                 );
-                expect(smsTemplateBody).toEqual('New Body');
+                expect(smsTemplateBody).toEqual(newTemplate);
             });
 
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show reset button when a template is already saved',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#sms');
+                await page.click('#sms');
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+                const resetBtn = await page.waitForSelector('#templateReset', {
+                    visible: true,
+                });
+                expect(resetBtn).toBeDefined();
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should reset template to default state',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#sms');
+                await page.click('#sms');
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+
+                await page.waitForSelector('#templateReset');
+                await page.click('#templateReset');
+                await page.waitForSelector('#ResetSmsTemplate');
+                await page.click('#ResetSmsTemplate');
+
+                await page.waitForSelector('#ResetSmsTemplate', {
+                    hidden: true,
+                });
+                await page.reload();
+                await page.waitForSelector('#type');
+                await init.selectByText(
+                    '#type',
+                    'Subscriber Incident Created',
+                    page
+                );
+                await page.waitForSelector('#templateField');
+                const template = await page.$eval(
+                    '#templateField',
+                    elem => elem.value
+                );
+                expect(template).toEqual(initialTemplate);
+            });
+
             done();
         },
         operationTimeOut
