@@ -139,6 +139,7 @@ export class SmsTemplatesFormBox extends Component {
                                                         style={style}
                                                         rows={3}
                                                         maxlength={160}
+                                                        id="templateField"
                                                     />
                                                 </div>
                                             </div>
@@ -270,6 +271,7 @@ export class SmsTemplatesFormBox extends Component {
                                             resetSmsTemplates.requesting)
                                     }
                                     type="submit"
+                                    id="saveTemplate"
                                 >
                                     <ShouldRender
                                         if={
@@ -295,29 +297,32 @@ export class SmsTemplatesFormBox extends Component {
                                         <FormLoader />
                                     </ShouldRender>
                                 </button>
-                                <button
-                                    className="bs-Button"
-                                    type="button"
-                                    onClick={() =>
-                                        this.props.openModal({
-                                            id: this.state
-                                                .openSmsTemplateResetModalId,
-                                            onClose: () => '',
-                                            onConfirm: () =>
-                                                this.resetTemplate(
-                                                    template._id
+                                <ShouldRender if={template._id}>
+                                    <button
+                                        id="templateReset"
+                                        className="bs-Button"
+                                        type="button"
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .openSmsTemplateResetModalId,
+                                                onClose: () => '',
+                                                onConfirm: () =>
+                                                    this.resetTemplate(
+                                                        template._id
+                                                    ),
+                                                content: DataPathHoC(
+                                                    ResetSmsTemplate,
+                                                    {
+                                                        resetSmsTemplates,
+                                                    }
                                                 ),
-                                            content: DataPathHoC(
-                                                ResetSmsTemplate,
-                                                {
-                                                    resetSmsTemplates,
-                                                }
-                                            ),
-                                        })
-                                    }
-                                >
-                                    <span>Reset</span>
-                                </button>
+                                            })
+                                        }
+                                    >
+                                        <span>Reset</span>
+                                    </button>
+                                </ShouldRender>
                                 {/* <button
                                     className="bs-Button"
                                     disabled={

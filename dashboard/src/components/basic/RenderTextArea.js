@@ -11,10 +11,11 @@ const RenderTextArea = ({
     rows,
     disabled,
     style,
+    id,
 }) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
-            id="feedback-textarea"
+            id={id || 'feedback-textarea'}
             {...input}
             type={type}
             rows={rows}
