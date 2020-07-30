@@ -54,7 +54,7 @@
         "chrome-launcher": "^0.13.2",
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
-        "lighthouse": "^5.6.0",
+        "lighthouse": "^6.1.1",
         "npm-audit-ci-wrapper": "^2.5.1",
         "ora": "^4.0.3",
         "redux-logger": "^3.0.6",
