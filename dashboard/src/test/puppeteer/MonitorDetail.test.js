@@ -508,7 +508,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editWebhookButtonSelector, e => e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                await page.click('#endpoint', {clickCount: 3 });
+                await page.click('#endpoint', { clickCount: 3 });
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#msteamsUpdate', e => e.click());
                 await page.waitFor(1000);
@@ -694,7 +694,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editWebhookButtonSelector, e => e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                await page.click('#endpoint', {clickCount:3});
+                await page.click('#endpoint', { clickCount: 3 });
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#slackUpdate', e => e.click());
                 await page.waitFor(1000);
