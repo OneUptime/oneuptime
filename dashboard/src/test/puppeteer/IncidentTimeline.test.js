@@ -204,6 +204,20 @@ describe('Incident Timeline API', () => {
                 const type = 'investigation';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+                // create incident
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${projectMonitorName}`
+                );
+                await page.click(
+                    `#monitorCreateIncident_${projectMonitorName}`
+                );
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.click('#createIncident');
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -212,16 +226,22 @@ describe('Incident Timeline API', () => {
 
                 // fill investigation message thread form
                 await page.waitFor(2000);
+                await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
                 await page.click(`textarea[id=new-${type}]`);
                 await page.type(`textarea[id=new-${type}]`, `${message}`);
+                await init.selectByText(
+                    '#incident_state',
+                    'investigating',
+                    page
+                );
                 await page.click(`#${type}-addButton`);
                 await page.waitFor(2000);
 
                 const investigationMessage = await page.$(
-                    `#${type}_incident_message_0_content`
+                    `#content_${type}_incident_message_0`
                 );
                 let messageContent = await investigationMessage.getProperty(
                     'innerText'
@@ -235,13 +255,17 @@ describe('Incident Timeline API', () => {
         operationTimeOut
     );
     test(
-        'should edit message related to incident message thread and add the edited flag to it',
+        'should edit message related to incident message thread',
         async () => {
             const dashboard = async ({ page }) => {
                 await page.waitFor(5000);
                 const type = 'investigation';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -254,19 +278,22 @@ describe('Incident Timeline API', () => {
 
                 // edit investigation message thread form
                 await page.waitForSelector(`#edit-${type}`);
-                await page.click('textarea[name=content]');
-                await page.type('textarea[name=content]', '-updated');
+                await page.click(`textarea[id=edit-${type}]`);
+                await page.type(`textarea[id=edit-${type}]`, '-updated');
+                await init.selectByText('#incident_state', 'update', page);
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
 
                 const investigationMessage = await page.$(
-                    `#${type}_incident_message_0_content`
+                    `#content_${type}_incident_message_0`
                 );
                 let messageContent = await investigationMessage.getProperty(
                     'innerText'
                 );
                 messageContent = await messageContent.jsonValue();
-                expect(messageContent).toEqual(`${message}-updated(edited)`);
+                expect(messageContent.substring(0, message.length + 8)).toEqual(
+                    `${message}-updated`
+                );
             };
 
             await cluster.execute(null, dashboard);
@@ -281,6 +308,10 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -289,16 +320,24 @@ describe('Incident Timeline API', () => {
 
                 // fill internal message thread form
                 await page.waitFor(2000);
+                await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
                 await page.click(`textarea[id=new-${type}]`);
                 await page.type(`textarea[id=new-${type}]`, `${message}`);
+                await init.selectByText('#incident_state', 'others', page);
+                await page.click('input[name=custom_incident_state]');
+                await page.type(
+                    'input[name=custom_incident_state]',
+                    'automation'
+                );
+
                 await page.click(`#${type}-addButton`);
                 await page.waitFor(2000);
 
                 const incidentMessage = await page.$(
-                    `#${type}_incident_message_0_content`
+                    `#content_${type}_incident_message_0`
                 );
                 let messageContent = await incidentMessage.getProperty(
                     'innerText'
@@ -312,17 +351,20 @@ describe('Incident Timeline API', () => {
         operationTimeOut
     );
     test(
-        'should edit message related to internal incident message thread and add the edited flag to it',
+        'should edit message related to internal incident message thread',
         async () => {
             const dashboard = async ({ page }) => {
                 await page.waitFor(5000);
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.click(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
 
                 await page.waitFor(2000);
@@ -333,17 +375,61 @@ describe('Incident Timeline API', () => {
                 await page.waitForSelector(`#edit-${type}`);
                 await page.click(`textarea[id=edit-${type}]`);
                 await page.type(`textarea[id=edit-${type}]`, '-updated');
+                await init.selectByText(
+                    '#incident_state',
+                    'investigating',
+                    page
+                );
                 await page.click(`#${type}-editButton`);
                 await page.waitFor(2000);
 
                 const incidentMessage = await page.$(
-                    `#${type}_incident_message_0_content`
+                    `#content_${type}_incident_message_0`
                 );
                 let messageContent = await incidentMessage.getProperty(
                     'innerText'
                 );
                 messageContent = await messageContent.jsonValue();
-                expect(messageContent).toEqual(`${message}-updated(edited)`);
+                expect(messageContent.substring(0, message.length + 8)).toEqual(
+                    `${message}-updated`
+                );
+            };
+
+            await cluster.execute(null, dashboard);
+        },
+        operationTimeOut
+    );
+    test(
+        'should delete message related to internal incident message thread',
+        async () => {
+            const dashboard = async ({ page }) => {
+                await page.waitFor(5000);
+                const type = 'internal';
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                await page.waitFor(2000);
+                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+                await page.click(`#incident_${projectMonitorName}_0`);
+
+                await page.waitFor(2000);
+                await page.waitForSelector(`#edit_${type}_incident_message_0`);
+                await page.click(`#delete_${type}_incident_message_0`);
+                await page.waitFor(5000);
+
+                // click confirmation delete button
+                await page.waitForSelector(`#deleteIncidentMessage`);
+                await page.click(`#deleteIncidentMessage`);
+                await page.waitFor(2000);
+
+                const incidentMessage = await page.$(
+                    `#content_${type}_incident_message_0`
+                );
+                expect(incidentMessage).toEqual(null);
             };
 
             await cluster.execute(null, dashboard);
