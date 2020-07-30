@@ -24,19 +24,31 @@ module.exports = {
                             ? 'text'
                             : 'formData'
                     );
-                    const { res, resp } = await pingfetch(
-                        monitor.data.url,
-                        monitor.method,
-                        body,
-                        headers
-                    );
 
-                    await ApiService.ping(monitor._id, {
-                        monitor,
-                        res,
-                        resp,
-                        type: monitor.type,
-                    });
+                    let retry = true;
+                    let retryCount = 0;
+                    while (retry) {
+                        const { res, resp } = await pingfetch(
+                            monitor.data.url,
+                            monitor.method,
+                            body,
+                            headers
+                        );
+
+                        const response = await ApiService.ping(monitor._id, {
+                            monitor,
+                            res,
+                            resp,
+                            type: monitor.type,
+                            retryCount,
+                        });
+
+                        if (response && !response.retry) {
+                            retry = false;
+                        } else {
+                            retryCount++;
+                        }
+                    }
                 }
             }
         } catch (error) {

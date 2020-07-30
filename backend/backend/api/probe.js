@@ -80,7 +80,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     response
 ) {
     try {
-        const { monitor, res, resp, type } = req.body;
+        const { monitor, res, resp, type, retryCount } = req.body;
         let status, log;
 
         if (type === 'api' || type === 'url') {
@@ -140,6 +140,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.pwa = resp && resp.pwa ? resp.pwa : null;
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
+        data.retryCount = retryCount || 0;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {
