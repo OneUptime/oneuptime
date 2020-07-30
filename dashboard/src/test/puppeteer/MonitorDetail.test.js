@@ -1187,7 +1187,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editButtonSelector, e => e.click());
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.$eval('input[id=name]', e => (e.value = ''));
+                await page.click('input[id=name]', { clickCount: 3 });
                 await page.type('input[id=name]', newMonitorName);
                 await page.$eval('button[type=submit]', e => e.click());
 
