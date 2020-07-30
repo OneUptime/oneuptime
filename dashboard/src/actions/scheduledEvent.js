@@ -108,23 +108,28 @@ export function createScheduledEventFailure(error) {
     };
 }
 
-export function deleteScheduledEvent(projectId, scheduledEventId) {
-    return function(dispatch) {
-        const promise = deleteApi(
+export const deleteScheduledEvent = (
+    projectId,
+    scheduledEventId
+) => async dispatch => {
+    try {
+        dispatch(deleteScheduledEventRequest());
+
+        const response = await deleteApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`
         );
-        dispatch(deleteScheduledEventRequest(scheduledEventId));
-
-        promise.then(
-            function(scheduledEvent) {
-                dispatch(deleteScheduledEventSuccess(scheduledEvent.data._id));
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
+        dispatch(deleteScheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(deleteScheduledEventFailure(errorMsg));
+    }
                 if (error && error.message) {
                     error = error.message;
                 } else {
@@ -134,7 +139,7 @@ export function deleteScheduledEvent(projectId, scheduledEventId) {
             }
         );
         return promise;
-    };
+};
 }
 
 export function deleteScheduledEventSuccess(scheduledEventId) {
@@ -144,7 +149,7 @@ export function deleteScheduledEventSuccess(scheduledEventId) {
     };
 }
 
-export function deleteScheduledEventRequest(scheduledEventId) {
+export function deleteScheduledEventRequest() {
     return {
         type: types.DELETE_SCHEDULED_EVENT_REQUEST,
         payload: scheduledEventId,
