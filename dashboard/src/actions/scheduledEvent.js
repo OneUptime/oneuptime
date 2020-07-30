@@ -21,7 +21,8 @@ export const fetchscheduledEvents = (
                 `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        dispatch(fetchscheduledEventsSuccess(response.data));
+        const { data, count } = response.data;
+        dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
