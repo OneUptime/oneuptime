@@ -18,8 +18,8 @@ export class IncidentMessageThread extends Component {
             incident,
             incidentMessages,
             count,
-            canSeeOlder,
-            canSeeNewer,
+            canPrev,
+            canNext,
             requesting,
             type,
             error,
@@ -369,15 +369,15 @@ export class IncidentMessageThread extends Component {
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
-                                        (canSeeOlder ? '' : 'Is--disabled')
+                                        (canPrev ? '' : 'Is--disabled')
                                     }
-                                    disabled={!canSeeOlder}
+                                    disabled={!canPrev}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     type="button"
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Older Messages</span>
+                                            <span>Newer Messages</span>
                                         </span>
                                     </div>
                                 </button>
@@ -390,15 +390,15 @@ export class IncidentMessageThread extends Component {
                                     }}
                                     className={
                                         'Button bs-ButtonLegacy' +
-                                        (canSeeNewer ? '' : 'Is--disabled')
+                                        (canNext ? '' : 'Is--disabled')
                                     }
-                                    disabled={!canSeeNewer}
+                                    disabled={!canNext}
                                     data-db-analytics-name="list_view.pagination.next"
                                     type="button"
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                            <span>Newer Messages</span>
+                                            <span>Older Messages</span>
                                         </span>
                                     </div>
                                 </button>
@@ -419,8 +419,8 @@ IncidentMessageThread.propTypes = {
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,
     count: PropTypes.number,
-    canSeeOlder: PropTypes.bool,
-    canSeeNewer: PropTypes.bool,
+    canPrev: PropTypes.bool,
+    canNext: PropTypes.bool,
     requesting: PropTypes.bool,
     type: PropTypes.string,
     error: PropTypes.string,

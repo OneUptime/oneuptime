@@ -26,7 +26,7 @@ export class IncidentInvestigation extends Component {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
             this.props.incident._id,
-            parseInt(this.props.incidentMessages.skip, 10) +
+            parseInt(this.props.incidentMessages.skip, 10) -
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
         );
@@ -45,7 +45,7 @@ export class IncidentInvestigation extends Component {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
             this.props.incident._id,
-            parseInt(this.props.incidentMessages.skip, 10) -
+            parseInt(this.props.incidentMessages.skip, 10) +
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
         );
@@ -81,8 +81,8 @@ export class IncidentInvestigation extends Component {
         let skip = 0;
         let limit = 0;
         let requesting = false;
-        let canSeeOlder = false;
-        let canSeeNewer = false;
+        let canPrev = false;
+        let canNext = false;
         let error;
         const { incidentMessages, incident, openModal } = this.props;
         const {
@@ -106,16 +106,14 @@ export class IncidentInvestigation extends Component {
             if (limit && typeof limit === 'string') {
                 limit = parseInt(limit, 10);
             }
-
             if (!skip) skip = 0;
             if (!limit) limit = 10;
-
-            canSeeOlder = count > skip + limit ? true : false;
-            canSeeNewer = skip <= 0 ? false : true;
+            canNext = count > skip + limit ? true : false;
+            canPrev = skip <= 0 ? false : true;
 
             if (requesting || count < 1) {
-                canSeeOlder = false;
-                canSeeNewer = false;
+                canNext = false;
+                canPrev = false;
             }
         }
 
@@ -127,8 +125,8 @@ export class IncidentInvestigation extends Component {
                         description="Tell us more about what went wrong."
                         incidentMessages={incidentMessages}
                         count={count}
-                        canSeeOlder={canSeeOlder}
-                        canSeeNewer={canSeeNewer}
+                        canPrev={canPrev}
+                        canNext={canNext}
                         requesting={requesting}
                         incident={incident}
                         type={'investigation'}
