@@ -91,10 +91,12 @@ describe('Monitor Detail API', () => {
                 );
 
                 await page.waitForSelector(`#createIncident_${monitorName}`);
-                await page.$eval(`#createIncident_${monitorName}`,e=>e.click());
+                await page.$eval(`#createIncident_${monitorName}`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.$eval('#createIncident',e=>e.click());
+                await page.$eval('#createIncident', e => e.click());
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
@@ -120,7 +122,9 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(
                     `#monitorCreateIncident_${monitorName}`
                 );
-                await page.$eval(`#monitorCreateIncident_${monitorName}`,e=>e.click());
+                await page.$eval(`#monitorCreateIncident_${monitorName}`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#incidentTitleLabel');
                 let spanElement = await page.waitForSelector(
                     `#incidentTitleLabel`
@@ -178,15 +182,15 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(5000);
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
-                await page.$eval(selector,e=>e.click());
+                await page.$eval(selector, e => e.click());
                 await page.waitFor(5000);
                 await page.waitForSelector('button[id=deleteIncidentButton]');
-                await page.$eval('#deleteIncidentButton',e=>e.click());
+                await page.$eval('#deleteIncidentButton', e => e.click());
                 await page.waitFor(5000);
                 await page.waitForSelector('button[id=confirmDeleteIncident]', {
                     visible: true,
                 });
-                await page.$eval('#confirmDeleteIncident',e=>e.click());
+                await page.$eval('#confirmDeleteIncident', e => e.click());
                 await page.waitForNavigation();
 
                 const incidentList = 'tr.incidentListItem';
@@ -213,19 +217,19 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addScheduledEventButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('form input[name=startDate]');
 
-                await page.$eval('input[name=startDate]',e=>e.click());
+                await page.$eval('input[name=startDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
-                    e=>e.click()
+                    e => e.click()
                 );
-                await page.$eval('input[name=endDate]',e=>e.click());
+                await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
-                    e=>e.click()
+                    e => e.click()
                 );
 
                 await page.type('input[name=name]', utils.scheduledEventName);
@@ -246,7 +250,7 @@ describe('Monitor Detail API', () => {
 
                 await Promise.all([
                     createScheduledEventPromise,
-                    page.$eval('#createScheduledEventButton',e=>e.click()),
+                    page.$eval('#createScheduledEventButton', e => e.click()),
                 ]);
 
                 const createdScheduledEventSelector = '.scheduled-event-name';
@@ -279,19 +283,19 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addScheduledEventButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('form input[name=startDate]');
 
-                await page.$eval('input[name=startDate]',e=>e.click());
+                await page.$eval('input[name=startDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
-                    e=>e.click()
+                    e => e.click()
                 );
-                await page.$eval('input[name=endDate]',e=>e.click());
+                await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
-                    e=>e.click()
+                    e => e.click()
                 );
 
                 await page.type(
@@ -315,7 +319,7 @@ describe('Monitor Detail API', () => {
 
                 await Promise.all([
                     createScheduledEventPromise,
-                    page.$eval('#createScheduledEventButton',e=>e.click()),
+                    page.$eval('#createScheduledEventButton', e => e.click()),
                 ]);
 
                 const createdScheduledEventSelector =
@@ -347,13 +351,13 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addSubscriberButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('#alertViaId');
 
                 await init.selectByText('#alertViaId', 'email', page);
                 await page.type('input[name=email]', subscriberEmail);
-                await page.$eval('#createSubscriber',e=>e.click());
+                await page.$eval('#createSubscriber', e => e.click());
 
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item .contact';
@@ -387,14 +391,14 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(addButtonSelector);
 
                 for (let i = 0; i < 5; i++) {
-                    await page.$eval(addButtonSelector,e=>e.click());
+                    await page.$eval(addButtonSelector, e => e.click());
                     await page.waitForSelector('#alertViaId');
                     await init.selectByText('#alertViaId', 'email', page);
                     await page.type(
                         'input[name=email]',
                         utils.generateRandomBusinessEmail()
                     );
-                    await page.$eval('#createSubscriber',e=>e.click());
+                    await page.$eval('#createSubscriber', e => e.click());
                     await page.waitFor(1000);
                 }
 
@@ -446,7 +450,7 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addMsTeamsButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('#endpoint');
 
@@ -461,7 +465,7 @@ describe('Monitor Detail API', () => {
                 const createdWebhookSelector =
                     '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-                await page.$eval('#createMsTeams',e=>e.click());
+                await page.$eval('#createMsTeams', e => e.click());
                 await page.waitForSelector(createdWebhookSelector);
 
                 const createdWebhookEndpoint = await page.$eval(
@@ -501,12 +505,12 @@ describe('Monitor Detail API', () => {
 
                 const editWebhookButtonSelector =
                     '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
-                await page.$eval(editWebhookButtonSelector,e=>e.click());
+                await page.$eval(editWebhookButtonSelector, e => e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                await page.$eval('#endpoint',e=>e.value='');
+                await page.$eval('#endpoint', e => (e.value = ''));
                 await page.type('#endpoint', newWebhookEndpoint);
-                await page.$eval('#msteamsUpdate',e=>e.click());
+                await page.$eval('#msteamsUpdate', e => e.click());
                 await page.waitFor(1000);
                 const updatedWebhookEndpoint = await page.$eval(
                     existingWebhookSelector,
@@ -540,10 +544,10 @@ describe('Monitor Detail API', () => {
 
                 const deleteWebhookButtonSelector =
                     '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
-                await page.$eval(deleteWebhookButtonSelector,e=>e.click());
+                await page.$eval(deleteWebhookButtonSelector, e => e.click());
 
                 await page.waitForSelector('#msteamsDelete');
-                await page.$eval('#msteamsDelete',e=>e.click());
+                await page.$eval('#msteamsDelete', e => e.click());
 
                 await page.waitFor(1000);
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -570,7 +574,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(addButtonSelector);
 
                 for (let i = 0; i < 11; i++) {
-                    await page.$eval(addButtonSelector,e=>e.click());
+                    await page.$eval(addButtonSelector, e => e.click());
                     await page.waitForSelector('#endpoint');
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
@@ -579,7 +583,7 @@ describe('Monitor Detail API', () => {
                             .querySelector('input[name=incidentCreated]')
                             .click();
                     });
-                    await page.$eval('#createMsTeams',e=>e.click());
+                    await page.$eval('#createMsTeams', e => e.click());
                     await page.waitFor(1000);
                 }
 
@@ -633,7 +637,7 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addSlackButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('#endpoint');
 
@@ -648,7 +652,7 @@ describe('Monitor Detail API', () => {
                 const createdWebhookSelector =
                     '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-                await page.$eval('#createSlack',e=>e.click());
+                await page.$eval('#createSlack', e => e.click());
                 await page.waitForSelector(createdWebhookSelector);
 
                 const createdWebhookEndpoint = await page.$eval(
@@ -687,12 +691,12 @@ describe('Monitor Detail API', () => {
 
                 const editWebhookButtonSelector =
                     '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(1)';
-                await page.$eval(editWebhookButtonSelector,e=>e.click());
+                await page.$eval(editWebhookButtonSelector, e => e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                await page.$eval('#endpoint',e=>e.value='');
+                await page.$eval('#endpoint', e => (e.value = ''));
                 await page.type('#endpoint', newWebhookEndpoint);
-                await page.$eval('#slackUpdate',e=>e.click());
+                await page.$eval('#slackUpdate', e => e.click());
                 await page.waitFor(1000);
                 const updatedWebhookEndpoint = await page.$eval(
                     existingWebhookSelector,
@@ -726,10 +730,10 @@ describe('Monitor Detail API', () => {
 
                 const deleteWebhookButtonSelector =
                     '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(2) > div > span > div > button:nth-child(2)';
-                await page.$eval(deleteWebhookButtonSelector,e=>e.click());
+                await page.$eval(deleteWebhookButtonSelector, e => e.click());
 
                 await page.waitForSelector('#slackDelete');
-                await page.$eval('#slackDelete',e=>e.click());
+                await page.$eval('#slackDelete', e => e.click());
 
                 await page.waitFor(1000);
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -756,7 +760,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(addButtonSelector);
 
                 for (let i = 0; i < 11; i++) {
-                    await page.$eval(addButtonSelector,e=>e.click());
+                    await page.$eval(addButtonSelector, e => e.click());
                     await page.waitForSelector('#endpoint');
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
@@ -765,7 +769,7 @@ describe('Monitor Detail API', () => {
                             .querySelector('input[name=incidentCreated]')
                             .click();
                     });
-                    await page.$eval('#createSlack',e=>e.click());
+                    await page.$eval('#createSlack', e => e.click());
                     await page.waitFor(1000);
                 }
 
@@ -818,7 +822,7 @@ describe('Monitor Detail API', () => {
 
                 const addButtonSelector = '#addWebhookButton';
                 await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector,e=>e.click());
+                await page.$eval(addButtonSelector, e => e.click());
 
                 await page.waitForSelector('#endpoint');
 
@@ -834,7 +838,7 @@ describe('Monitor Detail API', () => {
                 const createdWebhookSelector =
                     '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
 
-                await page.$eval('#createWebhook',e=>e.click());
+                await page.$eval('#createWebhook', e => e.click());
                 await page.waitForSelector(createdWebhookSelector);
 
                 const createdWebhookEndpoint = await page.$eval(
@@ -864,7 +868,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(addButtonSelector);
 
                 for (let i = 0; i < 10; i++) {
-                    await page.$eval(addButtonSelector,e=>e.click());
+                    await page.$eval(addButtonSelector, e => e.click());
                     await page.waitForSelector('#endpoint');
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
@@ -875,7 +879,7 @@ describe('Monitor Detail API', () => {
                             .querySelector('input[name=incidentCreated]')
                             .click();
                     });
-                    await page.$eval('#createWebhook',e=>e.click());
+                    await page.$eval('#createWebhook', e => e.click());
                     await page.waitFor(1000);
                 }
 
@@ -921,13 +925,13 @@ describe('Monitor Detail API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.$eval('input[id=name]',e=>e.click());
+                await page.$eval('input[id=name]', e => e.click());
                 await page.type('input[id=name]', urlMonitorName);
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
-                await page.$eval('#url',e=>e.click());
+                await page.$eval('#url', e => e.click());
                 await page.type('#url', 'https://google.com');
-                await page.$eval('button[type=submit]',e=>e.click());
+                await page.$eval('button[type=submit]', e => e.click());
 
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -965,12 +969,14 @@ describe('Monitor Detail API', () => {
                 );
 
                 await page.waitForSelector(`#addSiteUrl_${urlMonitorName}`);
-                await page.$eval(`#addSiteUrl_${urlMonitorName}`,e=>e.click());
+                await page.$eval(`#addSiteUrl_${urlMonitorName}`, e =>
+                    e.click()
+                );
 
                 await page.waitForSelector('input[id=siteUrl]');
-                await page.$eval('input[id=siteUrl]',e=>e.click());
+                await page.$eval('input[id=siteUrl]', e => e.click());
                 await page.type('input[id=siteUrl]', 'http://localhost:3010');
-                await page.$eval('#addSiteUrlButton',e=>e.click());
+                await page.$eval('#addSiteUrlButton', e => e.click());
                 await page.waitFor(5000);
 
                 const createdLighthouseLogsSelector =
@@ -1002,9 +1008,11 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(
                     `#removeSiteUrl_${urlMonitorName}_0`
                 );
-                await page.$eval(`#removeSiteUrl_${urlMonitorName}_0`,e=>e.click());
+                await page.$eval(`#removeSiteUrl_${urlMonitorName}_0`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#websiteUrlDelete');
-                await page.$eval('#websiteUrlDelete',e=>e.click());
+                await page.$eval('#websiteUrlDelete', e => e.click());
                 await page.waitFor(5000);
 
                 const createdLighthouseLogsSelector =
@@ -1034,7 +1042,9 @@ describe('Monitor Detail API', () => {
                 );
 
                 await page.waitForSelector(`#scanWebsites_${urlMonitorName}`);
-                await page.$eval(`#scanWebsites_${urlMonitorName}`,e=>e.click());
+                await page.$eval(`#scanWebsites_${urlMonitorName}`, e =>
+                    e.click()
+                );
 
                 await page.waitFor(200000);
 
@@ -1101,7 +1111,7 @@ describe('Monitor Detail API', () => {
                 const createdLighthouseLogsSelector =
                     '#lighthouseLogsList > tbody > tr.lighthouseLogsListItem > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdLighthouseLogsSelector);
-                await page.$eval(createdLighthouseLogsSelector,e=>e.click());
+                await page.$eval(createdLighthouseLogsSelector, e => e.click());
                 await page.waitFor(5000);
 
                 let lighthousePerformanceElement = await page.waitForSelector(
@@ -1174,12 +1184,12 @@ describe('Monitor Detail API', () => {
                 );
 
                 const editButtonSelector = `#edit_${monitorName}`;
-                await page.$eval(editButtonSelector,e=>e.click());
+                await page.$eval(editButtonSelector, e => e.click());
 
                 await page.waitForSelector('#form-new-monitor');
-                await page.$eval('input[id=name]',e=>e.value='');
+                await page.$eval('input[id=name]', e => (e.value = ''));
                 await page.type('input[id=name]', newMonitorName);
-                await page.$eval('button[type=submit]',e=>e.click());
+                await page.$eval('button[type=submit]', e => e.click());
 
                 const selector = `span#monitor-title-${newMonitorName}`;
 
@@ -1206,11 +1216,11 @@ describe('Monitor Detail API', () => {
                 );
 
                 const deleteButtonSelector = `#delete_${newMonitorName}`;
-                await page.$eval(deleteButtonSelector,e=>e.click());
+                await page.$eval(deleteButtonSelector, e => e.click());
 
                 const confirmDeleteButtonSelector = '#deleteMonitor';
                 await page.waitForSelector(confirmDeleteButtonSelector);
-                await page.$eval(confirmDeleteButtonSelector,e=>e.click());
+                await page.$eval(confirmDeleteButtonSelector, e => e.click());
                 await page.waitFor(5000);
 
                 const selector = `span#monitor-title-${newMonitorName}`;

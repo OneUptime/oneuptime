@@ -170,10 +170,12 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const authToken = await EncryptDecrypt.decrypt(customTwilioSettings.authToken);
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    authToken,
+                    authToken
                 );
                 const message = await twilioClient.messages.create(options);
                 return message;

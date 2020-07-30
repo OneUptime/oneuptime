@@ -136,7 +136,7 @@ module.exports = {
 
         // Navigate to details page of component assumed created
         await page.waitForSelector(`#more-details-${component}`);
-        await page.$eval(`#more-details-${component}`,e=>e.click());
+        await page.$eval(`#more-details-${component}`, e => e.click());
     },
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
@@ -144,7 +144,7 @@ module.exports = {
 
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
-        await page.$eval(`#more-details-${monitor}`,e=>e.click());
+        await page.$eval(`#more-details-${monitor}`, e => e.click());
         await page.waitForSelector(`#monitor-title-${monitor}`, {
             visible: true,
         });
