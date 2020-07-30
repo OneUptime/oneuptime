@@ -111,6 +111,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     requesting: true,
+                    error: null,
+                    success: false,
                 },
             });
 
@@ -120,13 +122,9 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     scheduledEvents: state.scheduledEventList.scheduledEvents.filter(
-                        scheduledEvent => {
-                            if (scheduledEvent._id === action.payload) {
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        }
+                        scheduledEvent =>
+                            String(scheduledEvent._id) !==
+                            String(action.payload._id)
                     ),
                     count: state.scheduledEventList.count - 1,
                 },
@@ -136,6 +134,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     error: false,
                 },
             });
+
         case DELETE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
                 ...state,
@@ -145,6 +144,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     error: action.payload,
                 },
             });
+
         case DELETE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
                 ...state,
@@ -167,7 +167,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     ...state.scheduledEventList,
                     scheduledEvents: state.scheduledEventList.scheduledEvents.map(
                         scheduledEvent => {
-                            if (action.payload._id === scheduledEvent._id) {
+                            if (
+                                String(action.payload._id) ===
+                                String(scheduledEvent._id)
+                            ) {
                                 return action.payload;
                             }
                             return scheduledEvent;
@@ -175,6 +178,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     ),
                 },
             });
+
         case UPDATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
                 ...state,
@@ -185,6 +189,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
         case UPDATE_SCHEDULED_EVENT_REQUEST:
             return Object.assign({}, state, {
                 ...state,
