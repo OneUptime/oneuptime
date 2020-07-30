@@ -536,9 +536,11 @@ export default function incident(state = initialState, action) {
                           }
                           return incidentMessage;
                       })
-                    : state.incidentMessages[action.payload.incidentId._id][
-                          action.payload.type
-                      ].incidentMessages.concat([action.payload]);
+                    : [action.payload].concat(
+                          state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ].incidentMessages
+                      );
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -613,9 +615,11 @@ export default function incident(state = initialState, action) {
                           }
                           return incidentMessage;
                       })
-                    : state.incidentMessages[action.payload.incidentId._id][
-                          action.payload.type
-                      ].incidentMessages.concat([action.payload]);
+                    : [action.payload].concat(
+                          state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ].incidentMessages
+                      );
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -879,7 +883,7 @@ export default function incident(state = initialState, action) {
                     [action.payload.incidentId]: {
                         ...state.incidentMessages[action.payload.incidentId],
                         [action.payload.type]: {
-                            incidentMessages: action.payload.incidentMessages.reverse(), // sort in rverse order for easy display in threads
+                            incidentMessages: action.payload.incidentMessages,
                             error: null,
                             requesting: false,
                             success: true,
