@@ -396,6 +396,23 @@ describe('Incident API', function() {
             });
     });
 
+    it('should require an incident state', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send({
+                content: 'Update the notes',
+                type: 'test',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Incident State is required.'
+                );
+                done();
+            });
+    });
     it('should require a valid incident message type', function(done) {
         const authorization = `Basic ${token}`;
         request
@@ -404,6 +421,7 @@ describe('Incident API', function() {
             .send({
                 content: 'Update the notes',
                 type: 'test',
+                incident_state: 'investigation',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -421,12 +439,14 @@ describe('Incident API', function() {
             .send({
                 content: 'Update the notes',
                 type: 'investigation',
+                incident_state: 'investigation',
             })
             .end(function(err, res) {
                 investigationMessageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.incidentId._id).to.be.equal(incidentId);
                 expect(res.body.type).to.be.equal('investigation');
+                expect(res.body.incident_state).to.be.equal('investigation');
                 done();
             });
     });
@@ -438,12 +458,14 @@ describe('Incident API', function() {
             .send({
                 content: 'Update the notes',
                 type: 'internal',
+                incident_state: 'just test',
             })
             .end(function(err, res) {
                 internalMessageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.incidentId._id).to.be.equal(incidentId);
                 expect(res.body.type).to.be.equal('internal');
+                expect(res.body.incident_state).to.be.equal('just test');
                 done();
             });
     });
@@ -455,6 +477,7 @@ describe('Incident API', function() {
             .send({
                 content: 'real set for the notes',
                 id: investigationMessageId,
+                incident_state: 'automated',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -462,6 +485,7 @@ describe('Incident API', function() {
                 expect(res.body.type).to.be.equal('investigation');
                 expect(res.body.updated).to.be.equal(true);
                 expect(res.body.content).to.be.equal('real set for the notes');
+                expect(res.body.incident_state).to.be.equal('automated');
                 done();
             });
     });
@@ -473,6 +497,7 @@ describe('Incident API', function() {
             .send({
                 content: 'update comes',
                 id: internalMessageId,
+                incident_state: 'update',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -480,6 +505,7 @@ describe('Incident API', function() {
                 expect(res.body.type).to.be.equal('internal');
                 expect(res.body.updated).to.be.equal(true);
                 expect(res.body.content).to.be.equal('update comes');
+                expect(res.body.incident_state).to.be.equal('update');
                 done();
             });
     });
