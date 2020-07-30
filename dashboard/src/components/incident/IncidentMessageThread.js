@@ -162,7 +162,9 @@ export class IncidentMessageThread extends Component {
                                                         </div>
 
                                                         <div className="Margin-left--30">
-                                                            <span>
+                                                            <span
+                                                                id={`content_${type}_incident_message_${i}`}
+                                                            >
                                                                 <ReactMarkdown
                                                                     source={
                                                                         incidentMessage.content
@@ -173,7 +175,10 @@ export class IncidentMessageThread extends Component {
                                                                         incidentMessage.updated
                                                                     }
                                                                 >
-                                                                    <span className="Text-color--dark Margin-right--4">
+                                                                    <span
+                                                                        id={`edited_${type}_incident_message_${i}`}
+                                                                        className="Text-color--dark Margin-right--4"
+                                                                    >
                                                                         (edited)
                                                                     </span>
                                                                 </ShouldRender>
@@ -320,6 +325,7 @@ export class IncidentMessageThread extends Component {
                                                                                                 }
                                                                                             )
                                                                                         }
+                                                                                        id={`delete_${type}_incident_message_${i}`}
                                                                                     >
                                                                                         <span>
                                                                                             Delete
