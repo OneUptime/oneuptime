@@ -1,6 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/scheduledEvent';
-import errors from '../errors';
 
 export const fetchscheduledEvents = (
     projectId,
@@ -73,20 +72,7 @@ export const createScheduledEvent = (projectId, values) => async dispatch => {
                 : 'Network Error';
         dispatch(createScheduledEventFailure(errorMsg));
     }
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(createScheduledEventFailure(errors(error)));
-            }
-        );
-        return promise;
 };
-}
 
 export function createScheduledEventSuccess(newScheduledEvent) {
     return {
@@ -130,17 +116,7 @@ export const deleteScheduledEvent = (
                 : 'Network Error';
         dispatch(deleteScheduledEventFailure(errorMsg));
     }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(deleteScheduledEventFailure({ error: errors(error) }));
-            }
-        );
-        return promise;
 };
-}
 
 export function deleteScheduledEventSuccess(scheduledEventId) {
     return {
@@ -152,7 +128,6 @@ export function deleteScheduledEventSuccess(scheduledEventId) {
 export function deleteScheduledEventRequest() {
     return {
         type: types.DELETE_SCHEDULED_EVENT_REQUEST,
-        payload: scheduledEventId,
     };
 }
 
@@ -163,38 +138,31 @@ export function deleteScheduledEventFailure(error) {
     };
 }
 
-export function updateScheduledEvent(projectId, scheduledEventId, values) {
-    return function(dispatch) {
-        const promise = putApi(
+export const updateScheduledEvent = (
+    projectId,
+    scheduledEventId,
+    values
+) => async dispatch => {
+    try {
+        dispatch(updateScheduledEventRequest());
+
+        const response = await putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
         );
-        dispatch(updateScheduledEventRequest());
-
-        promise.then(
-            function(updatedScheduledEvent) {
-                dispatch(
-                    updateScheduledEventSuccess(updatedScheduledEvent.data)
-                );
-            },
-            function(error) {
-                if (error && error.response && error.response.data) {
-                    error = error.response.data;
-                }
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(updateScheduledEventFailure(errors(error)));
-            }
-        );
-        return promise;
-    };
-}
+        dispatch(updateScheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateScheduledEventFailure(errorMsg));
+    }
+};
 
 export function updateScheduledEventSuccess(updatedScheduledEvent) {
     return {
