@@ -144,7 +144,7 @@ export class IncidentMessageThread extends Component {
                                                             <img
                                                                 src="/dashboard/assets/img/profile-user.svg"
                                                                 className="userIcon"
-                                                                alt=""
+                                                                alt="usericon"
                                                                 style={{
                                                                     marginBottom:
                                                                         '-5px',
@@ -299,6 +299,7 @@ export class IncidentMessageThread extends Component {
                                                                                                     width:
                                                                                                         '10px',
                                                                                                 }}
+                                                                                                alt="edit"
                                                                                             />{' '}
                                                                                             Edit
                                                                                         </span>
