@@ -69,19 +69,15 @@ class CreateWebHook extends React.Component {
             handleSubmit,
             closeThisDialog,
             data: { monitorId },
+            allComponents,
         } = this.props;
-        const monitorList = [];
         const allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
-        if (allMonitors && allMonitors.length > 0) {
-            allMonitors.map(monitor =>
-                monitorList.push({
-                    value: monitor._id,
-                    label: monitor.name,
-                })
-            );
-        }
+        const getParentComponent = monitor =>
+            allComponents.filter(
+                component => component._id === monitor.componentId._id
+            )[0];
 
         return (
             <div
@@ -188,15 +184,21 @@ class CreateWebHook extends React.Component {
                                                                         label:
                                                                             'Select monitor',
                                                                     },
-                                                                    ...(monitorList &&
-                                                                    monitorList.length >
+                                                                    ...(allMonitors &&
+                                                                    allMonitors.length >
                                                                         0
-                                                                        ? monitorList.map(
+                                                                        ? allMonitors.map(
                                                                               monitor => ({
                                                                                   value:
-                                                                                      monitor.value,
-                                                                                  label:
-                                                                                      monitor.label,
+                                                                                      monitor._id,
+                                                                                  label: `${
+                                                                                      getParentComponent(
+                                                                                          monitor
+                                                                                      )
+                                                                                          .name
+                                                                                  } / ${
+                                                                                      monitor.name
+                                                                                  }`,
                                                                               })
                                                                           )
                                                                         : []),
@@ -533,6 +535,7 @@ CreateWebHook.propTypes = {
     monitor: PropTypes.object,
     newWebHook: PropTypes.object,
     data: PropTypes.object,
+    allComponents: PropTypes.array,
 };
 
 const NewCreateWebHook = reduxForm({
@@ -553,12 +556,18 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => ({
-    webhook: state.webhook,
-    monitor: state.monitor,
-    currentProject: state.project.currentProject,
-    newWebHook: state.webHooks.createWebHook,
-    initialValues: { endpoint: '', endpointType: '', monitorId: '' },
-});
+const mapStateToProps = state => {
+    const allComponents = state.component.componentList.components
+        .map(component => component.components)
+        .flat();
+    return {
+        allComponents,
+        webhook: state.webhook,
+        monitor: state.monitor,
+        currentProject: state.project.currentProject,
+        newWebHook: state.webHooks.createWebHook,
+        initialValues: { endpoint: '', endpointType: '', monitorId: '' },
+    };
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateWebHook);

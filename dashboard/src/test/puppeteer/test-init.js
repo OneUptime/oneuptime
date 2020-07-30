@@ -223,8 +223,8 @@ module.exports = {
         await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
-        await page.waitForSelector('#callSchedules');
-        await page.click('#callSchedules');
+        await page.waitForSelector('#onCallSchedules');
+        await page.click('#onCallSchedules');
         await page.evaluate(() => {
             document.querySelector('.ActionIconParent').click();
         });
@@ -398,8 +398,8 @@ module.exports = {
             await page.type('#name', scheduleName);
             await page.click('#btnCreateSchedule');
         } else {
-            await page.waitForSelector('#callSchedules');
-            await page.click('#callSchedules');
+            await page.waitForSelector('#onCallSchedules');
+            await page.click('#onCallSchedules');
             await page.waitForSelector(`#btnCreateSchedule_${projectName}`);
             await page.click(`#btnCreateSchedule_${projectName}`);
             await page.waitForSelector('#btnCreateSchedule');

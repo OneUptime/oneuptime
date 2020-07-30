@@ -213,16 +213,28 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId,
+                _id:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
+            const meta = {
+                type: 'Incident',
+                componentId:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
+                incidentId: incident._id,
+            };
 
             if (!incident.createdById) {
-                const msg = `A New Incident was created for ${incident.monitorId.name} by Fyipe`;
+                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
                     'fyipe',
-                    'warning'
+                    'warning',
+                    meta
                 );
                 // send slack notification
                 await SlackService.sendNotification(
@@ -248,12 +260,13 @@ module.exports = {
                     component
                 );
             } else {
-                const msg = `A New Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
+                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 await NotificationService.create(
                     incident.projectId,
                     msg,
                     incident.createdById.name,
-                    'warning'
+                    'warning',
+                    meta
                 );
                 // send slack notification
                 await SlackService.sendNotification(
@@ -338,7 +351,10 @@ module.exports = {
                     _id: incident.monitorId,
                 });
                 const component = await ComponentService.findOneBy({
-                    _id: monitor.componentId,
+                    _id:
+                        monitor.componentId && monitor.componentId._id
+                            ? monitor.componentId._id
+                            : monitor.componentId,
                 });
                 incident = await _this.findOneBy({ _id: incident._id });
 
@@ -534,7 +550,10 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId,
+                _id:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,

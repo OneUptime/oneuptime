@@ -72,7 +72,7 @@ const ping = (projectId, monitorId, apiUrl, apiKey, interval = '* * * * *') => {
                     );
                 })
                 .catch(error => {
-                    logger.debug(error);
+                    logger.error(error);
                 });
         },
         null,
@@ -120,7 +120,7 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                         } else {
                             if (data.data !== null && data.data.length > 0) {
                                 if (data.count === 1) {
-                                    logger.info(
+                                    logger.warn(
                                         'Using default Server Monitor...'
                                     );
                                     resolve(data.data[0]._id);
@@ -128,19 +128,19 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                                     if (id && typeof id === 'function') {
                                         resolve(id(data.data));
                                     } else {
-                                        logger.info(
+                                        logger.error(
                                             'Server Monitor ID is required'
                                         );
                                         reject(1);
                                     }
                                 }
                             } else {
-                                logger.info('No Server Monitor found');
+                                logger.error('No Server Monitor found');
                                 reject(0);
                             }
                         }
                     } else {
-                        logger.info('No Server Monitor found');
+                        logger.error('No Server Monitor found');
                         reject(0);
                     }
                 });
@@ -166,15 +166,17 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
 
                         return pingServer;
                     } else {
-                        logger.info('Server Monitor ID is required');
+                        logger.error('Server Monitor ID is required');
                         throw new Error(1);
                     }
                 })
                 .catch(error => {
+                    logger.error(error);
+
                     const errorCode = typeof error === 'number' ? error : 1;
                     process.exitCode = errorCode;
 
-                    return errorCode;
+                    return error;
                 });
         },
         /** Stop server monitor.

@@ -209,7 +209,7 @@ class NewApplicationLog extends Component {
                                             type="submit"
                                         >
                                             <ShouldRender if={!requesting}>
-                                                <span>Add Application </span>
+                                                <span>Add Log Container</span>
                                             </ShouldRender>
 
                                             <ShouldRender if={requesting}>

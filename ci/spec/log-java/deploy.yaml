@@ -32,7 +32,6 @@ deploy_staging_log-java:
         refs:
             - master
             - hotfix-master
-            - feature-applog
     environment:
         name: staging
 
@@ -65,8 +64,7 @@ deploy_poduction_log-java:
         - cd ..
     only:
         refs:
-            - master
-            - hotfix-master
-            - feature-applog
+            - release
+            - hotfix-release
     environment:
         name: production

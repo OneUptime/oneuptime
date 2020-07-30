@@ -10,7 +10,7 @@ import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
 import { openModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { API_URL, SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class APISettings extends Component {
     constructor(props) {
@@ -86,6 +86,23 @@ export class APISettings extends Component {
                                                             ? this.props
                                                                   .currentProject
                                                                   ._id
+                                                            : 'LOADING...'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    API URL
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <span
+                                                        className="value"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        {API_URL !== null
+                                                            ? API_URL
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>

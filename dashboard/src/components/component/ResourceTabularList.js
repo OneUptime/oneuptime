@@ -135,8 +135,14 @@ class ResourceTabularList extends Component {
                                                                     style={{
                                                                         backgroundRepeat:
                                                                             'no-repeat',
-                                                                        backgroundSize:
-                                                                            '15px',
+                                                                        backgroundSize: `${
+                                                                            componentResource.icon ===
+                                                                                'appLog' ||
+                                                                            componentResource.icon ===
+                                                                                'security'
+                                                                                ? '12px'
+                                                                                : '15px'
+                                                                        }`,
                                                                         backgroundPosition:
                                                                             'center',
                                                                         margin:

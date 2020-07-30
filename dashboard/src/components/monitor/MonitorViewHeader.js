@@ -186,7 +186,11 @@ export class MonitorViewHeader extends Component {
                 )}
                 <div className="Box-root">
                     <div className="db-Trends-header">
-                        <MonitorTitle monitor={monitor} status={status} />
+                        <MonitorTitle
+                            monitor={monitor}
+                            logs={logs}
+                            status={status}
+                        />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
                                 <DateRangeWrapper

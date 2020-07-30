@@ -40,15 +40,31 @@ class ApplicationLogView extends Component {
             applicationLog,
         } = this.props;
 
-        const componentName = component.length > 0 ? component[0].name : null;
+        const componentName =
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : component[1].name
+                : null;
         const applicationLogName =
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-log'
+                        )}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-logs'
+                        )}
                         name="Logs"
                     />
                     <BreadCrumbItem

@@ -34,8 +34,8 @@ class SubProjectApiKey extends Component {
     };
 
     renderAPIKey = hidden => {
-        const { subproject } = this.props;
-        return hidden ? (
+        const { subproject, subProjectResetToken } = this.props;
+        return hidden && !subProjectResetToken.success ? (
             <span id="apiKey" className="value">
                 Click here to reveal API key
             </span>
@@ -106,9 +106,25 @@ class SubProjectApiKey extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            API Key:
-                                                        </label>
+                                                        <ShouldRender
+                                                            if={
+                                                                !subProjectResetToken.success
+                                                            }
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                API Key:
+                                                            </label>
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                subProjectResetToken.success
+                                                            }
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                New API Key:
+                                                            </label>
+                                                        </ShouldRender>
+
                                                         <div
                                                             className="bs-Fieldset-fields Margin-top--6 pointer"
                                                             onClick={() =>

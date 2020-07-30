@@ -7,6 +7,9 @@
 const pino = require('pino');
 
 /** The logger service. */
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    prettyPrint: true,
+});
 
 module.exports = logger;

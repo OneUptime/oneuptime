@@ -2,19 +2,12 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
-import uuid from 'uuid';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-import {
-    fetchSettings,
-    saveSettings,
-    testTwilio,
-} from '../../actions/settings';
+import { fetchSettings, saveSettings } from '../../actions/settings';
 import { openModal, closeModal } from '../../actions/modal';
-
-import TwilioTestModal from './twilioTestModal';
 
 // Client side validation
 function validate(values) {
@@ -30,10 +23,6 @@ function validate(values) {
 
     if (!Validate.text(values.phone)) {
         errors.phone = 'Phone is not valid.';
-    }
-
-    if (!Validate.text(values['verification-sid'])) {
-        errors['verification-sid'] = 'Verification SID is not valid.';
     }
 
     if (!Validate.number(values['alert-limit'])) {
@@ -102,12 +91,6 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'verification-sid',
-        label: 'Verification SID',
-        type: 'text',
-        component: RenderField,
-    },
-    {
         key: 'alert-limit',
         label: 'Twilio Alert Limit',
         type: 'number',
@@ -116,51 +99,9 @@ const fields = [
 ];
 
 export class Component extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = { testModalId: uuid.v4() };
-    }
-
     async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
-
-    handleTwilioTest = e => {
-        e.preventDefault();
-        const thisObj = this;
-        const { testModalId } = this.state;
-        const { twilioForm, testTwilio } = this.props;
-
-        this.props.openModal({
-            id: testModalId,
-            onConfirm: testPhone => {
-                const { 'test-number': testphoneNumber } = testPhone;
-                const {
-                    'account-sid': accountSid,
-                    'authentication-token': authToken,
-                    phone: phoneNumber,
-                } = twilioForm.values;
-
-                return testTwilio({
-                    accountSid,
-                    authToken,
-                    phoneNumber,
-                    testphoneNumber,
-                }).then(res => {
-                    if (res && typeof res === 'string') {
-                        // prevent dismissal of modal if errored
-                        // res will only be a string if errored
-                        return this.handleTwilioTest();
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Sent SMTP settings');
-                    }
-                });
-            },
-            content: TwilioTestModal,
-        });
-    };
 
     handleKeyBoard = e => {
         switch (e.key) {
@@ -248,19 +189,26 @@ export class Component extends React.Component {
                         </div>
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
+                            <span className="db-SettingsForm-footerMessage">
+                                {settings.error && (
+                                    <div className="bs-Tail-copy">
+                                        <div
+                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            <div className="Box-root Margin-right--8">
+                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                            </div>
+                                            <div className="Box-root">
+                                                <span style={{ color: 'red' }}>
+                                                    {settings.error}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </span>
                             <div>
-                                <button
-                                    className="bs-Button"
-                                    disabled={settings && settings.requesting}
-                                    onClick={this.handleTwilioTest}
-                                >
-                                    {settings.requesting ? (
-                                        <FormLoader />
-                                    ) : (
-                                        <span>Test</span>
-                                    )}
-                                </button>
                                 <button
                                     className="bs-Button bs-Button--blue"
                                     disabled={settings && settings.requesting}
@@ -288,10 +236,7 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     saveSettings: PropTypes.func.isRequired,
     fetchSettings: PropTypes.func.isRequired,
-    testTwilio: PropTypes.func.isRequired,
-    openModal: PropTypes.func,
     closeModal: PropTypes.func,
-    twilioForm: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -299,7 +244,6 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
-            testTwilio,
             openModal,
             closeModal,
         },
@@ -311,7 +255,6 @@ function mapStateToProps(state) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],
-        twilioForm: state.form['twilio-form'],
     };
 }
 

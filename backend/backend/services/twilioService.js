@@ -5,6 +5,7 @@
  */
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
+const TwilioModel = require('../models/twilio');
 const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
@@ -15,6 +16,20 @@ const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
 
 const _this = {
+    findByOne: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const twilioSettings = await TwilioModel.findOne(query);
+            return twilioSettings;
+        } catch (error) {
+            ErrorService.log('SubscriberService.findByOne', error);
+            throw error;
+        }
+    },
+
     getClient: (accountSid, authToken) => {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');
@@ -131,7 +146,6 @@ const _this = {
         componentName
     ) {
         try {
-            const _this = this;
             let { template } = await _this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Created'
@@ -144,32 +158,55 @@ const _this = {
                 componentName,
             };
             template = template(data);
-            const creds = await _this.getSettings();
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-            const options = {
-                body: template,
-                from: creds.phone,
-                to: number,
-            };
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-            let alertLimit = true;
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
 
-            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
-
-            if (alertLimit) {
+            if (customTwilioSettings) {
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    customTwilioSettings.authToken
+                );
                 const message = await twilioClient.messages.create(options);
                 return message;
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                return error;
+                const creds = await _this.getSettings();
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    return error;
+                }
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+                let alertLimit = true;
+
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+
+                if (alertLimit) {
+                    const message = await twilioClient.messages.create(options);
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    return error;
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -305,7 +342,7 @@ const _this = {
             const options = {
                 body: 'This is a test SMS from Fyipe',
                 from: data.phoneNumber,
-                to: data.testphoneNumber,
+                to: '+19173976235',
             };
 
             const twilioClient = _this.getClient(

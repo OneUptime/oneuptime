@@ -157,8 +157,7 @@ describe('Twilio API', function() {
             const payload = {
                 accountSid: value['account-sid'],
                 authToken: value['authentication-token'],
-                phoneNumber: value.phone,
-                testphoneNumber: '',
+                phoneNumber: '',
             };
 
             request

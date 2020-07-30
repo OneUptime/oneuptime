@@ -16,7 +16,7 @@ const RenderTextArea = ({
 }) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
-            id={id}
+            id={id || 'feedback-textarea'}
             {...input}
             type={type}
             rows={rows}

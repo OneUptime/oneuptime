@@ -368,7 +368,7 @@ export class PrivateStatusPage extends Component {
                                                                 );
                                                             }}
                                                         >
-                                                            Advance options for
+                                                            Advanced options for
                                                             subscribers
                                                         </button>
                                                     </p>

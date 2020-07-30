@@ -57,7 +57,7 @@ let RenderMonitor = ({
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent = monitor =>
         allComponents.filter(
-            component => component._id === monitor.componentId
+            component => component._id === monitor.componentId._id
         )[0];
 
     const selectedMonitor = allMonitors.filter(
@@ -100,7 +100,7 @@ let RenderMonitor = ({
                         className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
                         style={{ backgroundColor: '#f7f7f7' }}
                     >
-                        <div className="bs-Fieldset-row Margin-bottom--4">
+                        <div className="bs-Fieldset-row Margin-bottom--12">
                             <label
                                 className="bs-Fieldset-label"
                                 style={{

@@ -77,6 +77,43 @@ describe('Components', () => {
     );
 
     test(
+        'should show the correct path on the breadcrumbs inside a component',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                const moreBtn = `#more-details-${componentName}`;
+                await page.waitForSelector(moreBtn, { visible: true });
+                await page.click(moreBtn);
+
+                const projectSelector = `#cbUnnamedProject`;
+                const componentSelector = `#cb${componentName}`;
+                await page.waitForSelector(projectSelector, { visible: true });
+                const projectBreadcrumb = await page.evaluate(
+                    projectSelector =>
+                        document.querySelector(projectSelector).textContent,
+                    projectSelector
+                );
+                await page.waitForSelector(componentSelector, {
+                    visible: true,
+                });
+                const componentBreadcrumb = await page.evaluate(
+                    componentSelector =>
+                        document.querySelector(componentSelector).textContent,
+                    componentSelector
+                );
+
+                expect(projectBreadcrumb).toBe('Unnamed Project');
+                expect(componentBreadcrumb).toBe(componentName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should not create new component when details are incorrect',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -131,6 +168,52 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show the correct path on the breadcrumbs when viewing a particular monitor',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+                const monitorDetailsBtn = `#more-details-${monitorName}`;
+                await page.waitForSelector(monitorDetailsBtn, {
+                    visible: true,
+                });
+                await page.click(monitorDetailsBtn);
+
+                const projectSelector = `#cbUnnamedProject`;
+                const componentSelector = `#cb${componentName}`;
+                const monitorSelector = `#cb${monitorName}`;
+                await page.waitForSelector(projectSelector, { visible: true });
+                await page.waitForSelector(componentSelector, {
+                    visible: true,
+                });
+                await page.waitForSelector(monitorSelector, { visible: true });
+
+                const projectBreadcrumb = await page.evaluate(
+                    projectSelector =>
+                        document.querySelector(projectSelector).textContent,
+                    projectSelector
+                );
+                const componentBreadcrumb = await page.evaluate(
+                    componentSelector =>
+                        document.querySelector(componentSelector).textContent,
+                    componentSelector
+                );
+                const monitorBreadcrumb = await page.evaluate(
+                    monitorSelector =>
+                        document.querySelector(monitorSelector).textContent,
+                    monitorSelector
+                );
+                expect(projectBreadcrumb).toBe('Unnamed Project');
+                expect(componentBreadcrumb).toBe(componentName);
+                expect(monitorBreadcrumb).toBe(monitorName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
     test(
         'Should create a new application log in component',
         async () => {

@@ -121,8 +121,8 @@ describe('Schedule API With SubProjects', () => {
                     // switch to invited project for new user
                     // await init.switchProject(data.projectName, page);
 
-                    await page.waitForSelector('#callSchedules');
-                    await page.click('#callSchedules');
+                    await page.waitForSelector('#onCallSchedules');
+                    await page.click('#onCallSchedules');
 
                     const createButton = await page.$(
                         `#btnCreateSchedule_${data.subProjectName}`
@@ -202,8 +202,8 @@ describe('Schedule API With SubProjects', () => {
                 // await cluster.waitForOne();
                 // // switch to invited project for new user
                 // await init.switchProject(data.projectName, page);
-                await page.waitForSelector('#callSchedules');
-                await page.click('#callSchedules');
+                await page.waitForSelector('#onCallSchedules');
+                await page.click('#onCallSchedules');
                 await page.waitFor(3000);
 
                 let scheduleRows = await page.$$('tr.scheduleListItem');
@@ -263,8 +263,8 @@ describe('Schedule API With SubProjects', () => {
                     };
 
                     await init.loginUser(user, page);
-                    await page.waitForSelector('#callSchedules');
-                    await page.click('#callSchedules');
+                    await page.waitForSelector('#onCallSchedules');
+                    await page.click('#onCallSchedules');
                     await page.waitForSelector('tr.scheduleListItem');
                     await page.click('tr.scheduleListItem');
                     await page.waitForSelector(
@@ -308,8 +308,8 @@ describe('Schedule API With SubProjects', () => {
                     };
 
                     await init.loginUser(user, page);
-                    await page.waitForSelector('#callSchedules');
-                    await page.click('#callSchedules');
+                    await page.waitForSelector('#onCallSchedules');
+                    await page.click('#onCallSchedules');
                     await page.waitForSelector('tr.scheduleListItem');
                     await page.click('tr.scheduleListItem');
                     await page.waitForSelector('#delete');
@@ -318,8 +318,8 @@ describe('Schedule API With SubProjects', () => {
                     await page.click('#confirmDelete');
                     await page.waitFor(2000);
 
-                    await page.waitForSelector('#callSchedules');
-                    await page.click('#callSchedules');
+                    await page.waitForSelector('#onCallSchedules');
+                    await page.click('#onCallSchedules');
                     await page.waitForSelector('tr.scheduleListItem');
 
                     const scheduleRows = await page.$$('tr.scheduleListItem');

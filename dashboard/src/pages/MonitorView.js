@@ -120,7 +120,11 @@ class MonitorView extends React.Component {
             ? this.props.monitor.projectId._id || this.props.monitor.projectId
             : null;
         const componentName =
-            component.length > 0 ? (component[0] ? component[0].name : '') : '';
+            component.length > 0
+                ? component[0]
+                    ? component[0].name
+                    : component[1].name
+                : null;
         const monitorName = monitor ? monitor.name : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);
@@ -402,7 +406,9 @@ class MonitorView extends React.Component {
 const mapStateToProps = (state, props) => {
     const { componentId, monitorId } = props.match.params;
     const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+        return item.components.find(
+            component => String(component._id) === String(componentId)
+        );
     });
     const monitor = state.monitor.monitorsList.monitors
         .map(monitor =>

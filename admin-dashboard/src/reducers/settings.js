@@ -42,6 +42,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 ...settings,
                 requesting: false,
                 errored: false,
+                error: null,
             };
 
         case REQUESTING_SETTINGS_FAILED:
@@ -49,6 +50,7 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 ...state,
                 requesting: false,
                 errored: true,
+                error: action.payload,
             };
 
         case TEST_SMTP_REQUEST:
