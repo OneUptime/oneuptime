@@ -1,7 +1,7 @@
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
-const incidentLogSchema = new Schema({
+const incidentMessageSchema = new Schema({
     incidentId: {
         type: Schema.Types.ObjectId,
         ref: 'Incident',
@@ -29,11 +29,11 @@ const incidentLogSchema = new Schema({
     deletedById: { type: String, ref: 'User' },
 });
 
-incidentLogSchema.virtual('incident', {
+incidentMessageSchema.virtual('incident', {
     localField: '_id',
     foreignField: 'incidentId',
     ref: 'Incident',
     justOne: true,
 });
 
-module.exports = mongoose.model('IncidentMessage', incidentLogSchema);
+module.exports = mongoose.model('IncidentMessage', incidentMessageSchema);
