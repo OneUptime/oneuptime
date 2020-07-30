@@ -504,9 +504,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editWebhookButtonSelector,e=>e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                for(let i=0;i<3;i++)
-                    await page.$eval('#endpoint',e=>e.click());
-                await page.keyboard.press('Backspace');
+                await page.$eval('#endpoint',e=>e.value='');
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#msteamsUpdate',e=>e.click());
                 await page.waitFor(1000);
@@ -692,9 +690,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editWebhookButtonSelector,e=>e.click());
 
                 const newWebhookEndpoint = utils.generateRandomWebsite();
-                for(let i=0;i<3;i++)
-                    await page.$eval('#endpoint',e=>e.click());
-                await page.keyboard.press('Backspace');
+                await page.$eval('#endpoint',e=>e.value='');
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#slackUpdate',e=>e.click());
                 await page.waitFor(1000);
@@ -1181,9 +1177,7 @@ describe('Monitor Detail API', () => {
                 await page.$eval(editButtonSelector,e=>e.click());
 
                 await page.waitForSelector('#form-new-monitor');
-                for(let i=0;i<3;i++)
-                    await page.$eval('input[id=name]',e=>e.click());
-                await page.keyboard.press('Backspace');
+                await page.$eval('input[id=name]',e=>e.value='');
                 await page.type('input[id=name]', newMonitorName);
                 await page.$eval('button[type=submit]',e=>e.click());
 
