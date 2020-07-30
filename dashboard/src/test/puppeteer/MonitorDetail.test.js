@@ -181,7 +181,7 @@ describe('Monitor Detail API', () => {
                 await page.click(selector);
                 await page.waitFor(5000);
                 await page.waitForSelector('button[id=deleteIncidentButton]');
-                await page.click('#deleteIncidentButton');
+                await page.$eval('#deleteIncidentButton',e=>e.click());
                 await page.waitFor(5000);
                 await page.waitForSelector('button[id=confirmDeleteIncident]', {
                     visible: true,
