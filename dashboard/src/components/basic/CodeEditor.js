@@ -19,10 +19,11 @@ class CodeEditor extends Component {
                 style={{
                     fontFamily: '"Fira code", "Fira Mono", monospace',
                     fontSize: 12,
-                    width: '100%',
+                    width: '300px',
                     backgroundColor: 'white',
                     border: 'solid 1px #cccccc',
                     borderRadius: '4px',
+                    height: '100px',
                 }}
             />
         );

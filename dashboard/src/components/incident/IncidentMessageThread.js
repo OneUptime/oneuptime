@@ -71,7 +71,7 @@ export class IncidentMessageThread extends Component {
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '450px' }}
+                                    style={{ height: '1px', minWidth: '400px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -82,6 +82,10 @@ export class IncidentMessageThread extends Component {
                                 <td
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
+                                ></td>
+                                <td
+                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '150px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -126,7 +130,7 @@ export class IncidentMessageThread extends Component {
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                     style={{
                                                         height: '1px',
-                                                        minWidth: '450px',
+                                                        minWidth: '400px',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -204,8 +208,15 @@ export class IncidentMessageThread extends Component {
                                                     </div>
                                                 </td>
                                                 <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{ height: '1px' }}
+                                                ></td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '150px',
+                                                    }}
                                                 >
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">

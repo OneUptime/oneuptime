@@ -166,7 +166,7 @@ class NewIncidentMessage extends Component {
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
-                                                        className="db-select-nw"
+                                                        className="db-select-nw-300"
                                                         component={RenderSelect}
                                                         name="incident_state"
                                                         id="incident_state"
@@ -175,6 +175,9 @@ class NewIncidentMessage extends Component {
                                                         validate={
                                                             ValidateField.select
                                                         }
+                                                        style={{
+                                                            width: '300px',
+                                                        }}
                                                         options={[
                                                             {
                                                                 value:
@@ -203,7 +206,7 @@ class NewIncidentMessage extends Component {
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            className="db-BusinessSettings-input-300 TextInput bs-TextInput"
                                                             component={
                                                                 RenderField
                                                             }
@@ -250,7 +253,7 @@ class NewIncidentMessage extends Component {
                                                                     ? 'edit'
                                                                     : 'new'
                                                             }-${type}`}
-                                                            placeholder="Add a message to the thread"
+                                                            placeholder="This can be markdown"
                                                         />
                                                     </div>
                                                 </div>
