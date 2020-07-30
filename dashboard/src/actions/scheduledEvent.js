@@ -56,22 +56,23 @@ export function fetchscheduledEventsFailure(error) {
     };
 }
 
-export function createScheduledEvent(projectId, monitorId, values) {
-    return function(dispatch) {
-        const promise = postApi(
-            `scheduledEvent/${projectId}/${monitorId}`,
-            values
-        );
+export const createScheduledEvent = (projectId, values) => async dispatch => {
+    try {
         dispatch(createScheduledEventRequest());
 
-        promise.then(
-            function(scheduledEvent) {
-                dispatch(createScheduledEventSuccess(scheduledEvent.data));
-            },
-            function(error) {
-                if (error && error.response && error.response.data) {
-                    error = error.response.data;
-                }
+        const response = await postApi(`scheduledEvent/${projectId}`, values);
+        dispatch(createScheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(createScheduledEventFailure(errorMsg));
+    }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -84,7 +85,7 @@ export function createScheduledEvent(projectId, monitorId, values) {
             }
         );
         return promise;
-    };
+};
 }
 
 export function createScheduledEventSuccess(newScheduledEvent) {
