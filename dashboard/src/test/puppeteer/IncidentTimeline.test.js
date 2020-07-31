@@ -51,15 +51,15 @@ describe('Incident Timeline API', () => {
 
             // add new monitor to project
             await page.waitForSelector('#monitors');
-            await page.click('#monitors');
+            await page.$eval('#monitors', e => e.click());
             await page.waitForSelector('#form-new-monitor');
-            await page.click('input[id=name]');
+            await page.$eval('input[id=name]', e => e.click());
             await page.type('input[id=name]', projectMonitorName);
             await init.selectByText('#type', 'url', page);
             await page.waitForSelector('#url');
-            await page.click('#url');
+            await page.$eval('#url', e => e.click());
             await page.type('#url', utils.HTTP_TEST_SERVER_URL);
-            await page.click('button[type=submit]');
+            await page.$eval('button[type=submit]', e => e.click());
             await page.waitFor(2000);
         });
     });
@@ -85,19 +85,19 @@ describe('Incident Timeline API', () => {
                     () => (document.getElementById('body').value = '')
                 );
                 await page.waitForSelector('#responseTime');
-                await page.click('input[name=responseTime]');
+                await page.$eval('input[name=responseTime]', e => e.click());
                 await page.type('input[name=responseTime]', '0');
                 await page.waitForSelector('#statusCode');
-                await page.click('input[name=statusCode]');
+                await page.$eval('input[name=statusCode]', e => e.click());
                 await page.type('input[name=statusCode]', '400');
                 await page.select('#responseType', 'html');
                 await page.waitForSelector('#body');
-                await page.click('textarea[name=body]');
+                await page.$eval('textarea[name=body]', e => e.click());
                 await page.type(
                     'textarea[name=body]',
                     `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
-                await page.click('button[type=submit]');
+                await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector('#save-btn');
             };
 
@@ -119,7 +119,9 @@ describe('Incident Timeline API', () => {
                 );
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.click(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
@@ -153,19 +155,19 @@ describe('Incident Timeline API', () => {
                     () => (document.getElementById('body').value = '')
                 );
                 await page.waitForSelector('#responseTime');
-                await page.click('input[name=responseTime]');
+                await page.$eval('input[name=responseTime]', e => e.click());
                 await page.type('input[name=responseTime]', '0');
                 await page.waitForSelector('#statusCode');
-                await page.click('input[name=statusCode]');
+                await page.$eval('input[name=statusCode]', e => e.click());
                 await page.type('input[name=statusCode]', '200');
                 await page.select('#responseType', 'html');
                 await page.waitForSelector('#body');
-                await page.click('textarea[name=body]');
+                await page.$eval('textarea[name=body]', e => e.click());
                 await page.type(
                     'textarea[name=body]',
                     `<h1 id="html"><span>${bodyText}</span></h1>`
                 );
-                await page.click('button[type=submit]');
+                await page.$eval('button[type=submit]', e => e.click());
                 await page.waitForSelector('#save-btn');
             };
 
@@ -180,7 +182,9 @@ describe('Incident Timeline API', () => {
                 expect(resolveTextSelector).not.toBeNull();
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.click(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
@@ -204,13 +208,15 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-            await page.click(`#incident_${projectMonitorName}_0`);
+            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                e.click()
+            );
 
             for (let i = 0; i < 10; i++) {
                 // update internal note
                 await page.waitForSelector('#txtInternalNote');
                 await page.type('#txtInternalNote', internalNote);
-                await page.click('#btnUpdateInternalNote');
+                await page.$eval('#btnUpdateInternalNote', e => e.click());
                 await page.waitFor(1000);
             }
 

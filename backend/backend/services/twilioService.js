@@ -14,6 +14,7 @@ const UserModel = require('../models/user');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
+const EncryptDecrypt = require('../config/encryptDecrypt');
 
 const _this = {
     findByOne: async function(query) {
@@ -169,9 +170,12 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    customTwilioSettings.authToken
+                    authToken
                 );
                 const message = await twilioClient.messages.create(options);
                 return message;
