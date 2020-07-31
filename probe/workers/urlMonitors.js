@@ -14,7 +14,25 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const { res, resp } = await pingfetch(monitor.data.url);
+                    let retry = true;
+                    let retryCount = 0;
+                    while (retry) {
+                        const { res, resp } = await pingfetch(monitor.data.url);
+
+                        const response = await ApiService.ping(monitor._id, {
+                            monitor,
+                            res,
+                            resp,
+                            type: monitor.type,
+                            retryCount,
+                        });
+
+                        if (response && !response.retry) {
+                            retry = false;
+                        } else {
+                            retryCount++;
+                        }
+                    }
 
                     const now = new Date().getTime();
                     const scanIntervalInDays = monitor.lighthouseScannedAt
@@ -70,13 +88,6 @@ module.exports = {
                             },
                         });
                     }
-
-                    await ApiService.ping(monitor._id, {
-                        monitor,
-                        res,
-                        resp,
-                        type: monitor.type,
-                    });
                 }
             }
         } catch (error) {
