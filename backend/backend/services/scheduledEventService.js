@@ -25,9 +25,15 @@ module.exports = {
             data.monitors = monitorData;
             data.projectId = projectId;
 
-            const scheduledEvent = await ScheduledEventModel.create({
+            let scheduledEvent = await ScheduledEventModel.create({
                 ...data,
             });
+
+            scheduledEvent = await scheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .execPopulate();
 
             await RealTimeService.addScheduledEvent(scheduledEvent);
 
