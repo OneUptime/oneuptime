@@ -124,7 +124,9 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <div
                                                         className="bs-Fieldset-field"
-                                                        style={{ width: '70%' }}
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
                                                     >
                                                         <Field
                                                             component={
@@ -135,7 +137,7 @@ class UpdateSchedule extends React.Component {
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
-                                                                width: 250,
+                                                                width: '100%',
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
@@ -163,7 +165,7 @@ class UpdateSchedule extends React.Component {
                                                     <div
                                                         className="bs-Fieldset-field"
                                                         style={{
-                                                            width: '250px',
+                                                            width: '100%',
                                                         }}
                                                     >
                                                         <Field
@@ -177,7 +179,7 @@ class UpdateSchedule extends React.Component {
                                                             id="description"
                                                             placeholder="Event Description"
                                                             style={{
-                                                                width: '250px',
+                                                                width: '100%',
                                                                 resize: 'none',
                                                             }}
                                                         />
