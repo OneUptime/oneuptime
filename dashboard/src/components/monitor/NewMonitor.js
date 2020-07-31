@@ -24,7 +24,6 @@ import {
 } from '../../actions/monitor';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
-import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import ApiAdvance from './ApiAdvance';
 import ResponseComponent from './ResponseComponent';
@@ -428,7 +427,6 @@ class NewMonitor extends Component {
 
         const {
             handleSubmit,
-            subProjects,
             schedules,
             monitorCategoryList,
             monitor,
