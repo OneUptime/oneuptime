@@ -155,6 +155,7 @@ module.exports = {
                 .sort({ createdAt: -1 })
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
+                .populate('createdById', 'name')
                 .lean();
 
             return scheduledEvents;
@@ -172,7 +173,9 @@ module.exports = {
 
             query.deleted = false;
             const scheduledEvent = await ScheduledEventModel.findOne(query)
-                .populate('monitorId', 'name')
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
                 .lean();
 
             if (scheduledEvent) {
