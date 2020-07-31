@@ -427,6 +427,7 @@ class NewMonitor extends Component {
 
         const {
             handleSubmit,
+            subProjects,
             schedules,
             monitorCategoryList,
             monitor,
@@ -1468,6 +1469,7 @@ NewMonitor.propTypes = {
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
+    subProjects: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
