@@ -54,7 +54,7 @@ describe('New Monitor API', () => {
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
-                for (let i = 0; i <= 5; i++) {
+                for (let i = 0; i < 5; i++) {
                     const monitorName = utils.generateRandomString();
 
                     await init.addMonitorToComponent(null, monitorName, page);
@@ -87,7 +87,7 @@ describe('New Monitor API', () => {
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
-                for (let i = 0; i <= 10; i++) {
+                for (let i = 0; i < 10; i++) {
                     const monitorName = utils.generateRandomString();
 
                     await init.addMonitorToComponent(null, monitorName, page);
@@ -120,7 +120,7 @@ describe('New Monitor API', () => {
                 // Redirects automatically component to details page
                 await init.addComponent(componentName, page);
 
-                for (let i = 0; i <= 15; i++) {
+                for (let i = 0; i < 15; i++) {
                     const monitorName = utils.generateRandomString();
 
                     await init.addMonitorToComponent(null, monitorName, page);
