@@ -252,7 +252,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#btnUpdateInternalNote', {
                     visible: true,
                 });
-                await page.click('#btnUpdateInternalNote');
+                await page.$eval('#btnUpdateInternalNote', e => e.click());
                 await page.waitFor(5000);
 
                 await page.waitForSelector('#txtInvestigationNote', {
@@ -262,7 +262,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#btnUpdateInvestigationNote', {
                     visible: true,
                 });
-                await page.click('#btnUpdateInvestigationNote');
+                await page.$eval('#btnUpdateInvestigationNote', e => e.click());
                 await page.waitFor(5000);
                 const internalNoteSelector = await page.$('#txtInternalNote');
                 let internalContent = await internalNoteSelector.getProperty(
