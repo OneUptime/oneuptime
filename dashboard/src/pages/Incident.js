@@ -251,12 +251,9 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
-        const componentId =
-            this.props.component.length > 0
-                ? this.props.component[0]
-                    ? this.props.component[0]._id
-                    : this.props.component[1]._id
-                : null;
+        const componentId = this.props.component
+            ? this.props.component._id
+            : '';
         if (this.props.incident) {
             variable = (
                 <div>
@@ -346,7 +343,7 @@ class Incident extends React.Component {
             component,
             location: { pathname },
         } = this.props;
-        const componentName = component.length > 0 ? component[0].name : '';
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -381,10 +378,13 @@ class Incident extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => String(component._id) === String(componentId)
-        );
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
 
     return {

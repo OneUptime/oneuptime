@@ -59,7 +59,7 @@ class Container extends Component {
             gettingContainerSecurities,
             gettingSecurityLogs,
             location: { pathname },
-            components,
+            component,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
         } = this.props;
@@ -77,8 +77,7 @@ class Container extends Component {
                 return containerSecurity;
             });
 
-        const componentName =
-            components.length > 0 ? components[0].name : 'loading...';
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -186,7 +185,7 @@ Container.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    components: PropTypes.arrayOf(
+    component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })
@@ -196,18 +195,16 @@ Container.propTypes = {
 };
 
 const mapStateToProps = (state, ownProps) => {
-    const components = [];
     // ids from url
     const { componentId, projectId } = ownProps.match.params;
-    // filter to get the actual component
-    state.component.componentList.components.map(item =>
-        item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
-                components.push(component);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
             }
-            return component;
-        })
-    );
+        });
+    });
 
     return {
         projectId,
@@ -215,7 +212,7 @@ const mapStateToProps = (state, ownProps) => {
         containerSecurities: state.security.containerSecurities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
-        components,
+        component,
     };
 };
 
