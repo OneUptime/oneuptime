@@ -52,13 +52,19 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+            let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
-            ).lean();
+            );
+
+            updatedScheduledEvent = await updatedScheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .execPopulate();
 
             if (!updatedScheduledEvent) {
                 const error = new Error(
