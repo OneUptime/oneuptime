@@ -335,9 +335,6 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        if (projectName) {
-            await this.selectByText('#subProjectId', projectName, page);
-        }
         await this.selectByText('#type', 'device', page);
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
