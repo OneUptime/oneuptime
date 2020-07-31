@@ -13,7 +13,7 @@ module.exports = product => {
                 {
                     question: 'How does Fyipe compare with PagerDuty?',
                     answer:
-                        'PagerDuty is an incident management and on call tool whereas Fyipe is a complete SRE and IT Ops platform. Fyipe offers mostly everything that PagerDuty offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                        'PagerDuty is an incident management and on call tool whereas Fyipe is a complete SRE and DevOps platform. Fyipe offers mostly everything that PagerDuty offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
@@ -175,7 +175,7 @@ module.exports = product => {
                 {
                     question: 'How does Fyipe compare with StatusPage.io?',
                     answer:
-                        'StatusPage.io is a status page tool whereas Fyipe is a complete SRE and IT Ops platform. Fyipe offers mostly everything that StatusPage.io offers, but a lot more like monitoring, incident management, on-call scheduling, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                        'StatusPage.io is a status page tool whereas Fyipe is a complete SRE and DevOps platform. Fyipe offers mostly everything that StatusPage.io offers, but a lot more like monitoring, incident management, on-call scheduling, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
@@ -337,7 +337,7 @@ module.exports = product => {
                 {
                     question: 'How does Fyipe compare with Pingdom?',
                     answer:
-                        'Pingdom is an monitoring tool whereas Fyipe is a complete SRE and IT Ops platform. Fyipe offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                        'Pingdom is an monitoring tool whereas Fyipe is a complete SRE and DevOps platform. Fyipe offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
