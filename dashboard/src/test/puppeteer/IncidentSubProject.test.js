@@ -313,7 +313,7 @@ describe('Incident API With SubProjects', () => {
                         visible: true,
                     });
                     await page.type('#txtInternalNote', internalNote);
-                    await page.click('#btnUpdateInternalNote');
+                    await page.$eval('#btnUpdateInternalNote', e => e.click());
                     await page.waitFor(2000);
                 }
                 let incidentTimelineRows = await page.$$('tr.incidentListItem');
