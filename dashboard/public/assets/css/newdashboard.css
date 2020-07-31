@@ -27,10 +27,15 @@
 .db-select-nw-100 {
     width: 100px;
 }
+.db-select-nw-300 {
+    width: 300px;
+    font-size: 14px;
+}
 
 .db-select-nw > div,
 .db-select-ne > div,
-.db-select-pr > div {
+.db-select-pr > div,
+.db-select-nw-300 > div {
     -webkit-flex-flow: unset;
     -ms-flex-flow: unset;
     flex-flow: unset;
@@ -4571,6 +4576,10 @@ div.db-Trend-groupChart {
 }
 .db-BusinessSettings-input {
     width: 250px;
+}
+
+.db-BusinessSettings-input-300 {
+    width: 300px;
 }
 .db-BusinessSettings-input--withTooltip {
     align-items: center;

@@ -12,6 +12,7 @@ const RenderTextArea = ({
     disabled,
     style,
     id,
+    initialValue,
 }) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
@@ -24,6 +25,7 @@ const RenderTextArea = ({
             className={className}
             disabled={disabled || false}
             style={style || {}}
+            defaultValue={initialValue}
         />
         <br />
         {meta.error && meta.touched && (
@@ -57,7 +59,8 @@ RenderTextArea.propTypes = {
     rows: PropTypes.string,
     disabled: PropTypes.bool,
     style: PropTypes.object.isRequired,
-    id: PropTypes.string,
+    initialValue: PropTypes.string,
+    id: PropTypes.string.isRequired,
 };
 
 export { RenderTextArea };

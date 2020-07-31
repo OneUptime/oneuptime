@@ -1,4 +1,4 @@
-import { postApi, getApi, putApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi } from '../api';
 import * as types from '../constants/incident';
 import errors from '../errors';
 
@@ -628,35 +628,39 @@ export function deleteProjectIncidents(projectId) {
 
 // Internal notes and investigation notes Section
 
-export function investigationNoteRequest(promise) {
+export function investigationNoteRequest(promise, updated) {
     return {
         type: types.INVESTIGATION_NOTE_REQUEST,
-        payload: promise,
+        payload: { promise, updated },
     };
 }
 
-export function investigationNoteError(error) {
+export function investigationNoteError(error, updated) {
     return {
         type: types.INVESTIGATION_NOTE_FAILED,
-        payload: error,
+        payload: { error, updated },
     };
 }
 
-export function investigationNoteSuccess(incident) {
+export function investigationNoteSuccess(incidentMessage) {
     return {
         type: types.INVESTIGATION_NOTE_SUCCESS,
-        payload: incident,
+        payload: incidentMessage,
     };
 }
 
-export function setInvestigationNote(projectId, incidentId, investigationNote) {
+export function setInvestigationNote(projectId, incidentId, body) {
     return function(dispatch) {
         let promise = null;
-        const body = {};
-        body.investigationNote = investigationNote;
-        promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
 
-        dispatch(investigationNoteRequest(promise));
+        promise = postApi(
+            `incident/${projectId}/incident/${incidentId}/message`,
+            body
+        );
+
+        const isUpdate = body.id ? true : false;
+
+        dispatch(investigationNoteRequest(promise, isUpdate));
 
         promise.then(
             function(incidents) {
@@ -673,23 +677,24 @@ export function setInvestigationNote(projectId, incidentId, investigationNote) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(investigationNoteError(errors(error)));
+                dispatch(investigationNoteError(errors(error), isUpdate));
             }
         );
+        return promise;
     };
 }
 
-export function internalNoteRequest(promise) {
+export function internalNoteRequest(promise, updated) {
     return {
         type: types.INTERNAL_NOTE_REQUEST,
-        payload: promise,
+        payload: { promise, updated },
     };
 }
 
-export function internalNoteError(error) {
+export function internalNoteError(error, updated) {
     return {
         type: types.INTERNAL_NOTE_FAILED,
-        payload: error,
+        payload: { error, updated },
     };
 }
 
@@ -700,14 +705,17 @@ export function internalNoteSuccess(incident) {
     };
 }
 
-export function setinternalNote(projectId, incidentId, internalNote) {
+export function setInternalNote(projectId, incidentId, body) {
     return function(dispatch) {
         let promise = null;
-        const body = {};
-        body.internalNote = internalNote;
-        promise = putApi(`incident/${projectId}/incident/${incidentId}`, body);
+        promise = postApi(
+            `incident/${projectId}/incident/${incidentId}/message`,
+            body
+        );
 
-        dispatch(internalNoteRequest(promise));
+        const isUpdate = body.id ? true : false;
+
+        dispatch(internalNoteRequest(promise, isUpdate));
 
         promise.then(
             function(incidents) {
@@ -724,9 +732,10 @@ export function setinternalNote(projectId, incidentId, internalNote) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(internalNoteError(errors(error)));
+                dispatch(internalNoteError(errors(error), isUpdate));
             }
         );
+        return promise;
     };
 }
 
@@ -865,5 +874,71 @@ export function fetchIncidentMessagesFailure(error) {
 export function resetFetchIncidentMessages() {
     return {
         type: types.FETCH_INCIDENT_MESSAGES_RESET,
+    };
+}
+export function editIncidentMessageSwitch(index) {
+    return {
+        type: types.EDIT_INCIDENT_MESSAGE_SWITCH,
+        payload: index,
+    };
+}
+
+export function deleteIncidentMessage(
+    projectId,
+    incidentId,
+    incidentMessageId
+) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`
+        );
+        dispatch(deleteIncidentMessageRequest(incidentMessageId));
+
+        promise.then(
+            function(incidentMessage) {
+                dispatch(deleteIncidentMessageSuccess(incidentMessage.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteIncidentMessageFailure({
+                        error: errors(error),
+                        incidentMessageId,
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteIncidentMessageSuccess(removedIncidentMessage) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_SUCCESS,
+        payload: removedIncidentMessage,
+    };
+}
+
+export function deleteIncidentMessageRequest(incidentMessageId) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_REQUEST,
+        payload: incidentMessageId,
+    };
+}
+
+export function deleteIncidentMessageFailure(error) {
+    return {
+        type: types.DELETE_INCIDENT_MESSAGE_FAILURE,
+        payload: error,
     };
 }
