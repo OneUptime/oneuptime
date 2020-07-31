@@ -205,6 +205,15 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
+                // create incident
+                await page.waitForSelector(
+                    `#create_incident_${projectMonitorName}`
+                );
+                await page.click(`#create_incident_${projectMonitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.click('#createIncident');
+
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
@@ -423,12 +432,18 @@ describe('Incident Timeline API', () => {
             await page.click(`#incident_${projectMonitorName}_0`);
 
             for (let i = 0; i < 10; i++) {
-                // update internal note
+                // add internal note
+                await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
                 await page.click(`textarea[id=new-${type}]`);
                 await page.type(`textarea[id=new-${type}]`, `${internalNote}`);
+                await init.selectByText(
+                    '#incident_state',
+                    'investigating',
+                    page
+                );
                 await page.click(`#${type}-addButton`);
                 await page.waitFor(1000);
             }
