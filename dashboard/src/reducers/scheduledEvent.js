@@ -54,9 +54,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 },
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.concat(
-                        action.payload
-                    ),
+                    scheduledEvents: [
+                        action.payload,
+                        ...state.scheduledEventList.scheduledEvents,
+                    ],
                     count: state.scheduledEventList.count + 1,
                 },
             });
