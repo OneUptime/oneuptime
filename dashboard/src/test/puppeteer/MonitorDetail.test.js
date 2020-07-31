@@ -245,9 +245,9 @@ describe('Monitor Detail API', () => {
                 });
 
                 await page.$eval('#createScheduledEventButton', e => e.click()),
-                await page.waitForResponse(
-                    response => response.url().includes('/scheduledEvent/')
-                );
+                    await page.waitForResponse(response =>
+                        response.url().includes('/scheduledEvent/')
+                    );
 
                 const createdScheduledEventSelector = '.scheduled-event-name';
                 await page.waitForSelector(createdScheduledEventSelector);
@@ -310,9 +310,9 @@ describe('Monitor Detail API', () => {
                 });
 
                 await page.$eval('#createScheduledEventButton', e => e.click()),
-                await  page.waitForResponse(
-                    response => response.url().includes('/scheduledEvent/')
-                );
+                    await page.waitForResponse(response =>
+                        response.url().includes('/scheduledEvent/')
+                    );
 
                 const createdScheduledEventSelector =
                     '#scheduledEventsList .scheduled-event-name';
