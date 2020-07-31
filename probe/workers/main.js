@@ -7,12 +7,13 @@ const getApi = require('../utils/api').getApi;
 const ApiMonitors = require('./apiMonitors');
 const UrlMonitors = require('./urlMonitors');
 const DeviceMonitors = require('./deviceMonitors');
+const ScriptMonitors = require('./scriptMonitors');
 const ErrorService = require('../utils/errorService');
 const ApplicationSecurity = require('./applicationSecurity');
 const ContainerSecurity = require('./containerSecurity');
 
 module.exports = {
-    runJob: async function() {
+    runJob: async function () {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = monitors.data;
@@ -24,7 +25,10 @@ module.exports = {
                         return UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'device') {
                         return DeviceMonitors.ping(monitor);
+                    } else if (monitor.type === 'script') {
+                        return ScriptMonitors.run(monitor);
                     }
+
                     return null;
                 })
             );
@@ -32,7 +36,7 @@ module.exports = {
             ErrorService.log('getApi', error);
         }
     },
-    runApplicationScan: async function() {
+    runApplicationScan: async function () {
         try {
             const securities = await getApi('probe/applicationSecurities');
             if (securities && securities.length > 0) {
@@ -48,7 +52,7 @@ module.exports = {
             ErrorService.log('runApplicationScan.getApi', error);
         }
     },
-    runContainerScan: async function() {
+    runContainerScan: async function () {
         try {
             const securities = await getApi('probe/containerSecurities');
             if (securities && securities.length > 0) {

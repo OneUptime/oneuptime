@@ -20,7 +20,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 
-router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.create(data);
@@ -30,7 +30,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -42,7 +42,7 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const data = req.body;
         const probe = await ProbeService.updateOneBy(
@@ -55,7 +55,7 @@ router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -64,7 +64,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function(req, res) {
+router.get('/monitors', isAuthorizedProbe, async function (req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
             new Date(new Date().getTime() - 60 * 1000)
@@ -75,7 +75,7 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedProbe, async function(
+router.post('/ping/:monitorId', isAuthorizedProbe, async function (
     req,
     response
 ) {
@@ -85,18 +85,18 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
         if (type === 'api' || type === 'url') {
             const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+                monitor.criteria &&
+                monitor.criteria.up
                 ? ProbeService.conditions(res, resp, monitor.criteria.up)
                 : false);
             const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                monitor.criteria &&
+                monitor.criteria.degraded
                 ? ProbeService.conditions(res, resp, monitor.criteria.degraded)
                 : false);
             const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+                monitor.criteria &&
+                monitor.criteria.down
                 ? ProbeService.conditions(res, resp, monitor.criteria.down)
                 : false);
 
@@ -110,7 +110,34 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 status = 'unknown';
             }
         }
+        if (type === 'script') {
+            const validUp = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.up
+                ? ProbeService.scriptConditions(res, resp, monitor.criteria.up)
+                : false);
+            const validDegraded = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                ? ProbeService.scriptConditions(res, resp, monitor.criteria.degraded)
+                : false);
+            const validDown = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.down
+                ? ProbeService.scriptConditions(res, resp, monitor.criteria.down)
+                : false);
 
+            if (validDown) {
+                status = 'failed';
+            } else if (validDegraded) {
+                status = 'degraded';
+            } else if (validUp) {
+                status = 'success';
+            } else {
+                status = 'unknown';
+            }
+            resp.status = null;
+        }
         if (type === 'device') {
             if (res) {
                 status = 'online';
@@ -164,6 +191,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 log = await ProbeService.saveLighthouseLog(data);
             } else {
                 log = await ProbeService.saveMonitorLog(data);
+                if (type === 'script') {
+                    await MonitorService.updateBy({ _id: req.params.monitorId }, { scriptRunStatus: 'completed', scriptRunBy: req.probe.id });
+                }
             }
         }
 
@@ -173,7 +203,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function (req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -185,7 +215,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function (req, res) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -197,7 +227,7 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.get('/:projectId/probes', getUser, isAuthorized, async function(
+router.get('/:projectId/probes', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -212,7 +242,7 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/applicationSecurities', isAuthorizedProbe, async function(
+router.get('/applicationSecurities', isAuthorizedProbe, async function (
     req,
     res
 ) {
@@ -224,7 +254,7 @@ router.get('/applicationSecurities', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
+router.post('/scan/git', isAuthorizedProbe, async function (req, res) {
     try {
         let { security } = req.body;
 
@@ -240,7 +270,7 @@ router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
+router.get('/containerSecurities', isAuthorizedProbe, async function (req, res) {
     try {
         const response = await ContainerSecurityService.getSecuritiesToScan();
         return sendItemResponse(req, res, response);
@@ -249,7 +279,7 @@ router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
+router.post('/scan/docker', isAuthorizedProbe, async function (req, res) {
     try {
         let { security } = req.body;
 
