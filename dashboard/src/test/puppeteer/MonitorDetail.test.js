@@ -309,18 +309,14 @@ describe('Monitor Detail API', () => {
                         .click();
                 });
 
-                const createScheduledEventPromise = page.waitForResponse(
+                await page.$eval('#createScheduledEventButton', e => e.click()),
+                await  page.waitForResponse(
                     response => response.url().includes('/scheduledEvent/')
                 );
 
-                await Promise.all([
-                    createScheduledEventPromise,
-                    page.$eval('#createScheduledEventButton', e => e.click()),
-                ]);
-
                 const createdScheduledEventSelector =
                     '#scheduledEventsList .scheduled-event-name';
-                await page.waitFor(5000);
+                await page.waitForSelector(createdScheduledEventSelector);
 
                 const scheduledEventRows = await page.$$(
                     createdScheduledEventSelector
