@@ -131,11 +131,96 @@ router.put(
         try {
             const data = req.body;
             const { eventId, projectId } = req.params;
+
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is required.',
+                });
+            }
+
+            if (typeof data.name !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is not of string type.',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID  is not of string type.',
+                });
+            }
+
+            if (!eventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event ID is required',
+                });
+            }
+
+            if (typeof eventId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event ID is not of string type',
+                });
+            }
+
+            if (!data.startDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start timestamp is required.',
+                });
+            }
+
+            if (!data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'End timestamp is required.',
+                });
+            }
+
+            if (data.startDate > data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start date should always be less than End date',
+                });
+            }
+
+            if (!data.description || !data.description.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event description is required.',
+                });
+            }
+
+            if (typeof data.description !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event description is not of string type.',
+                });
+            }
+
             const existingScheduledEvent = await ScheduledEventService.findOneBy(
                 { name: data.name, projectId }
             );
 
-            if (existingScheduledEvent) {
+            if (String(existingScheduledEvent._id) !== String(eventId)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Scheduled event name already exists',
