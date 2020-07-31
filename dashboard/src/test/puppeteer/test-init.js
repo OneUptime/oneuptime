@@ -349,19 +349,23 @@ module.exports = {
         );
         if (createIncidentSelector) {
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-            await page.$eval(`#btnCreateIncident_${projectName}`,e=>e.click());
+            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                e.click()
+            );
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
-            await page.$eval('#createIncident',e=>e.click());
+            await page.$eval('#createIncident', e => e.click());
             await page.waitFor(5000);
         } else {
             await page.waitForSelector('#incidentLog a');
-            await page.$eval('#incidentLog a',e=>e.click());
+            await page.$eval('#incidentLog a', e => e.click());
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-            await page.$eval(`#btnCreateIncident_${projectName}`,e=>e.click());
+            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                e.click()
+            );
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
-            await page.$eval('#createIncident',e=>e.click());
+            await page.$eval('#createIncident', e => e.click());
             await page.waitFor(5000);
         }
     },
