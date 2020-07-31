@@ -58,7 +58,7 @@ class ResourceTabularList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
+                                {/* <td
                                     id="placeholder-left"
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{
@@ -71,29 +71,15 @@ class ResourceTabularList extends Component {
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
-                                </td>
+                                </td> */}
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    style={{ height: '1px', minWidth: '100px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Action</span>
                                         </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                             </tr>
@@ -179,7 +165,7 @@ class ResourceTabularList extends Component {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td
+                                                {/* <td
                                                     id="placeholder-left"
                                                     className="Table-cell Table-cell--align--left  Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
@@ -192,10 +178,13 @@ class ResourceTabularList extends Component {
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                                     </div>
-                                                </td>
+                                                </td> */}
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '100px',
+                                                    }}
                                                 >
                                                     <button
                                                         id={`view-resource-${componentResource.name}`}
