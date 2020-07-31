@@ -106,8 +106,8 @@ class NewMonitor extends Component {
         const thisObj = this;
 
         const postObj = { data: {}, criteria: {} };
-        postObj.projectId = values[`subProject_${this.props.index}`];
         postObj.componentId = thisObj.props.componentId;
+        postObj.projectId = this.props.projectId;
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
@@ -117,8 +117,6 @@ class NewMonitor extends Component {
         postObj.monitorCategoryId =
             values[`monitorCategoryId_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
-        if (!postObj.projectId)
-            postObj.projectId = this.props.currentProject._id;
         if (postObj.type === 'manual')
             postObj.data.description =
                 values[`description_${this.props.index}`] || null;
@@ -1374,6 +1372,19 @@ const mapStateToProps = (state, ownProps) => {
     const type = selector(state, 'type_1000');
     const category = selector(state, 'monitorCategoryId_1000');
     const schedule = selector(state, 'callSchedule_1000');
+    let projectId = null;
+
+    for (const project of state.component.componentList.components) {
+        for (const component of project.components) {
+            if (component._id === ownProps.componentId) {
+                projectId = component.projectId._id;
+                break;
+            }
+        }
+    }
+    if (projectId === null)
+        projectId = ownProps.currentProject && ownProps.currentProject._id;
+
     const currentPlanId =
         state.project &&
         state.project.currentProject &&
@@ -1404,6 +1415,7 @@ const mapStateToProps = (state, ownProps) => {
                 ? state.project.currentProject
                 : {},
             currentPlanId,
+            projectId,
         };
     } else {
         return {
@@ -1423,6 +1435,7 @@ const mapStateToProps = (state, ownProps) => {
                 ? state.project.currentProject
                 : {},
             currentPlanId,
+            projectId,
         };
     }
 };
@@ -1456,6 +1469,7 @@ NewMonitor.propTypes = {
     showUpgradeForm: PropTypes.func,
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
+    projectId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
