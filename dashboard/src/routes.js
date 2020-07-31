@@ -36,6 +36,7 @@ const {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    ScheduledEvent,
 } = pages;
 
 export const groups = [
@@ -249,13 +250,22 @@ export const groups = [
                 index: 4,
             },
             {
+                title: 'Scheduled Events',
+                path: '/dashboard/project/:projectId/scheduledEvents',
+                icon: 'connect',
+                visible: true,
+                component: ScheduledEvent,
+                subRoutes: [],
+                index: 5,
+            },
+            {
                 title: 'Reports',
                 path: '/dashboard/project/:projectId/reports',
                 icon: 'report',
                 visible: true,
                 subRoutes: [],
                 component: Reports,
-                index: 5,
+                index: 6,
             },
         ],
     },

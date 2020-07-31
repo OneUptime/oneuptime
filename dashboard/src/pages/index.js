@@ -9,6 +9,8 @@ import OnCall from './OnCall';
 import AlertLog from './AlertLog';
 import Schedule from './Schedule';
 
+import ScheduledEvent from './ScheduledEvent';
+
 import ChangePassword from './ChangePassword';
 
 import TeamMembers from './TeamMembers';
@@ -79,4 +81,5 @@ export default {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    ScheduledEvent,
 };
