@@ -936,44 +936,6 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        subProjects &&
-                                                        subProjects.length > 0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Sub Project
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                name={`subProject_${this.props.index}`}
-                                                                id="subProjectId"
-                                                                required="required"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                component={
-                                                                    SubProjectSelector
-                                                                }
-                                                                subProjects={
-                                                                    subProjects
-                                                                }
-                                                                onChange={(
-                                                                    e,
-                                                                    v
-                                                                ) =>
-                                                                    this.scheduleChange(
-                                                                        e,
-                                                                        v
-                                                                    )
-                                                                }
-                                                                className="db-select-nw"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
 
                                                 <ShouldRender
                                                     if={type === 'api'}
@@ -1411,7 +1373,6 @@ const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
     const category = selector(state, 'monitorCategoryId_1000');
-    const subProject = selector(state, 'subProject_1000');
     const schedule = selector(state, 'callSchedule_1000');
     const currentPlanId =
         state.project &&
@@ -1432,7 +1393,6 @@ const mapStateToProps = (state, ownProps) => {
             name,
             type,
             category,
-            subProject,
             schedule,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
@@ -1453,7 +1413,6 @@ const mapStateToProps = (state, ownProps) => {
             name,
             type,
             category,
-            subProject,
             schedule,
             monitorCategoryList:
                 state.monitorCategories.monitorCategoryListForNewMonitor
@@ -1489,7 +1448,6 @@ NewMonitor.propTypes = {
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
-    subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
