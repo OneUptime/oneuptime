@@ -78,6 +78,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         }
 
+        if (data.startDate > data.endDate) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Start date should always be less than End date',
+            });
+        }
+
         if (!data.description || !data.description.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
