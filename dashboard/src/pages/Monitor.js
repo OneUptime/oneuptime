@@ -174,7 +174,7 @@ class DashboardView extends Component {
             subProjects,
             currentProject,
             location: { pathname },
-            components,
+            component,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -257,12 +257,7 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
-        const componentName =
-            components.length > 0
-                ? components[0]
-                    ? components[0].name
-                    : components[1].name
-                : null;
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -429,16 +424,14 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     const monitor = state.monitor;
-    const components = [];
-    // filter to get the actual component
-    state.component.componentList.components.map(item =>
-        item.components.map(component => {
-            if (String(component._id) === String(componentId)) {
-                components.push(component);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
             }
-            return component;
-        })
-    );
+        });
+    });
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
@@ -468,7 +461,7 @@ const mapStateToProps = (state, props) => {
         monitorTutorial: state.tutorial.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
-        components,
+        component,
     };
 };
 
@@ -504,7 +497,7 @@ DashboardView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    components: PropTypes.arrayOf(
+    component: PropTypes.arrayOf(
         PropTypes.shape({
             name: PropTypes.string,
         })
