@@ -197,7 +197,7 @@ describe('Incident Timeline API', () => {
         operationTimeOut
     );
     test(
-        'should open an existing incident in project and add to message to the incident message thread',
+        'should create incident in project and add to message to the incident message thread',
         async () => {
             const dashboard = async ({ page }) => {
                 await page.waitFor(5000);
@@ -205,11 +205,17 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
                 // create incident
                 await page.waitForSelector(
-                    `#create_incident_${projectMonitorName}`
+                    `#monitorCreateIncident_${projectMonitorName}`
                 );
-                await page.click(`#create_incident_${projectMonitorName}`);
+                await page.click(
+                    `#monitorCreateIncident_${projectMonitorName}`
+                );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.click('#createIncident');
@@ -258,6 +264,11 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
@@ -299,10 +310,8 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(
-                    `#more-details-${projectMonitorName}`
-                );
-                await page.click(`#more-details-${projectMonitorName}`);
+                await page.waitForSelector(`#componentResource_0`);
+                await page.click(`#componentResource_0`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -349,6 +358,10 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -394,6 +407,10 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
@@ -427,7 +444,8 @@ describe('Incident Timeline API', () => {
         return await cluster.execute(null, async ({ page }) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-
+            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await page.click(`#more-details-${projectMonitorName}`);
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.click(`#incident_${projectMonitorName}_0`);
 
