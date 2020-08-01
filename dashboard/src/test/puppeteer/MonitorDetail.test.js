@@ -238,8 +238,10 @@ describe('Monitor Detail API', () => {
                     utils.scheduledEventDescription
                 );
 
-                await page.$eval('input[name=showEventOnStatusPage]', e => e.click());
-                await page.$eval('#createScheduledEventButton', e => e.click());                
+                await page.$eval('input[name=showEventOnStatusPage]', e =>
+                    e.click()
+                );
+                await page.$eval('#createScheduledEventButton', e => e.click());
                 await page.waitFor(10000);
 
                 const createdScheduledEventSelector = '.scheduled-event-name';
@@ -296,8 +298,10 @@ describe('Monitor Detail API', () => {
                     utils.scheduledEventDescription
                 );
 
-                await page.$eval('input[name=showEventOnStatusPage]', e => e.click());
-                await page.$eval('#createScheduledEventButton', e => e.click());                
+                await page.$eval('input[name=showEventOnStatusPage]', e =>
+                    e.click()
+                );
+                await page.$eval('#createScheduledEventButton', e => e.click());
                 await page.waitFor(10000);
 
                 const createdScheduledEventSelector =
