@@ -17,7 +17,7 @@ const newUser = {
 
 const projectName = utils.generateRandomString();
 const projectMonitorName = utils.generateRandomString();
-const subProjectMonitorName = utils.generateRandomString();
+const projectMonitorName1 = utils.generateRandomString();
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const newComponentName = utils.generateRandomString();
@@ -86,7 +86,7 @@ describe('Incident API With SubProjects', () => {
                 );
                 // add new monitor to sub-project
                 await init.addMonitorToSubProject(
-                    subProjectMonitorName,
+                    projectMonitorName1,
                     subProjectName,
                     componentName,
                     page
@@ -150,9 +150,9 @@ describe('Incident API With SubProjects', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 // create incident
                 await page.waitForSelector(
-                    `#create_incident_${subProjectMonitorName}`
+                    `#create_incident_${projectMonitorName1}`
                 );
-                await page.click(`#create_incident_${subProjectMonitorName}`);
+                await page.click(`#create_incident_${projectMonitorName1}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.click('#createIncident');
@@ -164,7 +164,7 @@ describe('Incident API With SubProjects', () => {
                 );
                 textContent = await textContent.jsonValue();
                 expect(textContent.toLowerCase()).toEqual(
-                    `${subProjectMonitorName}'s Incident Status`.toLowerCase()
+                    `${projectMonitorName1}'s Incident Status`.toLowerCase()
                 );
                 await init.logout(page);
             });
@@ -240,10 +240,10 @@ describe('Incident API With SubProjects', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 // update internal note
                 await page.waitForSelector(
-                    `#incident_${subProjectMonitorName}_0`,
+                    `#incident_${projectMonitorName1}_0`,
                     { visible: true }
                 );
-                await page.click(`#incident_${subProjectMonitorName}_0`);
+                await page.click(`#incident_${projectMonitorName1}_0`);
 
                 await page.waitForSelector('#txtInternalNote', {
                     visible: true,
@@ -303,9 +303,9 @@ describe('Incident API With SubProjects', () => {
                 await page.waitFor(3000);
 
                 await page.waitForSelector(
-                    `#incident_${subProjectMonitorName}_0`
+                    `#incident_${projectMonitorName1}_0`
                 );
-                await page.click(`#incident_${subProjectMonitorName}_0`);
+                await page.click(`#incident_${projectMonitorName1}_0`);
 
                 for (let i = 0; i < 10; i++) {
                     // update internal note
@@ -355,7 +355,7 @@ describe('Incident API With SubProjects', () => {
 
                 for (let i = 0; i < 10; i++) {
                     await init.addIncidentToProject(
-                        subProjectMonitorName,
+                        projectMonitorName1,
                         subProjectName,
                         page
                     );
