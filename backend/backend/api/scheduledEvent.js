@@ -215,7 +215,10 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
             projectId,
         });
 
-        if (String(existingScheduledEvent._id) !== String(eventId)) {
+        if (
+            existingScheduledEvent &&
+            String(existingScheduledEvent._id) !== String(eventId)
+        ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Scheduled event name already exists',
