@@ -296,12 +296,8 @@ describe('Monitor Detail API', () => {
                     utils.scheduledEventDescription
                 );
 
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=showEventOnStatusPage]')
-                        .click();
-                });
-
+                await page.$eval('input[name=showEventOnStatusPage]', e => e.click());
+                await page.$eval('#createScheduledEventButton', e => e.click());                
                 await page.waitFor(10000);
 
                 const createdScheduledEventSelector =
