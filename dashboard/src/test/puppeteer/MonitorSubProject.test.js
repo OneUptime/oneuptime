@@ -264,27 +264,13 @@ describe('Monitor API With SubProjects', () => {
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', `${data.monitorName}1`);
                     await init.selectByText('#type', 'manual', page);
-                    await init.selectByText(
-                        '#subProjectId',
-                        data.subProjectName,
-                        page
-                    );
                     await page.click('button[type=submit]');
-
-                    await page.waitForSelector('#badge_Project');
-                    const projectBadgeSelector = await page.$('#badge_Project');
-                    let textContent = await projectBadgeSelector.getProperty(
-                        'innerText'
-                    );
-
-                    textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual('PROJECT');
 
                     const subProjectBadgeSelector = await page.$(
                         `#badge_${subProjectName}`
                     );
 
-                    textContent = await subProjectBadgeSelector.getProperty(
+                    let textContent = await subProjectBadgeSelector.getProperty(
                         'innerText'
                     );
                     textContent = await textContent.jsonValue();
