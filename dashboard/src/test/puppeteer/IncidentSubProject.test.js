@@ -366,10 +366,8 @@ describe('Incident API With SubProjects', () => {
                 let countIncidents = incidentRows.length;
                 expect(countIncidents).toEqual(10);
 
-                const nextSelector = await page.$('#btnNext', {
-                    visible: true,
-                });
-                await nextSelector.click();
+                await page.waitForSelector('#btnNext', { visible: true });
+                await page.$eval('#btnNext', e => e.click());
                 await page.waitFor(5000);
                 incidentRows = await page.$$('tr.incidentListItem');
                 countIncidents = incidentRows.length;
