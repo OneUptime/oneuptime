@@ -87,7 +87,7 @@ describe('Incident API With SubProjects', () => {
                 // add new monitor to sub-project
                 await init.addMonitorToSubProject(
                     projectMonitorName1,
-                    subProjectName,
+                    null,
                     componentName,
                     page
                 );
@@ -371,7 +371,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitFor(5000);
                 incidentRows = await page.$$('tr.incidentListItem');
                 countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(1);
+                expect(countIncidents).toEqual(2);
 
                 const prevSelector = await page.$('#btnPrev');
 
