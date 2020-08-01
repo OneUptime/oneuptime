@@ -556,6 +556,10 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count:
+                                state.incidentMessages[
+                                    action.payload.incidentId._id
+                                ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -635,6 +639,10 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count:
+                                state.incidentMessages[
+                                    action.payload.incidentId._id
+                                ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -1012,6 +1020,10 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count:
+                                state.incidentMessages[
+                                    action.payload.incidentId
+                                ][action.payload.type].count - 1,
                         },
                     },
                 },
