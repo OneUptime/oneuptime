@@ -24,7 +24,6 @@ import {
 } from '../../actions/monitor';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
-import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import ApiAdvance from './ApiAdvance';
 import ResponseComponent from './ResponseComponent';
@@ -106,8 +105,8 @@ class NewMonitor extends Component {
         const thisObj = this;
 
         const postObj = { data: {}, criteria: {} };
-        postObj.projectId = values[`subProject_${this.props.index}`];
         postObj.componentId = thisObj.props.componentId;
+        postObj.projectId = this.props.projectId;
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
@@ -117,8 +116,6 @@ class NewMonitor extends Component {
         postObj.monitorCategoryId =
             values[`monitorCategoryId_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
-        if (!postObj.projectId)
-            postObj.projectId = this.props.currentProject._id;
         if (postObj.type === 'manual')
             postObj.data.description =
                 values[`description_${this.props.index}`] || null;
@@ -936,44 +933,6 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        subProjects &&
-                                                        subProjects.length > 0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Sub Project
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                name={`subProject_${this.props.index}`}
-                                                                id="subProjectId"
-                                                                required="required"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                component={
-                                                                    SubProjectSelector
-                                                                }
-                                                                subProjects={
-                                                                    subProjects
-                                                                }
-                                                                onChange={(
-                                                                    e,
-                                                                    v
-                                                                ) =>
-                                                                    this.scheduleChange(
-                                                                        e,
-                                                                        v
-                                                                    )
-                                                                }
-                                                                className="db-select-nw"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
 
                                                 <ShouldRender
                                                     if={type === 'api'}
@@ -1411,8 +1370,20 @@ const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
     const category = selector(state, 'monitorCategoryId_1000');
-    const subProject = selector(state, 'subProject_1000');
     const schedule = selector(state, 'callSchedule_1000');
+    let projectId = null;
+
+    for (const project of state.component.componentList.components) {
+        for (const component of project.components) {
+            if (component._id === ownProps.componentId) {
+                projectId = component.projectId._id;
+                break;
+            }
+        }
+    }
+    if (projectId === null)
+        projectId = ownProps.currentProject && ownProps.currentProject._id;
+
     const currentPlanId =
         state.project &&
         state.project.currentProject &&
@@ -1432,7 +1403,6 @@ const mapStateToProps = (state, ownProps) => {
             name,
             type,
             category,
-            subProject,
             schedule,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
@@ -1444,6 +1414,7 @@ const mapStateToProps = (state, ownProps) => {
                 ? state.project.currentProject
                 : {},
             currentPlanId,
+            projectId,
         };
     } else {
         return {
@@ -1453,7 +1424,6 @@ const mapStateToProps = (state, ownProps) => {
             name,
             type,
             category,
-            subProject,
             schedule,
             monitorCategoryList:
                 state.monitorCategories.monitorCategoryListForNewMonitor
@@ -1464,6 +1434,7 @@ const mapStateToProps = (state, ownProps) => {
                 ? state.project.currentProject
                 : {},
             currentPlanId,
+            projectId,
         };
     }
 };
@@ -1489,7 +1460,6 @@ NewMonitor.propTypes = {
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
-    subProjects: PropTypes.array,
     monitorCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
@@ -1498,6 +1468,8 @@ NewMonitor.propTypes = {
     showUpgradeForm: PropTypes.func,
     project: PropTypes.object,
     currentPlanId: PropTypes.string,
+    projectId: PropTypes.string,
+    subProjects: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);
