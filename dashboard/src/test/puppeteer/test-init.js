@@ -127,7 +127,7 @@ module.exports = {
             await this.selectByText('#subProjectId', projectName, page);
         }
 
-        await page.click('button[type=submit]');
+        await page.$eval('button[type=submit]', e => e.click());
         await page.waitForNavigation();
     },
     navigateToComponentDetails: async function(component, page) {
