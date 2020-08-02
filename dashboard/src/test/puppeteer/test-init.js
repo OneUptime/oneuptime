@@ -314,7 +314,6 @@ module.exports = {
         component && (await this.addComponent(component, page));
 
         await page.waitForSelector('input[id=name]');
-        await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await this.selectByText('#type', 'device', page);
         await page.waitForSelector('#deviceId');
