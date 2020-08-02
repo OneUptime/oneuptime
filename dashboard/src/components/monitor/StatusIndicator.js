@@ -15,7 +15,7 @@ function StatusIndicator({ status }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'blue';
+            statusColor = 'slate5';
     }
 
     return <div className={`db-Badge Box-background--${statusColor}`}></div>;

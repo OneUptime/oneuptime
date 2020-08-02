@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { LargeSpinner as Loader, Spinner } from '../basic/Loader';
+import { Spinner } from '../basic/Loader';
 import {
     ResponsiveContainer,
     AreaChart as Chart,
@@ -22,8 +22,14 @@ const CustomTooltip = ({ active, payload }) => {
     if (active) {
         return (
             <div className="custom-tooltip">
-                <h3>{payload[0].payload.name}</h3>
-                <p className="label">{`${payload[0].name} : ${payload[0].payload.display}`}</p>
+                {payload[0].payload.name ? (
+                    <>
+                        <h3>{payload[0].payload.name}</h3>
+                        <p className="label">{`${payload[0].name} : ${payload[0].payload.display}`}</p>
+                    </>
+                ) : (
+                    <h3>No data available</h3>
+                )}
             </div>
         );
     }
@@ -83,9 +89,33 @@ class AreaChart extends Component {
 
     render() {
         const { type, data, name, symbol, requesting } = this.props;
-
+        let processedData = [{ display: '', name: '', v: '' }];
+        if (requesting) {
+            return (
+                <div style={noDataStyle}>
+                    <div
+                        className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                        style={{
+                            textAlign: 'center',
+                            width: '100%',
+                            fontSize: 14,
+                            fontWeight: '500',
+                            margin: 0,
+                            color: '#4c4c4c',
+                            lineHeight: 1.6,
+                        }}
+                    >
+                        <Spinner style={{ stroke: '#8898aa' }} />{' '}
+                        <span style={{ width: 10 }} />
+                        We&apos;re currently in the process of collecting data
+                        for this monitor. <br />
+                        More info will be available in few minutes
+                    </div>
+                </div>
+            );
+        }
         if (data && data.length > 0) {
-            const processedData = (type === 'manual'
+            processedData = (type === 'manual'
                 ? data.map(a => {
                       return {
                           name: this.parseDate(a.date),
@@ -106,62 +136,31 @@ class AreaChart extends Component {
                       };
                   })
             ).reverse();
-
-            return (
-                <ResponsiveContainer width="100%" height={75}>
-                    <Chart data={processedData}>
-                        <Tooltip content={<CustomTooltip />} />
-                        <CartesianGrid
-                            horizontal={false}
-                            strokeDasharray="3 3"
-                        />
-                        {type === 'manual' ? <YAxis reversed hide /> : ''}
-                        <Area
-                            type="linear"
-                            isAnimationActive={false}
-                            name={_.startCase(
-                                _.toLower(
-                                    `${
-                                        type === 'manual' ? 'average' : 'max'
-                                    } ${name}`
-                                )
-                            )}
-                            dataKey="v"
-                            stroke="#000000"
-                            strokeWidth={1.5}
-                            fill="#e2e1f2"
-                        />
-                    </Chart>
-                </ResponsiveContainer>
-            );
-        } else {
-            return (
-                <div style={noDataStyle}>
-                    {requesting ? (
-                        <Loader />
-                    ) : (
-                        <div
-                            className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                            style={{
-                                textAlign: 'center',
-                                width: '100%',
-                                fontSize: 14,
-                                fontWeight: '500',
-                                margin: 0,
-                                color: '#4c4c4c',
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            <Spinner style={{ stroke: '#8898aa' }} />{' '}
-                            <span style={{ width: 10 }} />
-                            We&apos;re currently in the process of collecting
-                            data for this monitor. <br />
-                            More info will be available in few minutes
-                        </div>
-                    )}
-                </div>
-            );
         }
+        return (
+            <ResponsiveContainer width="100%" height={75}>
+                <Chart data={processedData}>
+                    <Tooltip content={<CustomTooltip />} />
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    {type === 'manual' ? <YAxis reversed hide /> : ''}
+                    <Area
+                        type="linear"
+                        isAnimationActive={false}
+                        name={_.startCase(
+                            _.toLower(
+                                `${
+                                    type === 'manual' ? 'average' : 'max'
+                                } ${name}`
+                            )
+                        )}
+                        dataKey="v"
+                        stroke="#000000"
+                        strokeWidth={1.5}
+                        fill="#e2e1f2"
+                    />
+                </Chart>
+            </ResponsiveContainer>
+        );
     }
 }
 
