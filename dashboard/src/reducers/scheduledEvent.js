@@ -11,6 +11,9 @@ import {
     UPDATE_SCHEDULED_EVENT_SUCCESS,
     UPDATE_SCHEDULED_EVENT_REQUEST,
     UPDATE_SCHEDULED_EVENT_FAILURE,
+    FETCH_SCHEDULED_EVENT_SUCCESS,
+    FETCH_SCHEDULED_EVENT_REQUEST,
+    FETCH_SCHEDULED_EVENT_FAILURE,
 } from '../constants/scheduledEvent';
 
 const INITIAL_STATE = {
@@ -116,6 +119,39 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case FETCH_SCHEDULED_EVENT_SUCCESS:
+            return {
+                ...state,
+                newScheduledEvent: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    scheduledEvent: action.payload,
+                },
+            };
+
+        case FETCH_SCHEDULED_EVENT_REQUEST:
+            return {
+                ...state,
+                newScheduledEvent: {
+                    ...state.newScheduledEvent,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_SCHEDULED_EVENT_FAILURE:
+            return {
+                ...state,
+                newScheduledEvent: {
+                    ...state.newScheduledEvent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         case DELETE_SCHEDULED_EVENT_SUCCESS:
             return Object.assign({}, state, {
