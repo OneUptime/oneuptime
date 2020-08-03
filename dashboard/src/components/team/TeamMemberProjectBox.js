@@ -75,7 +75,7 @@ const TeamMemberProjectBox = props => (
         </div>
         <div className="bs-ContentSection-content Box-root">
             <div className="bs-ObjectList db-UserList">
-                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                <div>
                     <div className="bs-ObjectList-rows">
                         <header className="bs-ObjectList-row bs-ObjectList-row--header">
                             <div className="bs-ObjectList-cell">

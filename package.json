@@ -1,9 +1,13 @@
 {
     "name": "app",
     "version": "3.0.0",
-    "description": "One Complete SRE and IT Ops platform.",
+    "description": "One Complete SRE and DevOps platform.",
     "main": "index.js",
-    "dependencies": {},
+    "dependencies": {
+        "prismjs": "^1.20.0",
+        "react-markdown": "^4.3.1",
+        "react-simple-code-editor": "^0.11.0"
+    },
     "devDependencies": {
         "@babel/core": "^7.10.2",
         "@babel/plugin-proposal-class-properties": "^7.10.1",
