@@ -308,7 +308,7 @@ module.exports = {
         } else {
             await page.keyboard.press('Enter');
         }
-        await page.waitFor(5000);
+        await page.waitFor(1000);
     },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
