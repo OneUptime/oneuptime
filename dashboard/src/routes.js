@@ -37,6 +37,7 @@ const {
     ChangePasswordSetting,
     DeleteAccountPage,
     ScheduledEvent,
+    ScheduledEventDetail,
 } = pages;
 
 export const groups = [
@@ -255,7 +256,19 @@ export const groups = [
                 icon: 'connect',
                 visible: true,
                 component: ScheduledEvent,
-                subRoutes: [],
+                exact: true,
+                subRoutes: [
+                    {
+                        title: 'Scheduled Event Detail',
+                        path:
+                            '/dashboard/project/:projectId/scheduledEvents/:scheduledEventId',
+                        icon: 'connect',
+                        visible: true,
+                        component: ScheduledEventDetail,
+                        subRoutes: [],
+                        index: 1,
+                    },
+                ],
                 index: 5,
             },
             {

@@ -10,6 +10,7 @@ import AlertLog from './AlertLog';
 import Schedule from './Schedule';
 
 import ScheduledEvent from './ScheduledEvent';
+import ScheduledEventDetail from './ScheduledEventDetail';
 
 import ChangePassword from './ChangePassword';
 
@@ -82,4 +83,5 @@ export default {
     ChangePasswordSetting,
     DeleteAccountPage,
     ScheduledEvent,
+    ScheduledEventDetail,
 };
