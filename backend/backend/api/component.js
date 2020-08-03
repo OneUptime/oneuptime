@@ -13,6 +13,9 @@ const ApplicationLogService = require('../services/applicationLogService');
 const MonitorService = require('../services/monitorService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
+const LogService = require('../services/logService');
+const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
+const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -219,13 +222,22 @@ router.get(
                 limit,
                 skip
             );
-            applicationLogs.map(elem => {
+            applicationLogs.map(async elem => {
+                let logStatus = 'No logs yet';
+                // confirm if the application log has started collecting logs or not
+                const logs = await LogService.getLogsByApplicationLogId(
+                    elem._id,
+                    1,
+                    0
+                );
+                if (logs.length > 0) logStatus = 'Collecting Logs';
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: 'application-log',
+                    type: 'application-log container',
                     createdAt: elem.createdAt,
                     icon: 'appLog',
+                    status: logStatus,
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -242,7 +254,7 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: 'monitor',
+                    type: elem.type,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                 };
@@ -258,31 +270,43 @@ router.get(
                 skip
             );
             applicationSecurity.map(elem => {
+                // get the security log
+                const securityLog = ApplicationSecurityLogService.findOneBy({
+                    securityId: elem._id,
+                    componentId,
+                });
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: 'application-security',
+                    type: 'application-security container',
                     createdAt: elem.createdAt,
                     icon: 'security',
+                    securityLog,
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
                 return newElement;
             });
-
             // fetch container security
             const containerSecurity = await ContainerSecurityService.findBy(
                 { componentId: componentId },
                 limit,
                 skip
             );
-            containerSecurity.map(elem => {
+            containerSecurity.map(async elem => {
+                const securityLog = await ContainerSecurityLogService.findOneBy(
+                    {
+                        securityId: elem._id,
+                        componentId,
+                    }
+                );
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: 'container-security',
+                    type: 'container-security container',
                     createdAt: elem.createdAt,
                     icon: 'docker',
+                    securityLog,
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
