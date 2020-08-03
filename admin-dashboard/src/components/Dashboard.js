@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
 import { withRouter } from 'react-router';
+import { Link } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
 import ClickOutside from 'react-click-outside';
@@ -83,7 +84,7 @@ export class DashboardApp extends Component {
     };
 
     render() {
-        const { user, children, license } = this.props;
+        const { user, children, license, settings, twilio, smtp } = this.props;
 
         return (
             <Fragment>
@@ -115,6 +116,56 @@ export class DashboardApp extends Component {
                                             }
                                         >
                                             <UnLicensedAlert />
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                !settings.requesting &&
+                                                Object.keys(smtp).length === 1
+                                            }
+                                        >
+                                            <AlertPanel
+                                                message={
+                                                    <span>
+                                                        SMTP Settings are not
+                                                        configured. To send
+                                                        Email alerts you need to
+                                                        configure these
+                                                        settings. Please click{' '}
+                                                        <Link
+                                                            className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                            to="/admin/settings/smtp"
+                                                        >
+                                                            here
+                                                        </Link>{' '}
+                                                        to configure them.
+                                                    </span>
+                                                }
+                                            />
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                !settings.requesting &&
+                                                Object.keys(twilio).length === 1
+                                            }
+                                        >
+                                            <AlertPanel
+                                                message={
+                                                    <span>
+                                                        Twilio Settings are not
+                                                        configured. To send call
+                                                        and SMS alerts you need
+                                                        to configure these
+                                                        settings. Please click{' '}
+                                                        <a 
+                                                            className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                            href="/admin/settings/twilio"
+                                                        >
+                                                            here
+                                                        </a>{' '}
+                                                        to configure them.
+                                                    </span>
+                                                }
+                                            />
                                         </ShouldRender>
                                         {children}
                                     </div>
