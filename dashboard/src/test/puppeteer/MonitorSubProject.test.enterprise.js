@@ -88,11 +88,6 @@ describe('Enterprise Monitor SubProject API', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', data.subProjectMonitorName);
                 await init.selectByText('#type', 'url', page);
-                await init.selectByText(
-                    '#subProjectId',
-                    data.subProjectName,
-                    page
-                );
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');

@@ -205,6 +205,7 @@ class DashboardView extends Component {
                             style={{ overflow: 'visible' }}
                         >
                             <MonitorList
+                                componentId={componentId}
                                 shouldRenderProjectType={
                                     subProjects && subProjects.length > 0
                                 }
