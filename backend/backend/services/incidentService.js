@@ -53,6 +53,7 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
+                incident.title = data.title;
                 incident.manuallyCreated = data.manuallyCreated || false;
 
                 if (data.probeId) {
