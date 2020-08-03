@@ -223,7 +223,7 @@ export const groups = [
             {
                 title: 'On-Call Schedules',
                 path: '/dashboard/project/:projectId/on-call',
-                icon: 'connect',
+                icon: 'call',
                 visible: true,
                 subRoutes: [
                     {
@@ -239,7 +239,7 @@ export const groups = [
                         title: 'Schedule',
                         path:
                             '/dashboard/project/:projectId/sub-project/:subProjectId/schedule/:scheduleId',
-                        icon: 'connect',
+                        icon: 'call',
                         visible: true,
                         subRoutes: [],
                         component: Schedule,
