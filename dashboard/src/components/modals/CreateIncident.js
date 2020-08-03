@@ -9,11 +9,16 @@ import {
     createIncidentSuccess,
     createNewIncident,
 } from '../../actions/incident';
-import { Validate, renderIfUserInSubProject } from '../../config';
+import {
+    Validate,
+    ValidateField,
+    renderIfUserInSubProject,
+} from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
+import { RenderField } from '../basic/RenderField';
 
 function validate(value) {
     const errors = {};
@@ -158,6 +163,30 @@ class CreateIncident extends Component {
                                                                     : []),
                                                             ]}
                                                         />
+                                                    </div>
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident title
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="title"
+                                                                id="title"
+                                                                placeholder="Incident title"
+                                                                disabled={
+                                                                    this.props
+                                                                        .newIncident
+                                                                        .requesting
+                                                                }
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (
