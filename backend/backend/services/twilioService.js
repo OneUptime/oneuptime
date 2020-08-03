@@ -359,7 +359,10 @@ const _this = {
             return message;
         } catch (error) {
             let err = Object.assign({}, error);
-            if (err && err.status) {
+            if (
+                (err && err.status) ||
+                error.message === 'accountSid must start with AC'
+            ) {
                 err = new Error(error.message);
                 err.code = 400;
             }
