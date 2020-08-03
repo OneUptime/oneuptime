@@ -4,30 +4,111 @@ import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
 import { fetchComponentResources } from '../../actions/component';
+import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
+import threatLevel from '../../utils/threatLevel';
+import StatusIndicator from '../monitor/StatusIndicator';
+import moment from 'moment';
 
 class ResourceTabularList extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            startDate: moment().subtract(30, 'd'),
+            endDate: moment(),
+        };
+    }
     generateUrlLink(componentResource) {
         const { currentProject, componentId } = this.props;
         const baseUrl = `/dashboard/project/${currentProject._id}/${componentId}/`;
         let route = '';
         switch (componentResource.type) {
-            case 'monitor':
+            case 'url':
+            case 'device':
+            case 'manual':
+            case 'api':
+            case 'server-monitor':
+            case 'script':
                 route = 'monitoring';
                 break;
-            case 'application-security':
+            case 'application-security container':
                 route = 'security/application';
                 break;
-            case 'container-security':
+            case 'container-security container':
                 route = 'security/container';
                 break;
-            case 'application-log':
+            case 'application-log container':
                 route = 'application-logs';
                 break;
             default:
                 break;
         }
         return `${baseUrl}${route}/${componentResource._id}`;
+    }
+    generateResourceStatus(componentResource) {
+        let statusColor = 'red';
+        let statusDescription = 'TBD';
+        let indicator, monitor, logs, probe;
+        let appSecurityStatus = 'no data yet',
+            monitorStatus;
+        const { monitors, probes, activeProbe } = this.props;
+        const { startDate, endDate } = this.state;
+        switch (componentResource.type) {
+            case 'url':
+            case 'device':
+            case 'manual':
+            case 'api':
+            case 'server-monitor':
+            case 'script':
+                // get monitor status
+                monitor = monitors.filter(
+                    monitor => monitor._id === componentResource._id
+                )[0];
+                probe =
+                    monitor && probes && probes.length > 0
+                        ? probes[probes.length < 2 ? 0 : activeProbe]
+                        : null;
+                logs = filterProbeData(monitor, probe, startDate, endDate).logs;
+                monitorStatus = getMonitorStatus(monitor.incidents, logs);
+                indicator = <StatusIndicator status={monitorStatus} />;
+                statusDescription = monitorStatus;
+                break;
+            case 'application-security container':
+            case 'container-security container':
+                // get application security status
+                if (componentResource.securityLog.data) {
+                    appSecurityStatus = threatLevel(
+                        componentResource.securityLog.data.vulnerabilities
+                    );
+                    statusDescription = `${appSecurityStatus} issues`;
+                } else {
+                    statusDescription = 'No Scan Yet';
+                }
+                indicator = <StatusIndicator status={appSecurityStatus} />;
+                break;
+            case 'application-log container':
+                // get application log status
+                if (componentResource.status === 'Collecting Logs')
+                    statusColor = 'green';
+
+                statusDescription = componentResource.status;
+                indicator = (
+                    <div
+                        className={`db-Badge Box-background--${statusColor}`}
+                    ></div>
+                );
+                break;
+            default:
+                break;
+        }
+
+        return (
+            <div>
+                {indicator}
+                {` ${statusDescription}`}
+            </div>
+        );
     }
     render() {
         const { componentResource } = this.props;
@@ -58,20 +139,16 @@ class ResourceTabularList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                {/* <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '100px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Status</span>
+                                        </span>
                                     </div>
-                                </td> */}
+                                </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px', minWidth: '100px' }}
@@ -151,11 +228,11 @@ class ResourceTabularList extends Component {
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                             <div
-                                                                className={`Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
                                                                     id={`resource_type_${componentResource.name}`}
-                                                                    className={`Badge-text Text-typeface--upper Text-color--green Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper`}
+                                                                    className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
                                                                 >
                                                                     {
                                                                         componentResource.type
@@ -165,20 +242,30 @@ class ResourceTabularList extends Component {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                {/* <td
-                                                    id="placeholder-left"
-                                                    className="Table-cell Table-cell--align--left  Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                <td
+                                                    className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
                                                         height: '1px',
-                                                        maxWidth: '48px',
-                                                        minWidth: '48px',
-                                                        width: '48px',
+                                                        minWidth: '100px',
                                                     }}
                                                 >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <div
+                                                                className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    id={`resource_type_${componentResource.name}`}
+                                                                    className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                >
+                                                                    {this.generateResourceStatus(
+                                                                        componentResource
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </td> */}
+                                                </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
@@ -267,13 +354,22 @@ const mapDispatchToProps = dispatch => {
     );
 };
 function mapStateToProps(state, props) {
-    let componentResource = null;
+    let componentResource,
+        monitors = null;
     if (state.component.componentResourceList) {
         componentResource =
             state.component.componentResourceList[props.componentId];
     }
+
+    monitors = state.monitor.monitorsList.monitors[0]
+        ? state.monitor.monitorsList.monitors[0].monitors
+        : null;
+
     return {
         componentResource,
+        monitors,
+        probes: state.probe.probes.data,
+        activeProbe: state.monitor.activeProbe,
     };
 }
 
@@ -281,6 +377,9 @@ ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
     componentId: PropTypes.string,
+    monitors: PropTypes.array,
+    probes: PropTypes.array,
+    activeProbe: PropTypes.number,
 };
 
 export default connect(
