@@ -7,6 +7,7 @@ module.exports = {
             incidentMessage.incidentId = data.incidentId;
             incidentMessage.createdById = data.createdById;
             incidentMessage.type = data.type;
+            incidentMessage.incident_state = data.incident_state;
 
             incidentMessage = await incidentMessage.save();
             incidentMessage = await this.findOneBy({
@@ -52,9 +53,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const incidentMessage = await IncidentMessageModel.findOne(
-                query
-            ).populate('incidentId', 'name');
+            const incidentMessage = await IncidentMessageModel.findOne(query)
+                .populate('incidentId', 'name')
+                .populate('createdById', 'name');
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.findOneBy', error);
@@ -72,12 +73,13 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-
+            if (!query.deleted) query.deleted = false;
             const incidentMessages = await IncidentMessageModel.find(query)
-                .sort([['createdAt', 1]])
+                .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
                 .skip(skip)
-                .populate('createdById', 'name');
+                .populate('createdById', 'name')
+                .populate('incidentId', 'name');
 
             return incidentMessages;
         } catch (error) {
@@ -90,12 +92,41 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            if (!query.deleted) query.deleted = false;
 
             const count = await IncidentMessageModel.countDocuments(query);
 
             return count;
         } catch (error) {
             ErrorService.log('incidentMessageService.countBy', error);
+            throw error;
+        }
+    },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const incidentMessage = await IncidentMessageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            ).populate('deletedById', 'name');
+            if (incidentMessage) {
+                return incidentMessage;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            ErrorService.log('incidentMessageService.deleteBy', error);
             throw error;
         }
     },

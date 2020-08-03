@@ -7,7 +7,6 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings } from '../../actions/settings';
-import { openModal, closeModal } from '../../actions/modal';
 
 // Client side validation
 function validate(values) {
@@ -103,15 +102,6 @@ export class Component extends React.Component {
         await this.props.fetchSettings(settingsType);
     }
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.testModalId });
-            default:
-                return false;
-        }
-    };
-
     submitForm = values => {
         this.props.saveSettings(settingsType, values);
     };
@@ -190,8 +180,8 @@ export class Component extends React.Component {
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage">
-                                {settings.error && (
-                                    <div className="bs-Tail-copy">
+                                {!settings.requesting && settings.error && (
+                                    <div id="errors" className="bs-Tail-copy">
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                             style={{ marginTop: '10px' }}
@@ -236,7 +226,6 @@ Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     saveSettings: PropTypes.func.isRequired,
     fetchSettings: PropTypes.func.isRequired,
-    closeModal: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -244,8 +233,6 @@ const mapDispatchToProps = dispatch => {
         {
             saveSettings,
             fetchSettings,
-            openModal,
-            closeModal,
         },
         dispatch
     );
