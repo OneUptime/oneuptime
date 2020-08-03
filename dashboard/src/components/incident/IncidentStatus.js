@@ -529,6 +529,22 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                 </div>
                                             )}
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Title :
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ marginTop: '6px' }}
+                                                >
+                                                    <span className="value">
+                                                        {
+                                                            this.props.incident
+                                                                .title
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </fieldset>
                                 </div>
