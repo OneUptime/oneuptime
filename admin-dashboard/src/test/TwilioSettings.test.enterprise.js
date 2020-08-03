@@ -36,7 +36,6 @@ describe('Twilio Settings API', () => {
             };
             // user
             await init.registerEnterpriseUser(user, page);
-            await init.loginUser(user, page);
         });
     });
 
