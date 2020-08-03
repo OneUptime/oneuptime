@@ -51094,6 +51094,10 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   color:#FF2D55 !important;
 }
 
+.Border-bottom--white {
+  border-bottom: solid thin #fff;
+}
+
 .underline{
   text-decoration:underline !important;
 }
