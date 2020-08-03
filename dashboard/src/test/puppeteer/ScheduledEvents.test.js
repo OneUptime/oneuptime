@@ -9,6 +9,8 @@ const password = '1234567890';
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
+const scheduledEventName = utils.generateRandomString();
+const newScheduledEventName = utils.generateRandomString();
 
 describe('Scheduled event', () => {
     const operationTimeOut = 50000;
@@ -41,172 +43,142 @@ describe('Scheduled event', () => {
             await init.loginUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
+            await init.addMonitorToComponent(null, monitorName, page);
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
         'should create a new scheduled event for a monitor',
-        async () => {
-            expect.assertions(1);
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledEvents', {
+                    visible: true,
+                });
+                await page.click('#scheduledEvents');
+                await page.waitForSelector('#addScheduledEventButton', {
+                    visible: true,
+                });
+                await page.click('#addScheduledEventButton');
 
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to details page of component created
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-
-                await init.selectByText('#type', 'device', page);
-                await page.waitForSelector('#deviceId');
-                await page.click('#deviceId');
-                await page.type('#deviceId', utils.generateRandomString());
-
-                await page.click('button[type=submit]');
-
-                const moreButtonSelector = `#more-details-${monitorName}`;
-                await page.waitForSelector(moreButtonSelector);
-                await page.click(moreButtonSelector);
-
-                const addButtonSelector = '#addScheduledEventButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.click(addButtonSelector);
-
-                await page.waitForSelector('form input[name=startDate]');
-
+                await page.waitForSelector('#scheduledEventForm', {
+                    visible: true,
+                });
+                await page.waitForSelector('#name');
+                await page.click('#name');
+                await page.type('#name', scheduledEventName);
+                await page.click('#addMoreMonitor');
+                await page.waitForSelector('#monitorfield');
+                await init.selectByText('#monitorfield', monitorName, page);
+                await page.click('#description');
+                await page.type(
+                    '#description',
+                    'This is an example description for a test'
+                );
+                await page.waitForSelector('input[name=startDate]');
                 await page.click('input[name=startDate]');
                 await page.click(
                     'div.MuiDialogActions-root button:nth-child(2)'
                 );
+                await page.waitFor(1000); // needed because of the date picker
                 await page.click('input[name=endDate]');
                 await page.click(
                     'div.MuiDialogActions-root button:nth-child(2)'
                 );
-
-                await page.type('input[name=name]', utils.scheduledEventName);
-                await page.type(
-                    'textarea[name=description]',
-                    utils.scheduledEventDescription
-                );
-
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=showEventOnStatusPage]')
-                        .click();
-                });
-
+                await page.waitFor(1000); // needed because of the date picker
                 await page.click('#createScheduledEventButton');
-
-                const createdScheduledEventSelector =
-                    '#scheduledEventsList .scheduled-event-name';
-                await page.waitFor(5000);
-
-                const createdScheduledEventName = await page.$eval(
-                    createdScheduledEventSelector,
-                    el => el.textContent
+                await page.waitForSelector('#scheduledEventForm', {
+                    hidden: true,
+                });
+                await page.waitForSelector('.scheduled-event-list-item', {
+                    visible: true,
+                });
+                const scheduledEventList = await page.$$(
+                    '.scheduled-event-list-item'
                 );
 
-                expect(createdScheduledEventName).toEqual(
-                    utils.scheduledEventName
-                );
+                expect(scheduledEventList.length).toBeGreaterThanOrEqual(1);
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should update the created scheduled event for a monitor',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to details page of component created
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForSelector(`#more-details-${monitorName}`);
-                await page.click(`#more-details-${monitorName}`);
-                const createdScheduledEventSelector =
-                    '#scheduledEventsList .scheduled-event-name';
-                await page.waitForSelector(createdScheduledEventSelector);
-                await page.click(createdScheduledEventSelector);
-
-                await page.waitFor(5000);
-
-                await page.click('input[name=name]', { clickCount: 3 });
-                await page.keyboard.press('Backspace');
-                await page.type(
-                    'input[name=name]',
-                    utils.updatedScheduledEventName
-                );
-
-                await page.click('textarea[name=description]', {
-                    clickCount: 3,
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledEvents', {
+                    visible: true,
                 });
-                await page.keyboard.press('Backspace');
-                await page.type(
-                    'textarea[name=description]',
-                    utils.updatedScheduledEventDescription
-                );
-
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=showEventOnStatusPage]')
-                        .click();
+                await page.click('#scheduledEvents');
+                await page.waitForSelector('#editCredentialBtn_0', {
+                    visible: true,
                 });
-                await page.evaluate(() => {
-                    document
-                        .querySelector('input[name=alertSubscriber]')
-                        .click();
+                await page.click('#editCredentialBtn_0');
+                await page.waitForSelector('#editScheduledEventForm', {
+                    visible: true,
                 });
-
+                await page.waitForSelector('#name');
+                await page.click('#name', { clickCount: 3 });
+                await page.type('#name', newScheduledEventName);
                 await page.click('#updateScheduledEventButton');
+                await page.waitForSelector('#editScheduledEventForm', {
+                    hidden: true,
+                });
 
-                await page.waitFor(5000);
-
-                const createdScheduledEventName = await page.$eval(
-                    createdScheduledEventSelector,
-                    el => el.textContent
+                await page.waitForSelector('.scheduled-event-name', {
+                    visible: true,
+                });
+                const eventName = await page.evaluate(
+                    () =>
+                        document.querySelector('.scheduled-event-name')
+                            .textContent
                 );
-
-                expect(createdScheduledEventName).toEqual(
-                    utils.updatedScheduledEventName
-                );
+                expect(eventName).toBe(newScheduledEventName);
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should delete the created scheduled event for a monitor',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to details page of component created
-                await init.navigateToComponentDetails(componentName, page);
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledEvents', {
+                    visible: true,
+                });
+                await page.click('#scheduledEvents');
 
-                await page.waitForSelector(`#more-details-${monitorName}`);
-                await page.click(`#more-details-${monitorName}`);
-
-                const deleteButtonSelector =
-                    '#scheduledEventsList button.delete-schedule';
-
-                await page.waitForSelector(deleteButtonSelector);
-                await page.click(deleteButtonSelector);
-
-                await page.waitFor(5000);
-
-                const scheduledEventCounterSelector = '#scheduledEventCount';
-                const scheduledEventCount = await page.$eval(
-                    scheduledEventCounterSelector,
-                    el => el.textContent
+                await page.waitForSelector('#deleteCredentialBtn_0', {
+                    visible: true,
+                });
+                await page.click('#deleteCredentialBtn_0');
+                await page.waitForSelector('#deleteScheduleModalBtn', {
+                    visible: true,
+                });
+                await page.click('#deleteScheduleModalBtn');
+                await page.waitForSelector('#deleteScheduleModalBtn', {
+                    hidden: true,
+                });
+                const scheduledEventList = await page.waitForSelector(
+                    '.scheduled-event-list-item',
+                    {
+                        hidden: true,
+                    }
                 );
-
-                expect(scheduledEventCount).toEqual('0 Scheduled Event');
+                expect(scheduledEventList).toBeNull();
             });
+            done();
         },
         operationTimeOut
     );

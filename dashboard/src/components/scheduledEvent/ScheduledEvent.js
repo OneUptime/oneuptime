@@ -155,7 +155,7 @@ class ScheduledEventBox extends Component {
                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                             style={{ backgroundColor: 'white' }}
                                         >
-                                            <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent db-ListViewItem--hasLink">
+                                            <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
                                                 <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
                                                     {this.props.name}
                                                 </div>

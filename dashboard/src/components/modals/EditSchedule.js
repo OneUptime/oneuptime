@@ -106,7 +106,10 @@ class UpdateSchedule extends React.Component {
                                 </span>
                             </div>
                         </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="editScheduledEventForm"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-Modal-content">
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="Margin-bottom--16">
