@@ -11,6 +11,7 @@ import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
+import { history } from '../../store';
 
 class ScheduledEventBox extends Component {
     constructor(props) {
@@ -72,6 +73,13 @@ class ScheduledEventBox extends Component {
         return `${monitors[0].monitorId.name}, ${
             monitors[1].monitorId.name
         } and ${monitors.length - 2} others`;
+    };
+
+    handleScheduledEventDetail = scheduledEventId => {
+        const { projectId } = this.props;
+        history.push(
+            `/dashboard/project/${projectId}/scheduledEvents/${scheduledEventId}`
+        );
     };
 
     render() {
@@ -171,112 +179,130 @@ class ScheduledEventBox extends Component {
                                     </div>
                                 </header>
                                 {scheduledEvents.length > 0 &&
-                                    scheduledEvents.map(scheduledEvent => (
-                                        <div
-                                            key={scheduledEvent._id}
-                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                            style={{ backgroundColor: 'white' }}
-                                        >
-                                            <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
-                                                <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                    {this.props.name}
+                                    scheduledEvents.map(
+                                        (scheduledEvent, index) => (
+                                            <div
+                                                key={scheduledEvent._id}
+                                                className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                style={{
+                                                    backgroundColor: 'white',
+                                                }}
+                                            >
+                                                <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                    <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                        {this.props.name}
+                                                    </div>
+                                                    <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        {scheduledEvent.name}
+                                                    </div>
                                                 </div>
-                                                <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    {scheduledEvent.name}
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {
+                                                            scheduledEvent
+                                                                .createdById
+                                                                .name
+                                                        }
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {
-                                                        scheduledEvent
-                                                            .createdById.name
-                                                    }
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {scheduledEvent.monitors &&
+                                                            this.handleMonitorList(
+                                                                scheduledEvent.monitors
+                                                            )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {scheduledEvent.monitors &&
-                                                        this.handleMonitorList(
-                                                            scheduledEvent.monitors
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {moment(
+                                                            scheduledEvent.startDate
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
                                                         )}
+                                                        <br />
+                                                        <strong>
+                                                            {
+                                                                profileSettings.timezone
+                                                            }
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="bs-ObjectList-cell-row">
+                                                        {moment(
+                                                            scheduledEvent.endDate
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                        <br />
+                                                        <strong>
+                                                            {
+                                                                profileSettings.timezone
+                                                            }
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                                <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                    <div className="Box-root">
+                                                        <button
+                                                            id={`editCredentialBtn_${index}`}
+                                                            title="view"
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                this.handleScheduledEventDetail(
+                                                                    scheduledEvent._id
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>View</span>
+                                                        </button>
+                                                        <button
+                                                            id={`editCredentialBtn_${index}`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openModal({
+                                                                    id: createScheduledEventModalId,
+                                                                    content: EditSchedule,
+                                                                    event: scheduledEvent,
+                                                                })
+                                                            }
+                                                        >
+                                                            <span>Edit</span>
+                                                        </button>
+                                                        <button
+                                                            id={`deleteCredentialBtn_${index}`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                            style={{
+                                                                marginLeft: 20,
+                                                            }}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openModal({
+                                                                    id:
+                                                                        scheduledEvent._id,
+                                                                    content: DataPathHoC(
+                                                                        DeleteSchedule,
+                                                                        {
+                                                                            projectId,
+                                                                            eventId:
+                                                                                scheduledEvent._id,
+                                                                        }
+                                                                    ),
+                                                                })
+                                                            }
+                                                        >
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {moment(
-                                                        scheduledEvent.startDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                    <br />
-                                                    <strong>
-                                                        {
-                                                            profileSettings.timezone
-                                                        }
-                                                    </strong>
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {moment(
-                                                        scheduledEvent.endDate
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                    <br />
-                                                    <strong>
-                                                        {
-                                                            profileSettings.timezone
-                                                        }
-                                                    </strong>
-                                                </div>
-                                            </div>
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="Box-root">
-                                                    <button
-                                                        id="editCredentialBtn_0"
-                                                        title="delete"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            openModal({
-                                                                id: createScheduledEventModalId,
-                                                                content: EditSchedule,
-                                                                event: scheduledEvent,
-                                                            })
-                                                        }
-                                                    >
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        id="deleteCredentialBtn_0"
-                                                        title="delete"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            openModal({
-                                                                id:
-                                                                    scheduledEvent._id,
-                                                                content: DataPathHoC(
-                                                                    DeleteSchedule,
-                                                                    {
-                                                                        projectId,
-                                                                        eventId:
-                                                                            scheduledEvent._id,
-                                                                    }
-                                                                ),
-                                                            })
-                                                        }
-                                                    >
-                                                        <span>Delete</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    )}
                                 <ShouldRender
                                     if={
                                         !(
