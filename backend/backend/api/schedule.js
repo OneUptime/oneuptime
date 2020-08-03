@@ -139,6 +139,25 @@ router.delete(
 );
 
 router.get(
+    '/:projectId/:userId/getescalations',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const projectId = req.params.projectId;
+            const userId = req.params.userId;
+            const escalations = await ScheduleService.getUserEscalations(
+                projectId,
+                userId
+            );
+            return sendListResponse(req, res, escalations);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
     '/:projectId/:scheduleId/getescalation',
     getUser,
     isAuthorized,

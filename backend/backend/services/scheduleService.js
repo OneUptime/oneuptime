@@ -287,6 +287,21 @@ module.exports = {
         }
     },
 
+    getUserEscalations: async function(projectId, userId) {
+        try {
+            const escalations = await EscalationService.findBy({
+                query: {
+                    projectId,
+                    'teams.teamMembers': { $elemMatch: { userId } },
+                },
+            });
+            return escalations;
+        } catch (error) {
+            ErrorService.log('scheduleService.getUserEscalations', error);
+            throw error;
+        }
+    },
+
     escalationCheck: async function(escalationIds, scheduleId, userId) {
         try {
             const _this = this;
