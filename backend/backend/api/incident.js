@@ -37,6 +37,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         const monitorId = req.params.monitorId;
         const projectId = req.params.projectId;
         const incidentType = req.body.incidentType;
+        const title = req.body.title;
         const userId = req.user ? req.user.id : null;
         let oldIncidentsCount = null;
 
@@ -65,6 +66,13 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Project ID  is not in string type.',
+            });
+        }
+
+        if (!title) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Title must be present.',
             });
         }
 
@@ -97,6 +105,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             createdById: userId,
             manuallyCreated: true,
             incidentType,
+            title,
         });
         await MonitorStatusService.create({
             monitorId,
