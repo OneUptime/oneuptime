@@ -15,10 +15,19 @@ import { fetchUsers } from '../actions/user';
 import UnLicensedAlert from './license/UnLicensedAlert';
 import { fetchLicense } from '../actions/license';
 import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from '../config';
+import { fetchSettings } from '../actions/settings';
+import AlertPanel from './basic/AlertPanel';
 
 export class DashboardApp extends Component {
     componentDidMount() {
-        const { fetchUsers, fetchLicense, ready, user, license } = this.props;
+        const {
+            fetchUsers,
+            fetchLicense,
+            ready,
+            user,
+            license,
+            fetchSettings,
+        } = this.props;
         if (
             user.users &&
             user.users.users &&
@@ -38,6 +47,8 @@ export class DashboardApp extends Component {
         ) {
             fetchLicense();
         }
+        fetchSettings('twilio');
+        fetchSettings('smtp');
     }
 
     showProjectForm = () => {
@@ -186,6 +197,10 @@ DashboardApp.propTypes = {
     ready: PropTypes.func,
     user: PropTypes.object.isRequired,
     license: PropTypes.oneOfType([null, PropTypes.object]),
+    fetchSettings: PropTypes.func.isRequired,
+    settings: PropTypes.object.isRequired,
+    twilio: PropTypes.object.isRequired,
+    smtp: PropTypes.object.isRequired,
 };
 
 const mapStateToProps = state => ({
@@ -193,6 +208,9 @@ const mapStateToProps = state => ({
     notification: state.notifications,
     user: state.user,
     license: state.license.license,
+    settings: state.settings,
+    twilio: state.settings.twilio,
+    smtp: state.settings.smtp,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -202,6 +220,7 @@ const mapDispatchToProps = dispatch =>
             closeNotificationMenu,
             fetchUsers,
             fetchLicense,
+            fetchSettings,
         },
         dispatch
     );
