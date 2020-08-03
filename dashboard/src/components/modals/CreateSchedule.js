@@ -107,107 +107,146 @@ class CreateSchedule extends React.Component {
     };
 
     renderMonitors = ({ fields, meta: { error, touched } }) => {
+        const { addMonitor } = this.state;
         return (
-            <div
-                style={{
-                    width: '100%',
-                    position: 'relative',
-                }}
-            >
-                <button
-                    id="addMoreMonitor"
-                    className="Button bs-ButtonLegacy ActionIconParent"
-                    style={{
-                        position: 'absolute',
-                        zIndex: 1,
-                        right: 0,
-                    }}
-                    type="button"
-                    onClick={() => {
-                        fields.push();
-                    }}
-                >
-                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                        <span>Add Monitor</span>
-                    </span>
-                </button>
-                {fields.map((field, index) => {
-                    return (
-                        <div
-                            style={{
-                                width: '65%',
-                                marginBottom: 10,
-                            }}
-                            key={index}
-                        >
-                            <Field
-                                className="db-select-nw Table-cell--width--maximized"
-                                component={RenderSelect}
-                                name={field}
-                                id="monitorfield"
-                                placeholder="Monitor"
-                                style={{
-                                    height: '28px',
-                                    width: '100%',
-                                }}
-                                options={[
-                                    {
-                                        value: '',
-                                        label: 'Select a Monitor',
-                                    },
-                                    ...(this.props.monitors &&
-                                    this.props.monitors.length > 0
-                                        ? this.props.monitors.map(monitor => ({
-                                              value: monitor._id,
-                                              label: monitor.name,
-                                          }))
-                                        : []),
-                                ]}
-                                onChange={(event, newValue) =>
-                                    this.handleMonitorChange(event, newValue)
-                                }
-                            />
-                            <button
-                                id="addMoreMonitor"
-                                className="Button bs-ButtonLegacy ActionIconParent"
-                                style={{
-                                    marginTop: 10,
-                                }}
-                                type="button"
-                                onClick={() => {
-                                    fields.remove(index);
-                                }}
-                            >
-                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                    <span>Remove Monitor</span>
-                                </span>
-                            </button>
-                        </div>
-                    );
-                })}
-                <br />
-                {error && touched && (
-                    <div
-                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                        style={{
-                            marginTop: '5px',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <div
-                            className="Box-root Margin-right--8"
-                            style={{ marginTop: '2px' }}
-                        >
-                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                        </div>
-                        <div className="Box-root">
-                            <span id="field-error" style={{ color: 'red' }}>
-                                {error}
+            <>
+                {!addMonitor && (
+                    <div className="Checkbox-label Box-root Margin-left--8">
+                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <span>
+                                By default all monitors are selected, you can
+                                add specific monitors if you want
                             </span>
-                        </div>
+                        </span>
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                marginTop: 8,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                this.handleAddMoreMonitors();
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
                     </div>
                 )}
-            </div>
+                {addMonitor && (
+                    <div
+                        style={{
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                    >
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                position: 'absolute',
+                                zIndex: 1,
+                                right: 0,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                        {fields.map((field, index) => {
+                            return (
+                                <div
+                                    style={{
+                                        width: '65%',
+                                        marginBottom: 10,
+                                    }}
+                                    key={index}
+                                >
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={field}
+                                        id="monitorfield"
+                                        placeholder="Monitor"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: '',
+                                                label: 'Select a Monitor',
+                                            },
+                                            ...(this.props.monitors &&
+                                            this.props.monitors.length > 0
+                                                ? this.props.monitors.map(
+                                                      monitor => ({
+                                                          value: monitor._id,
+                                                          label: monitor.name,
+                                                      })
+                                                  )
+                                                : []),
+                                        ]}
+                                        onChange={(event, newValue) =>
+                                            this.handleMonitorChange(
+                                                event,
+                                                newValue
+                                            )
+                                        }
+                                    />
+                                    <button
+                                        id="addMoreMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        <br />
+                        {error && touched && (
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                style={{
+                                    marginTop: '5px',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div
+                                    className="Box-root Margin-right--8"
+                                    style={{ marginTop: '2px' }}
+                                >
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span
+                                        id="field-error"
+                                        style={{ color: 'red' }}
+                                    >
+                                        {error}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </>
         );
     };
 
@@ -216,7 +255,7 @@ class CreateSchedule extends React.Component {
     };
 
     render() {
-        const { currentDate, addMonitor } = this.state;
+        const { currentDate } = this.state;
         const {
             requesting,
             scheduledEventError,
@@ -250,7 +289,10 @@ class CreateSchedule extends React.Component {
                                 </span>
                             </div>
                         </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="scheduledEventForm"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-Modal-content">
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="Margin-bottom--16">
@@ -310,7 +352,7 @@ class CreateSchedule extends React.Component {
                                                             width: '100%',
                                                         }}
                                                     >
-                                                        {!addMonitor && (
+                                                        {/* {!addMonitor && (
                                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                     <span>
@@ -348,17 +390,15 @@ class CreateSchedule extends React.Component {
                                                                     </span>
                                                                 </button>
                                                             </div>
-                                                        )}
+                                                        )} */}
 
-                                                        {addMonitor && (
-                                                            <FieldArray
-                                                                name="monitors"
-                                                                component={
-                                                                    this
-                                                                        .renderMonitors
-                                                                }
-                                                            />
-                                                        )}
+                                                        <FieldArray
+                                                            name="monitors"
+                                                            component={
+                                                                this
+                                                                    .renderMonitors
+                                                            }
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
