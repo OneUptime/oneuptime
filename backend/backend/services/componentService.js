@@ -24,6 +24,18 @@ module.exports = {
             });
             if (project.parentProjectId) {
                 subProject = project;
+                const subProjectComponets = await _this.findBy({
+                    name: data.name,
+                    projectId: subProject.parentProjectId,
+                });
+                if (subProjectComponets && subProjectComponets.length > 0) {
+                    const error = new Error(
+                        'Component with that name already exists.'
+                    );
+                    error.code = 400;
+                    ErrorService.log('componentService.create', error);
+                    throw error;
+                }
                 project = await ProjectService.findOneBy({
                     _id: subProject.parentProjectId,
                 });
