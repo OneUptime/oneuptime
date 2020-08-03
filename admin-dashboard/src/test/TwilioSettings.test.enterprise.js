@@ -81,7 +81,7 @@ describe('Twilio Settings API', () => {
     );
 
     test(
-        'Should show server error if an invalide account-so is used.',
+        'Should show error message if an invalide account-sid is used.',
         async () => {
             expect.assertions(2);
             await cluster.execute(null, async ({ page }) => {
@@ -116,7 +116,7 @@ describe('Twilio Settings API', () => {
                     '#errors',
                     element => element.textContent
                 );
-                expect(errorMessage).toEqual('Server Error.');
+                expect(errorMessage).toEqual('accountSid must start with AC');
                 await page.reload();
 
                 const value = await page.$eval(
