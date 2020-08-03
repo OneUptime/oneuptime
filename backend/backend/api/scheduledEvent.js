@@ -255,6 +255,51 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     }
 });
 
+router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, eventId } = req.params;
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.',
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is not of string type.',
+            });
+        }
+
+        if (!eventId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event ID is required.',
+            });
+        }
+
+        if (typeof eventId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event ID is not of string type.',
+            });
+        }
+
+        const scheduledEvent = await ScheduledEventService.findOneBy({
+            _id: eventId,
+            projectId,
+        });
+        return sendItemResponse(req, res, scheduledEvent);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
