@@ -21,7 +21,11 @@ const _this = {
     getUser: async function(req, res, next) {
         try {
             if (apiMiddleware.hasProjectIdAndApiKey(req)) {
-                return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
+                return await apiMiddleware.isValidProjectIdAndApiKey(
+                    req,
+                    res,
+                    next
+                );
             }
 
             const accessToken =

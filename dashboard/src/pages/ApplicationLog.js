@@ -70,10 +70,7 @@ class ApplicationLog extends Component {
                 false
             );
 
-        const componentName =
-            component.length > 0 && component[0] && component[0].name
-                ? component[0].name
-                : null;
+        const componentName = component ? component.name : '';
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
@@ -135,10 +132,15 @@ const mapStateToProps = (state, props) => {
     const applicationLog = state.applicationLog.applicationLogsList;
 
     const currentProject = state.project.currentProject;
-
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
+
     return {
         applicationLogTutorial: state.tutorial.applicationLog,
         componentId,

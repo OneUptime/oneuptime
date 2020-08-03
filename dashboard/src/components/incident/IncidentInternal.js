@@ -2,104 +2,148 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { FormLoader } from '../basic/Loader';
-import ShouldRender from '../basic/ShouldRender';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
+import {
+    fetchIncidentMessages,
+    deleteIncidentMessage,
+} from '../../actions/incident';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
+import IncidentMessageThread from './IncidentMessageThread';
+import { openModal } from '../../actions/modal';
+import uuid from 'uuid';
 
 export class IncidentInternal extends Component {
     constructor(props) {
         super(props);
-        this.internalNotesRef = React.createRef();
+        this.props = props;
+        this.state = {
+            createMessageModalId: uuid.v4(),
+            editMessageModalId: uuid.v4(),
+            deleteMessageModalId: uuid.v4(),
+        };
     }
+    olderInternalMessage = () => {
+        this.props.fetchIncidentMessages(
+            this.props.currentProject._id,
+            this.props.incident._id,
+            parseInt(this.props.incidentMessages.skip, 10) -
+                parseInt(this.props.incidentMessages.limit, 10),
+            parseInt(this.props.incidentMessages.limit, 10),
+            'internal'
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > OLDER INTERNAL MESSAGES CLICKED',
+                {
+                    projectId: this.props.currentProject._id,
+                    incidentId: this.props.incident._id,
+                }
+            );
+        }
+    };
+
+    newerInternalMessage = () => {
+        this.props.fetchIncidentMessages(
+            this.props.currentProject._id,
+            this.props.incident._id,
+            parseInt(this.props.incidentMessages.skip, 10) +
+                parseInt(this.props.incidentMessages.limit, 10),
+            parseInt(this.props.incidentMessages.limit, 10),
+            'internal'
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEWER INTERNAL MESSAGES CLICKED',
+                {
+                    projectId: this.props.currentProject._id,
+                    incidentId: this.props.incident._id,
+                }
+            );
+        }
+    };
+    deleteInvestigationMessage = incidentMessageId => {
+        const promise = this.props.deleteIncidentMessage(
+            this.props.currentProject._id,
+            this.props.incident._id,
+            incidentMessageId
+        );
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > INCIDENT > INTERNAL MESSAGE DELETED',
+                {
+                    ProjectId: this.props.currentProject._id,
+                    incidentMessageId: incidentMessageId,
+                }
+            );
+        }
+        return promise;
+    };
     render() {
+        let count = 0;
+        let skip = 0;
+        let limit = 0;
+        let requesting = false;
+        let canPrev = false;
+        let canNext = false;
+        let error;
+        const { incidentMessages, incident, openModal } = this.props;
+        const {
+            createMessageModalId,
+            editMessageModalId,
+            deleteMessageModalId,
+        } = this.state;
+        if (incidentMessages) {
+            count = incidentMessages.count;
+            skip = incidentMessages.skip;
+            limit = incidentMessages.limit;
+            requesting = incidentMessages.requesting;
+            error = incidentMessages.error;
+
+            if (count && typeof count === 'string') {
+                count = parseInt(count, 10);
+            }
+            if (skip && typeof skip === 'string') {
+                skip = parseInt(skip, 10);
+            }
+            if (limit && typeof limit === 'string') {
+                limit = parseInt(limit, 10);
+            }
+
+            if (!skip) skip = 0;
+            if (!limit) limit = 10;
+            canNext = count > skip + limit ? true : false;
+            canPrev = skip <= 0 ? false : true;
+
+            if (requesting || count < 1) {
+                canNext = false;
+                canPrev = false;
+            }
+        }
+
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
-                    <div className="Box-root">
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Internal Notes</span>
-                                </span>
-                                <p>
-                                    <span>
-                                        Internal Notes for your team about this
-                                        incident. This is only visible to your
-                                        team.
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
-                            <div>
-                                <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    <fieldset className="bs-Fieldset">
-                                        <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Internal Notes
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <textarea
-                                                        id="txtInternalNote"
-                                                        name="product_description"
-                                                        rows="5"
-                                                        className="bs-TextArea"
-                                                        type="text"
-                                                        ref={
-                                                            this
-                                                                .internalNotesRef
-                                                        }
-                                                        defaultValue={
-                                                            this.props.incident
-                                                                .internalNote
-                                                        }
-                                                    ></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
-                            <div>
-                                <RenderIfUserInSubProject
-                                    subProjectId={this.props.incident.projectId}
-                                >
-                                    <button
-                                        onClick={() =>
-                                            this.props.setdata(
-                                                this.internalNotesRef.current &&
-                                                    this.internalNotesRef
-                                                        .current.value
-                                                    ? this.internalNotesRef
-                                                          .current.value
-                                                    : this.props.incident
-                                                          .internalNote
-                                            )
-                                        }
-                                        id="btnUpdateInternalNote"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={this.props.request}
-                                        type="button"
-                                    >
-                                        <ShouldRender
-                                            if={this.props.requesting}
-                                        >
-                                            <FormLoader />
-                                        </ShouldRender>
-                                        <ShouldRender
-                                            if={!this.props.requesting}
-                                        >
-                                            <span>Save</span>
-                                        </ShouldRender>
-                                    </button>
-                                </RenderIfUserInSubProject>
-                            </div>
-                        </div>
-                    </div>
+                    <IncidentMessageThread
+                        title="Internal"
+                        description="Internal Notes for your team about this
+                        incident. This is only visible to your
+                        team."
+                        incidentMessages={incidentMessages}
+                        count={count}
+                        canPrev={canPrev}
+                        canNext={canNext}
+                        requesting={requesting}
+                        incident={incident}
+                        type={'internal'}
+                        error={error}
+                        newerMessage={this.newerInternalMessage}
+                        olderMessage={this.olderInternalMessage}
+                        createMessageModalId={createMessageModalId}
+                        openModal={openModal}
+                        editMessageModalId={editMessageModalId}
+                        deleteMessageModalId={deleteMessageModalId}
+                        deleteIncidentMessage={this.deleteInvestigationMessage}
+                    />
                 </div>
             </div>
         );
@@ -108,20 +152,36 @@ export class IncidentInternal extends Component {
 
 IncidentInternal.displayName = 'IncidentInternal';
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            fetchIncidentMessages,
+            openModal,
+            deleteIncidentMessage,
+        },
+        dispatch
+    );
 
-const mapStateToProps = state => ({
-    requesting:
-        state.incident && state.incident.internalNotes
-            ? state.incident.internalNotes.requesting
-            : false,
-});
+function mapStateToProps(state, ownProps) {
+    const incidentMessages = state.incident.incidentMessages
+        ? state.incident.incidentMessages[ownProps.incident._id]
+            ? state.incident.incidentMessages[ownProps.incident._id]['internal']
+            : {}
+        : {};
+    const currentProject = state.project.currentProject;
+    return {
+        incidentMessages,
+        currentProject,
+    };
+}
 
 IncidentInternal.propTypes = {
-    setdata: PropTypes.func.isRequired,
-    request: PropTypes.bool,
     incident: PropTypes.object.isRequired,
-    requesting: PropTypes.bool,
+    incidentMessages: PropTypes.object,
+    currentProject: PropTypes.object,
+    fetchIncidentMessages: PropTypes.func,
+    openModal: PropTypes.func,
+    deleteIncidentMessage: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentInternal);

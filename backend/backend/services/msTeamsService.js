@@ -77,7 +77,9 @@ module.exports = {
                       monitor.name
                   }** is resolved by ${
                       incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${incident.resolvedAt} after being down for ${duration}`
+                  } at ${incident.resolvedAt} after being ${
+                      incident.incidentType
+                  } for ${duration}`
                 : incident.acknowledged
                 ? `Incident on **${component.name} / ${
                       monitor.name
@@ -87,7 +89,9 @@ module.exports = {
                           : 'Fyipe'
                   } at ${
                       incident.acknowledgedAt
-                  } after being down for ${duration}`
+                  } after being ${
+                    incident.incidentType
+                 } for ${duration}`
                 : `
 **New incident:**
 

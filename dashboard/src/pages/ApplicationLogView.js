@@ -40,20 +40,26 @@ class ApplicationLogView extends Component {
             applicationLog,
         } = this.props;
 
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : component[1].name
-                : null;
+        const componentName = component ? component.name : '';
         const applicationLogName =
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-log'
+                        )}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'application-logs'
+                        )}
                         name="Logs"
                     />
                     <BreadCrumbItem
@@ -93,8 +99,13 @@ const mapDispatchToProps = dispatch => {
 };
 const mapStateToProps = (state, props) => {
     const { componentId, applicationLogId } = props.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
     const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
         applicationLog => applicationLog._id === applicationLogId

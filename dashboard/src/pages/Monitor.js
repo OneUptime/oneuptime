@@ -205,6 +205,7 @@ class DashboardView extends Component {
                             style={{ overflow: 'visible' }}
                         >
                             <MonitorList
+                                componentId={componentId}
                                 shouldRenderProjectType={
                                     subProjects && subProjects.length > 0
                                 }
@@ -257,12 +258,7 @@ class DashboardView extends Component {
             );
 
         monitors && monitors.unshift(projectMonitor);
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : null
-                : null;
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -427,16 +423,20 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const componentId = props.match.params.componentId;
+    const { componentId } = props.match.params;
     const monitor = state.monitor;
-
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
 
     monitor.monitorsList.monitors.forEach(item => {
         item.monitors = item.monitors.filter(
-            monitor => monitor.componentId === componentId
+            monitor => monitor.componentId._id === componentId
         );
     });
 
