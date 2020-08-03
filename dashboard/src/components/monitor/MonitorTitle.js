@@ -113,7 +113,13 @@ export class MonitorTitle extends Component {
                                         Currently{' '}
                                         {isCurrentlyNotMonitoring && 'Not'}{' '}
                                         Monitoring &nbsp;
-                                        <a href={url}>{url}</a>
+                                        <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {url}
+                                        </a>
                                     </span>
                                 )}
                                 {monitor.type === 'manual' &&
