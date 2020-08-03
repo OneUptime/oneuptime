@@ -4,9 +4,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
 import {
-    createIncidentRequest,
-    createIncidentError,
-    createIncidentSuccess,
     createNewIncident,
 } from '../../actions/incident';
 import {
@@ -308,9 +305,6 @@ const CreateIncidentForm = reduxForm({
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            createIncidentRequest,
-            createIncidentError,
-            createIncidentSuccess,
             createNewIncident,
         },
         dispatch
