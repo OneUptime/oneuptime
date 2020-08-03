@@ -106,7 +106,10 @@ class ResourceTabularList extends Component {
         return (
             <div>
                 {indicator}
-                {` ${statusDescription}`}
+                <span id={`resource_status_${componentResource.name}`}>
+                    {' '}
+                    {` ${statusDescription}`}{' '}
+                </span>
             </div>
         );
     }
@@ -255,7 +258,6 @@ class ResourceTabularList extends Component {
                                                                 className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
-                                                                    id={`resource_type_${componentResource.name}`}
                                                                     className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
                                                                 >
                                                                     {this.generateResourceStatus(
