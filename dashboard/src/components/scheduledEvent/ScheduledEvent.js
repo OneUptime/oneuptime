@@ -55,6 +55,25 @@ class ScheduledEventBox extends Component {
         }
     };
 
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'No monitor in this event';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].monitorId.name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+        }
+
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
+    };
+
     render() {
         const { createScheduledEventModalId } = this.state;
         const {
@@ -139,6 +158,9 @@ class ScheduledEventBox extends Component {
                                         Created by
                                     </div>
                                     <div className="bs-ObjectList-cell">
+                                        Monitor(s)
+                                    </div>
+                                    <div className="bs-ObjectList-cell">
                                         Start Date
                                     </div>
                                     <div className="bs-ObjectList-cell">
@@ -169,6 +191,14 @@ class ScheduledEventBox extends Component {
                                                         scheduledEvent
                                                             .createdById.name
                                                     }
+                                                </div>
+                                            </div>
+                                            <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                <div className="bs-ObjectList-cell-row">
+                                                    {scheduledEvent.monitors &&
+                                                        this.handleMonitorList(
+                                                            scheduledEvent.monitors
+                                                        )}
                                                 </div>
                                             </div>
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
