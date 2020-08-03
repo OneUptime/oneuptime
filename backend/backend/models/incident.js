@@ -11,6 +11,9 @@ const monitorSchema = new Schema({
         type: Schema.Types.String,
         required: true,
     },
+    description: {
+        type: Schema.Types.String,
+    },
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
 
     acknowledged: {
