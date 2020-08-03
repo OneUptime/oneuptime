@@ -198,6 +198,10 @@ module.exports = {
                 // check if previous status is different from the current status
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
+                    // check 3 times just to make sure
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
+
                     const monitor = await MonitorService.findOneBy({
                         _id: data.monitorId,
                     });
@@ -221,13 +225,17 @@ module.exports = {
                     );
                 }
 
-                const incidentIds = await _this.incidentCreateOrUpdate(data);
+                const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
+                    data
+                );
+                if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+
                 await MonitorStatusService.create(data);
 
-                if (incidentIds && incidentIds.length) {
+                if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
                         { _id: log._id },
-                        { incidentIds }
+                        { incidentIdsOrRetry }
                     );
                 }
             }
@@ -297,6 +305,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -339,6 +349,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -381,6 +393,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,

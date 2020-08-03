@@ -181,7 +181,7 @@ class IncidentLog extends React.Component {
             );
 
         allIncidents && allIncidents.unshift(projectIncident);
-        const componentName = component.length > 0 ? component[0].name : '';
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
@@ -218,11 +218,13 @@ class IncidentLog extends React.Component {
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
-
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(
-            component => String(component._id) === String(componentId)
-        );
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
 
     // sort subprojects names for display in alphabetical order
