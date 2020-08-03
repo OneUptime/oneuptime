@@ -1,6 +1,50 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/scheduledEvent';
 
+export const fetchscheduledEvent = (
+    projectId,
+    scheduledEventId
+) => async dispatch => {
+    try {
+        dispatch(fetchscheduledEventRequest());
+
+        const response = await getApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}`
+        );
+        dispatch(fetchscheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchscheduledEventFailure(errorMsg));
+    }
+};
+
+export function fetchscheduledEventSuccess(scheduledEvents) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_SUCCESS,
+        payload: scheduledEvents,
+    };
+}
+
+export function fetchscheduledEventRequest() {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_REQUEST,
+    };
+}
+
+export function fetchscheduledEventFailure(error) {
+    return {
+        type: types.FETCH_SCHEDULED_EVENT_FAILURE,
+        payload: error,
+    };
+}
+
 export const fetchscheduledEvents = (
     projectId,
     skip,
