@@ -3162,6 +3162,10 @@ section.basics .columns .risk:before{
     background-image:url("/img/risk.svg")
 }
 
+section.basics .columns .google:before{
+    background-image:url("/img/google.svg")
+}
+
 section.basics .columns .chat:before{
     background-image:url("/img/chat.svg")
 }
