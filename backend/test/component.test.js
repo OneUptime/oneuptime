@@ -485,6 +485,23 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
+    it('should not create a component with exisiting name in sub-project.', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/component/${subProjectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Component 1',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Component with that name already exists.'
+                );
+                done();
+            });
+    });
+
     it('should create a component in sub-project.', function(done) {
         let authorization = `Basic ${token}`;
         request
