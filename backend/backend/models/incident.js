@@ -9,7 +9,6 @@ const monitorSchema = new Schema({
     }, //which project this incident belongs to.
     title: {
         type: Schema.Types.String,
-        required: true,
     },
     description: {
         type: Schema.Types.String,
