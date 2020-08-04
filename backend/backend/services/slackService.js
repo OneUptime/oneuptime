@@ -80,7 +80,7 @@ module.exports = {
                   }* is resolved by ${
                       incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
                   } at ${incident.resolvedAt} after being ${
-                    incident.incidentType
+                      incident.incidentType
                   } for ${duration}\n <${uri}|More details>`
                 : incident.acknowledged
                 ? `Incident on *${component.name} / ${
@@ -89,10 +89,8 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being ${
-                    incident.incidentType
+                  } at ${incident.acknowledgedAt} after being ${
+                      incident.incidentType
                   } for ${duration}\n <${uri}|More details>`
                 : `
 *New incident:*
@@ -105,7 +103,13 @@ module.exports = {
 
 *Created by:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-*Incident status:* ${incident.incidentType}
+*Incident status:* ${
+                      incident.incidentType === 'online'
+                          ? 'Online'
+                          : incident.incidentType === 'degraded'
+                          ? 'Degraded'
+                          : 'Offline'
+                  }
 
 *Monitor status:* ${monitorStatus}
 
