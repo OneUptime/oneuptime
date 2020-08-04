@@ -350,7 +350,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('MONITOR');
+                expect(spanElement).toMatch('Url Monitor');
 
                 spanElement = await page.waitForSelector(
                     `#resource_type_${applicationLogName}`
@@ -358,7 +358,15 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('APPLICATION-LOG');
+                expect(spanElement).toMatch('Application Logs');
+
+                spanElement = await page.waitForSelector(
+                    `#resource_status_${applicationLogName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toMatch('No Logs Yet');
             });
         },
         operationTimeOut
