@@ -441,6 +441,7 @@ describe('Components', () => {
                 await page.click(`#createIncident_${newMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitFor(2000);
                 await page.waitForSelector(
