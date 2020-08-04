@@ -97,8 +97,6 @@ module.exports = {
 
 **Monitor Name:** ${component.name} / ${monitor.name}
 
-**Created At:** ${incident.createdAt}
-
 **Created By:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
 **Incident Status:** ${incident.incidentType}
