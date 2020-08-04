@@ -7,7 +7,6 @@ import {
     createNewIncident,
 } from '../../actions/incident';
 import {
-    Validate,
     ValidateField,
     renderIfUserInSubProject,
 } from '../../config';
@@ -16,16 +15,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
-
-function validate(value) {
-    const errors = {};
-
-    if (!Validate.text(value.monitors)) {
-        errors.name = 'Please select a monitor!';
-    }
-
-    return errors;
-}
 
 class CreateIncident extends Component {
     submitForm = values => {
@@ -299,7 +288,6 @@ CreateIncident.displayName = 'CreateIncidentFormModal';
 
 const CreateIncidentForm = reduxForm({
     form: 'CreateNewIncident', // a unique identifier for this form
-    validate,
 })(CreateIncident);
 
 const mapDispatchToProps = dispatch => {
