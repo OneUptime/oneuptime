@@ -10,6 +10,36 @@ import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
+import AceEditor from 'react-ace';
+import 'brace/mode/markdown';
+import 'brace/theme/github';
+
+const MarkdownEditor = ({ input }) => (
+    <AceEditor
+        mode="markdown"
+        theme="github"
+        value={input.value}
+        editorProps={{
+            $blockScrolling: true,
+        }}
+        height="150px"
+        width="100%"
+        highlightActiveLine={true}
+        setOptions={{
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true,
+            enableSnippets: true,
+            showGutter: false,
+        }}
+        onChange={input.onChange}
+        placeholder="This can be markdown"
+    />
+);
+
+MarkdownEditor.displayName = 'MarkdownEditor';
+MarkdownEditor.propTypes = {
+    input: PropTypes.object.isRequired,
+};
 
 class CreateManualIncident extends Component {
     constructor(props) {
@@ -32,7 +62,8 @@ class CreateManualIncident extends Component {
             projectId,
             monitorId,
             values.incidentType,
-            values.title
+            values.title,
+            values.description
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -162,6 +193,19 @@ class CreateManualIncident extends Component {
                                                         validate={[
                                                             ValidateField.required,
                                                         ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label script-label">
+                                                    Description
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="description"
+                                                        component={
+                                                            MarkdownEditor
+                                                        }
                                                     />
                                                 </div>
                                             </div>
