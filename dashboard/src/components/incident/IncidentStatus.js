@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import ReactMarkdown from 'react-markdown';
 import {
     acknowledgeIncident,
     resolveIncident,
@@ -150,6 +151,22 @@ export class IncidentStatus extends Component {
                                                                 .title
                                                         }
                                                     </span>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Description :
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ marginTop: '6px' }}
+                                                >
+                                                    <ReactMarkdown
+                                                        source={
+                                                            this.props.incident
+                                                                .description
+                                                        }
+                                                    />
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-row">
