@@ -1336,6 +1336,9 @@
 .Text-color--red {
   color: #e25950;
 }
+.Text-color--slate {
+  color: #6b7c93;
+}
 .Text-display--block {
   display: block;
 }
