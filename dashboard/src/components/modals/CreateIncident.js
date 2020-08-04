@@ -152,6 +152,51 @@ class CreateIncident extends Component {
                                                     </div>
                                                     <div className="bs-Fieldset-row Margin-bottom--12">
                                                         <label className="bs-Fieldset-label">
+                                                            Incident type
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={RenderSelect}
+                                                                name="incidentType"
+                                                                id="incidentType"
+                                                                placeholder="Incident type"
+                                                                disabled={
+                                                                    this.props
+                                                                        .newIncident
+                                                                        .requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.select
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value: '',
+                                                                        label:
+                                                                            'Select type',
+                                                                    },
+                                                                    {
+                                                                        value: 'online',
+                                                                        label: 'Online',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'offline',
+                                                                        label:
+                                                                            'Offline',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'degraded',
+                                                                        label:
+                                                                            'Degraded',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
+                                                        <label className="bs-Fieldset-label">
                                                             Incident title
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
