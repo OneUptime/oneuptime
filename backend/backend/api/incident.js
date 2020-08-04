@@ -90,6 +90,11 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
                 resolved: false,
                 deleted: false,
             });
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'IncidentType must be present.',
+            });
         }
 
         if (oldIncidentsCount && oldIncidentsCount > 0) {
