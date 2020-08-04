@@ -80,7 +80,7 @@ module.exports = {
                   }* is resolved by ${
                       incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
                   } at ${incident.resolvedAt} after being ${
-                    incident.incidentType
+                      incident.incidentType
                   } for ${duration}\n <${uri}|More details>`
                 : incident.acknowledged
                 ? `Incident on *${component.name} / ${
@@ -89,10 +89,8 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being ${
-                    incident.incidentType
+                  } at ${incident.acknowledgedAt} after being ${
+                      incident.incidentType
                   } for ${duration}\n <${uri}|More details>`
                 : `
 *New incident:*

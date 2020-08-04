@@ -87,11 +87,9 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being ${
-                    incident.incidentType
-                 } for ${duration}`
+                  } at ${incident.acknowledgedAt} after being ${
+                      incident.incidentType
+                  } for ${duration}`
                 : `
 **New incident:**
 
