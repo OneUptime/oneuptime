@@ -103,7 +103,7 @@ class CreateIncident extends Component {
                                             subProjectMonitor.monitors.length >
                                                 0 ? (
                                                 <div className="bs-Fieldset-rows">
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
                                                         <label className="bs-Fieldset-label">
                                                             <span>
                                                                 {' '}
@@ -117,9 +117,9 @@ class CreateIncident extends Component {
                                                                 RenderSelect
                                                             }
                                                             className="db-select-nw"
-                                                            style={{
-                                                                width: '200px',
-                                                            }}
+                                                            validate={
+                                                                ValidateField.select
+                                                            }
                                                             options={[
                                                                 {
                                                                     value: '',
