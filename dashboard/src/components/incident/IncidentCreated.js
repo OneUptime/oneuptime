@@ -5,7 +5,7 @@ import { PropTypes } from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
-import { markAsRead } from '../../actions/notification';
+import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
@@ -25,7 +25,13 @@ class IncidentCreated extends Component {
         );
     };
 
-    handleCloseNotification = () => {};
+    handleCloseNotification = notification => {
+        const { projectId, _id: notificationId } = notification;
+        this.props.closeNotification(projectId, notificationId);
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
+        }
+    };
 
     render() {
         const { notifications } = this.props;
@@ -86,6 +92,11 @@ class IncidentCreated extends Component {
                                                                       marginBottom:
                                                                           '10px',
                                                                   }}
+                                                                  onClick={() =>
+                                                                      this.handleCloseNotification(
+                                                                          notification
+                                                                      )
+                                                                  }
                                                               />
                                                           </span>
                                                       </div>
@@ -156,12 +167,13 @@ const mapStateToProps = () => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead }, dispatch);
+    return bindActionCreators({ markAsRead, closeNotification }, dispatch);
 };
 
 IncidentCreated.propTypes = {
     notifications: PropTypes.array,
     markAsRead: PropTypes.func,
+    closeNotification: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentCreated);
