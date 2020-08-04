@@ -91,19 +91,18 @@ module.exports = {
                       incident.incidentType
                   } for ${duration}`
                 : `
-**New incident:**
+**New Incident:**
 
-**Project name:** ${project.name}
+**Project Name:** ${project.name}
 
-**Monitor name:** ${component.name} / ${monitor.name}
+**Monitor Name:** ${component.name} / ${monitor.name}
 
-**Created at:** ${incident.createdAt}
+**Created At:** ${incident.createdAt}
 
-**Created by:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
+**Created By:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-**Incident status:** ${incident.incidentType}
+**Incident Status:** ${incident.incidentType}
 
-**Monitor status:** ${monitorStatus}
 `;
             const buttonText =
                 !incident.resolved && !incident.acknowledged
