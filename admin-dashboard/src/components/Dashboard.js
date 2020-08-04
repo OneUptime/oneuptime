@@ -156,7 +156,7 @@ export class DashboardApp extends Component {
                                                         and SMS alerts you need
                                                         to configure these
                                                         settings. Please click{' '}
-                                                        <a 
+                                                        <a
                                                             className="Border-bottom--white Text-fontWeight--bold Text-color--white"
                                                             href="/admin/settings/twilio"
                                                         >
