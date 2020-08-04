@@ -216,33 +216,6 @@ router.get(
             let totalResources = [];
             const limit = req.query.limit || 5;
             const skip = req.query.skip || 0;
-            // fetch application logs
-            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
-                componentId,
-                limit,
-                skip
-            );
-            applicationLogs.map(async elem => {
-                let logStatus = 'No logs yet';
-                // confirm if the application log has started collecting logs or not
-                const logs = await LogService.getLogsByApplicationLogId(
-                    elem._id,
-                    1,
-                    0
-                );
-                if (logs.length > 0) logStatus = 'Collecting Logs';
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'application-log container',
-                    createdAt: elem.createdAt,
-                    icon: 'appLog',
-                    status: logStatus,
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
 
             // fetch monitors
             const monitors = await MonitorService.findBy(
@@ -254,7 +227,7 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: elem.type,
+                    type: `${elem.type} monitor`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                 };
@@ -263,61 +236,92 @@ router.get(
                 return newElement;
             });
 
-            // fetch application security
-            const applicationSecurity = await ApplicationSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
-            applicationSecurity.map(elem => {
-                // get the security log
-                const securityLog = ApplicationSecurityLogService.findOneBy({
-                    securityId: elem._id,
-                    componentId,
-                });
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'application-security container',
-                    createdAt: elem.createdAt,
-                    icon: 'security',
-                    securityLog,
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
             // fetch container security
             const containerSecurity = await ContainerSecurityService.findBy(
                 { componentId: componentId },
                 limit,
                 skip
             );
-            containerSecurity.map(async elem => {
-                const securityLog = await ContainerSecurityLogService.findOneBy(
-                    {
-                        securityId: elem._id,
-                        componentId,
-                    }
-                );
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'container-security container',
-                    createdAt: elem.createdAt,
-                    icon: 'docker',
-                    securityLog,
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
-
-            // Sort all resources by creation date
-            totalResources = totalResources.sort(
-                (a, b) => b.createdAt - a.createdAt
+            await Promise.all(
+                containerSecurity.map(async elem => {
+                    const securityLog = await ContainerSecurityLogService.findOneBy(
+                        {
+                            securityId: elem._id,
+                            componentId,
+                        }
+                    );
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'container security',
+                        createdAt: elem.createdAt,
+                        icon: 'docker',
+                        securityLog,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
             );
 
+            // fetch application security
+            const applicationSecurity = await ApplicationSecurityService.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            await Promise.all(
+                applicationSecurity.map(async elem => {
+                    // get the security log
+                    const securityLog = await ApplicationSecurityLogService.findOneBy(
+                        {
+                            securityId: elem._id,
+                            componentId,
+                        }
+                    );
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'application security',
+                        createdAt: elem.createdAt,
+                        icon: 'security',
+                        securityLog,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
+
+            // fetch application logs
+            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+            await Promise.all(
+                applicationLogs.map(async elem => {
+                    let logStatus = 'No logs yet';
+                    // confirm if the application log has started collecting logs or not
+                    const logs = await LogService.getLogsByApplicationLogId(
+                        elem._id,
+                        1,
+                        0
+                    );
+                    if (logs.length > 0) logStatus = 'Collecting Logs';
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'application logs',
+                        createdAt: elem.createdAt,
+                        icon: 'appLog',
+                        status: logStatus,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
             // return response
             return sendItemResponse(req, res, {
                 totalResources,
