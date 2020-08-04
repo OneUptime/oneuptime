@@ -167,7 +167,7 @@ class CreateIncident extends Component {
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
-                                                                className="db-select-nw"
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 component={
                                                                     RenderField
                                                                 }
