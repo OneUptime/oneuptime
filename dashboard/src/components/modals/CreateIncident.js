@@ -25,9 +25,11 @@ class CreateIncident extends Component {
             monitors,
             data,
         } = this.props;
-        if (values.monitors) {
-            values = values.monitors;
-        }
+        const {
+            monitorId,
+            incidentType,
+            title,
+        } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -36,7 +38,7 @@ class CreateIncident extends Component {
             if (monitor._id === values)
                 projectId = monitor.projectId._id || monitor.projectId;
         });
-        createNewIncident(projectId, values).then(
+        createNewIncident(projectId, monitorId, incidentType, title).then(
             function() {
                 closeThisDialog();
             },
@@ -112,7 +114,7 @@ class CreateIncident extends Component {
                                                         </label>
                                                         <Field
                                                             id="monitorList"
-                                                            name="monitors"
+                                                            name="monitorId"
                                                             component={
                                                                 RenderSelect
                                                             }
