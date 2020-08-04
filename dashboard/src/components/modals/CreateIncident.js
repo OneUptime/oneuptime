@@ -3,18 +3,43 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
-import {
-    createNewIncident,
-} from '../../actions/incident';
-import {
-    ValidateField,
-    renderIfUserInSubProject,
-} from '../../config';
+import { createNewIncident } from '../../actions/incident';
+import { ValidateField, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
+import AceEditor from 'react-ace';
+import 'brace/mode/markdown';
+import 'brace/theme/github';
+
+const MarkdownEditor = ({ input }) => (
+    <AceEditor
+        mode="markdown"
+        theme="github"
+        value={input.value}
+        editorProps={{
+            $blockScrolling: true,
+        }}
+        height="150px"
+        width="100%"
+        highlightActiveLine={true}
+        setOptions={{
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true,
+            enableSnippets: true,
+            showGutter: false,
+        }}
+        onChange={input.onChange}
+        placeholder="This can be markdown"
+    />
+);
+
+MarkdownEditor.displayName = 'CreateIncidentMarkdownEditor';
+MarkdownEditor.propTypes = {
+    input: PropTypes.object.isRequired,
+};
 
 class CreateIncident extends Component {
     submitForm = values => {
@@ -25,11 +50,7 @@ class CreateIncident extends Component {
             monitors,
             data,
         } = this.props;
-        const {
-            monitorId,
-            incidentType,
-            title,
-        } = values;
+        const { monitorId, incidentType, title, description } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -38,7 +59,7 @@ class CreateIncident extends Component {
             if (monitor._id === values)
                 projectId = monitor.projectId._id || monitor.projectId;
         });
-        createNewIncident(projectId, monitorId, incidentType, title).then(
+        createNewIncident(projectId, monitorId, incidentType, title, description).then(
             function() {
                 closeThisDialog();
             },
@@ -159,7 +180,9 @@ class CreateIncident extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
                                                                 className="db-select-nw"
-                                                                component={RenderSelect}
+                                                                component={
+                                                                    RenderSelect
+                                                                }
                                                                 name="incidentType"
                                                                 id="incidentType"
                                                                 placeholder="Incident type"
@@ -173,13 +196,16 @@ class CreateIncident extends Component {
                                                                 }
                                                                 options={[
                                                                     {
-                                                                        value: '',
+                                                                        value:
+                                                                            '',
                                                                         label:
                                                                             'Select type',
                                                                     },
                                                                     {
-                                                                        value: 'online',
-                                                                        label: 'Online',
+                                                                        value:
+                                                                            'online',
+                                                                        label:
+                                                                            'Online',
                                                                     },
                                                                     {
                                                                         value:
@@ -218,6 +244,19 @@ class CreateIncident extends Component {
                                                                 validate={[
                                                                     ValidateField.required,
                                                                 ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label script-label">
+                                                            Description
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                name="description"
+                                                                component={
+                                                                    MarkdownEditor
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
