@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
-
 const { isAuthorized } = require('../middlewares/authorization');
-
 const { getUser, checkUserBelongToProject } = require('../middlewares/user');
-
 const ScheduledEventService = require('../services/scheduledEventService');
-
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -382,6 +379,271 @@ router.get(
                 showEventOnStatusPage: true,
             });
             return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Scheduled Event Note
+
+// Create a Scheduled Event note of type investigation or internal
+router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { eventId } = req.params;
+        const userId = req.user ? req.user.id : null;
+        const data = req.body;
+        data.scheduledEventId = eventId;
+        data.createdById = userId;
+
+        if (!data.scheduledEventId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event ID is required.',
+            });
+        }
+
+        if (typeof data.scheduledEventId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event ID is not of type string.',
+            });
+        }
+
+        if (!data.content || !data.content.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message is required.',
+            });
+        }
+
+        if (typeof data.content !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message is not in string type.',
+            });
+        }
+
+        if (!data.incident_state || !data.incident_state.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event State is required.',
+            });
+        }
+
+        if (typeof data.incident_state !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event State is not in string type.',
+            });
+        }
+
+        if (!data.type || !data.type.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message type is required.',
+            });
+        }
+
+        if (typeof data.type !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message type is not in string type.',
+            });
+        }
+
+        if (!['investigation', 'internal'].includes(data.type)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message:
+                    'Scheduled Event Message type should be of type investigation or internal.',
+            });
+        }
+
+        const scheduledEventMessage = await ScheduledEventNoteService.create(
+            data
+        );
+
+        return sendItemResponse(req, res, scheduledEventMessage);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Get all notes in a Scheduled Event (Used to fetch for investigation and internal types)
+router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { eventId } = req.params;
+        const { limit, skip, type } = req.query;
+
+        if (!type) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message type is required',
+            });
+        }
+
+        if (typeof type !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Scheduled Event Message type is not in string type.',
+            });
+        }
+
+        if (!['investigation', 'internal'].includes(type)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message:
+                    'Scheduled Event Message type should be of type investigation or internal.',
+            });
+        }
+
+        const eventNotes = await ScheduledEventNoteService.findBy(
+            { scheduledEventId: eventId, type },
+            limit,
+            skip
+        );
+
+        const count = await ScheduledEventNoteService.countBy({
+            scheduledEventId: eventId,
+            type,
+        });
+        return sendListResponse(req, res, eventNotes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Update a particular note in Scheduled Event
+router.put(
+    '/:projectId/:eventId/notes/:noteId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { eventId, noteId } = req.params;
+            const data = req.body;
+            data.updated = true;
+
+            if (!eventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is required.',
+                });
+            }
+
+            if (typeof eventId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is not of type string.',
+                });
+            }
+
+            if (!noteId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message ID is required.',
+                });
+            }
+
+            if (typeof noteId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Scheduled Event Message ID is not of type string.',
+                });
+            }
+
+            if (!data.content || !data.content.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message is required.',
+                });
+            }
+
+            if (typeof data.content !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message is not in string type.',
+                });
+            }
+
+            if (!data.incident_state || !data.incident_state.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event State is required.',
+                });
+            }
+
+            if (typeof data.incident_state !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event State is not in string type.',
+                });
+            }
+
+            if (!data.type || !data.type.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message type is required.',
+                });
+            }
+
+            if (typeof data.type !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Scheduled Event Message type is not in string type.',
+                });
+            }
+
+            if (!['investigation', 'internal'].includes(data.type)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Scheduled Event Message type should be of type investigation or internal.',
+                });
+            }
+
+            const scheduledEventMessage = await ScheduledEventNoteService.updateOneBy(
+                {
+                    _id: noteId,
+                    scheduledEventId: eventId,
+                },
+                data
+            );
+
+            return sendItemResponse(req, res, scheduledEventMessage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Delete a particular note in Scheduled Event
+router.delete(
+    '/:projectId/:eventId/notes/:noteId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { eventId, noteId } = req.params;
+            const userId = req.user ? req.user.id : null;
+
+            const deletedEventMessage = await ScheduledEventNoteService.deleteBy(
+                {
+                    _id: noteId,
+                    scheduledEventId: eventId,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, deletedEventMessage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
