@@ -32,9 +32,11 @@ class Home extends Component {
 
     componentDidUpdate(prevProps) {
         if (
-            !prevProps.user.id &&
-            this.props.currentProjectId &&
-            this.props.user.id
+            (!prevProps.user.id &&
+                this.props.currentProjectId &&
+                this.props.user.id) ||
+            (prevProps.currentProjectId !== this.props.currentProjectId &&
+                this.props.user.id)
         ) {
             this.props.fetchUserSchedule(
                 this.props.currentProjectId,
@@ -98,71 +100,102 @@ class Home extends Component {
                                                                 .requesting
                                                         }
                                                     >
-                                                        <div
-                                                            className="Box-root Card-shadow--medium"
-                                                            tabIndex="0"
-                                                        >
-                                                            <div className="db-Trends-header">
-                                                                <div className="db-Trends-controls">
-                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                <span className="Box-root Flex-flex Flex-direction--row">
-                                                                                    <span
-                                                                                        id="component-content-header"
-                                                                                        className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                                                    >
-                                                                                        <span>
-                                                                                            {isUserActive
-                                                                                                ? 'Active'
-                                                                                                : 'Inactive'}
+                                                        {user ? (
+                                                            <div
+                                                                className="Box-root Card-shadow--medium"
+                                                                tabIndex="0"
+                                                            >
+                                                                <div className="db-Trends-header">
+                                                                    <div className="db-Trends-controls">
+                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                    <span className="Box-root Flex-flex Flex-direction--row Margin-bottom--12">
+                                                                                        <span
+                                                                                            id="component-content-header"
+                                                                                            className="ContentHeader-title Text-color--inherit Text-display--inline Text-typeface--base Text-wrap--wrap"
+                                                                                        >
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    fontSize: 20,
+                                                                                                    fontWeight: 600,
+                                                                                                    color:
+                                                                                                        !isUserActive &&
+                                                                                                        '#4c4c4c',
+                                                                                                }}
+                                                                                            >
+                                                                                                {isUserActive
+                                                                                                    ? 'On Duty'
+                                                                                                    : 'Not On Duty'}
+                                                                                            </span>
                                                                                         </span>
                                                                                     </span>
-                                                                                </span>
-                                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                    <span>
-                                                                                        You
-                                                                                        are
-                                                                                        active
-                                                                                        from{' '}
-                                                                                        <b>
-                                                                                            {moment(
-                                                                                                startTime,
-                                                                                                'HH:mm'
-                                                                                            ).format(
-                                                                                                'hh:mm A'
-                                                                                            )}{' '}
-                                                                                            (
-                                                                                            {
-                                                                                                timezone
-                                                                                            }
+                                                                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                        {isUserActive ? (
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    fontSize: 12.6,
+                                                                                                    fontWeight: 500,
+                                                                                                    color:
+                                                                                                        '#4c4c4c',
+                                                                                                }}
+                                                                                            >
+                                                                                                You
+                                                                                                are
+                                                                                                active
+                                                                                                from{' '}
+                                                                                                <b>
+                                                                                                    {moment(
+                                                                                                        startTime,
+                                                                                                        'HH:mm'
+                                                                                                    ).format(
+                                                                                                        'hh:mm A'
+                                                                                                    )}{' '}
+                                                                                                    (
+                                                                                                    {
+                                                                                                        timezone
+                                                                                                    }
 
-                                                                                            )
-                                                                                        </b>{' '}
-                                                                                        to{' '}
-                                                                                        <b>
-                                                                                            {moment(
-                                                                                                endTime,
-                                                                                                'HH:mm'
-                                                                                            ).format(
-                                                                                                'hh:mm A'
-                                                                                            )}{' '}
-                                                                                            (
-                                                                                            {
-                                                                                                timezone
-                                                                                            }
+                                                                                                    )
+                                                                                                </b>{' '}
+                                                                                                to{' '}
+                                                                                                <b>
+                                                                                                    {moment(
+                                                                                                        endTime,
+                                                                                                        'HH:mm'
+                                                                                                    ).format(
+                                                                                                        'hh:mm A'
+                                                                                                    )}{' '}
+                                                                                                    (
+                                                                                                    {
+                                                                                                        timezone
+                                                                                                    }
 
-                                                                                            )
-                                                                                        </b>{' '}
-                                                                                        everyday.
+                                                                                                    )
+                                                                                                </b>{' '}
+                                                                                                everyday.
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <span>
+                                                                                                You’re
+                                                                                                not
+                                                                                                currently
+                                                                                                on
+                                                                                                any
+                                                                                                on-call
+                                                                                                duty.
+                                                                                            </span>
+                                                                                        )}
                                                                                     </span>
-                                                                                </span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
+                                                        ) : (
+                                                            ''
+                                                        )}
                                                     </ShouldRender>
 
                                                     <ShouldRender

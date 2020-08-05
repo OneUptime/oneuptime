@@ -3448,6 +3448,10 @@ html.db-NewChrome body {
     flex-basis: 16.66667%;
     padding-right: 20px;
 }
+.db-Trend-col-50 {
+    position: relative;
+    flex-basis: 45%;
+}
 .db-Trend-checkbox {
     position: absolute;
     top: 31px;
