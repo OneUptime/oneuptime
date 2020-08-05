@@ -25,7 +25,7 @@ class ResourceTabularList extends Component {
         const baseUrl = `/dashboard/project/${currentProject._id}/${componentId}/`;
         let route = '';
         switch (componentResource.type) {
-            case 'url monitor':
+            case 'website monitor':
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':
@@ -56,7 +56,7 @@ class ResourceTabularList extends Component {
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
         switch (componentResource.type) {
-            case 'url monitor':
+            case 'website monitor':
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':

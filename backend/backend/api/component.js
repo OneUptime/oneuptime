@@ -213,7 +213,7 @@ router.get(
                 });
             }
 
-            let totalResources = [];
+            const totalResources = [];
             const limit = req.query.limit || 5;
             const skip = req.query.skip || 0;
 
@@ -227,7 +227,9 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: `${elem.type} monitor`,
+                    type: `${
+                        elem.type === 'url' ? 'website' : elem.type
+                    } monitor`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                 };
