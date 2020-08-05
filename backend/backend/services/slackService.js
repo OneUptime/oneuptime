@@ -103,7 +103,13 @@ module.exports = {
 
 *Created by:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-*Incident status:* ${incident.incidentType}
+*Incident status:* ${
+                      incident.incidentType === 'online'
+                          ? 'Online'
+                          : incident.incidentType === 'degraded'
+                          ? 'Degraded'
+                          : 'Offline'
+                  }
 
 *Monitor status:* ${monitorStatus}
 
