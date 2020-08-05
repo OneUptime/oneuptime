@@ -1,62 +1,61 @@
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
-const scheduledEventsSchema = new Schema({
-    projectId: {
-        type: String,
-        ref: 'Project',
-        alias: 'project',
-    },
-    monitors: [
-        {
-            monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+const scheduledEventsSchema = new Schema(
+    {
+        projectId: {
+            type: String,
+            ref: 'Project',
+            alias: 'project',
         },
-    ],
-    name: String,
-    createdById: {
-        type: String,
-        ref: 'User',
+        monitors: [
+            {
+                monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+            },
+        ],
+        name: String,
+        createdById: {
+            type: String,
+            ref: 'User',
+        },
+        deleted: {
+            type: Boolean,
+            default: false,
+        },
+        deletedAt: {
+            type: Date,
+        },
+        deletedById: {
+            type: String,
+            ref: 'User',
+        },
+        startDate: {
+            type: Date,
+        },
+        endDate: {
+            type: Date,
+        },
+        description: {
+            type: String,
+        },
+        showEventOnStatusPage: {
+            type: Boolean,
+            default: false,
+        },
+        callScheduleOnEvent: {
+            type: Boolean,
+            default: false,
+        },
+        monitorDuringEvent: {
+            type: Boolean,
+            default: false,
+        },
+        alertSubscriber: {
+            type: Boolean,
+            default: false,
+        },
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
-    deletedAt: {
-        type: Date,
-    },
-    deletedById: {
-        type: String,
-        ref: 'User',
-    },
-    startDate: {
-        type: Date,
-    },
-    endDate: {
-        type: Date,
-    },
-    description: {
-        type: String,
-    },
-    showEventOnStatusPage: {
-        type: Boolean,
-        default: false,
-    },
-    callScheduleOnEvent: {
-        type: Boolean,
-        default: false,
-    },
-    monitorDuringEvent: {
-        type: Boolean,
-        default: false,
-    },
-    alertSubscriber: {
-        type: Boolean,
-        default: false,
-    },
-});
+    { timestamps: true }
+);
 
 module.exports = mongoose.model('ScheduledEvent', scheduledEventsSchema);
