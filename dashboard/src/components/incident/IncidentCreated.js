@@ -82,6 +82,7 @@ class IncidentCreated extends Component {
                                                           <span></span>
                                                           <span>
                                                               <span
+                                                                  id={`closeIncident_${index}`}
                                                                   className="incident-close-button"
                                                                   style={{
                                                                       opacity: 1,
