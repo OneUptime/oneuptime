@@ -14,6 +14,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import _ from 'lodash';
 import moment from 'moment-timezone';
+import OnCallSchedule from '../components/onCall/OnCallSchedule';
 
 class Home extends Component {
     componentDidMount() {
@@ -51,33 +52,51 @@ class Home extends Component {
             location: { pathname },
         } = this.props;
 
-        const user = _.flattenDeep(
+        const userSchedules = _.flattenDeep(
             escalations.map(escalation => {
                 return escalation.teams.map(team => {
-                    return team.teamMembers.map(teamMember => teamMember);
+                    const schedule = team.teamMembers
+                        .map(teamMember => teamMember)
+                        .filter(user => user.userId === this.props.user.id)
+                        .pop();
+                    schedule.scheduleId = escalation.scheduleId;
+                    return schedule;
                 });
             })
-        )
-            .filter(user => user.userId === this.props.user.id)
-            .shift();
+        );
 
-        let startTime, endTime, isUserActive, timezone;
-        if (user) {
-            startTime = moment(user.startTime)
-                .tz(user.timezone)
-                .format('HH:mm');
-            endTime = moment(user.endTime)
-                .tz(user.timezone)
-                .format('HH:mm');
-            const now = moment()
-                .tz(user.timezone)
-                .format('HH:mm');
-            isUserActive =
-                moment(now, 'HH:mm').isAfter(moment(startTime, 'HH:mm')) &&
-                moment(now, 'HH:mm').isBefore(moment(endTime, 'HH:mm'));
-            timezone = moment(user.startTime)
-                .tz(user.timezone)
-                .zoneAbbr();
+        const activeSchedules = [];
+        const upcomingSchedules = [];
+        const inactiveSchedules = [];
+
+        if (userSchedules) {
+            userSchedules.forEach(userSchedule => {
+                const startTime = moment(userSchedule.startTime)
+                    .tz(userSchedule.timezone)
+                    .format('HH:mm');
+                const endTime = moment(userSchedule.endTime)
+                    .tz(userSchedule.timezone)
+                    .format('HH:mm');
+                const now = moment()
+                    .tz(userSchedule.timezone)
+                    .format('HH:mm');
+                const isUserActive =
+                    moment(now, 'HH:mm').isAfter(moment(startTime, 'HH:mm')) &&
+                    moment(now, 'HH:mm').isBefore(moment(endTime, 'HH:mm'));
+                const timezone = moment(userSchedule.startTime)
+                    .tz(userSchedule.timezone)
+                    .zoneAbbr();
+                const tempObj = { ...userSchedule };
+                tempObj.startTime = startTime;
+                tempObj.endTime = endTime;
+                tempObj.timezone = timezone;
+
+                if (isUserActive) {
+                    activeSchedules.push(tempObj);
+                } else {
+                    inactiveSchedules.push(tempObj);
+                }
+            });
         }
 
         return (
@@ -100,99 +119,68 @@ class Home extends Component {
                                                                 .requesting
                                                         }
                                                     >
-                                                        {user ? (
-                                                            <div
-                                                                className="Box-root Card-shadow--medium"
-                                                                tabIndex="0"
-                                                            >
-                                                                <div className="db-Trends-header">
-                                                                    <div className="db-Trends-controls">
-                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                    <span className="Box-root Flex-flex Flex-direction--row Margin-bottom--12">
-                                                                                        <span
-                                                                                            id="component-content-header"
-                                                                                            className="ContentHeader-title Text-color--inherit Text-display--inline Text-typeface--base Text-wrap--wrap"
-                                                                                        >
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    fontSize: 20,
-                                                                                                    fontWeight: 600,
-                                                                                                    color:
-                                                                                                        !isUserActive &&
-                                                                                                        '#4c4c4c',
-                                                                                                }}
-                                                                                            >
-                                                                                                {isUserActive
-                                                                                                    ? 'On Duty'
-                                                                                                    : 'Not On Duty'}
-                                                                                            </span>
-                                                                                        </span>
-                                                                                    </span>
-                                                                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                        {isUserActive ? (
-                                                                                            <span
-                                                                                                style={{
-                                                                                                    fontSize: 12.6,
-                                                                                                    fontWeight: 500,
-                                                                                                    color:
-                                                                                                        '#4c4c4c',
-                                                                                                }}
-                                                                                            >
-                                                                                                You
-                                                                                                are
-                                                                                                active
-                                                                                                from{' '}
-                                                                                                <b>
-                                                                                                    {moment(
-                                                                                                        startTime,
-                                                                                                        'HH:mm'
-                                                                                                    ).format(
-                                                                                                        'hh:mm A'
-                                                                                                    )}{' '}
-                                                                                                    (
-                                                                                                    {
-                                                                                                        timezone
-                                                                                                    }
+                                                        {userSchedules ? (
+                                                            <>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        activeSchedules &&
+                                                                        activeSchedules.length >
+                                                                            0
+                                                                    }
+                                                                >
+                                                                    <OnCallSchedule
+                                                                        status="active"
+                                                                        schedules={
+                                                                            activeSchedules
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                    />
+                                                                </ShouldRender>
 
-                                                                                                    )
-                                                                                                </b>{' '}
-                                                                                                to{' '}
-                                                                                                <b>
-                                                                                                    {moment(
-                                                                                                        endTime,
-                                                                                                        'HH:mm'
-                                                                                                    ).format(
-                                                                                                        'hh:mm A'
-                                                                                                    )}{' '}
-                                                                                                    (
-                                                                                                    {
-                                                                                                        timezone
-                                                                                                    }
+                                                                <ShouldRender
+                                                                    if={
+                                                                        upcomingSchedules &&
+                                                                        upcomingSchedules.length >
+                                                                            0
+                                                                    }
+                                                                >
+                                                                    <OnCallSchedule
+                                                                        status="upcoming"
+                                                                        schedules={
+                                                                            upcomingSchedules
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                    />
+                                                                </ShouldRender>
 
-                                                                                                    )
-                                                                                                </b>{' '}
-                                                                                                everyday.
-                                                                                            </span>
-                                                                                        ) : (
-                                                                                            <span>
-                                                                                                You’re
-                                                                                                not
-                                                                                                currently
-                                                                                                on
-                                                                                                any
-                                                                                                on-call
-                                                                                                duty.
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        inactiveSchedules &&
+                                                                        inactiveSchedules.length >
+                                                                            0
+                                                                    }
+                                                                >
+                                                                    <OnCallSchedule
+                                                                        status="inactive"
+                                                                        schedules={
+                                                                            inactiveSchedules
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                    />
+                                                                </ShouldRender>
+                                                            </>
                                                         ) : (
                                                             ''
                                                         )}
