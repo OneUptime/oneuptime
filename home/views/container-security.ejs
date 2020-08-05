@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+    <meta charset="utf-8">
+    <title>Fyipe | Docker Container Security</title>
+
+    <meta name="description"
+        content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    <% include ./head %>
+    <link rel="stylesheet" href="/css/shared-site.css"  >
+    <link rel="stylesheet" href="/css/shared-site.css">
+    <link rel="stylesheet" href="/css/home.css"  >
+    <link rel="stylesheet" href="/css/home.css">
+    <link rel="stylesheet" href="/css/products.css"  >
+    <link rel="stylesheet" href="/css/products.css">
+    <script src="/js/amplitude.js"></script>
+    <script async>
+        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (IS_SAAS_SERVICE) {
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > DOCKER CONTAINER SECURITY');
+        }
+    </script>
+</head>
+
+<body>
+
+    <% include ./nav %>
+
+    <div class="globalContent">
+        <div id="main-content">
+
+            <section class="marquee nav-animation-element">
+
+                <div id="bubble-overlay">
+                    <div class="content">
+                        
+                        <header>
+                            <h1 class="Header-title common-PageTitle header-font header-size black">Docker Container Security</h1>
+                            <p style="margin-top:50px">Find and fix vulnerabilities in Docker containers and Kubernetes applications.</p>
+                        </header>
+
+                    </div>
+                    
+                </div>
+
+            </section>
+
+            <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
+                <img src="/img/animated-gif/uptime-monitoring.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+            </div>
+
+            <section class="main basics" style="padding:0px">
+                <div class="content">
+                    <ul class="columns">
+                        <li class="fire">
+                            <h3>Find Vulnerabilities.</h3>
+                            <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
+                        </li>
+                        <li class="docker">
+                            <h3>Base Image remediation</h3>
+                            <p class="text-center">Scale the security process by quickly eliminating many of vulnerabilities by upgrading to the most secure base image or by rebuilding the image when outdated. </p>
+                        </li>
+                        <li class="list">
+                            <h3>In-line fixes</h3>
+                            <p class="text-center">Get straight to the line in your Dockerfile that’s introducing vulnerabilities and easily trace dependencies to discover which of your tools is the causing issues.</p>
+                        </li>
+                        
+                    </ul>
+
+                    <ul class="columns">
+                        <li class="password">
+                            <h3>Monitor dependencies</h3>
+                            <p class="text-center">Fyipe can detect and monitor open source dependencies for popular languages as part of the container scan.</p>
+                        </li>
+                        <li class="k8s">
+                            <h3>Kubernetes application configuration</h3>
+                            <p class="text-center">Detect newly deployed and updated workloads in Kubernetes clusters to ensure images are scanned for vulnerabilities. Uncover potentially unsafe settings in Kubernetes workloads that could expose your cluster to additional attacks and privilege escalations.</p>
+                        </li>
+                        <li class="cctv">
+                            <h3>Image monitoring</h3>
+                            <p class="text-center">Monitor your images for newly discovered vulnerabilities and base image updates and receive alerts via Slack, Teams or email. </p>
+                        </li>
+                        
+                    </ul>
+
+                </div>
+
+                
+                <div class="split">
+                    <div class="content">
+
+                        <div class="left">
+
+                            <h3 class="header" style="margin-top:250px">More Docker <br/> Container Security <br/> Features.</h3>
+                            <p class="common-BodyText" style="font-size:18px"><span class="highlight"
+                                    style="font-size:18px">Fyipe Container is designed <br/> to work with a range of<br/>  container image operating systems<br/>  and package managers, Kubernetes <br/> platform, and container <br/> registries.
+                                 </p>
+
+                        </div>
+
+                        <div class="right">
+                            <ul>
+                                <li>
+                                    <h3>Integrates with your private docker registry.</h3>
+                                </li>
+
+                                <li>
+                                    <h3>Improve workflow with right alerts, to right people at the right time.</h3>
+                                </li>
+                                <li>
+                                    <h3>Alerts via email, SMS and on call.</h3>
+                                </li>
+                                <li>
+                                    <h3>Run scans when docker image is updated.</h3>
+                                </li>
+                                <li>
+                                    <h3>View remediation instruuctions and paths. </h3>
+                                </li>
+                                <li>
+                                    <h3>Auto remidiate by having Fyipe open a pull request to your repository automatically. </h3>
+                                </li>
+                                <li>
+                                    <h3>Find security vulnerabilities on running docker containers or k8s pods.</h3>
+                                </li>
+                                <li>
+                                    <h3>Run security scan on Kubenretes Cluster</h3>
+                                </li>
+                                <li>
+                                    <h3>Support for other container runtimes (like LXD)</h3>
+                                </li>
+                                <li>
+                                    <h3>Complete visibilty on security incidents.</h3>
+                                </li>
+                                <li>
+                                    <h3>Integrate with fully extensible API.</h3>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+
+                <% include ./integration %> 
+              
+            </section>
+
+        </div>
+    </div>
+
+    <% include ./footer %>
+
+</body>
+
+
+</html>

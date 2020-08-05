@@ -3090,6 +3090,31 @@ section.basics .columns .reli:before{
     background-image:url("/img/fpo-status-line.svg")
 }
 
+section.basics .columns .docker:before{
+    background-image:url("/img/docker.svg")
+}
+
+section.basics .columns .k8s:before{
+    background-image:url("/img/kubernetes.svg")
+}
+
+section.basics .columns .list:before{
+    background-image:url("/img/list.svg")
+}
+
+section.basics .columns .fire:before{
+    background-image:url("/img/fire.svg")
+}
+
+section.basics .columns .cctv:before{
+    background-image:url("/img/cctv.svg")
+}
+
+section.basics .columns .password:before{
+    background-image:url("/img/password.svg")
+}
+
+
 section.basics .columns .moni:before{
     background-image:url("/img/fpo-monitor.svg")
 }
