@@ -106,7 +106,16 @@ const INITIAL_STATE = {
 
 export default function scheduledEvent(state = INITIAL_STATE, action) {
     switch (action.type) {
-        case CREATE_SCHEDULED_EVENT_SUCCESS:
+        case CREATE_SCHEDULED_EVENT_SUCCESS: {
+            let existingPayload = false;
+            state.scheduledEventList.scheduledEvents.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    existingPayload = true;
+                }
+                return event;
+            });
+
+            const eventPayload = existingPayload ? [] : [action.payload];
             return Object.assign({}, state, {
                 newScheduledEvent: {
                     requesting: false,
@@ -117,12 +126,13 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     scheduledEvents: [
-                        action.payload,
+                        ...eventPayload,
                         ...state.scheduledEventList.scheduledEvents,
                     ],
                     count: state.scheduledEventList.count + 1,
                 },
             });
+        }
         case CREATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
                 ...state,
@@ -329,25 +339,46 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 ...state.scheduledEventInvestigationList,
             };
 
+            let existingPayload = false;
             if (action.payload.type === 'internal') {
+                scheduledEventInternalList.scheduledEventNotes.map(note => {
+                    if (String(note._id) === String(action.payload._id)) {
+                        existingPayload = true;
+                    }
+                    return note;
+                });
+                const notePayload = existingPayload ? [] : [action.payload];
                 scheduledEventInternalList = {
                     ...scheduledEventInternalList,
                     scheduledEventNotes: [
-                        action.payload,
+                        ...notePayload,
                         ...scheduledEventInternalList.scheduledEventNotes,
                     ],
-                    count: scheduledEventInternalList.count + 1,
+                    count: existingPayload
+                        ? scheduledEventInternalList.count
+                        : scheduledEventInternalList.count + 1,
                 };
             }
 
             if (action.payload.type === 'investigation') {
+                scheduledEventInvestigationList.scheduledEventNotes.map(
+                    note => {
+                        if (String(note._id) === String(action.payload._id)) {
+                            existingPayload = true;
+                        }
+                        return note;
+                    }
+                );
+                const notePayload = existingPayload ? [] : [action.payload];
                 scheduledEventInvestigationList = {
                     ...scheduledEventInvestigationList,
                     scheduledEventNotes: [
-                        action.payload,
+                        ...notePayload,
                         ...scheduledEventInvestigationList.scheduledEventNotes,
                     ],
-                    count: scheduledEventInvestigationList.count + 1,
+                    count: existingPayload
+                        ? scheduledEventInvestigationList.count
+                        : scheduledEventInvestigationList.count + 1,
                 };
             }
 
