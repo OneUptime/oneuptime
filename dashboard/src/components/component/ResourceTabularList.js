@@ -66,12 +66,20 @@ class ResourceTabularList extends Component {
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
-                probe =
-                    monitor && probes && probes.length > 0
-                        ? probes[probes.length < 2 ? 0 : activeProbe]
-                        : null;
-                logs = filterProbeData(monitor, probe, startDate, endDate).logs;
-                monitorStatus = getMonitorStatus(monitor.incidents, logs);
+                if (monitor.statuses) {
+                    // Get the latest status here if the monitor is changing status elsewheree
+                    monitorStatus = monitor.statuses[0].statuses[0].status;
+                } else {
+                    // Get the latest status here if the page is just loading
+                    probe =
+                        monitor && probes && probes.length > 0
+                            ? probes[probes.length < 2 ? 0 : activeProbe]
+                            : null;
+                    logs = filterProbeData(monitor, probe, startDate, endDate)
+                        .logs;
+                    monitorStatus = getMonitorStatus(monitor.incidents, logs);
+                }
+
                 indicator = (
                     <StatusIndicator
                         status={monitorStatus}
