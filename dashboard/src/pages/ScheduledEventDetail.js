@@ -9,12 +9,23 @@ import {
     fetchscheduledEvent,
     fetchScheduledEventNotesInternal,
     fetchScheduledEventNotesInvestigation,
+    updateScheduledEventNoteInvestigationSuccess,
+    updateScheduledEventNoteInternalSuccess,
+    deleteScheduledEventNoteSuccess,
+    createScheduledEventNoteSuccess,
 } from '../actions/scheduledEvent';
 import getParentRoute from '../utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
+import { API_URL } from '../config';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ScheduledEvent extends Component {
     constructor(props) {
@@ -28,6 +39,10 @@ class ScheduledEvent extends Component {
             fetchscheduledEvent,
             fetchScheduledEventNotesInternal,
             fetchScheduledEventNotesInvestigation,
+            updateScheduledEventNoteInvestigationSuccess,
+            updateScheduledEventNoteInternalSuccess,
+            deleteScheduledEventNoteSuccess,
+            createScheduledEventNoteSuccess,
         } = this.props;
         const { projectId, scheduledEventId } = match.params;
 
@@ -46,6 +61,30 @@ class ScheduledEvent extends Component {
             scheduledEventId,
             this.limit,
             0
+        );
+
+        socket.on(`addScheduledEventInternalNote-${scheduledEventId}`, event =>
+            createScheduledEventNoteSuccess(event)
+        );
+        socket.on(
+            `addScheduledEventInvestigationNote-${scheduledEventId}`,
+            event => createScheduledEventNoteSuccess(event)
+        );
+        socket.on(
+            `updateScheduledEventInternalNote-${scheduledEventId}`,
+            event => updateScheduledEventNoteInternalSuccess(event)
+        );
+        socket.on(
+            `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+            event => updateScheduledEventNoteInvestigationSuccess(event)
+        );
+        socket.on(
+            `deleteScheduledEventInternalNote-${scheduledEventId}`,
+            event => deleteScheduledEventNoteSuccess(event)
+        );
+        socket.on(
+            `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+            event => deleteScheduledEventNoteSuccess(event)
         );
     };
 
@@ -183,6 +222,10 @@ ScheduledEvent.propTypes = {
     fetchScheduledEventNotesInvestigation: PropTypes.func,
     internalNotesList: PropTypes.object,
     investigationNotesList: PropTypes.object,
+    updateScheduledEventNoteInvestigationSuccess: PropTypes.func,
+    updateScheduledEventNoteInternalSuccess: PropTypes.func,
+    deleteScheduledEventNoteSuccess: PropTypes.func,
+    createScheduledEventNoteSuccess: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -203,6 +246,10 @@ const mapDispatchToProps = dispatch =>
             fetchscheduledEvent,
             fetchScheduledEventNotesInternal,
             fetchScheduledEventNotesInvestigation,
+            updateScheduledEventNoteInvestigationSuccess,
+            updateScheduledEventNoteInternalSuccess,
+            deleteScheduledEventNoteSuccess,
+            createScheduledEventNoteSuccess,
         },
         dispatch
     );

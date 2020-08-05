@@ -212,17 +212,29 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 },
             };
 
-        case DELETE_SCHEDULED_EVENT_SUCCESS:
+        case DELETE_SCHEDULED_EVENT_SUCCESS: {
+            let deleted = true;
             return Object.assign({}, state, {
                 ...state,
                 scheduledEventList: {
                     ...state.scheduledEventList,
                     scheduledEvents: state.scheduledEventList.scheduledEvents.filter(
-                        scheduledEvent =>
-                            String(scheduledEvent._id) !==
-                            String(action.payload._id)
+                        scheduledEvent => {
+                            if (
+                                String(scheduledEvent._id) ===
+                                String(action.payload._id)
+                            ) {
+                                deleted = false;
+                            }
+                            return (
+                                String(scheduledEvent._id) !==
+                                String(action.payload._id)
+                            );
+                        }
                     ),
-                    count: state.scheduledEventList.count - 1,
+                    count: deleted
+                        ? state.scheduledEventList.count
+                        : state.scheduledEventList.count - 1,
                 },
                 deletedScheduledEvent: {
                     requesting: false,
@@ -230,6 +242,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     error: false,
                 },
             });
+        }
 
         case DELETE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {
@@ -480,15 +493,27 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 ...state.scheduledEventInvestigationList,
             };
 
+            let deleted = true;
             if (action.payload.type === 'internal') {
                 scheduledEventInternalList = {
                     ...scheduledEventInternalList,
                     scheduledEventNotes: scheduledEventInternalList.scheduledEventNotes.filter(
-                        internalNote =>
-                            String(internalNote._id) !==
-                            String(action.payload._id)
+                        internalNote => {
+                            if (
+                                String(internalNote._id) ===
+                                String(action.payload._id)
+                            ) {
+                                deleted = false;
+                            }
+                            return (
+                                String(internalNote._id) !==
+                                String(action.payload._id)
+                            );
+                        }
                     ),
-                    count: scheduledEventInternalList.count - 1,
+                    count: deleted
+                        ? scheduledEventInternalList.count
+                        : scheduledEventInternalList.count - 1,
                 };
             }
 
@@ -496,11 +521,22 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 scheduledEventInvestigationList = {
                     ...scheduledEventInvestigationList,
                     scheduledEventNotes: scheduledEventInvestigationList.scheduledEventNotes.filter(
-                        investigationNote =>
-                            String(investigationNote._id) !==
-                            String(action.payload._id)
+                        investigationNote => {
+                            if (
+                                String(investigationNote._id) ===
+                                String(action.payload._id)
+                            ) {
+                                deleted = false;
+                            }
+                            return (
+                                String(investigationNote._id) !==
+                                String(action.payload._id)
+                            );
+                        }
                     ),
-                    count: scheduledEventInvestigationList.count - 1,
+                    count: deleted
+                        ? scheduledEventInvestigationList.count
+                        : scheduledEventInvestigationList.count - 1,
                 };
             }
 

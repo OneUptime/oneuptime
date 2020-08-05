@@ -5,13 +5,25 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { fetchscheduledEvents } from '../../actions/scheduledEvent';
+import {
+    fetchscheduledEvents,
+    createScheduledEventSuccess,
+    updateScheduledEventSuccess,
+    deleteScheduledEventSuccess,
+} from '../../actions/scheduledEvent';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
+import { API_URL } from '../../config';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ScheduledEventBox extends Component {
     constructor(props) {
@@ -23,8 +35,26 @@ class ScheduledEventBox extends Component {
     }
 
     componentDidMount() {
-        const { projectId, fetchscheduledEvents } = this.props;
+        const {
+            projectId,
+            fetchscheduledEvents,
+            createScheduledEventSuccess,
+            updateScheduledEventSuccess,
+            deleteScheduledEventSuccess,
+        } = this.props;
         fetchscheduledEvents(projectId, 0, this.limit);
+
+        socket.on(`addScheduledEvent-${projectId}`, event =>
+            createScheduledEventSuccess(event)
+        );
+
+        socket.on(`deleteScheduledEvent-${projectId}`, event =>
+            deleteScheduledEventSuccess(event)
+        );
+
+        socket.on(`updateScheduledEvent-${projectId}`, event =>
+            updateScheduledEventSuccess(event)
+        );
     }
 
     prevClicked = () => {
@@ -112,10 +142,7 @@ class ScheduledEventBox extends Component {
                                 <span>Scheduled Events</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>
-                                    Scheduled events for this project. Click on
-                                    event name to edit.
-                                </span>
+                                <span>Scheduled events for this project.</span>
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -430,11 +457,21 @@ ScheduledEventBox.propTypes = {
     error: PropTypes.object,
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
+    createScheduledEventSuccess: PropTypes.func,
+    updateScheduledEventSuccess: PropTypes.func,
+    deleteScheduledEventSuccess: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { fetchscheduledEvents, openModal, closeModal },
+        {
+            fetchscheduledEvents,
+            openModal,
+            closeModal,
+            createScheduledEventSuccess,
+            updateScheduledEventSuccess,
+            deleteScheduledEventSuccess,
+        },
         dispatch
     );
 

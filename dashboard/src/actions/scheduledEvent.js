@@ -163,10 +163,10 @@ export const deleteScheduledEvent = (
     }
 };
 
-export function deleteScheduledEventSuccess(scheduledEventId) {
+export function deleteScheduledEventSuccess(payload) {
     return {
         type: types.DELETE_SCHEDULED_EVENT_SUCCESS,
-        payload: scheduledEventId,
+        payload,
     };
 }
 

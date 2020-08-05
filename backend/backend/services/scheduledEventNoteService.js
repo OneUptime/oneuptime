@@ -1,5 +1,6 @@
 const ScheduledEventNoteModel = require('../models/scheduledEventNote');
 const ErrorService = require('./errorService');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function(data) {
@@ -11,6 +12,14 @@ module.exports = {
                 .populate('scheduledEventId')
                 .populate('createdById', 'name')
                 .execPopulate();
+
+            scheduledEventMessage.type === 'internal'
+                ? await RealTimeService.addScheduledEventInternalNote(
+                      scheduledEventMessage
+                  )
+                : await RealTimeService.addScheduledEventInvestigationNote(
+                      scheduledEventMessage
+                  );
 
             return scheduledEventMessage;
         } catch (error) {
@@ -44,6 +53,14 @@ module.exports = {
                 .populate('scheduledEventId')
                 .populate('createdById', 'name')
                 .execPopulate();
+
+            eventMessage.type === 'internal'
+                ? await RealTimeService.updateScheduledEventInternalNote(
+                      eventMessage
+                  )
+                : await RealTimeService.updateScheduledEventInvestigationNote(
+                      eventMessage
+                  );
 
             return eventMessage;
         } catch (error) {
@@ -129,6 +146,14 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+
+            deletedEventMessage.type === 'internal'
+                ? await RealTimeService.deleteScheduledEventInternalNote(
+                      deletedEventMessage
+                  )
+                : await RealTimeService.deleteScheduledEventInvestigationNote(
+                      deletedEventMessage
+                  );
 
             return deletedEventMessage;
         } catch (error) {

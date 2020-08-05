@@ -123,6 +123,8 @@ module.exports = {
                 throw error;
             }
 
+            await RealTimeService.deleteScheduledEvent(scheduledEvent);
+
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.deleteBy', error);
