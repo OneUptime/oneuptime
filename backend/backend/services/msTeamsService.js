@@ -91,17 +91,15 @@ module.exports = {
                       incident.incidentType
                   } for ${duration}`
                 : `
-**New incident:**
+**New Incident:**
 
-**Project name:** ${project.name}
+**Project Name:** ${project.name}
 
-**Monitor name:** ${component.name} / ${monitor.name}
+**Monitor Name:** ${component.name} / ${monitor.name}
 
-**Created at:** ${incident.createdAt}
+**Created By:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-**Created by:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
-
-**Incident status:** ${
+**Incident Status:** ${
                       incident.incidentType === 'online'
                           ? 'Online'
                           : incident.incidentType === 'degraded'
