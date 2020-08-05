@@ -101,7 +101,13 @@ module.exports = {
 
 *Created By:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-*Incident Status:* ${incident.incidentType}
+*Incident Status:* ${
+                      incident.incidentType === 'online'
+                          ? 'Online'
+                          : incident.incidentType === 'degraded'
+                          ? 'Degraded'
+                          : 'Offline'
+                  }
 
 <${uri}|Click here to view incident>
 `;
