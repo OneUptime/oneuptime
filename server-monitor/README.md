@@ -23,15 +23,20 @@ $ npm install fyipe-server-monitor
 
 You can use on the CLI:
 
+```
+$ fyipe-server-monitor 
+
+```
+
 -   Run `fyipe-server-monitor`.
 -   Enter your Project ID, API URL, and API key - Get these from your Fyipe Dashboard.
 -   Select Server Monitor from the list of Server Monitors.
 -   Server will be pinged every minute and the data stored in your project.
 
-You can also use like so:
+You can also use it like this:
 
 ```
-$ fyipe-server-monitor -p 5d64d59cae46131619708309 -u http://example.com -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
+$ fyipe-server-monitor -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
 ```
 
 <a name="module_api"></a>
@@ -43,7 +48,9 @@ const serverMonitor = require('fyipe-server-monitor');
 
 const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',
-    apiUrl: 'http://example.com', // optional - your external API URL
+    // (optional) If you have installed Fyipe Platform on your server,
+    // this should be your API URL
+    apiUrl: 'https://fyipe.com/api',  
     apiKey: 'b02798c0-c898-11e9-9f14-4963dc67e2ab',
     monitorId: '5d7775e9f14a531364ba6917',
     interval: '*/5 * * * * *', // cron job interval

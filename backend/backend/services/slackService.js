@@ -79,9 +79,9 @@ module.exports = {
                       monitor.name
                   }* is resolved by ${
                       incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${
-                      incident.resolvedAt
-                  } after being down for ${duration}\n <${uri}|More details>`
+                  } at ${incident.resolvedAt} after being ${
+                      incident.incidentType
+                  } for ${duration}\n <${uri}|More details>`
                 : incident.acknowledged
                 ? `Incident on *${component.name} / ${
                       monitor.name
@@ -89,25 +89,27 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being down for ${duration}\n <${uri}|More details>`
+                  } at ${incident.acknowledgedAt} after being ${
+                      incident.incidentType
+                  } for ${duration}\n <${uri}|More details>`
                 : `
-*New incident:*
+*New Incident:*
 
-*Project name:* ${project.name}
+*Project Name:* ${project.name}
 
-*Monitor name:* ${component.name} / ${monitor.name}
+*Monitor Name:* ${component.name} / ${monitor.name}
 
-*Created at:* ${incident.createdAt}
+*Created By:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-*Created by:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
+*Incident Status:* ${
+                      incident.incidentType === 'online'
+                          ? 'Online'
+                          : incident.incidentType === 'degraded'
+                          ? 'Degraded'
+                          : 'Offline'
+                  }
 
-*Incident status:* ${incident.incidentType}
-
-*Monitor status:* ${monitorStatus}
-
-<${uri}|Acknowledge>
+<${uri}|Click here to view incident>
 `;
             const payload = {
                 text: payloadText,
