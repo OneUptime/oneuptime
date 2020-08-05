@@ -61,17 +61,13 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                     <b
                                                         onClick={() =>
                                                             history.push(
-                                                                `/dashboard/project/${currentProjectId}/sub-project/${
-                                                                    schedule.projectId &&
+                                                                `/dashboard/project/${currentProjectId}/sub-project/${schedule.projectId &&
                                                                     schedule
                                                                         .projectId
-                                                                        ._id
-                                                                }/schedule/${
-                                                                    schedule.scheduleId &&
+                                                                        ._id}/schedule/${schedule.scheduleId &&
                                                                     schedule
                                                                         .scheduleId
-                                                                        ._id
-                                                                }`
+                                                                        ._id}`
                                                             )
                                                         }
                                                         style={{
@@ -150,6 +146,7 @@ OnCallSchedule.displayName = 'OnCallSchedule';
 OnCallSchedule.propTypes = {
     status: PropTypes.string,
     schedules: PropTypes.array,
+    currentProjectId: PropTypes.string,
 };
 
 export default OnCallSchedule;

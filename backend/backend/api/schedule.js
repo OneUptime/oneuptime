@@ -15,7 +15,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
@@ -38,7 +38,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const schedules = await ScheduleService.findBy(
@@ -58,7 +58,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map(project => project._id)
@@ -73,7 +73,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/schedule', getUser, isAuthorized, async function (
+router.get('/:projectId/schedule', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -96,7 +96,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const scheduleId = req.params.scheduleId;
             const data = req.body;
@@ -116,7 +116,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const scheduleId = req.params.scheduleId;
             const userId = req.user ? req.user.id : null;

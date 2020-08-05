@@ -115,7 +115,7 @@ class Home extends Component {
                 hoursToStart =
                     hoursToStart < 0 ? hoursToStart + 24 : hoursToStart;
 
-                let hoursToEnd = hours + hoursToStart;
+                const hoursToEnd = hours + hoursToStart;
 
                 let nowToEnd = Math.ceil(
                     moment(endTime, 'HH:mm').diff(
