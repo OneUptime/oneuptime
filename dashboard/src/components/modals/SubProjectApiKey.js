@@ -17,7 +17,13 @@ class SubProjectApiKey extends Component {
     state = {
         hidden: true,
         confirmationModalId: uuid.v4(),
+        oldApiKey: '',
     };
+
+    UNSAFE_componentWillReceiveProps() {
+        const oldApiKey = this.props.subproject.apiKey;
+        this.setState({ oldApiKey });
+    }
 
     handleKeyBoard = e => {
         switch (e.key) {
@@ -40,7 +46,12 @@ class SubProjectApiKey extends Component {
                 Click here to reveal API key
             </span>
         ) : (
-            <span id="apiKey" className="value">
+            <span
+                id="apiKey"
+                className={`value ${
+                    subProjectResetToken.success ? 'Text-fontWeight--bold' : ''
+                }`}
+            >
                 {subproject.apiKey}
             </span>
         );
@@ -105,6 +116,23 @@ class SubProjectApiKey extends Component {
                                                             {subproject._id}
                                                         </div>
                                                     </div>
+                                                    <ShouldRender
+                                                        if={
+                                                            subProjectResetToken.success
+                                                        }
+                                                    >
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Old API Key:
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields Margin-top--6">
+                                                                {
+                                                                    this.state
+                                                                        .oldApiKey
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                     <div className="bs-Fieldset-row">
                                                         <ShouldRender
                                                             if={
