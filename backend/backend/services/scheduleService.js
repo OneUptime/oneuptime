@@ -287,11 +287,11 @@ module.exports = {
         }
     },
 
-    getUserEscalations: async function(projectId, userId) {
+    getUserEscalations: async function(subProjectIds, userId) {
         try {
             const escalations = await EscalationService.findBy({
                 query: {
-                    projectId,
+                    projectId: { $in: subProjectIds },
                     'teams.teamMembers': { $elemMatch: { userId } },
                 },
             });

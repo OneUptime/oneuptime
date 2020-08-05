@@ -61,7 +61,12 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                     <b
                                                         onClick={() =>
                                                             history.push(
-                                                                `/dashboard/project/${currentProjectId}/sub-project/${currentProjectId}/schedule/${
+                                                                `/dashboard/project/${currentProjectId}/sub-project/${
+                                                                    schedule.projectId &&
+                                                                    schedule
+                                                                        .projectId
+                                                                        ._id
+                                                                }/schedule/${
                                                                     schedule.scheduleId &&
                                                                     schedule
                                                                         .scheduleId

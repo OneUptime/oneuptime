@@ -63,6 +63,7 @@ class Home extends Component {
                             .filter(user => user.userId === this.props.user.id)
                             .pop();
                         if (schedule) {
+                            schedule.projectId = escalation.projectId;
                             schedule.scheduleId = escalation.scheduleId;
                         }
                         return schedule;
