@@ -228,3 +228,284 @@ export function updateScheduledEventFailure(error) {
         payload: error,
     };
 }
+
+// Scheduled Event Note
+export const fetchScheduledEventNotesInvestigationRequest = () => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_REQUEST,
+});
+
+export const fetchScheduledEventNotesInvestigationSuccess = payload => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_SUCCESS,
+    payload,
+});
+
+export const fetchScheduledEventNotesInvestigationFailure = error => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INVESTIGATION_FAILURE,
+    payload: error,
+});
+
+export const fetchScheduledEventNotesInvestigation = (
+    projectId,
+    scheduledEventId,
+    limit,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(fetchScheduledEventNotesInvestigationRequest());
+        skip = Number(skip);
+        limit = Number(limit);
+
+        let response = {};
+        if (skip >= 0 && limit >= 0) {
+            response = await getApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=investigation&limit=${limit}&skip=${skip}`
+            );
+        } else {
+            response = await getApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=investigation`
+            );
+        }
+
+        const { data, count } = response.data;
+        dispatch(
+            fetchScheduledEventNotesInvestigationSuccess({
+                data,
+                count,
+                skip,
+                limit,
+            })
+        );
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchScheduledEventNotesInvestigationFailure(errorMsg));
+    }
+};
+
+export const fetchScheduledEventNotesInternalRequest = () => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INTERNAL_REQUEST,
+});
+
+export const fetchScheduledEventNotesInternalSuccess = payload => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INTERNAL_SUCCESS,
+    payload,
+});
+
+export const fetchScheduledEventNotesInternalFailure = error => ({
+    type: types.FETCH_SCHEDULED_EVENT_NOTES_INTERNAL_FAILURE,
+    payload: error,
+});
+
+export const fetchScheduledEventNotesInternal = (
+    projectId,
+    scheduledEventId,
+    limit,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(fetchScheduledEventNotesInternalRequest());
+        skip = Number(skip);
+        limit = Number(limit);
+
+        let response = {};
+        if (skip >= 0 && limit >= 0) {
+            response = await getApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal&limit=${limit}&skip=${skip}`
+            );
+        } else {
+            response = await getApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal`
+            );
+        }
+
+        const { data, count } = response.data;
+        dispatch(
+            fetchScheduledEventNotesInternalSuccess({
+                data,
+                count,
+                skip,
+                limit,
+            })
+        );
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchScheduledEventNotesInternalFailure(errorMsg));
+    }
+};
+
+export const createScheduledEventNoteRequest = () => ({
+    type: types.CREATE_SCHEDULED_EVENT_NOTE_REQUEST,
+});
+
+export const createScheduledEventNoteSuccess = payload => ({
+    type: types.CREATE_SCHEDULED_EVENT_NOTE_SUCCESS,
+    payload,
+});
+
+export const createScheduledEventNoteFailure = error => ({
+    type: types.CREATE_SCHEDULED_EVENT_NOTE_FAILURE,
+    payload: error,
+});
+
+export const createScheduledEventNote = (
+    projectId,
+    scheduledEventId,
+    data
+) => async dispatch => {
+    try {
+        dispatch(createScheduledEventNoteRequest());
+
+        const response = await postApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/notes`,
+            data
+        );
+
+        dispatch(createScheduledEventNoteSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(createScheduledEventNoteFailure(errorMsg));
+    }
+};
+
+export const updateScheduledEventNoteInternalRequest = () => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_REQUEST,
+});
+
+export const updateScheduledEventNoteInternalSuccess = payload => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_SUCCESS,
+    payload,
+});
+
+export const updateScheduledEventNoteInternalFailure = error => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_FAILURE,
+    paylod: error,
+});
+
+export const updateScheduledEventNoteInternal = (
+    projectId,
+    scheduledEventId,
+    scheduledEventNoteId,
+    data
+) => async dispatch => {
+    try {
+        dispatch(updateScheduledEventNoteInternalRequest());
+
+        const response = await putApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
+            data
+        );
+
+        dispatch(updateScheduledEventNoteInternalSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateScheduledEventNoteInternalFailure(errorMsg));
+    }
+};
+
+export const updateScheduledEventNoteInvestigationRequest = () => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_REQUEST,
+});
+
+export const updateScheduledEventNoteInvestigationSuccess = payload => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_SUCCESS,
+    payload,
+});
+
+export const updateScheduledEventNoteInvestigationFailure = error => ({
+    type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_FAILURE,
+    paylod: error,
+});
+
+export const updateScheduledEventNoteInvestigation = (
+    projectId,
+    scheduledEventId,
+    scheduledEventNoteId,
+    data
+) => async dispatch => {
+    try {
+        dispatch(updateScheduledEventNoteInvestigationRequest());
+
+        const response = await putApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
+            data
+        );
+
+        dispatch(updateScheduledEventNoteInvestigationSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateScheduledEventNoteInvestigationFailure(errorMsg));
+    }
+};
+
+export const deleteScheduledEventNoteRequest = () => ({
+    type: types.DELETE_SCHEDULED_EVENT_NOTE_REQUEST,
+});
+
+export const deleteScheduledEventNoteSuccess = payload => ({
+    type: types.DELETE_SCHEDULED_EVENT_NOTE_SUCCESS,
+    payload,
+});
+
+export const deleteScheduledEventNoteFailure = error => ({
+    type: types.DELETE_SCHEDULED_EVENT_NOTE_FAILURE,
+    payload: error,
+});
+
+export const deleteScheduledEventNote = (
+    projectId,
+    scheduledEventId,
+    scheduledEventNoteId
+) => async dispatch => {
+    try {
+        dispatch(deleteScheduledEventNoteRequest());
+
+        const response = await deleteApi(
+            `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
+        );
+        dispatch(deleteScheduledEventNoteSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(deleteScheduledEventNoteFailure(errorMsg));
+    }
+};
