@@ -26,7 +26,7 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
   const { projectId } = req.params;
-  const {name, color} = req.body;
+  const { name, color } = req.body;
   if (!projectId) {
     return sendErrorResponse(req, res, {
       code: 400,
@@ -47,7 +47,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
   }
 
   try {
-    const IncidentPriorities = await IncidentPrioritiesService.create({ projectId, name,color });
+    const IncidentPriorities = await IncidentPrioritiesService.create({ projectId, name, color });
     return sendItemResponse(req, res, IncidentPriorities);
   } catch (error) {
     return sendErrorResponse(req, res, error);
@@ -57,16 +57,16 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 router.put('/:projectId', getUser, isAuthorized, async function (req, res) {
   const { projectId } = req.params;
-  const {_id, name, color} = req.body;
-  
+  const { _id, name, color } = req.body;
+
   if (!projectId) {
     return sendErrorResponse(req, res, {
       code: 400,
       message: 'Project Id must be present.'
     });
   }
-  
-  if(!_id){
+
+  if (!_id) {
     return sendErrorResponse(req, res, {
       code: 400,
       message: 'Id must be present.'
@@ -79,7 +79,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res) {
       message: 'Name must be present'
     });
   }
-  
+
   if (!color) {
     return sendErrorResponse(req, res, {
       code: 400,
@@ -88,8 +88,41 @@ router.put('/:projectId', getUser, isAuthorized, async function (req, res) {
   }
 
   try {
-    const IncidentPriorities = await IncidentPrioritiesService.updateOne({projectId,_id},{ name,color });
+    const IncidentPriorities = await IncidentPrioritiesService.updateOne({ projectId, _id }, { name, color });
     return sendItemResponse(req, res, IncidentPriorities);
+  } catch (error) {
+    return sendErrorResponse(req, res, error);
+  }
+
+});
+
+router.delete('/:projectId', getUser, isAuthorized, async function (req, res) {
+  const { projectId } = req.params;
+  const { _id } = req.body;
+
+  if (!projectId) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Project Id must be present.'
+    });
+  }
+
+  if (!_id) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Id must be present.'
+    });
+  }
+
+  try {
+    const IncidentPriority = await IncidentPrioritiesService.deleteBy({ projectId, _id });
+    if (IncidentPriority) {
+      return sendItemResponse(req, res, IncidentPriority);
+    } else {
+      return sendErrorResponse(req, res, {
+        message: 'Incident not found',
+      });
+    }
   } catch (error) {
     return sendErrorResponse(req, res, error);
   }
