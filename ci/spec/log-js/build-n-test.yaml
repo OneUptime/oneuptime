@@ -17,6 +17,7 @@ build_n_test_log-js:
         - sudo docker ps
         - cd log-js
         - npm ci
+        - npm run build
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
