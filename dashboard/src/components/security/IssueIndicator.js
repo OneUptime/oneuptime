@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const IssueIndicator = ({ status }) => {
-    let statusColor;
+const IssueIndicator = ({ status, resourceName, count }) => {
+    let statusColor, content;
 
     switch (status) {
         case 'low':
-            statusColor = 'green';
+            statusColor = 'slate';
             break;
         case 'moderate':
         case 'medium':
@@ -19,8 +19,33 @@ const IssueIndicator = ({ status }) => {
         default:
             statusColor = 'slate';
     }
+    resourceName
+        ? (content = (
+              <div className="Flex-flex">
+                  <div
+                      className={`db-Badge Box-background--${statusColor}`}
+                  ></div>
 
-    return <div className={`db-Badge Box-background--${statusColor}`}></div>;
+                  <span
+                      id={`resource_status_${resourceName}`}
+                      className={`Text-color--${statusColor}`}
+                  >
+                      {' '}
+                      {` ${count} ${status} ${
+                          count
+                              ? count > 1
+                                  ? 'priority issues'
+                                  : 'priority issue'
+                              : ''
+                      }`}{' '}
+                  </span>
+              </div>
+          ))
+        : (content = (
+              <div className={`db-Badge Box-background--${statusColor}`}></div>
+          ));
+
+    return content;
 };
 
 IssueIndicator.displayName = 'IssueIndicator';
