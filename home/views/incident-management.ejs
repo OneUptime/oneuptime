@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Fyipe | Uptime Monitoring</title>
+    <title>Fyipe | Incident Orchestration and Response</title>
 
     <meta name="description"
         content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
@@ -18,7 +18,7 @@
     <script async>
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
-            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > UPTIME MONITORING');
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > INCIDENT MANAGEMENT & RESPONSE');
         }
     </script>
 </head>
@@ -36,8 +36,8 @@
                     <div class="content">
                         
                         <header>
-                            <h1 class="Header-title common-PageTitle header-font header-size black">Uptime Monitoring</h1>
-                            <p style="margin-top:50px"><i>Downtime happens.</i> <span class="highlight">&nbsp; Fyipe's monitoring lets you know exactly what is wrong with your service, at the right time, </span> saving you critical minutes during downtime. </p>
+                            <h1 class="Header-title common-PageTitle header-font header-size black">Incident Management &amp; Response</h1>
+                            <p style="margin-top:50px">Protect revenue and improve customer experiences by resolving critical incidents faster and preventing future occurrences.</p>
                         </header>
 
                     </div>
@@ -50,143 +50,38 @@
                 <img src="/img/animated-gif/uptime-monitoring.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
             </div>
 
-
             <section class="main basics" style="padding:0px">
                 <div class="content">
                     <ul class="columns">
-                        <li class="reliability">
-                            <h3>Monitor Anything.</h3>
-                            <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
+                        <li class="automation">
+                            <h3>Automated Precision Response</h3>
+                            <p class="text-center">Go from single-responder triage to mobilizing the right cross-functional team in seconds from any device.</p>
                         </li>
-                        <li class="moni">
-                            <h3>Detailed Metrics</h3>
-                            <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
+                        <li class="help">
+                            <h3>Business-Wide Orchestration</h3>
+                            <p class="text-center">Keep stakeholders throughout the business informed in real-time, empowering the entire company to collaborate and respond proactively. </p>
                         </li>
-                        <li class="time">
-                            <h3>Every second check.</h3>
-                            <p class="text-center">Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down.</p>
+                        <li class="bounce">
+                            <h3>Major Incident Learning</h3>
+                            <p class="text-center">Learn from major incidents by conducting postmortems. Create and curate a timeline of activity, allowing continuous learning and process improvement.</p>
                         </li>
-                        
                     </ul>
 
                     <ul class="columns">
-                        <li class="global">
-                            <h3>Test from Multiple Locations</h3>
-                            <p class="text-center">Test if your site is available everywhere in the world. We have probes in every continent to test your resources.</p>
+                        <li class="stakeholders">
+                            <h3>Stakeholder Communication</h3>
+                            <p class="text-center">Fyipe engages the entire business by providing IT management, support, executive, marketing, sales, and legal teams with clear and concise business impacts in real time. </p>
                         </li>
-                        <li class="rootcause">
-                            <h3>Root Cause Analysis.</h3>
-                            <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
+                        <li class="service-integration">
+                            <h3>ITSM Integration</h3>
+                            <p class="text-center">Integrate with any ITSM or ticketing solution (JIRA, ServiceNow, BMC, etc.) to automatically create tickets from Fyipe incidents and vice versa. </p>
                         </li>
-                        <li class="risk">
-                            <h3>Monitor Performance</h3>
-                            <p class="text-center">Monitor performance of your API's, servers and more. We even let you monitor page speed of your apps and let you know when something goes wrong. </p>
-                        </li>
-                        
-                    </ul>
-
-                </div>
-
-                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">Deep Website Scans</h2>
-                    <p class="common-BodyText"> Find performance, SEO, accessibility, issues with your Website. We also give you recommendations on best practices and more.</p>
-                </header>
-
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/uptime-monitoring-website-scan.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
-                </div>
-    
-
-                <div class="content">
-                    <ul class="columns">
-                        <li class="google">
-                            <h3>Find SEO issues</h3>
-                            <p class="text-center">Find SEO issues fast, rank better on all search engines, get more leads and customers. </p>
-                        </li>
-                        <li class="risk">
-                            <h3>Find performance issues</h3>
-                            <p class="text-center">Every second increase in performance of your website increases leads & customers by 50%. Find and fix performance issues of your website.</p>
-                        </li>
-                        <li class="reli">
-                            <h3>Best Practices and Progressive Web Apps</h3>
-                            <p class="text-center"> Make your website run like an app on mobile with Progressive Web Apps. Follow other best practices right form the best of industry. </p>
+                        <li class="workshop">
+                            <h3>Incident Response Training</h3>
+                            <p class="text-center">Improve incident outcomes with professional training from Fyipe, built on proven response practices drawn from 11,000+ successful operations teams. </p>
                         </li>
                     </ul>
-                </div>
 
-                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">Set any criteria for uptime monitoring.</h2>
-                    <p class="common-BodyText"> Set uptime, degraded, and downtime, criteria on response time, SSL, response body, status code and more. </p>
-                </header>
-
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/uptime-monitor-criteria.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
-                </div>
-    
-
-                <div class="content">
-                    <ul class="columns">
-                        <li class="reli">
-                            <h3>Set any criteria.</h3>
-                            <p class="text-center">Set any criteria you need for uptime, degraded, and downtime. Criteria on response time, SSL, response body, status code and more are available for use. </p>
-                        </li>
-                        <li class="rootcause">
-                            <h3>Find issues instantly.</h3>
-                            <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
-                        </li>
-                        <li class="time">
-                            <h3>Every second check.</h3>
-                            <p class="text-center"> Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down. </p>
-                        </li>
-                    </ul>
-                </div>
-
-                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">Monitor anything.</h2>
-                    <p class="common-BodyText"> Monitor anything from servers, API's, websites, containers, to IoT devices, custom scripts, and more! </p>
-                </header>
-
-                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                    <img src="/img/animated-gif/uptime-monitoring-any-monitor.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
-                </div>
-    
-
-                <div class="content">
-                    <ul class="columns">
-                        <li class="reliability">
-                            <h3>You got a resource. We can monitor it.</h3>
-                            <p class="text-center">Monitor anything from servers, API's, websites, containers, to IoT devices, custom scripts, and more!  </p>
-                        </li>
-                        <li class="rootcause">
-                            <h3>Find issues instantly.</h3>
-                            <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
-                        </li>
-                        <li class="moni">
-                            <h3>Detailed Metrics</h3>
-                            <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
-                        </li>
-                    </ul>
-                </div>
-              
-                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
-                    <h2 class="header">How monitoring helps your business?</h2>
-                    <p class="common-BodyText"> See how Fyipe's complete monitoring platform can help you reach your business goals. </p>
-                </header>
-                <div class="content">
-                    <ul class="columns">
-                        <li class="teams">
-                            <h3>Never lose a customer.</h3>
-                            <p class="text-center">Truth is downtimes happen. Fyipe keeps both your team and customers looped in about the downtime which increases customer trust. </p>
-                        </li>
-                        <li class="customerexperience">
-                            <h3>Improve Customer Experience</h3>
-                            <p class="text-center">Understand and optimize the load performance of every element on your page for a better customer experience.</p>
-                        </li>
-                        <li class="reli">
-                            <h3>Comply with your SLA</h3>
-                            <p class="text-center"> Showcase your SLA compliance to your potential customer to gain more leads. </p>
-                        </li>
-                    </ul>
                 </div>
 
                 
@@ -195,11 +90,9 @@
 
                         <div class="left">
 
-                            <h3 class="header" style="margin-top:250px">More Monitoring <br/>Features.</h3>
+                            <h3 class="header" style="margin-top:250px">More Incident <br/> Orchestration &amp; <br/> and Response <br/> Features.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
-                                    style="font-size:18px">Efficient IT and SRE management <br />depends on the right
-                                    information  <br />being shared with the right people </br> at the right time </span><br /><br /> Fyipe's monitoring lets you 
-                                <br />know know exactly what is  <br />wrong with your service, <br/>at the right time,  saving you critical <br/>minutes during downtime.
+                                    style="font-size:18px">Our real-time operations <br/> platform ensures less <br/> downtime and fewer outages, <br/> meaning happier customers <br/> and more productive teams.
                                  </p>
 
                         </div>
@@ -207,30 +100,31 @@
                         <div class="right">
                             <ul>
                                 <li>
-                                    <h3>Install agents at any location. Even in China.</h3>
+                                    <h3>Connect to any third-party monitoring service</h3>
                                 </li>
                                 <li>
-                                    <h3>Improve workflow with right alerts, to right people at the right time.</h3>
+                                    <h3>Use Fyipe's built-in monitoring service.</h3>
                                 </li>
                                 <li>
-                                    <h3>Reliable Alerting - No false alerts.</h3>
+                                    <h3>Support for vacations and leaves in on-call scheduling.</h3>
                                 </li>
                                 <li>
-                                    <h3>Get alerted when your critical site flows stop working correctly.</h3>
+                                    <h3>Support for Escalation policy.</h3>
                                 </li>
                                 <li>
-                                    <h3>Automated Real Browser Testing.</h3>
+                                    <h3>Alerts multiple times if someone does not respond and then escalates.</h3>
 
                                 </li>
                                 <li>
-                                    <h3>Page speed monitoring and other insights. </h3>
+                                    <h3>Multiple incident stages - Investigating, Acknowledged, Resolved and more. </h3>
 
                                 </li>
                                 <li>
-                                    <h3>Monitor Anything - Server, Containers, Website, Network, etc.</h3>
+                                    <h3>Create multiple on-call schedules.</h3>
+
                                 </li>
                                 <li>
-                                    <h3>Complete visibilty on incident metrics.</h3>
+                                    <h3>Complete visibility on incident metrics.</h3>
 
                                 </li>
                                 <li>
@@ -247,14 +141,9 @@
                     </div>
                 </div>
 
-                
-               
                 <% include ./integration %> 
+              
             </section>
-
-
-
-
 
         </div>
     </div>
