@@ -63,6 +63,8 @@ describe('Components', () => {
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
@@ -405,6 +407,8 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 await page.waitForSelector(`#edit-component-${componentName}`);
                 await page.click(`#edit-component-${componentName}`);
@@ -458,6 +462,10 @@ describe('Components', () => {
                 await page.type('input[id=name]', utils.generateRandomString());
                 await page.click('label[for=Startup_month]');
                 await page.click('button[type=submit]');
+
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
                 let currentPage = await page.waitForSelector('#cbComponents');
                 currentPage = await currentPage.getProperty('innerText');
                 currentPage = await currentPage.jsonValue();

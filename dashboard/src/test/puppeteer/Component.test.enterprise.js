@@ -52,6 +52,8 @@ describe('Enterprise Component API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
+                await page.waitForSelector('#components', { timeout: 120000 });
+                await page.click('#components');
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
