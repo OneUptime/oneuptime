@@ -1,9 +1,9 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
+import PropTypes from 'prop-types';
 import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { IncidentPrioritiesList } from '../components/incident/IncidentPrioritiesList';
@@ -15,11 +15,10 @@ import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import DataPathHoC from '../components/DataPathHoC';
 
 class IncidentPriorities extends React.Component {
-
     handleCreateNewIncidentPriority() {
         const { openModal } = this.props;
         openModal({
-            content: CreateIncidentPriorityForm
+            content: CreateIncidentPriorityForm,
         });
     }
 
@@ -27,7 +26,7 @@ class IncidentPriorities extends React.Component {
         const { openModal } = this.props;
         openModal({
             content: DataPathHoC(EditIncidentPriorityForm, {
-                selectedIncidentPriority: id
+                selectedIncidentPriority: id,
             }),
         });
     }
@@ -35,10 +34,9 @@ class IncidentPriorities extends React.Component {
     handleDeleteIncidentPriority(id) {
         const { openModal } = this.props;
         openModal({
-            content: DataPathHoC(
-                RemoveIncidentPriorityForm, {
-                selectedIncidentPriority: id
-            })
+            content: DataPathHoC(RemoveIncidentPriorityForm, {
+                selectedIncidentPriority: id,
+            }),
         });
     }
     async ready() {
@@ -46,22 +44,36 @@ class IncidentPriorities extends React.Component {
     }
 
     prevClicked() {
-        const { skip, limit, } = this.props.incidentPrioritiesList
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, (skip || 0) > (limit || 10) ? skip - limit : 0,
+        const { skip, limit } = this.props.incidentPrioritiesList;
+        this.props.fetchIncidentPriorities(
+            this.props.currentProject._id,
+            (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
     }
     nextClicked() {
-        const { skip, limit } = this.props.incidentPrioritiesList
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, skip + limit, 10);
+        const { skip, limit } = this.props.incidentPrioritiesList;
+        this.props.fetchIncidentPriorities(
+            this.props.currentProject._id,
+            skip + limit,
+            10
+        );
     }
     render() {
         const {
             location: { pathname },
         } = this.props;
-        const { skip, limit, count } = this.props.incidentPrioritiesList
-        let canPaginateForward = !this.props.incidentPrioritiesList.requesting && count && count > skip + limit ? true : false;
-        let canPaginateBackward = !this.props.incidentPrioritiesList.requesting && skip && skip > 0 ? true : false;
+        const { skip, limit, count } = this.props.incidentPrioritiesList;
+        const canPaginateForward =
+            !this.props.incidentPrioritiesList.requesting &&
+            count &&
+            count > skip + limit
+                ? true
+                : false;
+        const canPaginateBackward =
+            !this.props.incidentPrioritiesList.requesting && skip && skip > 0
+                ? true
+                : false;
 
         return (
             <Dashboard ready={() => this.ready()}>
@@ -86,9 +98,7 @@ class IncidentPriorities extends React.Component {
                                                         <span>Priorities</span>
                                                     </span>
                                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <span>
-                                                            DESCRIPTION
-                                                        </span>
+                                                        <span>DESCRIPTION</span>
                                                     </span>
                                                 </div>
                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -97,7 +107,9 @@ class IncidentPriorities extends React.Component {
                                                             id="addNewPriority"
                                                             className="Button bs-ButtonLegacy ActionIconParent"
                                                             type="button"
-                                                            onClick={() => this.handleCreateNewIncidentPriority()}
+                                                            onClick={() =>
+                                                                this.handleCreateNewIncidentPriority()
+                                                            }
                                                         >
                                                             <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                 <div className="Box-root Margin-right--8">
@@ -116,9 +128,19 @@ class IncidentPriorities extends React.Component {
                                             </div>
                                         </div>
                                         <IncidentPrioritiesList
-                                            incidentPrioritiesList={this.props.incidentPriorities}
-                                            handleEditIncidentPriority={(id) => this.handleEditIncidentPriority(id)}
-                                            handleDeleteIncidentPriority={(id) => this.handleDeleteIncidentPriority(id)}
+                                            incidentPrioritiesList={
+                                                this.props.incidentPriorities
+                                            }
+                                            handleEditIncidentPriority={id =>
+                                                this.handleEditIncidentPriority(
+                                                    id
+                                                )
+                                            }
+                                            handleDeleteIncidentPriority={id =>
+                                                this.handleDeleteIncidentPriority(
+                                                    id
+                                                )
+                                            }
                                         />
                                     </div>
                                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -129,10 +151,17 @@ class IncidentPriorities extends React.Component {
                                                         id="status_page_count_Unnamed Project"
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                                     >
-                                                        {this.props.incidentPriorities.length} Priorit
                                                         {
-                                                            this.props.incidentPriorities.length === 1 ? 'y' : 'ies'
-                                                        }
+                                                            this.props
+                                                                .incidentPriorities
+                                                                .length
+                                                        }{' '}
+                                                        Priorit
+                                                        {this.props
+                                                            .incidentPriorities
+                                                            .length === 1
+                                                            ? 'y'
+                                                            : 'ies'}
                                                     </span>
                                                 </span>
                                             </span>
@@ -146,11 +175,15 @@ class IncidentPriorities extends React.Component {
                                                             !canPaginateBackward
                                                                 ? 'Is--disabled'
                                                                 : ''
-                                                            }`}
+                                                        }`}
                                                         data-db-analytics-name="list_view.pagination.previous"
-                                                        disabled={!canPaginateBackward}
+                                                        disabled={
+                                                            !canPaginateBackward
+                                                        }
                                                         type="button"
-                                                        onClick={()=>this.prevClicked()}
+                                                        onClick={() =>
+                                                            this.prevClicked()
+                                                        }
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -168,11 +201,15 @@ class IncidentPriorities extends React.Component {
                                                             !canPaginateForward
                                                                 ? 'Is--disabled'
                                                                 : ''
-                                                            }`}
+                                                        }`}
                                                         data-db-analytics-name="list_view.pagination.next"
-                                                        disabled={!canPaginateForward}
+                                                        disabled={
+                                                            !canPaginateForward
+                                                        }
                                                         type="button"
-                                                        onClick={()=>this.nextClicked()}
+                                                        onClick={() =>
+                                                            this.nextClicked()
+                                                        }
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -197,14 +234,22 @@ class IncidentPriorities extends React.Component {
 }
 
 IncidentPriorities.displayName = 'IncidentPriorities';
-
+IncidentPriorities.propTypes = {
+    openModal: PropTypes.func.isRequired,
+    fetchIncidentPriorities: PropTypes.func.isRequired,
+    currentProject: PropTypes.object.isRequired,
+    incidentPrioritiesList: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
+    incidentPriorities: PropTypes.array.isRequired,
+};
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
-        incidentPriorities: state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
-    }
-}
+    };
+};
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
@@ -212,7 +257,7 @@ const mapDispatchToProps = dispatch =>
             closeModal,
             fetchIncidentPriorities,
         },
-        dispatch,
+        dispatch
     );
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentPriorities);

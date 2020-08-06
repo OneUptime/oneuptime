@@ -122,7 +122,10 @@ app.use(
 );
 app.use(['/file', '/api/file'], require('./backend/api/file'));
 app.use(['/incident', '/api/incident'], require('./backend/api/incident'));
-app.use(['/incidentPriorities', '/api/incidentPriorities'], require('./backend/api/incidentPriorities'));
+app.use(
+    ['/incidentPriorities', '/api/incidentPriorities'],
+    require('./backend/api/incidentPriorities')
+);
 app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));

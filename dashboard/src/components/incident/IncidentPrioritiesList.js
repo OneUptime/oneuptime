@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export class IncidentPrioritiesList extends React.Component {
     render() {
@@ -11,33 +12,40 @@ export class IncidentPrioritiesList extends React.Component {
                     <div style={{ overflow: 'auto hidden' }}>
                         <div className="bs-ObjectList-rows">
                             <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                <div className="bs-ObjectList-cell" style={{ width: "70%" }}>
+                                <div
+                                    className="bs-ObjectList-cell"
+                                    style={{ width: '70%' }}
+                                >
                                     Name
                                 </div>
-                                <div className="bs-ObjectList-cell" style={{ width: "30%" }}>
+                                <div
+                                    className="bs-ObjectList-cell"
+                                    style={{ width: '30%' }}
+                                >
                                     Action
                                 </div>
                             </header>
                             {this.props.incidentPrioritiesList.map(
-                                (incidentPriority, index) =>
-                                    <div key={index} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                                (incidentPriority, index) => (
+                                    <div
+                                        key={index}
+                                        className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                    >
                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                             <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted"></div>
                                             <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                                                <div
-                                                    className="Flex-flex Flex-alignItems--center"
-                                                >
+                                                <div className="Flex-flex Flex-alignItems--center">
                                                     <span
                                                         className="Margin-right--4"
                                                         style={{
-                                                            display: 'inline-block',
+                                                            display:
+                                                                'inline-block',
                                                             backgroundColor: `rgba(${incidentPriority.color.r},${incidentPriority.color.g},${incidentPriority.color.b},${incidentPriority.color.a})`,
                                                             height: '15px',
                                                             width: '15px',
-                                                            borderRadius: '30%'
+                                                            borderRadius: '30%',
                                                         }}
-                                                    >
-                                                    </span>
+                                                    ></span>
                                                     <span
                                                         className="Text-fontWeight--medium"
                                                         style={{
@@ -55,26 +63,36 @@ export class IncidentPrioritiesList extends React.Component {
                                                     <button
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
-                                                        onClick={() => this.props.handleEditIncidentPriority(incidentPriority._id)}
+                                                        onClick={() =>
+                                                            this.props.handleEditIncidentPriority(
+                                                                incidentPriority._id
+                                                            )
+                                                        }
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                <span>Edit</span>
+                                                                <span>
+                                                                    Edit
+                                                                </span>
                                                             </span>
                                                         </div>
                                                     </button>
                                                 </div>
-                                                <div
-                                                    className="Box-root Margin-left--8"
-                                                >
+                                                <div className="Box-root Margin-left--8">
                                                     <button
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
-                                                        onClick={() => this.props.handleDeleteIncidentPriority(incidentPriority._id)}
+                                                        onClick={() =>
+                                                            this.props.handleDeleteIncidentPriority(
+                                                                incidentPriority._id
+                                                            )
+                                                        }
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                <span>Delete</span>
+                                                                <span>
+                                                                    Delete
+                                                                </span>
                                                             </span>
                                                         </div>
                                                     </button>
@@ -82,6 +100,7 @@ export class IncidentPrioritiesList extends React.Component {
                                             </div>
                                         </div>
                                     </div>
+                                )
                             )}
                         </div>
                     </div>
@@ -90,3 +109,10 @@ export class IncidentPrioritiesList extends React.Component {
         );
     }
 }
+
+IncidentPrioritiesList.displayName = 'IncidentPrioritiesList';
+IncidentPrioritiesList.propTypes = {
+    incidentPrioritiesList: PropTypes.array.isRequired,
+    handleEditIncidentPriority: PropTypes.func.isRequired,
+    handleDeleteIncidentPriority: PropTypes.func.isRequired,
+};

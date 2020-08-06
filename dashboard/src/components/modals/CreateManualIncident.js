@@ -93,8 +93,8 @@ class CreateManualIncident extends Component {
         const { handleSubmit, newIncident, incidentPriorities } = this.props;
         const sameError =
             newIncident &&
-                newIncident.error &&
-                newIncident.error ===
+            newIncident.error &&
+            newIncident.error ===
                 `An unresolved incident of type ${this.state.incidentType} already exists.`
                 ? true
                 : false;
@@ -174,7 +174,12 @@ class CreateManualIncident extends Component {
                                                     />
                                                 </div>
                                             </div>
-                                            <ShouldRender if={incidentPriorities.length > 0}>
+                                            <ShouldRender
+                                                if={
+                                                    incidentPriorities.length >
+                                                    0
+                                                }
+                                            >
                                                 <div className="bs-Fieldset-row Margin-bottom--12">
                                                     <label className="bs-Fieldset-label">
                                                         Priority
@@ -182,7 +187,9 @@ class CreateManualIncident extends Component {
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
                                                             className="db-select-nw"
-                                                            component={RenderSelect}
+                                                            component={
+                                                                RenderSelect
+                                                            }
                                                             name="incidentType"
                                                             id="incidentPriority"
                                                             placeholder="Incident type"
@@ -200,15 +207,14 @@ class CreateManualIncident extends Component {
                                                                     label:
                                                                         'Select type',
                                                                 },
-                                                                ...(
-                                                                    incidentPriorities.map(
-                                                                        incidentPriority=>
-                                                                        ({
-                                                                            value: incidentPriority._id,
-                                                                            label:incidentPriority.name
-                                                                        })
-                                                                    )
-                                                                )
+                                                                ...incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
                                                             ]}
                                                         />
                                                     </div>
@@ -342,7 +348,9 @@ class CreateManualIncident extends Component {
 }
 
 CreateManualIncident.displayName = 'CreateManualIncident';
-
+CreateManualIncident.propTypes = {
+    incidentPriorities: PropTypes.array.isRequired,
+};
 const CreateManualIncidentForm = reduxForm({
     form: 'CreateManualIncident',
 })(CreateManualIncident);
@@ -362,7 +370,8 @@ function mapStateToProps(state) {
     return {
         newIncident: state.incident.newIncident,
         createIncidentModalId: state.modal.modals[0].id,
-        incidentPriorities: state.incidentPriorities.incidentPrioritiesList.incidentPriorities
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 }
 
