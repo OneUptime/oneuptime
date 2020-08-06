@@ -178,7 +178,7 @@ describe('Alert API', function() {
                     expect(res).to.have.status(400);
                     expect(res.body).to.have.property('message');
                     expect(res.body.message).to.be.equal(
-                        'Project ID is not valid'
+                        'Project ID is not valid.'
                     );
                     done();
                 });
