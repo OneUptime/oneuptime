@@ -11,8 +11,9 @@ const IncidentPriority = new Schema({
     type: Schema.Types.String,
     require: true,
   },
-  description: {
+  color: {
     type: Object,
+    require: true,
   },
   createdAt: {
     type: Date,
