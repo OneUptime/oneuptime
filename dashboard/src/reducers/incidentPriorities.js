@@ -24,8 +24,8 @@ const INITIAL_STATE = {
     success: false,
     incidentPriorities: [],
     count: null,
-    limit: null,
-    skip: null,
+    limit: 10,
+    skip: 0,
   },
   newIncidentPriority: {
     error: null,
