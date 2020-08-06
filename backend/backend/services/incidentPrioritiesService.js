@@ -44,6 +44,25 @@ module.exports = {
       ErrorService.log('IncidentPrioritiesService.create', error);
       throw error;
     }
+  },
+  updateOne: async function (query, data) {
+    try {
+      if (!query) {
+        query = {};
+      }
+      if (!query.deleted) query.deleted = false;
+      const updatedIncidentPriority = await incidentPriorityModel.findOneAndUpdate(
+        query,
+        {
+          $set: data,
+        },
+        { new: true }
+      );
+      return updatedIncidentPriority;
+    } catch (error) {
+      ErrorService.log('IncidentPrioritiesService.updateOneBy', error);
+      throw error;
+    }
   }
 }
 
