@@ -54,6 +54,60 @@ describe('Scheduled event', () => {
     });
 
     test(
+        'should not create a new scheduled event for duplicate monitor selection',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledEvents', {
+                    visible: true,
+                });
+                await page.click('#scheduledEvents');
+                await page.waitForSelector('#addScheduledEventButton', {
+                    visible: true,
+                });
+                await page.click('#addScheduledEventButton');
+
+                await page.waitForSelector('#scheduledEventForm', {
+                    visible: true,
+                });
+                await page.waitForSelector('#name');
+                await page.click('#name');
+                await page.type('#name', scheduledEventName);
+                await page.click('#addMoreMonitor');
+                await page.waitForSelector('#monitorfield_0');
+                await init.selectByText('#monitorfield_0', monitorName, page);
+                await page.click('#addMoreMonitor');
+                await page.waitForSelector('#monitorfield_1');
+                await init.selectByText('#monitorfield_1', monitorName, page);
+                await page.click('#description');
+                await page.type(
+                    '#description',
+                    'This is an example description for a test'
+                );
+                await page.waitForSelector('input[name=startDate]');
+                await page.click('input[name=startDate]');
+                await page.click(
+                    'div.MuiDialogActions-root button:nth-child(2)'
+                );
+                await page.waitFor(1000); // needed because of the date picker
+                await page.click('input[name=endDate]');
+                await page.click(
+                    'div.MuiDialogActions-root button:nth-child(2)'
+                );
+                await page.waitFor(1000); // needed because of the date picker
+                await page.click('#createScheduledEventButton');
+                const monitorError = await page.waitForSelector(
+                    '#monitorError',
+                    { visible: true }
+                );
+                expect(monitorError).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should create a new scheduled event for a monitor',
         async done => {
             await cluster.execute(null, async ({ page }) => {
@@ -74,8 +128,8 @@ describe('Scheduled event', () => {
                 await page.click('#name');
                 await page.type('#name', scheduledEventName);
                 await page.click('#addMoreMonitor');
-                await page.waitForSelector('#monitorfield');
-                await init.selectByText('#monitorfield', monitorName, page);
+                await page.waitForSelector('#monitorfield_0');
+                await init.selectByText('#monitorfield_0', monitorName, page);
                 await page.click('#description');
                 await page.type(
                     '#description',
