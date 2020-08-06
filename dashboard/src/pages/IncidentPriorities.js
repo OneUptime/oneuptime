@@ -10,37 +10,37 @@ import { IncidentPrioritiesList } from '../components/incident/IncidentPrioritie
 import { openModal, closeModal } from '../actions/modal';
 import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPriority';
 import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
+import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import  { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import DataPathHoC from '../components/DataPathHoC';
 
 class IncidentPriorities extends React.Component {
-    constructor() {  
-      super();
-      this.state = {
-        createIncidentPriorityModalId: uuid.v4(),
-        editIncidentPriorityModalId: uuid.v4(),
-      };
-    }
 
     handleCreateNewIncidentPriority(){
       const { openModal } = this.props;
       openModal({
-        id: this.state.createIncidentPriorityModalId,
         content: CreateIncidentPriorityForm
       });
-
     }
 
     handleEditIncidentPriority(id){
         const { openModal } = this.props;
         openModal({
-            id: this.state.editIncidentPriorityModalId,
             content: DataPathHoC ( EditIncidentPriorityForm,{
                 selectedIncidentPriority:id
             }),
         });
     }
 
+    handleDeleteIncidentPriority(id){
+        const {openModal} = this.props;
+        openModal({
+            content: DataPathHoC (
+                RemoveIncidentPriorityForm,{
+                    selectedIncidentPriority:id
+                })
+        });
+    }
     async ready() {
         await this.props.fetchIncidentPriorities(this.props.currentProject._id);
     }
@@ -105,6 +105,7 @@ class IncidentPriorities extends React.Component {
                                         <IncidentPrioritiesList
                                             incidentPrioritiesList={this.props.incidentPrioritiesList}
                                             handleEditIncidentPriority={(id)=>this.handleEditIncidentPriority(id)}
+                                            handleDeleteIncidentPriority={(id)=>this.handleDeleteIncidentPriority(id)}
                                         />
                                     </div>
                                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
