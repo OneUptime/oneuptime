@@ -24,8 +24,10 @@ export class IncidentList extends Component {
                 10
             );
         }
-        if (!this.props.incidents.skip) this.props.incidents.skip = 0;
-        if (!this.props.incidents.limit) this.props.incidents.limit = 0;
+        if (this.props.incidents && !this.props.incidents.skip)
+            this.props.incidents.skip = 0;
+        if (this.props.incidents && !this.props.incidents.limit)
+            this.props.incidents.limit = 0;
 
         let canNext =
             this.props.incidents &&
