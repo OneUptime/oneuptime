@@ -9,6 +9,7 @@ const IncidentPrioritiesService = require('../services/incidentPrioritiesService
 
 router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
   const { projectId } = req.params;
+  const {skip=0,limit=10} = req.query;
   if (!projectId) {
     return sendErrorResponse(req, res, {
       code: 400,
@@ -16,8 +17,9 @@ router.get('/:projectId', getUser, isAuthorized, async function (req, res) {
     });
   }
   try {
-    const IncidentPriorities = await IncidentPrioritiesService.findBy({ projectId });
-    return sendListResponse(req, res, IncidentPriorities);
+    const IncidentPriorities = await IncidentPrioritiesService.findBy({ projectId },limit,skip);
+    const count = await IncidentPrioritiesService.countBy({ projectId });
+    return sendListResponse(req, res, IncidentPriorities,count);
   } catch (error) {
     return sendErrorResponse(req, res, error);
   }
