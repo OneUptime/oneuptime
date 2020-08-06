@@ -26,6 +26,15 @@ module.exports = {
         reference: 'Github',
     },
 
+    generateRandomString: () => {
+        return (
+            'str' + // Prevent strings starting with numbers
+            Math.random()
+                .toString(36)
+                .substring(10)
+        );
+    },
+
     generateRandomBusinessEmail: () => {
         return `${Math.random()
             .toString(36)
