@@ -9,6 +9,7 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
+        - npm install
         - npm run build
         - sudo npm install -g json
         - chmod +x ../ci/scripts/version-setup.sh
@@ -39,6 +40,7 @@ deploy_production_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
+        - npm install
         - npm run build
         - sudo npm install -g json
         - git checkout -f master
