@@ -116,7 +116,7 @@ const SecurityDetail = ({
                                     <div className="db-Trend-col db-Trend-colValue">
                                         <span>
                                             {' '}
-                                            <span className="chart-font Text-color--green">
+                                            <span className="chart-font Text-color--slate">
                                                 {vulnerabilities.low}
                                             </span>
                                         </span>

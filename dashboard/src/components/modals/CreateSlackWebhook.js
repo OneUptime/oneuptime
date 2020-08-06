@@ -125,7 +125,7 @@ class CreateSlack extends React.Component {
                                                             }
                                                             name="endpoint"
                                                             type="url"
-                                                            placeholder="Enter Slack webhook url"
+                                                            placeholder="Enter Slack Webhook URL"
                                                             id="endpoint"
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             style={{

@@ -2,10 +2,22 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import { IS_LOCALHOST } from '../../config';
 
 export class StatusHeader extends Component {
     render() {
         const { statusPage } = this.props;
+        let statusPageId, publicStatusPageUrl;
+        if (statusPage && statusPage.status && statusPage.status._id) {
+            statusPageId = this.props.statusPage.status._id;
+        }
+
+        if (IS_LOCALHOST) {
+            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+        } else {
+            publicStatusPageUrl =
+                window.location.origin + '/status-page/' + statusPageId;
+        }
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -28,6 +40,16 @@ export class StatusHeader extends Component {
                                     Status page lets your customers and your
                                     team see the current status of your
                                     monitors.
+                                    <br /> Please follow{' '}
+                                    <a
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        href={publicStatusPageUrl}
+                                        className="Text-fontWeight--bold underline"
+                                    >
+                                        {publicStatusPageUrl}{' '}
+                                    </a>{' '}
+                                    to preview your status page
                                 </span>
                             </p>
                         </div>

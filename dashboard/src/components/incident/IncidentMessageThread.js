@@ -188,10 +188,11 @@ export class IncidentMessageThread extends Component {
                                                                     style={{
                                                                         fontWeight:
                                                                             '500',
-                                                                        fontStyle:
-                                                                            'italic',
+                                                                        fontSize:
+                                                                            '11px',
                                                                     }}
                                                                 >
+                                                                    Posted on{' '}
                                                                     {currentTimeZone
                                                                         ? momentTz(
                                                                               incidentMessage.createdAt

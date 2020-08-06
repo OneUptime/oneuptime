@@ -25,6 +25,10 @@ class MSTeamsBox extends React.Component {
                                                 <span>
                                                     Click{' '}
                                                     <a
+                                                        style={{
+                                                            textDecoration:
+                                                                'underline',
+                                                        }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#microsoft-teams"

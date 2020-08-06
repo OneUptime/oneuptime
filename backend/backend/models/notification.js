@@ -7,6 +7,7 @@ const notificationSchema = new Schema({
     createdBy: { type: String, ref: 'User' },
     message: String,
     read: [{ type: String, ref: 'User' }],
+    closed: [{ type: String, ref: 'User' }],
     icon: String,
     deleted: { type: Boolean, default: false },
     meta: {
