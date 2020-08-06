@@ -273,7 +273,7 @@ class ScheduledEventBox extends Component {
                                                 <div className="bs-ObjectList-cell bs-u-v-middle">
                                                     <div className="Box-root">
                                                         <button
-                                                            id={`editCredentialBtn_${index}`}
+                                                            id={`viewScheduledEvent_${index}`}
                                                             title="view"
                                                             className="bs-Button bs-DeprecatedButton"
                                                             type="button"

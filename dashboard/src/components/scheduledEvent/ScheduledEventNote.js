@@ -428,7 +428,7 @@ export class ScheduledEventNote extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    id="btnTimelinePrev"
+                                    id="prevBtn"
                                     onClick={() => {
                                         this.prevClicked();
                                     }}
@@ -449,7 +449,7 @@ export class ScheduledEventNote extends Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    id="btnTimelineNext"
+                                    id="nextBtn"
                                     onClick={() => {
                                         this.nextClicked();
                                     }}

@@ -148,7 +148,7 @@ class EditNoteModal extends Component {
                             </div>
                         </div>
                         <form
-                            id={`form-new-schedule-${type}-message`}
+                            id={`form-update-schedule-${type}-message`}
                             onSubmit={handleSubmit(this.submitForm)}
                         >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -234,7 +234,7 @@ class EditNoteModal extends Component {
                                                                 this
                                                                     .onContentChange
                                                             }
-                                                            textareaId={`new-${type}`}
+                                                            textareaId={`update-${type}`}
                                                             placeholder="This can be markdown"
                                                         />
                                                     </div>
@@ -291,7 +291,7 @@ class EditNoteModal extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id={`${type}-addButton`}
+                                            id={`${type}-updateButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={updatingInternalNote}
@@ -321,7 +321,7 @@ class EditNoteModal extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id={`${type}-addButton`}
+                                            id={`${type}-updateButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={updatingInvestigationNote}

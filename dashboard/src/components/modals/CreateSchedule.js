@@ -235,7 +235,7 @@ class CreateSchedule extends React.Component {
                                 </div>
                                 <div className="Box-root">
                                     <span
-                                        id="field-error"
+                                        id="monitorError"
                                         style={{ color: 'red' }}
                                     >
                                         {monitorError}
@@ -507,6 +507,7 @@ class CreateSchedule extends React.Component {
                                                                             color:
                                                                                 'red',
                                                                         }}
+                                                                        id="dateError"
                                                                     >
                                                                         {
                                                                             this
