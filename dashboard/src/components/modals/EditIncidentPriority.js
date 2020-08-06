@@ -63,7 +63,7 @@ class EditIncidentPriority extends Component {
       color,
     })
       .then(
-        () => this.props.closeModal({ id: this.props.editIncidentPriorityModalId })
+        () =>  this.props.closeThisDialog() 
       );
   }
 
@@ -218,7 +218,6 @@ const EditIncidentPriorityForm = reduxForm({
 const mapStateToProps = (state, ownProps) => {
   return {
     currentProject: state.project.currentProject,
-    editIncidentPriorityModalId: state.modal.modals[0].id,
     editIncidentPriority: state.incidentPriorities.editIncidentPriority,
     initialValues: state.incidentPriorities.incidentPrioritiesList.incidentPriorities.filter(
       incidentPriority => incidentPriority._id === ownProps.data.selectedIncidentPriority
