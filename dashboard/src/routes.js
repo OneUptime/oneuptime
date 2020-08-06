@@ -14,6 +14,7 @@ const {
     AlertLog,
     IncidentLog,
     Incident,
+    IncidentPriorities,
     Billing,
     Monitors,
     Schedule,
@@ -362,6 +363,15 @@ export const groups = [
                         subRoutes: [],
                         component: FyipeApi,
                         index: 9,
+                    },
+                    {
+                        title: 'Incidents',
+                        path:
+                            '/dashboard/project/:projectId/settings/incidents',
+                        visible: true,
+                        subRoutes: [],
+                        component: IncidentPriorities,
+                        index: 10,
                     },
                 ],
                 component: Settings,
