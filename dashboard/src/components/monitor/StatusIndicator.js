@@ -16,7 +16,7 @@ function StatusIndicator({ status, resourceName }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'blue';
+            statusColor = 'slate5';
     }
     resourceName
         ? (content = (

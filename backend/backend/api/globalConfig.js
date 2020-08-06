@@ -130,10 +130,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         if (globalConfig) {
             return sendItemResponse(req, res, globalConfig);
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Global config does not exists.',
-            });
+            return sendItemResponse(req, res, {});
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
