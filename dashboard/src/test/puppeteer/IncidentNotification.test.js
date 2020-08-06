@@ -173,4 +173,25 @@ describe('Incident Created test', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should show active incidents on the dashboard',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(projectName, page);
+                await page.waitFor(5000);
+                let activeIncidents = await page.$('span#activeIncidents', {
+                    visible: true,
+                });
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('2 Incidents Currently Active');
+            });
+        },
+        operationTimeOut
+    );
 });
