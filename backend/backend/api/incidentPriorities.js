@@ -55,4 +55,44 @@ router.post('/:projectId', getUser, isAuthorized, async function (req, res) {
 
 });
 
+router.put('/:projectId', getUser, isAuthorized, async function (req, res) {
+  const { projectId } = req.params;
+  const {_id, name, color} = req.body;
+  
+  if (!projectId) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Project Id must be present.'
+    });
+  }
+  
+  if(!_id){
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Id must be present.'
+    });
+  }
+
+  if (!name) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Name must be present'
+    });
+  }
+  
+  if (!color) {
+    return sendErrorResponse(req, res, {
+      code: 400,
+      message: 'Color must be present'
+    });
+  }
+
+  try {
+    const IncidentPriorities = await IncidentPrioritiesService.updateOne({projectId,_id},{ name,color });
+    return sendItemResponse(req, res, IncidentPriorities);
+  } catch (error) {
+    return sendErrorResponse(req, res, error);
+  }
+
+});
 module.exports = router; 
