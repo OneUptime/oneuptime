@@ -87,23 +87,25 @@ module.exports = {
                       incident.acknowledgedBy
                           ? incident.acknowledgedBy.name
                           : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being ${
-                    incident.incidentType
-                 } for ${duration}`
+                  } at ${incident.acknowledgedAt} after being ${
+                      incident.incidentType
+                  } for ${duration}`
                 : `
-**New incident:**
+**New Incident:**
 
-**Project name:** ${project.name}
+**Project Name:** ${project.name}
 
-**Monitor name:** ${component.name} / ${monitor.name}
+**Monitor Name:** ${component.name} / ${monitor.name}
 
-**Created at:** ${incident.createdAt}
+**Created By:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
 
-**Created by:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
-
-**Incident status:** ${incident.incidentType}
+**Incident Status:** ${
+                      incident.incidentType === 'online'
+                          ? 'Online'
+                          : incident.incidentType === 'degraded'
+                          ? 'Degraded'
+                          : 'Offline'
+                  }
 
 **Monitor status:** ${monitorStatus}
 `;

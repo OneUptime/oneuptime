@@ -16,7 +16,7 @@
       "id" : 1,
       "src" : "./recordings/1596456665.851985/Rec 08-3-20 2.trec",
       "rect" : [0, 0, 2552, 1298],
-      "lastMod" : "20200803T120400",
+      "lastMod" : "20200803T190308",
       "sourceTracks" : [
         {
           "range" : [0, 627],
@@ -34,7 +34,7 @@
       "id" : 2,
       "src" : "./recordings/1596456665.852274/Rec 08-3-20 4.trec",
       "rect" : [0, 0, 2552, 1298],
-      "lastMod" : "20200803T120627",
+      "lastMod" : "20200803T190308",
       "sourceTracks" : [
         {
           "range" : [0, 750],
@@ -52,7 +52,7 @@
       "id" : 3,
       "src" : "./media/1596461455.786253/White, Grey and Blue Browser Nerdy Birthday Card (1).png",
       "rect" : [0, 0, 1747, 1240],
-      "lastMod" : "20200803T132847",
+      "lastMod" : "20200803T190308",
       "sourceTracks" : [
         {
           "range" : [0, 1],

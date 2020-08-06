@@ -51,6 +51,13 @@ export function notificationReadSuccess(notificationId) {
     };
 }
 
+export function notificationClosedSuccess(notificationId) {
+    return {
+        type: types.NOTIFICATION_CLOSED_SUCCESS,
+        payload: notificationId,
+    };
+}
+
 export function allNotificationReadSuccess(userId) {
     return {
         type: types.ALL_NOTIFICATION_READ_SUCCESS,
@@ -94,6 +101,38 @@ export function markAsRead(projectId, notificationId) {
 
             dispatch(
                 notificationReadSuccess({
+                    notificationId: notifications.data,
+                    userId,
+                })
+            );
+        } catch (error) {
+            let payload;
+            if (error && error.response && error.response.data)
+                payload = error.response.data;
+            if (error && error.data) {
+                payload = error.data;
+            }
+            if (error && error.message) {
+                payload = error.message;
+            } else {
+                payload = 'Network Error';
+            }
+
+            dispatch(fetchNotificationsError(errors(payload)));
+        }
+    };
+}
+
+export function closeNotification(projectId, notificationId) {
+    return async function(dispatch) {
+        try {
+            const userId = User.getUserId();
+            const notifications = await putApi(
+                `notification/${projectId}/${notificationId}/closed`
+            );
+
+            dispatch(
+                notificationClosedSuccess({
                     notificationId: notifications.data,
                     userId,
                 })

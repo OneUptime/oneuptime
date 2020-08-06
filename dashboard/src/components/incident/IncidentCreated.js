@@ -5,12 +5,12 @@ import { PropTypes } from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
-import { markAsRead } from '../../actions/notification';
+import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
 class IncidentCreated extends Component {
-    markAsRead(notification) {
+    markAsRead = notification => {
         const {
             projectId,
             _id: notificationId,
@@ -23,7 +23,15 @@ class IncidentCreated extends Component {
         history.push(
             `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
         );
-    }
+    };
+
+    handleCloseNotification = notification => {
+        const { projectId, _id: notificationId } = notification;
+        this.props.closeNotification(projectId, notificationId);
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
+        }
+    };
 
     render() {
         const { notifications } = this.props;
@@ -71,6 +79,29 @@ class IncidentCreated extends Component {
                                                       key={notification._id}
                                                   >
                                                       <div className="Notify-fyipe">
+                                                          <span></span>
+                                                          <span>
+                                                              <span
+                                                                  id={`closeIncident_${index}`}
+                                                                  className="incident-close-button"
+                                                                  style={{
+                                                                      opacity: 1,
+                                                                      filter:
+                                                                          'brightness(0) invert(1)',
+                                                                      float:
+                                                                          'right',
+                                                                      marginBottom:
+                                                                          '10px',
+                                                                  }}
+                                                                  onClick={() =>
+                                                                      this.handleCloseNotification(
+                                                                          notification
+                                                                      )
+                                                                  }
+                                                              />
+                                                          </span>
+                                                      </div>
+                                                      <div className="Notify-fyipe">
                                                           <div className="Notify-fyipe-container-row-primary db-SideNav-icon--danger" />
                                                           <span className="Notify-fyipe-container-row-secondary Text-color--white">
                                                               {
@@ -94,7 +125,7 @@ class IncidentCreated extends Component {
                                                                       height:
                                                                           '30px',
                                                                       width:
-                                                                          '50px',
+                                                                          '105px',
                                                                       boxShadow:
                                                                           '0 0 0 1px #ffffff, 0 1.5px 1px 0 rgba(158, 33, 70, 0.15), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent',
                                                                       float:
@@ -111,6 +142,7 @@ class IncidentCreated extends Component {
                                                               >
                                                                   <span>
                                                                       View
+                                                                      Incident
                                                                   </span>
                                                               </button>
                                                           </span>
@@ -136,12 +168,13 @@ const mapStateToProps = () => {
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ markAsRead }, dispatch);
+    return bindActionCreators({ markAsRead, closeNotification }, dispatch);
 };
 
 IncidentCreated.propTypes = {
     notifications: PropTypes.array,
     markAsRead: PropTypes.func,
+    closeNotification: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentCreated);

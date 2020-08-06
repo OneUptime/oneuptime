@@ -414,7 +414,10 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs
-                                                    ? data[0].storageUsage
+                                                    ? formatDecimal(
+                                                          data[0].storageUsage,
+                                                          2
+                                                      )
                                                     : 0}{' '}
                                                 %
                                             </span>

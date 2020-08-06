@@ -63,6 +63,31 @@ router.put(
 );
 
 router.put(
+    '/:projectId/:notificationId/closed',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const notificationId = req.params.notificationId;
+            const userId = req.user ? req.user.id : null;
+            const notification = await NotificationService.updateOneBy(
+                { _id: notificationId },
+                { closed: [userId] }
+            );
+            if (notification) {
+                return sendItemResponse(req, res, notification);
+            } else {
+                const error = new Error('Notification not found.');
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
     '/:projectId/readAll',
     getUser,
     isAuthorized,

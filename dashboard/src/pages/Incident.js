@@ -236,7 +236,7 @@ class Incident extends React.Component {
                         projectId={this.props.currentProject._id}
                         componentId={componentId}
                     />
-                    <IncidentStatus incident={this.props.incident} />
+                    <IncidentStatus incident={this.props.incident} count={0} />
                     <IncidentAlert
                         next={this.nextAlerts}
                         previous={this.previousAlerts}
