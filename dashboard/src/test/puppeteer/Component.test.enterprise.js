@@ -63,6 +63,8 @@ describe('Enterprise Component API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
