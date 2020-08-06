@@ -25,6 +25,7 @@ deploy_staging_log-js:
         refs:
             - master
             - hotfix-master
+            - feature-log-js
     environment:
         name: staging
 
@@ -52,5 +53,6 @@ deploy_production_log-js:
         refs:
             - release
             - hotfix-release
+            - feature-log-js
     environment:
         name: production
