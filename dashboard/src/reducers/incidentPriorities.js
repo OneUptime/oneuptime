@@ -7,6 +7,10 @@ import {
   CREATE_INCIDENT_PRIORITY_SUCCESS,
   CREATE_INCIDENT_PRIORITY_FAILURE,
   CREATE_INCIDENT_PRIORITY_RESET,
+  UPDATE_INCIDENT_PRIORITY_REQUEST,
+  UPDATE_INCIDENT_PRIORITY_SUCCESS,
+  UPDATE_INCIDENT_PRIORITY_FAILURE,
+  UPDATE_INCIDENT_PRIORITY_RESET,
 } from '../constants/incidentPriorities';
 
 const INITIAL_STATE = {
@@ -23,11 +27,16 @@ const INITIAL_STATE = {
     error: null,
     requesting: false,
     success: false,
-  }
+  },
+  editIncidentPriority: {
+    error: null,
+    requesting: false,
+    success: false,
+  },
 }
 
 export default (state = INITIAL_STATE, action) => {
-  let incidentPriorities,count;
+  let incidentPriorities, count, index;
   switch (action.type) {
     case FETCH_INCIDENT_PRIORITIES_SUCCESS:
       return Object.assign({}, state, {
@@ -80,12 +89,13 @@ export default (state = INITIAL_STATE, action) => {
           success: false,
         }
       });
+
     case CREATE_INCIDENT_PRIORITY_SUCCESS:
-      incidentPriorities=Object.assign([],state.incidentPrioritiesList.incidentPriorities);
+      incidentPriorities = Object.assign([], state.incidentPrioritiesList.incidentPriorities);
       incidentPriorities.push(action.payload);
-      count = state.incidentPrioritiesList.count+1;
+      count = state.incidentPrioritiesList.count + 1;
       return Object.assign({}, state, {
-        incidentPrioritiesList:{
+        incidentPrioritiesList: {
           ...state.incidentPrioritiesList,
           incidentPriorities,
           count,
@@ -97,6 +107,7 @@ export default (state = INITIAL_STATE, action) => {
           success: true,
         }
       });
+
     case CREATE_INCIDENT_PRIORITY_FAILURE:
       return Object.assign({}, state, {
         newIncidentPriority: {
@@ -106,6 +117,7 @@ export default (state = INITIAL_STATE, action) => {
           success: false,
         }
       });
+
     case CREATE_INCIDENT_PRIORITY_RESET:
       return Object.assign({}, state, {
         newIncidentPriority: {
@@ -115,6 +127,55 @@ export default (state = INITIAL_STATE, action) => {
           success: false,
         }
       });
+
+    case UPDATE_INCIDENT_PRIORITY_REQUEST:
+      return Object.assign({}, state, {
+        editIncidentPriority: {
+          ...state.editIncidentPriority,
+          error: null,
+          requesting: true,
+          success: false,
+        }
+      });
+
+    case UPDATE_INCIDENT_PRIORITY_SUCCESS:
+      incidentPriorities = Object.assign([], state.incidentPrioritiesList.incidentPriorities);
+      index = incidentPriorities.findIndex(incidentPriority => incidentPriority._id === action.payload._id);
+      incidentPriorities[index] = action.payload;
+
+      return Object.assign({}, state, {
+        incidentPrioritiesList: {
+          ...state.incidentPrioritiesList,
+          incidentPriorities,
+        },
+        editIncidentPriority: {
+          ...state.editIncidentPriority,
+          error: null,
+          requesting: false,
+          success: true,
+        }
+      });
+
+    case UPDATE_INCIDENT_PRIORITY_FAILURE:
+      return Object.assign({}, state, {
+        editIncidentPriority: {
+          ...state.editIncidentPriority,
+          error: action.payload,
+          requesting: false,
+          success: false,
+        }
+      });
+
+    case UPDATE_INCIDENT_PRIORITY_RESET:
+      return Object.assign({}, state, {
+        editIncidentPriority: {
+          ...state.editIncidentPriority,
+          error: null,
+          requesting: false,
+          success: false,
+        }
+      });
+
     default:
       return state;
   }
