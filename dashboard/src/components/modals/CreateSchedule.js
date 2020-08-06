@@ -70,6 +70,19 @@ class CreateSchedule extends React.Component {
         postObj.monitorDuringEvent = values.monitorDuringEvent;
         postObj.alertSubscriber = values.alertSubscriber;
 
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
+            });
+            return;
+        }
+
         if (postObj.startDate > postObj.endDate) {
             this.setState({
                 dateError: 'Start date should always be less than End date',
