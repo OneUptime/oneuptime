@@ -90,11 +90,11 @@ class CreateManualIncident extends Component {
     };
 
     render() {
-        const { handleSubmit, newIncident } = this.props;
+        const { handleSubmit, newIncident, incidentPriorities } = this.props;
         const sameError =
             newIncident &&
-            newIncident.error &&
-            newIncident.error ===
+                newIncident.error &&
+                newIncident.error ===
                 `An unresolved incident of type ${this.state.incidentType} already exists.`
                 ? true
                 : false;
@@ -174,7 +174,47 @@ class CreateManualIncident extends Component {
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row Margin-bottom--12">
+                                            <ShouldRender if={incidentPriorities.length > 0}>
+                                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={RenderSelect}
+                                                            name="incidentType"
+                                                            id="incidentPriority"
+                                                            placeholder="Incident type"
+                                                            disabled={
+                                                                this.props
+                                                                    .newIncident
+                                                                    .requesting
+                                                            }
+                                                            validate={
+                                                                ValidateField.select
+                                                            }
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Select type',
+                                                                },
+                                                                ...(
+                                                                    incidentPriorities.map(
+                                                                        incidentPriority=>
+                                                                        ({
+                                                                            value: incidentPriority._id,
+                                                                            label:incidentPriority.name
+                                                                        })
+                                                                    )
+                                                                )
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Incident title
                                                 </label>
@@ -322,6 +362,7 @@ function mapStateToProps(state) {
     return {
         newIncident: state.incident.newIncident,
         createIncidentModalId: state.modal.modals[0].id,
+        incidentPriorities: state.incidentPriorities.incidentPrioritiesList.incidentPriorities
     };
 }
 
