@@ -3082,6 +3082,42 @@ section.basics .columns .perfectsoftware:before{
     background-image:url("/img/dashboard (1).svg")
 }
 
+section.basics .columns .cctv:before{
+    background-image:url("/img/cctv.svg")   
+}
+
+section.basics .columns .automation:before{
+    background-image:url("/img/automation.svg")   
+}
+
+section.basics .columns .bounce:before{
+    background-image:url("/img/bounce.svg")   
+}
+
+section.basics .columns .help:before{
+    background-image:url("/img/help.svg")   
+}
+
+section.basics .columns .stakeholders:before{
+    background-image:url("/img/stakeholders.svg")   
+}
+
+section.basics .columns .service-integration:before{
+    background-image:url("/img/service-integration.svg")   
+}
+
+section.basics .columns .workshop:before{
+    background-image:url("/img/workshop.svg")   
+}
+
+section.basics .columns .integration:before{
+    background-image:url("/img/integration.svg")   
+}
+
+section.basics .columns .cctv:before{
+    background-image:url("/img/cctv.svg")   
+}
+
 section.basics .columns .perfectsoftware:before{
     background-image:url("/img/dashboard (1).svg")
 }
@@ -3089,6 +3125,49 @@ section.basics .columns .perfectsoftware:before{
 section.basics .columns .reli:before{
     background-image:url("/img/fpo-status-line.svg")
 }
+
+section.basics .columns .dashboard:before{
+    background-image:url("/img/fpo-monitor.svg")
+}
+
+section.basics .columns .docker:before{
+    background-image:url("/img/docker.svg")
+}
+
+section.basics .columns .k8s:before{
+    background-image:url("/img/kubernetes.svg")
+}
+
+section.basics .columns .list:before{
+    background-image:url("/img/list.svg")
+}
+
+section.basics .columns .fire:before{
+    background-image:url("/img/fire.svg")
+}
+
+section.basics .columns .production:before{
+    background-image:url("/img/production.svg");
+    height: 200px;
+    width: 200px;
+    margin-top: -50px;
+    margin-left: 20px;
+    margin-bottom: 0px;
+}
+
+section.basics .columns .git:before{
+    background-image:url("/img/git.svg");
+    
+}
+
+section.basics .columns .securityshield:before{
+    background-image:url("/img/securityshield.svg")
+}
+
+section.basics .columns .password:before{
+    background-image:url("/img/password.svg")
+}
+
 
 section.basics .columns .moni:before{
     background-image:url("/img/fpo-monitor.svg")

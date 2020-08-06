@@ -48,7 +48,7 @@ export class ApplicationSecurityDeleteBox extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        Delete This Application Security
+                                        Delete Application Security
                                     </span>
                                 </span>
                                 <p>
