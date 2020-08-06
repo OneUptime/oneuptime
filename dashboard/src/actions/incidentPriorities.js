@@ -92,3 +92,49 @@ function createIncidentPriorityFailure(data) {
     payload: data
   });
 }
+
+export function updateIncidentPriority(projectId, data) {
+  return function (dispatch) {
+    const promise = putApi(`incidentPriorities/${projectId}`, data);
+    dispatch(updateIncidentPriorityRequest());
+    promise.then(
+      function (incidentPriority) {
+        dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
+      },
+      function (error) {
+        if (error && error.response && error.response.data)
+          error = error.response.data;
+        if (error && error.data) {
+          error = error.data;
+        }
+        if (error && error.message) {
+          error = error.message;
+        } else {
+          error = 'Network Error';
+        }
+        dispatch(updateIncidentPriorityFailure(error));
+      }
+    );
+    return promise;
+  }
+}
+
+function updateIncidentPriorityRequest() {
+  return ({
+    type: types.UPDATE_INCIDENT_PRIORITY_REQUEST
+  })
+}
+
+function updateIncidentPrioritySuccess(data) {
+  return ({
+    type: types.UPDATE_INCIDENT_PRIORITY_SUCCESS,
+    payload: data
+  });
+}
+
+function updateIncidentPriorityFailure(data) {
+  return ({
+    type: types.UPDATE_INCIDENT_PRIORITY_FAILURE,
+    payload: data
+  });
+}
