@@ -162,6 +162,21 @@ describe('Scheduled event API', function() {
             });
     });
 
+    it('should not create a scheduled event when a monitor is selected multiple times', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/scheduledEvent/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                ...scheduledEvent,
+                monitors: [monitorId, monitorId],
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
     it('should not create a scheduled event when the start date is greater than end date', function(done) {
         const authorization = `Basic ${token}`;
         request
