@@ -1336,6 +1336,9 @@
 .Text-color--red {
   color: #e25950;
 }
+.Text-color--slate {
+  color: #6b7c93;
+}
 .Text-display--block {
   display: block;
 }
@@ -1408,6 +1411,9 @@
 }
 .Text-typeface--upper {
   text-transform: uppercase;
+}
+.Text-typeface--capitalize {
+  text-transform: capitalize;
 }
 .Text-typeface--mono {
   font-family: Source Code Pro, Courier New, Courier, monospace;
