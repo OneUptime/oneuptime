@@ -63,7 +63,25 @@ module.exports = {
       ErrorService.log('IncidentPrioritiesService.updateOneBy', error);
       throw error;
     }
-  }
+  },
+  deleteBy: async function (query) {
+    try {
+      if (!query) {
+        query = {};
+      }
+      query.deleted = false;
+      const incidentPriority = await incidentPriorityModel.findOneAndUpdate(query, {
+        $set: {
+          deleted: true,
+          deletedAt: Date.now(),
+        },
+      });
+      return incidentPriority;
+    } catch (error) {
+      ErrorService.log('IncidentPrioritiesService.findOneAndUpdate', error);
+      throw error;
+    }
+  },
 }
 
 const ErrorService = require('./errorService');
