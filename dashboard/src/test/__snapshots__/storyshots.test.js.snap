@@ -19966,7 +19966,7 @@ exports[`Storyshots Schedule Delete Schedule Box 1`] = `
               className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
             >
               <span>
-                Delete This Schedule
+                Delete Schedule
               </span>
             </span>
             <p>
@@ -20028,7 +20028,7 @@ exports[`Storyshots Schedule Delete Schedule Box Requesting 1`] = `
               className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
             >
               <span>
-                Delete This Schedule
+                Delete Schedule
               </span>
             </span>
             <p>
