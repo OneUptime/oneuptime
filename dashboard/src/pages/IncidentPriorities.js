@@ -9,23 +9,36 @@ import getParentRoute from '../utils/getParentRoute';
 import { IncidentPrioritiesList } from '../components/incident/IncidentPrioritiesList';
 import { openModal, closeModal } from '../actions/modal';
 import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPriority';
+import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
 import  { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import DataPathHoC from '../components/DataPathHoC';
 
 class IncidentPriorities extends React.Component {
     constructor() {  
       super();
       this.state = {
         createIncidentPriorityModalId: uuid.v4(),
+        editIncidentPriorityModalId: uuid.v4(),
       };
     }
 
     handleCreateNewIncidentPriority(){
-      const { openModal} = this.props;
+      const { openModal } = this.props;
       openModal({
         id: this.state.createIncidentPriorityModalId,
         content: CreateIncidentPriorityForm
       });
 
+    }
+
+    handleEditIncidentPriority(id){
+        const { openModal } = this.props;
+        openModal({
+            id: this.state.editIncidentPriorityModalId,
+            content: DataPathHoC ( EditIncidentPriorityForm,{
+                selectedIncidentPriority:id
+            }),
+        });
     }
 
     async ready() {
@@ -91,6 +104,7 @@ class IncidentPriorities extends React.Component {
                                         </div>
                                         <IncidentPrioritiesList
                                             incidentPrioritiesList={this.props.incidentPrioritiesList}
+                                            handleEditIncidentPriority={(id)=>this.handleEditIncidentPriority(id)}
                                         />
                                     </div>
                                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">

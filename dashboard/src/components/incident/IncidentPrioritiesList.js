@@ -19,8 +19,8 @@ export class IncidentPrioritiesList extends React.Component {
                                 </div>
                             </header>
                             {this.props.incidentPrioritiesList.map(
-                                incidentPriority=> 
-                                <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
+                                (incidentPriority,index)=> 
+                                <div key={index} className="bs-ObjectList-row db-UserListRow db-UserListRow--withName">
                                 <div className="bs-ObjectList-cell bs-u-v-middle">
                                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted"></div>
                                     <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
@@ -33,6 +33,7 @@ export class IncidentPrioritiesList extends React.Component {
                                             <button
                                                 className="Button bs-ButtonLegacy"
                                                 type="button"
+                                                onClick={()=>this.props.handleEditIncidentPriority(incidentPriority._id)}
                                             >
                                                 <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                     <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
