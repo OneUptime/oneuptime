@@ -35,6 +35,7 @@ class CreateSchedule extends React.Component {
         currentDate: moment(),
         addMonitor: false,
         dateError: null,
+        monitorError: null,
     };
 
     componentDidMount() {
@@ -111,8 +112,8 @@ class CreateSchedule extends React.Component {
         }
     };
 
-    renderMonitors = ({ fields, meta: { error, touched } }) => {
-        const { addMonitor } = this.state;
+    renderMonitors = ({ fields }) => {
+        const { addMonitor, monitorError } = this.state;
         return (
             <>
                 {!addMonitor && (
@@ -178,7 +179,7 @@ class CreateSchedule extends React.Component {
                                         className="db-select-nw Table-cell--width--maximized"
                                         component={RenderSelect}
                                         name={field}
-                                        id="monitorfield"
+                                        id={`monitorfield_${index}`}
                                         placeholder="Monitor"
                                         style={{
                                             height: '28px',
@@ -218,8 +219,7 @@ class CreateSchedule extends React.Component {
                                 </div>
                             );
                         })}
-                        <br />
-                        {error && touched && (
+                        {monitorError && (
                             <div
                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                 style={{
@@ -238,7 +238,7 @@ class CreateSchedule extends React.Component {
                                         id="field-error"
                                         style={{ color: 'red' }}
                                     >
-                                        {error}
+                                        {monitorError}
                                     </span>
                                 </div>
                             </div>
@@ -351,46 +351,6 @@ class CreateSchedule extends React.Component {
                                                             width: '100%',
                                                         }}
                                                     >
-                                                        {/* {!addMonitor && (
-                                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        By
-                                                                        default
-                                                                        all
-                                                                        monitors
-                                                                        are
-                                                                        selected,
-                                                                        you can
-                                                                        add
-                                                                        specific
-                                                                        monitors
-                                                                        if you
-                                                                        want
-                                                                    </span>
-                                                                </span>
-                                                                <button
-                                                                    id="addMoreMonitor"
-                                                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                                                    style={{
-                                                                        marginTop: 8,
-                                                                    }}
-                                                                    type="button"
-                                                                    onClick={e => {
-                                                                        e.preventDefault();
-                                                                        this.handleAddMoreMonitors();
-                                                                    }}
-                                                                >
-                                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                        <span>
-                                                                            Add
-                                                                            Monitor
-                                                                        </span>
-                                                                    </span>
-                                                                </button>
-                                                            </div>
-                                                        )} */}
-
                                                         <FieldArray
                                                             name="monitors"
                                                             component={
@@ -510,6 +470,54 @@ class CreateSchedule extends React.Component {
                                                             minStartDate
                                                         )}
                                                     />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="monitorIds"
+                                                ></label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <ShouldRender
+                                                        if={
+                                                            this.state.dateError
+                                                        }
+                                                    >
+                                                        <div className="bs-Tail-copy">
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '10px',
+                                                                }}
+                                                            >
+                                                                <div className="Box-root Margin-right--8">
+                                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                                </div>
+                                                                <div className="Box-root">
+                                                                    <span
+                                                                        style={{
+                                                                            color:
+                                                                                'red',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            this
+                                                                                .state
+                                                                                .dateError
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                         </div>
@@ -697,12 +705,7 @@ class CreateSchedule extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender
-                                        if={
-                                            scheduledEventError ||
-                                            this.state.dateError
-                                        }
-                                    >
+                                    <ShouldRender if={scheduledEventError}>
                                         <div className="bs-Tail-copy">
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -715,9 +718,7 @@ class CreateSchedule extends React.Component {
                                                     <span
                                                         style={{ color: 'red' }}
                                                     >
-                                                        {scheduledEventError ||
-                                                            this.state
-                                                                .dateError}
+                                                        {scheduledEventError}
                                                     </span>
                                                 </div>
                                             </div>
