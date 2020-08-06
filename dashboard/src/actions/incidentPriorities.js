@@ -138,3 +138,49 @@ function updateIncidentPriorityFailure(data) {
     payload: data
   });
 }
+
+export function deleteIncidentPriority(projectId, data) {
+  return function (dispatch) {
+    const promise = deleteApi(`incidentPriorities/${projectId}`, data);
+    dispatch(deleteIncidentPriorityRequest());
+    promise.then(
+      function (incidentPriority) {
+        dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
+      },
+      function (error) {
+        if (error && error.response && error.response.data)
+          error = error.response.data;
+        if (error && error.data) {
+          error = error.data;
+        }
+        if (error && error.message) {
+          error = error.message;
+        } else {
+          error = 'Network Error';
+        }
+        dispatch(deleteIncidentPriorityFailure(error));
+      }
+    );
+    return promise;
+  }
+}
+
+function deleteIncidentPriorityRequest() {
+  return ({
+    type: types.DELETE_INCIDENT_PRIORITY_REQUEST
+  })
+}
+
+function deleteIncidentPrioritySuccess(data) {
+  return ({
+    type: types.DELETE_INCIDENT_PRIORITY_SUCCESS,
+    payload: data
+  });
+}
+
+function deleteIncidentPriorityFailure(data) {
+  return ({
+    type: types.DELETE_INCIDENT_PRIORITY_FAILURE,
+    payload: data
+  });
+}
