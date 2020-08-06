@@ -17,6 +17,13 @@ module.exports = {
                     }));
                 }
             } else {
+                if (!isArrayUnique(data.monitors)) {
+                    const error = new Error(
+                        'You cannot have multiple selection of a monitor'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
                 monitorData = data.monitors.map(monitor => ({
                     monitorId: monitor,
                 }));
@@ -228,3 +235,12 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description checks if an array contains duplicate values
+ * @param {array} myArray the array to be checked
+ * @returns {boolean} true or false
+ */
+function isArrayUnique(myArray) {
+    return myArray.length === new Set(myArray).size;
+}

@@ -98,14 +98,6 @@ class CreateSchedule extends React.Component {
         }
     };
 
-    handleMonitorChange = (event, newValue) => {
-        // TODO: find a better way to handle change to prevent selecting the same item multiple times
-        if (this.props.formValues.monitors.includes(newValue)) {
-            return event.preventDefault();
-        }
-        return newValue;
-    };
-
     renderMonitors = ({ fields, meta: { error, touched } }) => {
         const { addMonitor } = this.state;
         return (
@@ -194,12 +186,6 @@ class CreateSchedule extends React.Component {
                                                   )
                                                 : []),
                                         ]}
-                                        onChange={(event, newValue) =>
-                                            this.handleMonitorChange(
-                                                event,
-                                                newValue
-                                            )
-                                        }
                                     />
                                     <button
                                         id="addMoreMonitor"
@@ -765,11 +751,13 @@ CreateSchedule.propTypes = {
     createScheduledEventModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    scheduledEventError: PropTypes.object,
+    scheduledEventError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     fetchMonitors: PropTypes.func,
     monitors: PropTypes.array,
-    formValues: PropTypes.object,
 };
 
 const NewCreateSchedule = reduxForm({
