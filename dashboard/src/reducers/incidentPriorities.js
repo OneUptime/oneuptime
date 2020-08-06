@@ -11,6 +11,10 @@ import {
   UPDATE_INCIDENT_PRIORITY_SUCCESS,
   UPDATE_INCIDENT_PRIORITY_FAILURE,
   UPDATE_INCIDENT_PRIORITY_RESET,
+  DELETE_INCIDENT_PRIORITY_REQUEST,
+  DELETE_INCIDENT_PRIORITY_SUCCESS,
+  DELETE_INCIDENT_PRIORITY_FAILURE,
+  DELETE_INCIDENT_PRIORITY_RESET,
 } from '../constants/incidentPriorities';
 
 const INITIAL_STATE = {
@@ -29,6 +33,11 @@ const INITIAL_STATE = {
     success: false,
   },
   editIncidentPriority: {
+    error: null,
+    requesting: false,
+    success: false,
+  },
+  deleteIncidentPriority: {
     error: null,
     requesting: false,
     success: false,
@@ -170,6 +179,56 @@ export default (state = INITIAL_STATE, action) => {
       return Object.assign({}, state, {
         editIncidentPriority: {
           ...state.editIncidentPriority,
+          error: null,
+          requesting: false,
+          success: false,
+        }
+      });
+
+    case DELETE_INCIDENT_PRIORITY_REQUEST:
+      return Object.assign({}, state, {
+        deleteIncidentPriority: {
+          ...state.deleteIncidentPriority,
+          error: null,
+          requesting: true,
+          success: false,
+        }
+      });
+
+    case DELETE_INCIDENT_PRIORITY_SUCCESS:
+      incidentPriorities = Object.assign([], state.incidentPrioritiesList.incidentPriorities);
+      index = incidentPriorities.findIndex(incidentPriority => incidentPriority._id === action.payload._id);
+      incidentPriorities.splice(index, 1);
+      count = state.incidentPrioritiesList.count - 1;
+
+      return Object.assign({}, state, {
+        incidentPrioritiesList: {
+          ...state.incidentPrioritiesList,
+          incidentPriorities,
+          count,
+        },
+        deleteIncidentPriority: {
+          ...state.deleteIncidentPriority,
+          error: null,
+          requesting: false,
+          success: true,
+        }
+      });
+
+    case DELETE_INCIDENT_PRIORITY_FAILURE:
+      return Object.assign({}, state, {
+        deleteIncidentPriority: {
+          ...state.deleteIncidentPriority,
+          error: action.payload,
+          requesting: false,
+          success: false,
+        }
+      });
+
+    case DELETE_INCIDENT_PRIORITY_RESET:
+      return Object.assign({}, state, {
+        deleteIncidentPriority: {
+          ...state.deleteIncidentPriority,
           error: null,
           requesting: false,
           success: false,
