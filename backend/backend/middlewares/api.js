@@ -98,7 +98,7 @@ module.exports = {
 
         if (!ObjectID.isValid(projectId)) {
             return sendErrorResponse(req, res, {
-                code: 401,
+                code: 400,
                 message: 'Project ID is not valid.',
             });
         }
