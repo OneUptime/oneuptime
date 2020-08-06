@@ -19,6 +19,7 @@ user.email = utils.generateRandomBusinessEmail();
 let token, projectId, apiKey, monitorId;
 const badProjectId = 'badProjectId',
     badApiKey = 'badApiKey';
+const invalidProjectId = utils.generateRandomString();
 const timeout = 5000,
     monitor = {
         name: 'New Monitor',
@@ -119,6 +120,24 @@ describe('Server Monitor', function() {
 
             expect(job).to.be.an('object');
             expect(stopJob).to.be.an('object');
+
+            done();
+        });
+    });
+
+    it('Should disconnect when project id is invalid', done => {
+        const monitor = serverMonitor({
+            projectId: invalidProjectId,
+            apiKey: badApiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal('Project ID is not valid.');
+            expect(stopJob).to.equal(undefined);
 
             done();
         });
