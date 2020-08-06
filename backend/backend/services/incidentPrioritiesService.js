@@ -1,15 +1,15 @@
 module.exports = {
   findBy: async function (query, limit, skip) {
     try {
-      if (!skip) skip = 0;
-      if (!limit) limit = 0;
-      if (typeof skip === 'string') skip = parseInt(skip);
       if (typeof limit === 'string') limit = parseInt(limit);
+      if (typeof skip === 'string') skip = parseInt(skip);
       if (!query) query = {};
       if (!query.deleted) query.deleted = false;
+
       const incidentPriorities = await incidentPriorityModel.find(query)
         .limit(limit)
         .skip(skip)
+
       return incidentPriorities;
     } catch (error) {
       ErrorService.log('IncidentPrioritiesService.findBy', error);
@@ -30,6 +30,21 @@ module.exports = {
       throw error;
     }
 
+  },
+  countBy: async function (query) {
+    try {
+      if (!query) {
+        query = {};
+      }
+      if (!query.deleted) query.deleted = false;
+
+      const count = await incidentPriorityModel.countDocuments(query);
+
+      return count;
+    } catch (error) {
+      ErrorService.log('incidentMessageService.countBy', error);
+      throw error;
+    }
   },
   create: async function (data) {
     try {
