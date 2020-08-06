@@ -3,9 +3,10 @@
  * Copyright HackerBay, Inc.
  *
  */
-
+const mongoose = require('../config/db');
 const ProjectService = require('../services/projectService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const ObjectID = mongoose.Types.ObjectId;
 /* eslint-disable no-unused-vars */
 module.exports = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -93,6 +94,13 @@ module.exports = {
             projectId = req.body.projectId;
         } else {
             return false;
+        }
+
+        if (!ObjectID.isValid(projectId)) {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'Project ID is not valid.',
+            });
         }
 
         if (req.query.apiKey) {
