@@ -59,7 +59,7 @@ class CreateIncidentPriority extends Component {
     const { name, color } = values;
     this.props.createIncidentPriority(this.props.currentProject._id, { name, color })
       .then(
-        () => this.props.closeModal({ id: this.props.createIncidentPriorityModalId })
+        () =>  this.props.closeThisDialog()
       );
   }
 
@@ -169,7 +169,6 @@ class CreateIncidentPriority extends Component {
                         </div>
                       </div>
                     </div>
-
                   </ShouldRender>
                   <button
                     className="bs-Button bs-DeprecatedButton"
@@ -214,7 +213,6 @@ const CreateIncidentPriorityForm = reduxForm({
 const mapStateToProps = state => {
   return {
     currentProject: state.project.currentProject,
-    createIncidentPriorityModalId: state.modal.modals[0].id,
     newIncidentPriority: state.incidentPriorities.newIncidentPriority,
   }
 }
