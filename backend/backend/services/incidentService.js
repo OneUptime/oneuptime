@@ -22,6 +22,7 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
+                .populate('incidentPriority', 'name color')
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
