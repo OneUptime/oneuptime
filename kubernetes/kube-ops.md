@@ -1,4 +1,4 @@
-# Frequently used K8s commands. 
+# Frequently used K8s commands.
 
 # Cluster Config
 
@@ -12,7 +12,6 @@ sudo kubectl config use-context do-nyc3-fyipe-staging
 ```
 sudo kubectl get pods
 ```
-
 
 # Persistent Volumes
 
