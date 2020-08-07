@@ -258,11 +258,10 @@ export class SidebarNavItem extends Component {
                         ? containerDetailLink === active
                             ? true
                             : false
-                        : (child.title =
-                              'Scheduled Event Detail' &&
-                              scheduledEventDetailLink === active
-                                  ? true
-                                  : false);
+                        : child.title === 'Scheduled Event Detail' &&
+                          scheduledEventDetailLink === active
+                        ? true
+                        : false;
 
                 return (
                     <ul key={`nav ${index}`}>
