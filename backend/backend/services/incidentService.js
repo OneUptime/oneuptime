@@ -146,6 +146,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
+                .populate('incidentPriority', 'name color')
                 .populate('probes.probeId', 'probeName');
             return incident;
         } catch (error) {
