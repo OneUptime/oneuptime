@@ -65,6 +65,176 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
+    test(
+        'should not update project account when admin recharge account with negative number',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                const balance = 0;
+                let creditedBalance = 0;
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing');
+
+                // get current balance as $0
+                let spanBalanceElement = await page.waitForSelector(
+                    '#currentBalance'
+                );
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(`${balance}$`);
+
+                // add $20 to the account then click cancel
+                await page.waitForSelector('#rechargeBalanceAmount');
+                await page.click('#rechargeBalanceAmount');
+                creditedBalance = -20;
+                await page.type(
+                    '#rechargeBalanceAmount',
+                    creditedBalance.toString()
+                );
+                await page.click('#rechargeAccount');
+
+                // confirm the current balance is still $0
+                spanBalanceElement = await page.waitForSelector('#field-error');
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(
+                    `Enter a valid number greater than 0`
+                );
+            });
+            done();
+        },
+        operationTimeOut
+    );
+    test(
+        'should update project account when admin recharge account',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                let balance = 0,
+                    creditedBalance = 0;
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing');
+
+                // get current balance as $0
+                let spanBalanceElement = await page.waitForSelector(
+                    '#currentBalance'
+                );
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(`${balance}$`);
+
+                // add $20 to the account
+                await page.waitForSelector('#rechargeBalanceAmount');
+                await page.click('#rechargeBalanceAmount');
+                creditedBalance = 20;
+                await page.type(
+                    '#rechargeBalanceAmount',
+                    creditedBalance.toString()
+                );
+                await page.click('#rechargeAccount');
+                balance += creditedBalance;
+
+                await page.waitForSelector('#confirmBalanceTopUp');
+                await page.click('#confirmBalanceTopUp');
+                await page.waitFor(9000);
+
+                // confirm a pop up comes up and the message is a successful
+                let spanModalElement = await page.waitForSelector(
+                    '#message-modal-message'
+                );
+                spanModalElement = await spanModalElement.getProperty(
+                    'innerText'
+                );
+                spanModalElement = await spanModalElement.jsonValue();
+                expect(spanModalElement).toMatch(
+                    `Transaction successful, your balance is now ${balance}$`
+                );
+
+                // click ok
+                await page.waitForSelector('#modal-ok');
+                await page.click('#modal-ok');
+                await page.waitFor(5000);
+
+                // confirm the current balance is $20
+                spanBalanceElement = await page.waitForSelector(
+                    '#currentBalance'
+                );
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(`${balance}$`);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+    test(
+        'should not update project account when admin recharge account and clicks cancel',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                const balance = 0;
+                let creditedBalance = 0;
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#billing');
+                await page.click('#billing');
+
+                // get current balance as $0
+                let spanBalanceElement = await page.waitForSelector(
+                    '#currentBalance'
+                );
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(`${balance}$`);
+
+                // add $20 to the account then click cancel
+                await page.waitForSelector('#rechargeBalanceAmount');
+                await page.click('#rechargeBalanceAmount');
+                creditedBalance = 20;
+                await page.type(
+                    '#rechargeBalanceAmount',
+                    creditedBalance.toString()
+                );
+                await page.click('#rechargeAccount');
+
+                await page.waitForSelector('#confirmBalanceTopUp');
+                await page.click('#cancelBalanceTopUp');
+                await page.waitFor(4000);
+
+                // confirm the current balance is still $0
+                spanBalanceElement = await page.waitForSelector(
+                    '#currentBalance'
+                );
+                spanBalanceElement = await spanBalanceElement.getProperty(
+                    'innerText'
+                );
+                spanBalanceElement = await spanBalanceElement.jsonValue();
+                expect(spanBalanceElement).toMatch(`${balance}$`);
+            });
+            done();
+        },
+        operationTimeOut
+    );
 });
 
 describe('Member Restriction', () => {
