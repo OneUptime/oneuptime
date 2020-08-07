@@ -1,11 +1,28 @@
 import React from 'react';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { closeModal } from '../../actions/modal';
+import { deleteProbe } from '../../actions/probe';
 
-export function ProbeDeleteModal(props) {
-    const { isRequesting, error, confirmThisDialog, closeThisDialog } = props;
+export function ProbeDeleteModal({
+    isRequesting,
+    error,
+    modalId,
+    closeThisDialog,
+    closeModal,
+    deleteProbe,
+    probeId,
+}) {
+    const handleDelete = () => {
+        deleteProbe(probeId).then(() => {
+            if (!error) {
+                return closeModal({ id: modalId });
+            }
+        });
+    };
 
     return (
         <div
@@ -66,7 +83,7 @@ export function ProbeDeleteModal(props) {
                                     id="confirmDelete"
                                     className={`bs-Button bs-Button--red Box-background--red ${isRequesting &&
                                         'bs-is-disabled'}`}
-                                    onClick={confirmThisDialog}
+                                    onClick={handleDelete}
                                     disabled={isRequesting}
                                 >
                                     <ShouldRender if={isRequesting}>
@@ -95,20 +112,28 @@ const mapStateToProps = state => {
             state.probes &&
             state.probes.deleteProbe &&
             state.probes.deleteProbe.error,
+        modalId: state.modal.modals[0].id,
+        probeId: state.modal.modals[0].probeId,
     };
 };
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, deleteProbe }, dispatch);
 
 ProbeDeleteModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,
         PropTypes.oneOf([null, undefined]),
     ]),
-    confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
     error: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    closeModal: PropTypes.func,
+    deleteProbe: PropTypes.func,
+    modalId: PropTypes.string,
+    probeId: PropTypes.string,
 };
 
-export default connect(mapStateToProps)(ProbeDeleteModal);
+export default connect(mapStateToProps, mapDispatchToProps)(ProbeDeleteModal);
