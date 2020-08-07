@@ -118,6 +118,8 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 await page.waitForSelector('button[id=viewIncident-0]');
                 await page.click('button[id=viewIncident-0]');
@@ -138,6 +140,9 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
                 await page.waitForSelector(
                     `button[id=view-resource-${monitorName}]`
                 );
@@ -164,7 +169,10 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.switchProject(projectName, page);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
                 await page.waitFor(5000);
+
                 const viewIncidentButton = await page.$(
                     'button[id=viewIncident-0]'
                 );

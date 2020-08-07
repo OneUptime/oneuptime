@@ -76,6 +76,46 @@ app.get('/product/uptime-monitoring', function(req, res) {
     });
 });
 
+app.get('/product/logs-management', function(req, res) {
+    res.render('logs-management', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/product/docker-container-security', function(req, res) {
+    res.render('container-security', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/product/app-security', function(req, res) {
+    res.render('app-security', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/product/incident-management', function(req, res) {
+    res.render('incident-management', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
 app.get('/product/oncall-management', function(req, res) {
     res.render('oncall-management', {
         support: false,
