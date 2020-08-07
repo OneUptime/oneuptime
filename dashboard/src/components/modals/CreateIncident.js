@@ -50,7 +50,13 @@ class CreateIncident extends Component {
             monitors,
             data,
         } = this.props;
-        const { monitorId, incidentType, title, description } = values;
+        const {
+            monitorId,
+            incidentType,
+            title,
+            description,
+            incidentPriorities,
+        } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -64,7 +70,8 @@ class CreateIncident extends Component {
             monitorId,
             incidentType,
             title,
-            description
+            description,
+            incidentPriorities
         ).then(
             function() {
                 closeThisDialog();
@@ -92,6 +99,7 @@ class CreateIncident extends Component {
             closeThisDialog,
             data,
             monitors,
+            incidentPriorities,
         } = this.props;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -229,6 +237,50 @@ class CreateIncident extends Component {
                                                             />
                                                         </div>
                                                     </div>
+                                                    <ShouldRender
+                                                        if={
+                                                            incidentPriorities.length >
+                                                            0
+                                                        }
+                                                    >
+                                                        <div className="bs-Fieldset-row Margin-bottom--12">
+                                                            <label className="bs-Fieldset-label">
+                                                                Priority
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="incidentPriority"
+                                                                    placeholder="Incident Priority"
+                                                                    disabled={
+                                                                        this
+                                                                            .props
+                                                                            .newIncident
+                                                                            .requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select type',
+                                                                        },
+                                                                        ...incidentPriorities.map(
+                                                                            incidentPriority => ({
+                                                                                value:
+                                                                                    incidentPriority._id,
+                                                                                label:
+                                                                                    incidentPriority.name,
+                                                                            })
+                                                                        ),
+                                                                    ]}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                     <div className="bs-Fieldset-row Margin-bottom--12">
                                                         <label className="bs-Fieldset-label">
                                                             Incident title
@@ -397,6 +449,8 @@ function mapStateToProps(state) {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,
         newIncident: state.incident.newIncident,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 }
 
@@ -411,6 +465,7 @@ CreateIncident.propTypes = {
     error: PropTypes.object,
     requesting: PropTypes.bool,
     data: PropTypes.object,
+    incidentPriorities: PropTypes.array.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateIncidentForm);
