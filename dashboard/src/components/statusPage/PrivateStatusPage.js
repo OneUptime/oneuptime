@@ -299,7 +299,7 @@ export class PrivateStatusPage extends Component {
                                                         }}
                                                     ></div>
                                                     <PricingPlan
-                                                        plan="Enterprise"
+                                                        plan="Growth"
                                                         hideChildren={false}
                                                     >
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
