@@ -26,6 +26,8 @@ function validate(value) {
         errors.rechargeBalanceAmount = 'Amount is required';
     } else if (!Validate.number(value.rechargeBalanceAmount)) {
         errors.rechargeBalanceAmount = 'Enter a valid number';
+    } else if (!Validate.numberGreaterThanZero(value.rechargeBalanceAmount)) {
+        errors.rechargeBalanceAmount = 'Enter a valid number greater than 0';
     }
 
     return errors;
