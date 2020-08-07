@@ -8,12 +8,14 @@ Admin mongodb username is: `root`
 
 **Step 1:** Expose Mongodb over the internet on source cluster. 
 
+Run these on source cluster: 
+
 Example: 
 
 ```
 # Delete audit logs (optional, but recommended)
 
-kubectl exec -it fi-mongodb-primary-0 bash
+sudo kubectl exec -it fi-mongodb-primary-0 bash
 mongo
 use fyipedb
 db.auth('fyipe', 'password')
@@ -22,13 +24,13 @@ db.auditlogs.remove({})
 
 # Open MongoDB to the internet.
 
-kubectl delete job fi-init-script
-helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=true fi ./helm-chart/public/fyipe
+sudo kubectl delete job fi-init-script
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=true fi ./helm-chart/public/fyipe
 ```
 
 Run 
 
-`kubectl get svc`
+`sudo kubectl get svc`
 
 and look for `mongo-ingress` resource. Copy External-IP address. 
 
@@ -61,24 +63,26 @@ helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enab
 
 Syntax: 
 
-`kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
+`sudo kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
 
 Example: 
 
-`kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 **Step 2**: Copy file from conatiner to local machine. 
 
 Syntax: 
 
-`kubectl cp <pod>:<filepath> <localfilePath>`
+`sudo kubectl cp <pod>:<filepath> <localfilePath>`
 
 Example:
 
-`kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
+`sudo kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
 
 
 ## Restore
+
+Follow these steps on the destination cluster.
 
 **Important:** If this file is large, it does take sometime to upload and restore.
 
