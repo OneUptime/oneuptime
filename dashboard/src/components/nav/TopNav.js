@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import Fade from 'react-reveal/Fade';
 import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
@@ -59,6 +60,17 @@ class TopContent extends Component {
         }
     };
 
+    renderActiveIncidents = incidentCounter =>
+        incidentCounter > 0 ? (
+            <Fade top>
+                <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4">
+                    <span id="activeIncidents">
+                        {`${incidentCounter} Incidents Currently Active`}
+                    </span>
+                </div>
+            </Fade>
+        ) : null;
+
     render() {
         const IMG_URL =
             this.props.profilePic &&
@@ -81,6 +93,16 @@ class TopContent extends Component {
                     return notification;
                 }
             });
+        }
+        let incidentCounter = 0;
+        if (
+            this.props.incidents &&
+            this.props.incidents.incidents &&
+            this.props.incidents.incidents.length > 0
+        ) {
+            incidentCounter = this.props.incidents.incidents.filter(
+                incident => !incident.resolved
+            ).length;
         }
 
         return (
@@ -108,6 +130,7 @@ class TopContent extends Component {
                     </ClickOutside>
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                        {this.renderActiveIncidents(incidentCounter)}
                         <div className="Box-root Margin-right--16">
                             <div
                                 id="feedback-div"
@@ -216,6 +239,7 @@ const mapStateToProps = state => {
         profilePic,
         feedback: state.feedback,
         notifications: state.notifications.notifications,
+        incidents: state.incident.unresolvedincidents,
     };
 };
 
@@ -250,6 +274,7 @@ TopContent.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    incidents: PropTypes.shape({ incidents: PropTypes.array }),
     length: PropTypes.number,
     map: PropTypes.func,
 };
