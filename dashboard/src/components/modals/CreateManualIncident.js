@@ -63,7 +63,8 @@ class CreateManualIncident extends Component {
             monitorId,
             values.incidentType,
             values.title,
-            values.description
+            values.description,
+            values.incidentPriority
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -190,16 +191,12 @@ class CreateManualIncident extends Component {
                                                             component={
                                                                 RenderSelect
                                                             }
-                                                            name="incidentType"
-                                                            id="incidentPriority"
-                                                            placeholder="Incident type"
+                                                            name="incidentPriority"
+                                                            placeholder="Incident Priority"
                                                             disabled={
                                                                 this.props
                                                                     .newIncident
                                                                     .requesting
-                                                            }
-                                                            validate={
-                                                                ValidateField.select
                                                             }
                                                             options={[
                                                                 {
