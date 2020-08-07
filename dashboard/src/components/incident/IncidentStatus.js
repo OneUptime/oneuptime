@@ -153,22 +153,72 @@ export class IncidentStatus extends Component {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Description :
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{ marginTop: '6px' }}
-                                                >
-                                                    <ReactMarkdown
-                                                        source={
-                                                            this.props.incident
-                                                                .description
-                                                        }
-                                                    />
+                                            {this.props.incident
+                                                .description && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Description :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <ReactMarkdown
+                                                            source={
+                                                                this.props
+                                                                    .incident
+                                                                    .description
+                                                            }
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
+                                            {this.props.incident
+                                                .incidentPriority && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="Flex-flex Flex-alignItems--center">
+                                                            <span
+                                                                className="Margin-right--4"
+                                                                style={{
+                                                                    display:
+                                                                        'inline-block',
+                                                                    backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                    height:
+                                                                        '15px',
+                                                                    width:
+                                                                        '15px',
+                                                                    borderRadius:
+                                                                        '30%',
+                                                                }}
+                                                            ></span>
+                                                            <span
+                                                                className="Text-fontWeight--medium"
+                                                                style={{
+                                                                    color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                }}
+                                                            >
+                                                                {
+                                                                    this.props
+                                                                        .incident
+                                                                        .incidentPriority
+                                                                        .name
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Created At:
