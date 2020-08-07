@@ -19,6 +19,8 @@ import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
 import { API_URL } from '../../config';
 import io from 'socket.io-client';
+import { fetchMonitors } from '../../actions/monitor';
+import { ListLoader } from '../basic/Loader';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -41,8 +43,11 @@ class ScheduledEventBox extends Component {
             createScheduledEventSuccess,
             updateScheduledEventSuccess,
             deleteScheduledEventSuccess,
+            fetchMonitors,
         } = this.props;
         fetchscheduledEvents(projectId, 0, this.limit);
+
+        fetchMonitors(projectId);
 
         socket.on(`addScheduledEvent-${projectId}`, event =>
             createScheduledEventSuccess(event)
@@ -124,6 +129,8 @@ class ScheduledEventBox extends Component {
             requesting,
             projectId,
             openModal,
+            fetchingMonitors,
+            monitors,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
@@ -147,33 +154,34 @@ class ScheduledEventBox extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
-                                <button
-                                    id="addScheduledEventButton"
-                                    onClick={() => {
-                                        this.props.openModal({
-                                            id: createScheduledEventModalId,
-                                            content: DataPathHoC(
-                                                CreateSchedule,
-                                                {
-                                                    projectId,
-                                                }
-                                            ),
-                                        });
-                                    }}
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    type="button"
+                                <ShouldRender
+                                    if={
+                                        !fetchingMonitors && monitors.length > 0
+                                    }
                                 >
-                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                        <div className="Box-root Margin-right--8">
-                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                        </div>
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>
-                                                Create New Scheduled Event
+                                    <button
+                                        id="addScheduledEventButton"
+                                        onClick={() => {
+                                            this.props.openModal({
+                                                id: createScheduledEventModalId,
+                                                content: CreateSchedule,
+                                            });
+                                        }}
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        type="button"
+                                    >
+                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                            <div className="Box-root Margin-right--8">
+                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                            </div>
+                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                <span>
+                                                    Create New Scheduled Event
+                                                </span>
                                             </span>
-                                        </span>
-                                    </div>
-                                </button>
+                                        </div>
+                                    </button>
+                                </ShouldRender>
                             </div>
                         </div>
                     </div>
@@ -344,12 +352,35 @@ class ScheduledEventBox extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
+                        <ShouldRender if={fetchingMonitors && requesting}>
+                            <ListLoader />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={!fetchingMonitors && monitors.length === 0}
+                        >
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                                style={{
+                                    textAlign: 'center',
+                                    backgroundColor: 'white',
+                                    padding: '20px 10px 0',
+                                }}
+                            >
+                                <span>
+                                    You need atleast one monitor in this
+                                    Project, before you can create a scheduled
+                                    event
+                                </span>
+                            </div>
+                        </ShouldRender>
                         <ShouldRender
                             if={
                                 (!scheduledEvents ||
                                     scheduledEvents.length === 0) &&
                                 !requesting &&
-                                !error
+                                !error &&
+                                !fetchingMonitors &&
+                                monitors.length > 0
                             }
                         >
                             <div
@@ -460,6 +491,9 @@ ScheduledEventBox.propTypes = {
     createScheduledEventSuccess: PropTypes.func,
     updateScheduledEventSuccess: PropTypes.func,
     deleteScheduledEventSuccess: PropTypes.func,
+    fetchMonitors: PropTypes.func,
+    fetchingMonitors: PropTypes.bool,
+    monitors: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -471,11 +505,16 @@ const mapDispatchToProps = dispatch =>
             createScheduledEventSuccess,
             updateScheduledEventSuccess,
             deleteScheduledEventSuccess,
+            fetchMonitors,
         },
         dispatch
     );
 
 const mapStateToProps = state => {
+    const monitors =
+        state.monitor.monitorsList.monitors.length > 0
+            ? state.monitor.monitorsList.monitors[0].monitors
+            : [];
     return {
         currentProject: state.project.currentProject,
         scheduledEvents:
@@ -486,6 +525,8 @@ const mapStateToProps = state => {
         skip: state.scheduledEvent.scheduledEventList.skip,
         error: state.scheduledEvent.scheduledEventList.error,
         profileSettings: state.profileSettings.profileSetting.data,
+        fetchingMonitors: state.monitor.monitorsList.requesting,
+        monitors,
     };
 };
 

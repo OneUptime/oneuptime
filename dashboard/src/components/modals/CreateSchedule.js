@@ -16,7 +16,6 @@ import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import DateTimeSelector from '../basic/DateTimeSelector';
-import { fetchMonitors } from '../../actions/monitor';
 
 function validate(values) {
     const errors = {};
@@ -37,12 +36,6 @@ class CreateSchedule extends React.Component {
         dateError: null,
         monitorError: null,
     };
-
-    componentDidMount() {
-        const { data, fetchMonitors } = this.props;
-        // get all the monitors in this project
-        fetchMonitors(data.projectId);
-    }
 
     submitForm = values => {
         const {
@@ -771,7 +764,6 @@ CreateSchedule.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-    fetchMonitors: PropTypes.func,
     monitors: PropTypes.array,
 };
 
@@ -788,7 +780,6 @@ const mapDispatchToProps = dispatch =>
             createScheduledEvent,
             fetchscheduledEvents,
             closeModal,
-            fetchMonitors,
         },
         dispatch
     );
