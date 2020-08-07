@@ -21,6 +21,7 @@ import { API_URL } from '../../config';
 import io from 'socket.io-client';
 import { fetchMonitors } from '../../actions/monitor';
 import { ListLoader } from '../basic/Loader';
+import { Link } from 'react-router-dom';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -367,9 +368,13 @@ class ScheduledEventBox extends Component {
                                 }}
                             >
                                 <span>
-                                    You need atleast one monitor in this
-                                    Project, before you can create a scheduled
-                                    event
+                                    No monitors was added to this project.{' '}
+                                    <Link
+                                        to={`/dashboard/project/${projectId}/components`}
+                                        style={{ textDecoration: 'underline' }}
+                                    >
+                                        Please create one.
+                                    </Link>
                                 </span>
                             </div>
                         </ShouldRender>
