@@ -72,3 +72,10 @@ export const ESCALATION_RESET = 'schedule/ESCALATION_RESET';
 export const PAGINATE_NEXT = 'PAGINATE_NEXT';
 export const PAGINATE_PREV = 'PAGINATE_PREV';
 export const PAGINATE_RESET = 'PAGINATE_RESET';
+
+// User schedule
+
+export const USER_SCHEDULE_REQUEST = 'schedule/USER_SCHEDULE_REQUEST';
+export const USER_SCHEDULE_SUCCESS = 'schedule/USER_SCHEDULE_SUCCESS';
+export const USER_SCHEDULE_FAILED = 'schedule/USER_SCHEDULE_FAILED';
+export const USER_SCHEDULE_RESET = 'schedule/USER_SCHEDULE_RESET';

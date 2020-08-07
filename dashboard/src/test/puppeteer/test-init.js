@@ -133,6 +133,8 @@ module.exports = {
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
 
         // Navigate to details page of component assumed created
         await page.waitForSelector(`#more-details-${component}`);
