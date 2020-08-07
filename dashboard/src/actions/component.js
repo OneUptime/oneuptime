@@ -341,7 +341,7 @@ export function fetchComponentResourcesSuccess(resources) {
 export function fetchComponentResourcesRequest(componentId) {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_REQUEST,
-        payload: componentId,
+        payload: { componentId: componentId },
     };
 }
 
