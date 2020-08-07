@@ -8,6 +8,9 @@ $HOME/google-cloud-sdk/bin/gcloud components update kubectl
 # Auth with DigitalOcean Client
 echo "Install doctl"
 sudo snap install doctl
+sudo snap connect doctl:kube-config
+sudo snap connect doctl:ssh-keys :ssh-keys
+sudo snap connect doctl:dot-docker
 #Init auth
 echo "Auth doctl"
 sudo doctl auth init -t $DIGITALOCEAN_TOKEN
