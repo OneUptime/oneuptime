@@ -102,6 +102,8 @@ describe('Monitor API With SubProjects', () => {
                 // Switch to invited project for new user
                 // await init.switchProject(subProjectName, page); // Commented because project already switched to
                 // await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
                 const newComponentForm = await page.$('#form-new-component');
                 expect(newComponentForm).toEqual(null);
                 // Navigate to details page of component created
@@ -130,7 +132,6 @@ describe('Monitor API With SubProjects', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', subProjectMonitorName);
                 await init.selectByText('#type', 'url', page);
-                await init.selectByText('#subProjectId', subProjectName, page);
                 await page.waitForSelector('#url');
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
@@ -205,6 +206,10 @@ describe('Monitor API With SubProjects', () => {
                     await init.loginUser(user, page);
                     // switch to invited project for new user
                     // await init.switchProject(data.projectName, page); // Commented because project already switched to
+                    await page.waitForSelector('#components', {
+                        visible: true,
+                    });
+                    await page.click('#components');
 
                     const projectBadgeSelector = await page.$(
                         `#badge_${data.projectName}`
@@ -265,27 +270,13 @@ describe('Monitor API With SubProjects', () => {
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', `${data.monitorName}1`);
                     await init.selectByText('#type', 'manual', page);
-                    await init.selectByText(
-                        '#subProjectId',
-                        data.subProjectName,
-                        page
-                    );
                     await page.click('button[type=submit]');
-
-                    await page.waitForSelector('#badge_Project');
-                    const projectBadgeSelector = await page.$('#badge_Project');
-                    let textContent = await projectBadgeSelector.getProperty(
-                        'innerText'
-                    );
-
-                    textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual('PROJECT');
 
                     const subProjectBadgeSelector = await page.$(
                         `#badge_${subProjectName}`
                     );
 
-                    textContent = await subProjectBadgeSelector.getProperty(
+                    let textContent = await subProjectBadgeSelector.getProperty(
                         'innerText'
                     );
                     textContent = await textContent.jsonValue();

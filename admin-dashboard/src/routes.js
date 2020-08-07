@@ -74,7 +74,7 @@ export const groups = [
             {
                 title: 'Audit Logs',
                 path: '/admin/auditLogs',
-                icon: 'auditLogs',
+                icon: 'appLog',
                 component: AuditLogs,
                 visible: true,
                 subRoutes: [],

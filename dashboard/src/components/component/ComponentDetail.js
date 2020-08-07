@@ -314,7 +314,9 @@ function mapStateToProps(state, props) {
         ) || {
             monitors: [],
         }
-    ).monitors.filter(monitor => monitor.componentId === props.component._id);
+    ).monitors.filter(
+        monitor => monitor.componentId._id === props.component._id
+    );
     return {
         componentMonitors,
         componentState: state.component,
@@ -335,7 +337,10 @@ ComponentDetail.propTypes = {
     projectType: PropTypes.string,
     shouldRenderProjectType: PropTypes.bool,
     fetchComponentResources: PropTypes.func,
-    componentResources: PropTypes.object,
+    componentResources: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.array,
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);

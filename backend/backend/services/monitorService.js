@@ -228,6 +228,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
+                .populate('componentId', 'name')
                 .populate('monitorCategoryId', 'name');
             return monitors;
         } catch (error) {
@@ -245,6 +246,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name')
+                .populate('componentId', 'name')
                 .populate('monitorCategoryId', 'name');
             return monitor;
         } catch (error) {
@@ -413,8 +415,21 @@ module.exports = {
             const monitors = await MonitorModel.find({
                 pollTime: { $lt: date },
                 deleted: false,
+                scriptRunStatus: { $nin: ['inProgress'] },
             });
+
             if (monitors && monitors.length) {
+                await monitors.map(async m => {
+                    if (m.type === 'script') {
+                        await MonitorModel.update(
+                            { _id: m._id, deleted: false },
+                            { $set: { scriptRunStatus: 'inProgress' } },
+                            { multi: true }
+                        );
+                    }
+                    return m;
+                });
+
                 await MonitorModel.update(
                     { pollTime: { $lt: date }, deleted: false },
                     { $set: { pollTime: newdate } },

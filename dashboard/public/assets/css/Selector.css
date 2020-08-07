@@ -59,3 +59,12 @@
   visibility: visible;
   opacity: 1;
 }
+#frmCreateProject input[name='planId'],
+#pricingPlanModal input[name='planId']:checked,
+#frmCreateProject input[name='planId']:checked  {
+    /* implement visual disappearance of the radio button
+    ** but the button still exist in the dom
+    ** this ensures that reduxform can still implement the validate operation on the radio input 
+    */
+    border: none;
+}

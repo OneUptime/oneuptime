@@ -51,6 +51,8 @@ const monitorSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    scriptRunStatus: String,
+    scriptRunBy: { type: String, ref: 'Probe' },
 
     lighthouseScannedAt: { type: Date },
     lighthouseScanStatus: String,

@@ -30,7 +30,7 @@ const escalationSchema = new Schema({
     email: { type: Boolean, default: false },
     sms: { type: Boolean, default: false },
     createdById: { type: String, ref: 'User', default: null },
-    scheduleId: { type: String, default: null },
+    scheduleId: { type: String, ref: 'Schedule', default: null },
     teams: { type: [teamSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },

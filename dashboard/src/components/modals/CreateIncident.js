@@ -3,27 +3,43 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
-import {
-    createIncidentRequest,
-    createIncidentError,
-    createIncidentSuccess,
-    createNewIncident,
-} from '../../actions/incident';
-import { Validate, renderIfUserInSubProject } from '../../config';
+import { createNewIncident } from '../../actions/incident';
+import { ValidateField, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { history } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
+import { RenderField } from '../basic/RenderField';
+import AceEditor from 'react-ace';
+import 'brace/mode/markdown';
+import 'brace/theme/github';
 
-function validate(value) {
-    const errors = {};
+const MarkdownEditor = ({ input }) => (
+    <AceEditor
+        mode="markdown"
+        theme="github"
+        value={input.value}
+        editorProps={{
+            $blockScrolling: true,
+        }}
+        height="150px"
+        width="100%"
+        highlightActiveLine={true}
+        setOptions={{
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true,
+            enableSnippets: true,
+            showGutter: false,
+        }}
+        onChange={input.onChange}
+        placeholder="This can be markdown"
+    />
+);
 
-    if (!Validate.text(value.monitors)) {
-        errors.name = 'Please select a monitor!';
-    }
-
-    return errors;
-}
+MarkdownEditor.displayName = 'CreateIncidentMarkdownEditor';
+MarkdownEditor.propTypes = {
+    input: PropTypes.object.isRequired,
+};
 
 class CreateIncident extends Component {
     submitForm = values => {
@@ -34,9 +50,7 @@ class CreateIncident extends Component {
             monitors,
             data,
         } = this.props;
-        if (values.monitors) {
-            values = values.monitors;
-        }
+        const { monitorId, incidentType, title, description } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
@@ -45,7 +59,13 @@ class CreateIncident extends Component {
             if (monitor._id === values)
                 projectId = monitor.projectId._id || monitor.projectId;
         });
-        createNewIncident(projectId, values).then(
+        createNewIncident(
+            projectId,
+            monitorId,
+            incidentType,
+            title,
+            description
+        ).then(
             function() {
                 closeThisDialog();
             },
@@ -112,7 +132,7 @@ class CreateIncident extends Component {
                                             subProjectMonitor.monitors.length >
                                                 0 ? (
                                                 <div className="bs-Fieldset-rows">
-                                                    <div className="bs-Fieldset-row">
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
                                                         <label className="bs-Fieldset-label">
                                                             <span>
                                                                 {' '}
@@ -121,14 +141,14 @@ class CreateIncident extends Component {
                                                         </label>
                                                         <Field
                                                             id="monitorList"
-                                                            name="monitors"
+                                                            name="monitorId"
                                                             component={
                                                                 RenderSelect
                                                             }
                                                             className="db-select-nw"
-                                                            style={{
-                                                                width: '200px',
-                                                            }}
+                                                            validate={
+                                                                ValidateField.select
+                                                            }
                                                             options={[
                                                                 {
                                                                     value: '',
@@ -158,6 +178,93 @@ class CreateIncident extends Component {
                                                                     : []),
                                                             ]}
                                                         />
+                                                    </div>
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident type
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="incidentType"
+                                                                id="incidentType"
+                                                                placeholder="Incident type"
+                                                                disabled={
+                                                                    this.props
+                                                                        .newIncident
+                                                                        .requesting
+                                                                }
+                                                                validate={
+                                                                    ValidateField.select
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select type',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'online',
+                                                                        label:
+                                                                            'Online',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'offline',
+                                                                        label:
+                                                                            'Offline',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'degraded',
+                                                                        label:
+                                                                            'Degraded',
+                                                                    },
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row Margin-bottom--12">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident title
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="title"
+                                                                id="title"
+                                                                placeholder="Incident title"
+                                                                disabled={
+                                                                    this.props
+                                                                        .newIncident
+                                                                        .requesting
+                                                                }
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label script-label">
+                                                            Description
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                name="description"
+                                                                component={
+                                                                    MarkdownEditor
+                                                                }
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -273,15 +380,11 @@ CreateIncident.displayName = 'CreateIncidentFormModal';
 
 const CreateIncidentForm = reduxForm({
     form: 'CreateNewIncident', // a unique identifier for this form
-    validate,
 })(CreateIncident);
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            createIncidentRequest,
-            createIncidentError,
-            createIncidentSuccess,
             createNewIncident,
         },
         dispatch

@@ -30,7 +30,7 @@ class MSTeamsButton extends React.Component {
                         <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                     </div>
                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                        <span>Add WebHook</span>
+                        <span>Add Teams Integration</span>
                     </span>
                 </div>
             </button>

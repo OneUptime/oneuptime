@@ -9,8 +9,7 @@ import {
     resetIncident,
     getIncident,
     getIncidentTimeline,
-    setInvestigationNote,
-    setinternalNote,
+    fetchIncidentMessages,
 } from '../actions/incident';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
@@ -41,44 +40,6 @@ class Incident extends React.Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
-    componentDidUpdate(prevProps) {
-        if (this.props.location.pathname !== prevProps.location.pathname) {
-            this.ready();
-        }
-    }
-    internalNote = note => {
-        this.props.setinternalNote(
-            this.props.match.params.projectId,
-            this.props.match.params.incidentId,
-            note
-        );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > INTERNAL NOTE ADDED',
-                {
-                    projectId: this.props.match.params.projectId,
-                    incidentId: this.props.match.params.incidentId,
-                }
-            );
-        }
-    };
-
-    investigationNote = note => {
-        this.props.setInvestigationNote(
-            this.props.match.params.projectId,
-            this.props.match.params.incidentId,
-            note
-        );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > PUBLIC NOTE ADDED',
-                {
-                    projectId: this.props.match.params.projectId,
-                    incidentId: this.props.match.params.incidentId,
-                }
-            );
-        }
-    };
 
     nextAlerts = () => {
         this.props.fetchIncidentAlert(
@@ -235,6 +196,19 @@ class Incident extends React.Component {
             null,
             this.props.match.params.incidentId
         );
+        this.props.fetchIncidentMessages(
+            this.props.match.params.projectId,
+            this.props.match.params.incidentId,
+            0,
+            10
+        );
+        this.props.fetchIncidentMessages(
+            this.props.match.params.projectId,
+            this.props.match.params.incidentId,
+            0,
+            10,
+            'internal'
+        );
     };
 
     render() {
@@ -251,12 +225,9 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
-        const componentId =
-            this.props.component.length > 0
-                ? this.props.component[0]
-                    ? this.props.component[0]._id
-                    : this.props.component[1]._id
-                : null;
+        const componentId = this.props.component
+            ? this.props.component._id
+            : '';
         if (this.props.incident) {
             variable = (
                 <div>
@@ -265,7 +236,7 @@ class Incident extends React.Component {
                         projectId={this.props.currentProject._id}
                         componentId={componentId}
                     />
-                    <IncidentStatus incident={this.props.incident} />
+                    <IncidentStatus incident={this.props.incident} count={0} />
                     <IncidentAlert
                         next={this.nextAlerts}
                         previous={this.previousAlerts}
@@ -289,20 +260,15 @@ class Incident extends React.Component {
                         previous={this.previousSubscribers}
                         incident={this.props.incident}
                     />
-                    <IncidentInvestigation
-                        incident={this.props.incident}
-                        setdata={this.investigationNote}
-                    />
-                    <IncidentInternal
-                        incident={this.props.incident}
-                        setdata={this.internalNote}
-                    />
+                    <IncidentInvestigation incident={this.props.incident} />
+                    <IncidentInternal incident={this.props.incident} />
                     <RenderIfSubProjectAdmin>
                         <IncidentDeleteBox
                             incident={this.props.incident}
                             deleting={this.props.deleting}
                             currentProject={this.props.currentProject}
-                            component={this.props.component[0]}
+                            component={this.props.component}
+                            componentId={this.props.componentId}
                         />
                     </RenderIfSubProjectAdmin>
                 </div>
@@ -346,19 +312,17 @@ class Incident extends React.Component {
             component,
             location: { pathname },
         } = this.props;
-        const componentName =
-            component.length > 0
-                ? component[0]
-                    ? component[0].name
-                    : component[1].name
-                : null;
+        const componentName = component ? component.name : '';
 
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem route="#" name={componentName} />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname)}
+                        route={getParentRoute(pathname, null, 'incidents')}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname, null, 'incident-log')}
                         name="Incident Log"
                     />
                     <BreadCrumbItem route={pathname} name="Incident" />
@@ -383,8 +347,13 @@ class Incident extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
-    const component = state.component.componentList.components.map(item => {
-        return item.components.find(component => component._id === componentId);
+    let component;
+    state.component.componentList.components.forEach(item => {
+        item.components.forEach(c => {
+            if (String(c._id) === String(componentId)) {
+                component = c;
+            }
+        });
     });
 
     return {
@@ -399,6 +368,7 @@ const mapStateToProps = (state, props) => {
             ? state.incident.incident.deleteIncident.requesting
             : false,
         component,
+        componentId,
     };
 };
 
@@ -406,8 +376,6 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             getMonitorLogs,
-            setInvestigationNote,
-            setinternalNote,
             fetchIncidentAlert,
             fetchSubscriberAlert,
             incidentRequest,
@@ -416,6 +384,7 @@ const mapDispatchToProps = dispatch => {
             resetIncident,
             getIncident,
             getIncidentTimeline,
+            fetchIncidentMessages,
         },
         dispatch
     );
@@ -433,8 +402,6 @@ Incident.propTypes = {
     incidentTimeline: PropTypes.object,
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     match: PropTypes.object,
-    setInvestigationNote: PropTypes.func,
-    setinternalNote: PropTypes.func,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     subscribersAlerts: PropTypes.object.isRequired,
     location: PropTypes.shape({
@@ -446,6 +413,8 @@ Incident.propTypes = {
             _id: PropTypes.string,
         })
     ),
+    componentId: PropTypes.string,
+    fetchIncidentMessages: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';

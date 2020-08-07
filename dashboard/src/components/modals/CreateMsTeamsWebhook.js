@@ -125,7 +125,7 @@ class CreateMsTeams extends React.Component {
                                                             }
                                                             name="endpoint"
                                                             type="url"
-                                                            placeholder="Enter MS Teams webhook url"
+                                                            placeholder="Enter Microsoft Teams Webhook URL"
                                                             id="endpoint"
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             style={{

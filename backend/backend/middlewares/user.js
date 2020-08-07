@@ -20,8 +20,12 @@ const _this = {
     // Returns: 400: User is unauthorized since unauthorized token was present.
     getUser: async function(req, res, next) {
         try {
-            if (apiMiddleware.hasProjectIdAndApiKey(req)) {
-                return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
+            if (apiMiddleware.hasProjectIdAndApiKey(req, res)) {
+                return await apiMiddleware.isValidProjectIdAndApiKey(
+                    req,
+                    res,
+                    next
+                );
             }
 
             const accessToken =

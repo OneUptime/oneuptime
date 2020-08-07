@@ -12,7 +12,7 @@
 | num_employees=52 (2019)
 }}
 
-'''Fyipe''' is a [[cloud computing]] company that produces a [[Software as a service|SaaS]] incident response platform for Enterprise IT departments.<ref>{{Cite web|url=https://fyipe.com|website=www.fyipe.com|title=Fyipe - Status page, monitoring and on-call made simple.}}</ref>
+'''Fyipe''' is a [[cloud computing]] company that produces a [[Software as a service|SaaS]] incident response platform for Enterprise IT departments.<ref>{{Cite web|url=https://fyipe.com|website=www.fyipe.com|title=Fyipe - One Complete SRE and IT Ops platform.}}</ref>
 
 Fyipe is headquartered in [[New York, NY]] <ref>{{Cite web|url=https://www.crunchbase.com/organization/fyipe|website=www.crunchbase.com|title=Fyipe, Crunchbase}}</ref> with operations in [[Hyderabad, India]]. Its platform is designed to alert clients to disruptions and outages through [[machine learning]] and automation.
 

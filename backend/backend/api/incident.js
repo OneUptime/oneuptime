@@ -37,6 +37,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         const monitorId = req.params.monitorId;
         const projectId = req.params.projectId;
         const incidentType = req.body.incidentType;
+        const title = req.body.title;
+        const description = req.body.description;
         const userId = req.user ? req.user.id : null;
         let oldIncidentsCount = null;
 
@@ -68,6 +70,13 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             });
         }
 
+        if (!title) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Title must be present.',
+            });
+        }
+
         if (incidentType) {
             if (!['offline', 'online', 'degraded'].includes(incidentType)) {
                 return sendErrorResponse(req, res, {
@@ -81,6 +90,11 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
                 incidentType,
                 resolved: false,
                 deleted: false,
+            });
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'IncidentType must be present.',
             });
         }
 
@@ -97,6 +111,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             createdById: userId,
             manuallyCreated: true,
             incidentType,
+            title,
+            description,
         });
         await MonitorStatusService.create({
             monitorId,
@@ -411,6 +427,19 @@ router.post(
                 });
             }
 
+            if (!data.incident_state) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident State is required.',
+                });
+            }
+            if (typeof data.incident_state !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Incident State is not in string type.',
+                });
+            }
+
             if (!data.id) {
                 // this is a message creation Rquest
                 if (!data.type) {
@@ -470,7 +499,10 @@ router.post(
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
                 } else {
-                    const updatedMessage = { content: data.content };
+                    const updatedMessage = {
+                        content: data.content,
+                        incident_state: data.incident_state,
+                    };
                     incidentMessage = await IncidentMessageService.updateOneBy(
                         { _id: data.id },
                         updatedMessage
@@ -494,6 +526,45 @@ router.post(
                 await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incidentMessage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+router.delete(
+    '/:projectId/incident/:incidentId/message/:incidentMessageId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const incidentMessage = await IncidentMessageService.deleteBy(
+                {
+                    _id: req.params.incidentMessageId,
+                    incidentId: req.params.incidentId,
+                },
+                req.user.id
+            );
+            if (incidentMessage) {
+                const status = `${incidentMessage.type} notes deleted`;
+
+                const incident = IncidentService.findOneBy({
+                    _id: incidentMessage.incidentId._id,
+                });
+                // update timeline
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: req.user.id,
+                    status,
+                });
+
+                await RealTimeService.deleteIncidentNote(incident);
+                return sendItemResponse(req, res, incidentMessage);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Incident Message not found',
+                });
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

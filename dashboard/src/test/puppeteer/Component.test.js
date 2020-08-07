@@ -17,9 +17,9 @@ const newMonitorName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
 
 describe('Components', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 100000;
 
-    let cluster;
+    let cluster, browser, componentPage;
 
     beforeAll(async () => {
         jest.setTimeout(200000);
@@ -30,6 +30,10 @@ describe('Components', () => {
             puppeteer,
             timeout: 120000,
         });
+        browser = await puppeteer.launch({
+            ...utils.puppeteerLaunchConfig,
+        });
+        componentPage = await browser.newPage();
 
         cluster.on('taskerror', err => {
             throw err;
@@ -44,6 +48,8 @@ describe('Components', () => {
     afterAll(async () => {
         await cluster.idle();
         await cluster.close();
+        await browser.idle();
+        await browser.close();
     });
 
     test(
@@ -63,6 +69,8 @@ describe('Components', () => {
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
@@ -72,6 +80,43 @@ describe('Components', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
             });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show the correct path on the breadcrumbs inside a component',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                const moreBtn = `#more-details-${componentName}`;
+                await page.waitForSelector(moreBtn, { visible: true });
+                await page.click(moreBtn);
+
+                const projectSelector = `#cbUnnamedProject`;
+                const componentSelector = `#cb${componentName}`;
+                await page.waitForSelector(projectSelector, { visible: true });
+                const projectBreadcrumb = await page.evaluate(
+                    projectSelector =>
+                        document.querySelector(projectSelector).textContent,
+                    projectSelector
+                );
+                await page.waitForSelector(componentSelector, {
+                    visible: true,
+                });
+                const componentBreadcrumb = await page.evaluate(
+                    componentSelector =>
+                        document.querySelector(componentSelector).textContent,
+                    componentSelector
+                );
+
+                expect(projectBreadcrumb).toBe('Unnamed Project');
+                expect(componentBreadcrumb).toBe(componentName);
+            });
+            done();
         },
         operationTimeOut
     );
@@ -131,6 +176,52 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should show the correct path on the breadcrumbs when viewing a particular monitor',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+                const monitorDetailsBtn = `#more-details-${monitorName}`;
+                await page.waitForSelector(monitorDetailsBtn, {
+                    visible: true,
+                });
+                await page.click(monitorDetailsBtn);
+
+                const projectSelector = `#cbUnnamedProject`;
+                const componentSelector = `#cb${componentName}`;
+                const monitorSelector = `#cb${monitorName}`;
+                await page.waitForSelector(projectSelector, { visible: true });
+                await page.waitForSelector(componentSelector, {
+                    visible: true,
+                });
+                await page.waitForSelector(monitorSelector, { visible: true });
+
+                const projectBreadcrumb = await page.evaluate(
+                    projectSelector =>
+                        document.querySelector(projectSelector).textContent,
+                    projectSelector
+                );
+                const componentBreadcrumb = await page.evaluate(
+                    componentSelector =>
+                        document.querySelector(componentSelector).textContent,
+                    componentSelector
+                );
+                const monitorBreadcrumb = await page.evaluate(
+                    monitorSelector =>
+                        document.querySelector(monitorSelector).textContent,
+                    monitorSelector
+                );
+                expect(projectBreadcrumb).toBe('Unnamed Project');
+                expect(componentBreadcrumb).toBe(componentName);
+                expect(monitorBreadcrumb).toBe(monitorName);
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
     test(
         'Should create a new application log in component',
         async () => {
@@ -216,27 +307,97 @@ describe('Components', () => {
         'Should create an incident in monitor details and change monitor status in component list',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Monitor details
+                // launch component page
+                await init.loginUser(user, componentPage);
+                await componentPage.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await componentPage.waitForSelector('#components');
+                await componentPage.click('#components');
+                let componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_type_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
+
+                expect(componentSpanElement).toMatch('Website Monitor');
+
+                // use cluster to launch monitor page
+                const monitorPage = page;
                 await init.navigateToMonitorDetails(
                     componentName,
                     monitorName,
-                    page
+                    monitorPage
                 );
-
-                await page.waitForSelector(`#createIncident_${monitorName}`);
-                await page.click(`#createIncident_${monitorName}`);
-                await page.waitForSelector('#createIncident');
-                await init.selectByText('#incidentType', 'Offline', page);
-                await page.click('#createIncident');
-                await page.waitFor(2000);
-
-                let spanElement = await page.waitForSelector(
+                await monitorPage.bringToFront();
+                await monitorPage.waitForSelector(
+                    `#createIncident_${monitorName}`
+                );
+                await monitorPage.click(`#createIncident_${monitorName}`);
+                await monitorPage.waitForSelector('#createIncident');
+                await init.selectByText(
+                    '#incidentType',
+                    'Offline',
+                    monitorPage
+                );
+                await monitorPage.type('#title', 'new incident');
+                await monitorPage.click('#createIncident');
+                await monitorPage.waitFor(2000);
+                let monitorSpanElement = await monitorPage.waitForSelector(
                     `#monitor-status-${monitorName}`
                 );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
+                monitorSpanElement = await monitorSpanElement.getProperty(
+                    'innerText'
+                );
+                monitorSpanElement = await monitorSpanElement.jsonValue();
+                // check that monitor status on monitor page is offline
+                expect(monitorSpanElement).toMatch('Offline');
+                await monitorPage.waitFor(2000);
 
-                expect(spanElement).toMatch('Offline');
+                await componentPage.bringToFront();
+                // check that the monitor is offline on component page
+                componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_status_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
+
+                expect(componentSpanElement).toMatch('Offline');
+                await componentPage.waitFor(2000);
+                // bring monitor window to the front so as to resolve incident
+                await monitorPage.bringToFront();
+                // open incident details
+                await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
+                await monitorPage.click(`#incident_${monitorName}_0`);
+
+                // click resolve button
+                // resolve incident
+                await monitorPage.waitForSelector('#btnResolve_0');
+                await monitorPage.click('#btnResolve_0');
+                await monitorPage.waitForSelector('#ResolveText_0');
+                // confirm it is resolved here
+                const resolveTextSelector = await monitorPage.$(
+                    '#ResolveText_0'
+                );
+                expect(resolveTextSelector).not.toBeNull();
+
+                // goto component page
+                await componentPage.bringToFront();
+                // confirm that the monitor is back online!
+                componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_status_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
+
+                expect(componentSpanElement).toMatch('Online');
+                await componentPage.waitFor(2000);
             });
         },
         operationTimeOut
@@ -267,7 +428,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('MONITOR');
+                expect(spanElement).toMatch('Website Monitor');
 
                 spanElement = await page.waitForSelector(
                     `#resource_type_${applicationLogName}`
@@ -275,7 +436,15 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('APPLICATION-LOG');
+                expect(spanElement).toMatch('Application Logs');
+
+                spanElement = await page.waitForSelector(
+                    `#resource_status_${applicationLogName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toMatch('No Logs Yet');
             });
         },
         operationTimeOut
@@ -322,6 +491,8 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 await page.waitForSelector(`#edit-component-${componentName}`);
                 await page.click(`#edit-component-${componentName}`);
@@ -357,6 +528,7 @@ describe('Components', () => {
                 await page.click(`#createIncident_${newMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitFor(2000);
                 await page.waitForSelector(
@@ -375,6 +547,10 @@ describe('Components', () => {
                 await page.type('input[id=name]', utils.generateRandomString());
                 await page.click('label[for=Startup_month]');
                 await page.click('button[type=submit]');
+
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
                 let currentPage = await page.waitForSelector('#cbComponents');
                 currentPage = await currentPage.getProperty('innerText');
                 currentPage = await currentPage.jsonValue();

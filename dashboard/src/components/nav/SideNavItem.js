@@ -170,6 +170,15 @@ export class SidebarNavItem extends Component {
             return response;
         });
 
+        const isSubLinkActive = route.subRoutes.some(link =>
+            link.title === 'Status Page' &&
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/sub-project\/([0-9]|[a-z])*\/status-page\/([0-9]|[a-z])*/
+            )
+                ? true
+                : false
+        );
+
         const routeStyle = {
             position: 'relative',
             marginTop: route.title === 'Back to Dashboard' ? '20px' : 0,
@@ -196,7 +205,8 @@ export class SidebarNavItem extends Component {
                                                 className={`db-SideNav-icon db-SideNav-icon--${
                                                     route.icon
                                                 } ${
-                                                    isLinkActive
+                                                    isLinkActive ||
+                                                    isSubLinkActive
                                                         ? 'db-SideNav-icon--selected'
                                                         : null
                                                 }`}
@@ -206,7 +216,7 @@ export class SidebarNavItem extends Component {
                                     <span
                                         className={
                                             'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive
+                                            (isLinkActive || isSubLinkActive
                                                 ? ' Text-color--fyipeblue Text-fontWeight--bold'
                                                 : ' Text-color--dark')
                                         }

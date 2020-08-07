@@ -1,2 +1,1 @@
-sudo $HOME/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ./ci/credentials/encrypted-credentials/production/fyipe-production.json
-sudo $HOME/google-cloud-sdk/bin/gcloud container clusters get-credentials fyipe-helm --zone us-central1-c --project fyipe-production
+sudo doctl kubernetes cluster kubeconfig save fyipe-production

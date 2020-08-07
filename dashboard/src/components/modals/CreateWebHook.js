@@ -76,7 +76,7 @@ class CreateWebHook extends React.Component {
             .flat();
         const getParentComponent = monitor =>
             allComponents.filter(
-                component => component._id === monitor.componentId
+                component => component._id === monitor.componentId._id
             )[0];
 
         return (
@@ -127,7 +127,7 @@ class CreateWebHook extends React.Component {
                                                             }
                                                             name="endpoint"
                                                             type="url"
-                                                            placeholder="Enter webhook url"
+                                                            placeholder="Enter Webhook URL"
                                                             id="endpoint"
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             style={{

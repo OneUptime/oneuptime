@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Fyipe | Status Page and On-call made simple.</title>
+    <title>Fyipe | One Complete SRE and DevOps platform. </title>
     <meta name="description" content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
 
@@ -36,7 +36,7 @@
                     <div class="container-lg" style="display: flex; justify-content: center;">
                         <div>
                             <h1 class="black main-page-title" style="text-align:center">
-                                One Complete SRE <br />and IT Ops
+                                One Complete SRE <br />and DevOps
                                 platform.
                             </h1>
                             <p class="common-BodyText" style="text-align:center;max-width:100%">
@@ -107,9 +107,9 @@
                     <p></p>
                 </div>
 
-                <!-- <div style="display:flex; justify-content:center; margin-bottom:30px;">
-                    <img src="/img/status-page-dashboard.png" width="900" class="imageshadow"/>
-                </div> -->
+                <div style="display:flex; justify-content:center; margin-bottom:30px;">
+                    <img src="/img/animated-gif/uptime-monitoring.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+                </div>
                 <section class="main basics" style="padding:0px">
                     <div class="content">
                         <ul class="columns">
@@ -148,8 +148,8 @@
                     <p></p>
                 </div>
 
-                <div style="display:flex; justify-content:center; margin-top:50px">
-                    <img src="/img/status-page.png" width="900" class="imageshadow" alt="Status page" id="status-page" />
+                <div style="display:flex; justify-content:center; margin-bottom:30px;">
+                    <img src="/img/animated-gif/status-page.gif" width="900" class="imageshadow" alt="Status Page" id="uptime-monitoring-gif" style="border-radius: 5px;" />
                 </div>
                 <section class="main basics" style="padding:0px">
                     <div class="content">
@@ -192,8 +192,8 @@
                     <p></p>
                 </div>
 
-                <div style="display:flex; justify-content:center; margin-bottom:30px;">
-                    <img src="/img/call-schedule-dashboard.png" width="900" class="imageshadow" alt="Call schedule dashboard" id="status-page" />
+                <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
+                    <img src="/img/animated-gif/call-schedules-intro.gif" width="900" class="imageshadow" alt="Incident Management" id="uptime-monitoring-gif" style="border-radius: 5px;" />
                 </div>
 
                 <section class="main basics" style="padding:0px">
@@ -226,69 +226,7 @@
 
             </section>
 
-            <div style="background-color:black;height: 600px;width:100%;" class="enterprise-section">
-                <header style="padding-top: 75px;
-                text-align: center;
-                margin-bottom: 70px;">
-                    <h2 class="header" style="color:white">1500+ Enterprise Integrations and counting.</h2>
-                    <p class="common-BodyText">Fyipe integrates with over a thousand enterprise-class app and
-                        services which helps you streamline and <br /> automate your digital ops workflow.</p>
-                </header>
-
-                <ul class="integration-list">
-                    <li>
-                        <img class="integration-logo" src="/img/slack-white.svg" alt="Slack logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/atlassian.svg" style="
-height: 70px;
-margin-top: -15px;
-" alt="Atlassian logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/servicenow.svg" alt="Service now logo">
-                    </li>
-                </ul>
-                <ul class="integration-list" style="margin-top: 60px;">
-                    <li>
-                        <img class="integration-logo" src="/img/okta.svg" style="
-height: 30px;
-margin-left: -50px;
-" alt="Okta logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/aws-white.svg" style="
-height: 50px;
-margin-left: -80px;
-" alt="AWS logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/appdynamics.svg" style="
-height: 80px;
-" alt="App dynamics logo">
-                    </li>
-                </ul>
-                <ul class="integration-list" style="margin-top: 40px;">
-                    <li>
-                        <img class="integration-logo" src="/img/newrelic.svg" style="
-height: 80px;
-margin-left: -60px;
-" alt="New relic logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/zendesk.svg" style="
-height: 60px;
-margin-left: -90px;
-" alt="Zendesk logo">
-                    </li>
-                    <li>
-                        <img class="integration-logo" src="/img/azure.svg" style="
-height: 60px;
-" alt="Azure logo">
-                    </li>
-                </ul>
-
-            </div>
+            <% include ./integration %> 
         </main>
 
     </div>

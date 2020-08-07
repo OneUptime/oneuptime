@@ -7,6 +7,12 @@ const monitorSchema = new Schema({
         ref: 'Project',
         alias: 'project',
     }, //which project this incident belongs to.
+    title: {
+        type: Schema.Types.String,
+    },
+    description: {
+        type: Schema.Types.String,
+    },
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
 
     acknowledged: {

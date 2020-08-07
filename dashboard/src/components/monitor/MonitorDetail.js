@@ -203,7 +203,10 @@ export class MonitorDetail extends Component {
             endDate
         );
 
-        const status = getMonitorStatus(monitor.incidents, logs);
+        const requesting = monitorState.fetchMonitorLogsRequest;
+        const status = requesting
+            ? 'requesting'
+            : getMonitorStatus(monitor.incidents, logs);
 
         const creating = create || false;
 
@@ -312,7 +315,13 @@ export class MonitorDetail extends Component {
                                                 {isCurrentlyNotMonitoring &&
                                                     'Not'}{' '}
                                                 Monitoring &nbsp;
-                                                <a href={url}>{url}</a>
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {url}
+                                                </a>
                                             </span>
                                         )}
                                         {monitor.type === 'manual' &&
@@ -336,6 +345,54 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </div>
+                            <ShouldRender
+                                if={
+                                    monitor &&
+                                    monitor.type &&
+                                    monitor.type === 'server-monitor' &&
+                                    (!logs || (logs && logs.length === 0))
+                                }
+                            >
+                                <div className="Card-root">
+                                    <div
+                                        className="Box-background--yellow4 Card-shadow--small Border-radius--4 Padding-horizontal--8 Padding-vertical--8"
+                                        style={{
+                                            marginTop: 10,
+                                            marginBottom: 10,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        <div
+                                            className="db-SideNav-icon db-SideNav-icon--warning"
+                                            style={{
+                                                width: 17,
+                                                marginRight: 5,
+                                                backgroundSize: 'contain',
+                                                backgroundRepeat: 'no-repeat',
+                                            }}
+                                        />
+                                        <span className="Text-color--white Text-fontSize--14 Text-lineHeight--16">
+                                            You need to install an agent on your
+                                            server, please{' '}
+                                            <a
+                                                href="https://www.npmjs.com/package/fyipe-server-monitor"
+                                                rel="noopener noreferrer"
+                                                target="_blank"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                    color: 'white',
+                                                }}
+                                            >
+                                                click here
+                                            </a>{' '}
+                                            for instructions. Your Monitor ID is{' '}
+                                            {monitor._id}.
+                                        </span>
+                                    </div>
+                                </div>
+                            </ShouldRender>
                         </div>
                     </div>
                     <div className="db-Trends-controls">

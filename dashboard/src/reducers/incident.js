@@ -31,14 +31,28 @@ const initialState = {
         },
     },
     investigationNotes: {
-        requesting: false,
-        error: null,
-        success: false,
+        create: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
+        edit: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
     },
     internalNotes: {
-        requesting: false,
-        error: null,
-        success: false,
+        create: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
+        edit: {
+            requesting: false,
+            error: null,
+            success: false,
+        },
     },
     unresolvedincidents: {
         requesting: false,
@@ -59,7 +73,9 @@ export default function incident(state = initialState, action) {
     let incidents,
         isExistingIncident,
         failureIncidentMessage,
-        requestIncidentMessage;
+        requestIncidentMessage,
+        incidentMessages,
+        noteStatus;
     switch (action.type) {
         case types.INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
@@ -505,64 +521,174 @@ export default function incident(state = initialState, action) {
             });
 
         case types.INTERNAL_NOTE_SUCCESS:
+            incidentMessages =
+                state.incidentMessages[action.payload.incidentId._id][
+                    action.payload.type
+                ].incidentMessages.filter(
+                    incidentMessage =>
+                        incidentMessage._id === action.payload._id
+                ).length > 0
+                    ? state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.map(incidentMessage => {
+                          if (incidentMessage._id === action.payload._id) {
+                              incidentMessage = action.payload;
+                          }
+                          return incidentMessage;
+                      })
+                    : [action.payload].concat(
+                          state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ].incidentMessages
+                      );
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: false, success: true, error: null } }
+                : { create: { requesting: false, success: true, error: null } };
             return Object.assign({}, state, {
-                incident: {
-                    ...state.incident,
-                    incident: action.payload,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                            count: action.payload.updated
+                                ? state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count
+                                : state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count + 1,
+                        },
+                    },
                 },
                 internalNotes: {
-                    requesting: false,
-                    success: true,
-                    error: null,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INTERNAL_NOTE_REQUEST:
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: true, success: false, error: null } }
+                : { create: { requesting: true, success: false, error: null } };
             return Object.assign({}, state, {
                 internalNotes: {
-                    requesting: true,
-                    success: false,
-                    error: null,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INTERNAL_NOTE_FAILED:
+            noteStatus = action.payload.updated
+                ? {
+                      edit: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  }
+                : {
+                      create: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  };
             return Object.assign({}, state, {
                 internalNotes: {
-                    requesting: false,
-                    success: false,
-                    error: action.payload,
+                    ...state.internalNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INVESTIGATION_NOTE_SUCCESS:
+            incidentMessages =
+                state.incidentMessages[action.payload.incidentId._id][
+                    action.payload.type
+                ].incidentMessages.filter(
+                    incidentMessage =>
+                        incidentMessage._id === action.payload._id
+                ).length > 0
+                    ? state.incidentMessages[action.payload.incidentId._id][
+                          action.payload.type
+                      ].incidentMessages.map(incidentMessage => {
+                          if (incidentMessage._id === action.payload._id) {
+                              incidentMessage = action.payload;
+                          }
+                          return incidentMessage;
+                      })
+                    : [action.payload].concat(
+                          state.incidentMessages[action.payload.incidentId._id][
+                              action.payload.type
+                          ].incidentMessages
+                      );
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: false, success: true, error: null } }
+                : { create: { requesting: false, success: true, error: null } };
             return Object.assign({}, state, {
-                incident: {
-                    ...state.incident,
-                    incident: action.payload,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                            count: action.payload.updated
+                                ? state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count
+                                : state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count + 1,
+                        },
+                    },
                 },
                 investigationNotes: {
-                    requesting: false,
-                    success: true,
-                    error: null,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INVESTIGATION_NOTE_REQUEST:
+            noteStatus = action.payload.updated
+                ? { edit: { requesting: true, success: false, error: null } }
+                : { create: { requesting: true, success: false, error: null } };
             return Object.assign({}, state, {
                 investigationNotes: {
-                    requesting: true,
-                    success: false,
-                    error: null,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 
         case types.INVESTIGATION_NOTE_FAILED:
+            noteStatus = action.payload.updated
+                ? {
+                      edit: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  }
+                : {
+                      create: {
+                          requesting: false,
+                          success: false,
+                          error: action.payload.error,
+                      },
+                  };
             return Object.assign({}, state, {
                 investigationNotes: {
-                    requesting: false,
-                    success: false,
-                    error: action.payload,
+                    ...state.investigationNotes,
+                    ...noteStatus,
                 },
             });
 
@@ -767,8 +893,9 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_SUCCESS:
             return Object.assign({}, state, {
                 incidentMessages: {
-                    ...state.logs,
+                    ...state.incidentMessages,
                     [action.payload.incidentId]: {
+                        ...state.incidentMessages[action.payload.incidentId],
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages,
                             error: null,
@@ -809,18 +936,29 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_REQUEST:
             requestIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: state.incidentMessages[
-                    action.payload.incidentId
-                ]
-                    ? state.incidentMessages[action.payload.incidentId][
-                          action.payload.type
-                      ]
-                        ? {
-                              ...state.incidentMessages[
-                                  action.payload.incidentId
-                              ][action.payload.type],
-                              requesting: true,
-                          }
+                [action.payload.incidentId]: {
+                    ...state.incidentMessages[action.payload.incidentId],
+                    [action.payload.type]: state.incidentMessages[
+                        action.payload.incidentId
+                    ]
+                        ? state.incidentMessages[action.payload.incidentId][
+                              action.payload.type
+                          ]
+                            ? {
+                                  ...state.incidentMessages[
+                                      action.payload.incidentId
+                                  ][action.payload.type],
+                                  requesting: true,
+                              }
+                            : {
+                                  incidentMessages: [],
+                                  error: null,
+                                  requesting: true,
+                                  success: false,
+                                  skip: 0,
+                                  limit: 10,
+                                  count: null,
+                              }
                         : {
                               incidentMessages: [],
                               error: null,
@@ -829,16 +967,8 @@ export default function incident(state = initialState, action) {
                               skip: 0,
                               limit: 10,
                               count: null,
-                          }
-                    : {
-                          incidentMessages: [],
-                          error: null,
-                          requesting: true,
-                          success: false,
-                          skip: 0,
-                          limit: 10,
-                          count: null,
-                      },
+                          },
+                },
             };
             return Object.assign({}, state, {
                 incidentMessages: requestIncidentMessage,
@@ -846,6 +976,83 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_RESET:
             return Object.assign({}, state, {
                 incidentMessages: initialState.incidentMessages,
+            });
+        case types.EDIT_INCIDENT_MESSAGE_SWITCH:
+            incidentMessages = state.incidentMessages[
+                action.payload.incidentId._id
+            ][action.payload.type].incidentMessages.map(incidentMessage => {
+                if (incidentMessage._id === action.payload._id) {
+                    if (!incidentMessage.editMode)
+                        incidentMessage.editMode = true;
+                    else incidentMessage.editMode = false;
+                } else {
+                    incidentMessage.editMode = false;
+                }
+                return incidentMessage;
+            });
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [action.payload.incidentId._id]: {
+                        ...state.incidentMessages[
+                            action.payload.incidentId._id
+                        ],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                        },
+                    },
+                },
+            });
+
+        case types.DELETE_INCIDENT_MESSAGE_SUCCESS:
+            incidentMessages = state.incidentMessages[
+                action.payload.incidentId
+            ][action.payload.type].incidentMessages.filter(
+                incidentMessage => incidentMessage._id !== action.payload._id
+            );
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    [action.payload.incidentId]: {
+                        ...state.incidentMessages[action.payload.incidentId],
+                        [action.payload.type]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId
+                            ][action.payload.type],
+                            incidentMessages: incidentMessages,
+                            count:
+                                state.incidentMessages[
+                                    action.payload.incidentId
+                                ][action.payload.type].count - 1,
+                        },
+                    },
+                },
+                deleteIncidentMessage: false,
+            });
+
+        case types.DELETE_INCIDENT_MESSAGE_FAILURE:
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteIncidentMessage: false,
+            });
+
+        case types.DELETE_INCIDENT_MESSAGE_REQUEST:
+            return Object.assign({}, state, {
+                incidentMessages: {
+                    ...state.incidentMessages,
+                },
+                deleteIncidentMessage: action.payload,
             });
         default:
             return state;

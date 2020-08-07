@@ -198,6 +198,10 @@ module.exports = {
                 // check if previous status is different from the current status
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
+                    // check 3 times just to make sure
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
+
                     const monitor = await MonitorService.findOneBy({
                         _id: data.monitorId,
                     });
@@ -221,13 +225,17 @@ module.exports = {
                     );
                 }
 
-                const incidentIds = await _this.incidentCreateOrUpdate(data);
+                const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
+                    data
+                );
+                if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+
                 await MonitorStatusService.create(data);
 
-                if (incidentIds && incidentIds.length) {
+                if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
                         { _id: log._id },
-                        { incidentIds }
+                        { incidentIdsOrRetry }
                     );
                 }
             }
@@ -297,6 +305,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -339,6 +349,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -381,6 +393,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
+                    if (data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -512,6 +526,25 @@ module.exports = {
             ErrorService.log('probeService.updateProbeStatus', error);
             throw error;
         }
+    },
+
+    scriptConditions: async (payload, resp, con) => {
+        let stat = true;
+        const status = resp
+            ? resp.status
+                ? resp.status
+                : resp.statusCode
+                ? resp.statusCode
+                : null
+            : null;
+        const body = resp && resp.body ? resp.body : null;
+
+        if (con && con.and && con.and.length) {
+            stat = await checkScriptAnd(payload, con.and, status, body);
+        } else if (con && con.or && con.or.length) {
+            stat = await checkScriptOr(payload, con.or, status, body);
+        }
+        return stat;
     },
 
     conditions: async (payload, resp, con) => {
@@ -2233,6 +2266,176 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
             con[i].collection.or.length
         ) {
             const temp1 = await checkOr(
+                payload,
+                con[i].collection.or,
+                statusCode,
+                body
+            );
+            if (temp1) {
+                validity = temp1;
+            }
+        }
+    }
+    return validity;
+};
+
+const checkScriptAnd = async (payload, con, statusCode, body) => {
+    let validity = true;
+    for (let i = 0; i < con.length; i++) {
+        if (
+            con[i] &&
+            con[i].responseType &&
+            con[i].responseType === 'executes'
+        ) {
+            if (con[i] && con[i].filter && con[i].filter === 'executesIn') {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload > con[i].field1
+                    )
+                ) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotExecuteIn'
+            ) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        payload &&
+                        payload < con[i].field1
+                    )
+                ) {
+                    validity = false;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'error') {
+            if (con[i] && con[i].filter && con[i].filter === 'throwsError') {
+                if (!(con[i] && con[i].filter && body && !body.error)) {
+                    validity = false;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotThrowError'
+            ) {
+                if (!(con[i] && con[i].filter && body && body.error)) {
+                    validity = false;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'javascriptExpression') {
+            if (con[i] && con[i].filter && con[i].filter !== body) {
+                validity = false;
+            }
+        }
+        if (
+            con[i] &&
+            con[i].collection &&
+            con[i].collection.and &&
+            con[i].collection.and.length
+        ) {
+            const temp = await checkScriptAnd(
+                payload,
+                con[i].collection.and,
+                statusCode,
+                body
+            );
+            if (!temp) {
+                validity = temp;
+            }
+        } else if (
+            con[i] &&
+            con[i].collection &&
+            con[i].collection.or &&
+            con[i].collection.or.length
+        ) {
+            const temp1 = await checkScriptOr(
+                payload,
+                con[i].collection.or,
+                statusCode,
+                body
+            );
+            if (!temp1) {
+                validity = temp1;
+            }
+        }
+    }
+    return validity;
+};
+
+const checkScriptOr = async (payload, con, statusCode, body) => {
+    let validity = false;
+    for (let i = 0; i < con.length; i++) {
+        if (con[i] && con[i].responseType === 'executes') {
+            if (con[i] && con[i].filter && con[i].filter === 'executesIn') {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload > con[i].field1
+                ) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotExecuteIn'
+            ) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    payload &&
+                    payload < con[i].field1
+                ) {
+                    validity = true;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'error') {
+            if (con[i] && con[i].filter && con[i].filter === 'throwsError') {
+                if (con[i] && con[i].filter && body && !body.error) {
+                    validity = true;
+                }
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotThrowError'
+            ) {
+                if (con[i] && con[i].filter && body && body.error) {
+                    validity = true;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'javascriptExpression') {
+            if (con[i] && con[i].filter && con[i].filter !== body) {
+                validity = true;
+            }
+        }
+        if (
+            con[i] &&
+            con[i].collection &&
+            con[i].collection.and &&
+            con[i].collection.and.length
+        ) {
+            const temp = await checkScriptAnd(
+                payload,
+                con[i].collection.and,
+                statusCode,
+                body
+            );
+            if (temp) {
+                validity = temp;
+            }
+        } else if (
+            con[i] &&
+            con[i].collection &&
+            con[i].collection.or &&
+            con[i].collection.or.length
+        ) {
+            const temp1 = await checkScriptOr(
                 payload,
                 con[i].collection.or,
                 statusCode,

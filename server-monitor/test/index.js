@@ -17,7 +17,9 @@ const user = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
 let token, projectId, apiKey, monitorId;
-let badProjectId, badApiKey;
+const badProjectId = 'badProjectId',
+    badApiKey = 'badApiKey';
+const invalidProjectId = utils.generateRandomString();
 const timeout = 5000,
     monitor = {
         name: 'New Monitor',
@@ -123,16 +125,78 @@ describe('Server Monitor', function() {
         });
     });
 
-    it('Should disconnect when project id or api key are incorrect', done => {
+    it('Should disconnect when project id is invalid', done => {
         const monitor = serverMonitor({
-            badProjectId,
-            badApiKey,
+            projectId: invalidProjectId,
+            apiKey: badApiKey,
         });
 
         monitor.start().then(job => {
             const stopJob = monitor.stop();
 
-            expect(job).to.equal(1);
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal('Project ID is not valid.');
+            expect(stopJob).to.equal(undefined);
+
+            done();
+        });
+    });
+
+    it('Should disconnect when project id or api key are incorrect', done => {
+        const monitor = serverMonitor({
+            projectId: badProjectId,
+            apiKey: badApiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal(
+                'No Project found with this API Key and Project ID.'
+            );
+            expect(stopJob).to.equal(undefined);
+
+            done();
+        });
+    });
+
+    it('Should disconnect when project id is correct and api key is incorrect', done => {
+        const monitor = serverMonitor({
+            projectId,
+            apiKey: badApiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal(
+                'No Project found with this API Key and Project ID.'
+            );
+            expect(stopJob).to.equal(undefined);
+
+            done();
+        });
+    });
+
+    it('Should disconnect when project id is incorrect and api key is correct', done => {
+        const monitor = serverMonitor({
+            projectId: badProjectId,
+            apiKey,
+        });
+
+        monitor.start().then(job => {
+            const stopJob = monitor.stop();
+
+            expect(job).to.be.an('object');
+            expect(job).to.haveOwnProperty('message');
+            expect(job.message).to.equal(
+                'No Project found with this API Key and Project ID.'
+            );
             expect(stopJob).to.equal(undefined);
 
             done();

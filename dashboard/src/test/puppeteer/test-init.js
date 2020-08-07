@@ -127,16 +127,18 @@ module.exports = {
             await this.selectByText('#subProjectId', projectName, page);
         }
 
-        await page.click('button[type=submit]');
+        await page.$eval('button[type=submit]', e => e.click());
         await page.waitForNavigation();
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
 
         // Navigate to details page of component assumed created
         await page.waitForSelector(`#more-details-${component}`);
-        await page.click(`#more-details-${component}`);
+        await page.$eval(`#more-details-${component}`, e => e.click());
     },
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
@@ -144,7 +146,7 @@ module.exports = {
 
         // Navigate to details page of monitor assumed created
         await page.waitForSelector(`#more-details-${monitor}`);
-        await page.click(`#more-details-${monitor}`);
+        await page.$eval(`#more-details-${monitor}`, e => e.click());
         await page.waitForSelector(`#monitor-title-${monitor}`, {
             visible: true,
         });
@@ -313,7 +315,7 @@ module.exports = {
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
 
-        await page.waitForSelector('#form-new-monitor');
+        await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
         await this.selectByText('#type', 'device', page);
@@ -335,9 +337,6 @@ module.exports = {
         await page.waitForSelector('#form-new-monitor');
         await page.click('input[id=name]');
         await page.type('input[id=name]', monitorName);
-        if (projectName) {
-            await this.selectByText('#subProjectId', projectName, page);
-        }
         await this.selectByText('#type', 'device', page);
         await page.waitForSelector('#deviceId');
         await page.click('#deviceId');
@@ -352,19 +351,23 @@ module.exports = {
         );
         if (createIncidentSelector) {
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-            await page.click(`#btnCreateIncident_${projectName}`);
+            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                e.click()
+            );
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
-            await page.click('#createIncident');
+            await page.$eval('#createIncident', e => e.click());
             await page.waitFor(5000);
         } else {
             await page.waitForSelector('#incidentLog a');
-            await page.click('#incidentLog a');
+            await page.$eval('#incidentLog a', e => e.click());
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-            await page.click(`#btnCreateIncident_${projectName}`);
+            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                e.click()
+            );
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
-            await page.click('#createIncident');
+            await page.$eval('#createIncident', e => e.click());
             await page.waitFor(5000);
         }
     },
@@ -527,5 +530,18 @@ module.exports = {
             await page.click('#btnCreateProject'),
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
+    },
+    addIncident: async function(monitorName, incidentType, page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector(`button[id=view-resource-${monitorName}]`);
+        await page.click(`button[id=view-resource-${monitorName}]`);
+        await page.waitForSelector(
+            `button[id=monitorCreateIncident_${monitorName}]`
+        );
+        await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
+        await page.waitForSelector('button[id=createIncident]');
+        await this.selectByText('#incidentType', incidentType, page);
+        await page.click('button[id=createIncident]');
+        await page.waitFor(5000);
     },
 };

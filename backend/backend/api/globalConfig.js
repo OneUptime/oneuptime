@@ -13,6 +13,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const twilioService = require('../services/twilioService');
 
 // Route Description: Creating global config(s).
 // Body: [{name, value}] | {name, value}
@@ -53,6 +54,15 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                     code: 400,
                     message: 'Value must be present.',
                 });
+            }
+
+            if (name === 'twilio') {
+                const data = {
+                    accountSid: value['account-sid'],
+                    authToken: value['authentication-token'],
+                    phoneNumber: value['phone'],
+                };
+                await twilioService.test(data);
             }
 
             let globalConfig = await GlobalConfigService.findOneBy({ name });
@@ -120,10 +130,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         if (globalConfig) {
             return sendItemResponse(req, res, globalConfig);
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Global config does not exists.',
-            });
+            return sendItemResponse(req, res, {});
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);

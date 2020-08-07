@@ -53,6 +53,8 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
+                incident.title = data.title;
+                incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
 
                 if (data.probeId) {
@@ -213,11 +215,17 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId,
+                _id:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
             const meta = {
                 type: 'Incident',
-                componentId: monitor.componentId,
+                componentId:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
                 incidentId: incident._id,
             };
 
@@ -345,7 +353,10 @@ module.exports = {
                     _id: incident.monitorId,
                 });
                 const component = await ComponentService.findOneBy({
-                    _id: monitor.componentId,
+                    _id:
+                        monitor.componentId && monitor.componentId._id
+                            ? monitor.componentId._id
+                            : monitor.componentId,
                 });
                 incident = await _this.findOneBy({ _id: incident._id });
 
@@ -541,7 +552,10 @@ module.exports = {
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
-                _id: monitor.componentId,
+                _id:
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,

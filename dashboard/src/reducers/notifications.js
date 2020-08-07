@@ -6,6 +6,7 @@ import {
     FETCH_NOTIFICATIONS_REQUEST,
     FETCH_NOTIFICATIONS_RESET,
     NOTIFICATION_READ_SUCCESS,
+    NOTIFICATION_CLOSED_SUCCESS,
     ALL_NOTIFICATION_READ_SUCCESS,
 } from '../constants/notification';
 
@@ -100,6 +101,30 @@ export default (state = initialState, action) => {
                                 return {
                                     ...notification,
                                     read: notification.read.concat([
+                                        action.payload.userId,
+                                    ]),
+                                };
+                            } else {
+                                return notification;
+                            }
+                        }
+                    ),
+                },
+            });
+
+        case NOTIFICATION_CLOSED_SUCCESS:
+            return Object.assign({}, state, {
+                notifications: {
+                    ...state.notifications,
+                    notifications: state.notifications.notifications.map(
+                        notification => {
+                            if (
+                                notification._id ===
+                                action.payload.notificationId._id
+                            ) {
+                                return {
+                                    ...notification,
+                                    closed: notification.closed.concat([
                                         action.payload.userId,
                                     ]),
                                 };
