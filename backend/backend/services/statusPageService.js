@@ -444,18 +444,34 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor)
                 : [];
             if (monitorIds && monitorIds.length) {
-                const events = await ScheduledEventsService.findBy(
-                    {
-                        monitorId: { $in: monitorIds },
-                    },
-                    limit,
-                    skip
-                );
-                const count = await ScheduledEventsService.countBy({
-                    monitorId: { $in: monitorIds },
-                });
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        let scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                            }
+                        );
 
-                return { events, count };
+                        // restructure to get the monitor
+                        scheduledEvents = scheduledEvents.map(event => {
+                            event.monitors = event.monitors.filter(
+                                monitor =>
+                                    String(monitor.monitorId._id) ===
+                                    String(monitorId)
+                            );
+
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
+                );
+
+                events = flattenArray(events);
+                const count = events.length;
+
+                return { events: limitEvents(events, limit, skip), count };
             } else {
                 const error = new Error('no monitor to check');
                 error.code = 400;
@@ -704,6 +720,15 @@ module.exports = {
     },
 };
 
+// handle the unique pagination for scheduled events on status page
+function limitEvents(events, limit, skip) {
+    skip = skip * limit;
+    if (skip !== 0) {
+        limit += limit;
+    }
+    return events.slice(skip, limit);
+}
+
 const StatusPageModel = require('../models/statusPage');
 const IncidentService = require('./incidentService');
 const ScheduledEventsService = require('./scheduledEventService');
@@ -714,3 +739,4 @@ const ProjectService = require('./projectService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
+const flattenArray = require('../utils/flattenArray');
