@@ -38,7 +38,7 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
-        "mocha": "^6.2.0",
+        "mocha": "^8.1.1",
         "npm-audit-ci-wrapper": "^2.5.1"
     },
     "directories": {
