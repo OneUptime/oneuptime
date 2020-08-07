@@ -540,12 +540,7 @@ module.exports = {
         const body = resp && resp.body ? resp.body : null;
 
         if (con && con.and && con.and.length) {
-            stat = await checkScriptAnd(
-                payload,
-                con.and,
-                status,
-                body,
-            );
+            stat = await checkScriptAnd(payload, con.and, status, body);
         } else if (con && con.or && con.or.length) {
             stat = await checkScriptOr(payload, con.or, status, body);
         }
@@ -2324,15 +2319,18 @@ const checkScriptAnd = async (payload, con, statusCode, body) => {
                 if (!(con[i] && con[i].filter && body && !body.error)) {
                     validity = false;
                 }
-            } else if (con[i] && con[i].filter && con[i].filter === 'doesNotThrowError') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotThrowError'
+            ) {
                 if (!(con[i] && con[i].filter && body && body.error)) {
                     validity = false;
                 }
             }
-
         } else if (con[i] && con[i].responseType === 'javascriptExpression') {
             if (con[i] && con[i].filter && con[i].filter !== body) {
-                    validity = false;
+                validity = false;
             }
         }
         if (
@@ -2402,16 +2400,19 @@ const checkScriptOr = async (payload, con, statusCode, body) => {
                 if (con[i] && con[i].filter && body && !body.error) {
                     validity = true;
                 }
-            } else if (con[i] && con[i].filter && con[i].filter === 'doesNotThrowError') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'doesNotThrowError'
+            ) {
                 if (con[i] && con[i].filter && body && body.error) {
                     validity = true;
                 }
             }
         } else if (con[i] && con[i].responseType === 'javascriptExpression') {
             if (con[i] && con[i].filter && con[i].filter !== body) {
-                    validity = true;
+                validity = true;
             }
-
         }
         if (
             con[i] &&

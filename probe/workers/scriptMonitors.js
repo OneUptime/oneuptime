@@ -9,8 +9,8 @@ const vm = new NodeVM({
     sandbox: {},
     require: {
         external: true,
-        root: "./",
-    }
+        root: './',
+    },
 });
 
 // it collects all monitors then ping them one by one to store their response
@@ -42,21 +42,21 @@ module.exports = {
     },
 };
 
-const runScript = async (code) => {
+const runScript = async code => {
     const now = new Date().getTime();
     let resp = null;
     let res = null;
-    const success = (value) => {
+    const success = value => {
         res = new Date().getTime() - now;
         resp = { status: 'success', body: value };
-    }
+    };
 
-    const error = (value) => {
+    const error = value => {
         res = new Date().getTime() - now;
         resp = { status: 'failed', body: value };
-    }
+    };
     try {
-        let vmRunner = vm.run(code, 'vm.js');
+        const vmRunner = vm.run(code, 'vm.js');
         vmRunner(success, error);
     } catch (err) {
         res = new Date().getTime() - now;

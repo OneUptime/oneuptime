@@ -382,7 +382,7 @@ describe('Monitor Detail API', () => {
                         utils.generateRandomBusinessEmail()
                     );
                     await page.$eval('#createSubscriber', e => e.click());
-                    await page.waitFor(1000);
+                    await page.waitFor(5000);
                 }
 
                 const createdSubscriberSelector =
