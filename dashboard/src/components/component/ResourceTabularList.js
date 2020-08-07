@@ -381,16 +381,16 @@ const mapDispatchToProps = dispatch => {
 };
 function mapStateToProps(state, props) {
     let componentResource,
-        monitors = null;
+        monitors = [];
     if (state.component.componentResourceList) {
         componentResource =
             state.component.componentResourceList[props.componentId];
     }
 
-    monitors = state.monitor.monitorsList.monitors[0]
-        ? state.monitor.monitorsList.monitors[0].monitors
-        : null;
-
+    state.monitor.monitorsList.monitors.map(monitor => {
+        monitors = monitors.concat(...monitor.monitors);
+        return monitor;
+    });
     return {
         componentResource,
         monitors,
