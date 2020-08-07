@@ -11,6 +11,8 @@ sudo snap install doctl
 sudo snap connect doctl:kube-config
 sudo snap connect doctl:ssh-keys :ssh-keys
 sudo snap connect doctl:dot-docker
+# Make .config folder
+sudo mkdir /root/.config
 #Init auth
 echo "Auth doctl"
 sudo doctl auth init -t $DIGITALOCEAN_TOKEN
