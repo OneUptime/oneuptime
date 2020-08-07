@@ -61,6 +61,8 @@ describe('Components', () => {
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(

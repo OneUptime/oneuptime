@@ -267,7 +267,8 @@ class Incident extends React.Component {
                             incident={this.props.incident}
                             deleting={this.props.deleting}
                             currentProject={this.props.currentProject}
-                            component={this.props.component[0]}
+                            component={this.props.component}
+                            componentId={this.props.componentId}
                         />
                     </RenderIfSubProjectAdmin>
                 </div>
@@ -367,6 +368,7 @@ const mapStateToProps = (state, props) => {
             ? state.incident.incident.deleteIncident.requesting
             : false,
         component,
+        componentId,
     };
 };
 
@@ -411,6 +413,7 @@ Incident.propTypes = {
             _id: PropTypes.string,
         })
     ),
+    componentId: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
 };
 

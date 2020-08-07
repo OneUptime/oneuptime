@@ -96,6 +96,7 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.$eval('#createIncident', e => e.click());
 
                 const selector = 'tr.incidentListItem';
