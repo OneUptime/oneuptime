@@ -80,14 +80,37 @@ export class MonitorViewIncidentBox extends Component {
     };
 
     filterIncidentLogs = status => {
-        const filteredIncidents =
-            this.state.incidents.length > 0
-                ? this.state.incidents.filter(incident => !incident[status])
-                : [];
+        const { monitor: incidents } = this.props;
+        const filteredIncidents = [];
+        switch (status) {
+            case 'acknowledged':
+                incidents.incidents.forEach(incident => {
+                    if (!incident.acknowledged) {
+                        filteredIncidents.push(incident);
+                    }
+                });
+                this.setState(() => ({ filteredIncidents }));
+                break;
+            case 'resolved':
+                incidents.incidents.forEach(incident => {
+                    if (!incident.resolved) {
+                        filteredIncidents.push(incident);
+                    }
+                });
+                this.setState(() => ({ filteredIncidents }));
+                break;
+            default:
+                this.setState(() => ({ filteredIncidents: [] }));
+                break;
+        }
     };
 
     render() {
-        const { createIncidentModalId, incidents } = this.state;
+        const {
+            createIncidentModalId,
+            filteredIncidents,
+            incidents,
+        } = this.state;
         const creating = this.props.create ? this.props.create : false;
 
         return (
@@ -110,15 +133,21 @@ export class MonitorViewIncidentBox extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <span className="Margin-right--8">
-                                <Dropdown
-                                // disabled={updating}
-                                >
+                                <Dropdown>
                                     <Dropdown.Toggle
-                                        // id={`changeRole_${this.props.email}`}
+                                        id="filterToggle"
                                         title="Filter By"
                                         className="bs-Button bs-DeprecatedButton"
                                     />
                                     <Dropdown.Menu>
+                                        <MenuItem
+                                            title="Clear Filters"
+                                            onClick={() =>
+                                                this.filterIncidentLogs('clear')
+                                            }
+                                        >
+                                            Clear Filters
+                                        </MenuItem>
                                         <MenuItem
                                             title="Acknowledged"
                                             onClick={() =>
@@ -184,6 +213,7 @@ export class MonitorViewIncidentBox extends Component {
                         incidents={incidents}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
+                        filteredIncidents={filteredIncidents}
                     />
                 </div>
             </div>
