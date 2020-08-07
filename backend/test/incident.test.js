@@ -633,6 +633,7 @@ describe('Incident API', function() {
                 balance: 100,
             },
         });
+        await IncidentService.hardDeleteBy({ projectId: projectId });
         const createdIncident = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
