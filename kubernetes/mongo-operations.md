@@ -10,23 +10,46 @@ Admin mongodb username is: `root`
 
 Example: 
 
-`helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=true fi ./helm-chart/public/fyipe`
+```
+# Delete audit logs (optional, but recommended)
 
-**Step 3:** Copy MongoDB from source to destination
+kubectl exec -it fi-mongodb-primary-0 bash
+mongo
+use fyipedb
+db.auth('fyipe', 'password')
+db.auditlogs.remove({})
+
+
+# Open MongoDB to the internet.
+
+kubectl delete job fi-init-script
+helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=true fi ./helm-chart/public/fyipe
+```
+
+Run 
+
+`kubectl get svc`
+
+and look for `mongo-ingress` resource. Copy External-IP address. 
+
+**Step 2:** Copy MongoDB from source to destination
 
 On the destination cluster: 
 
 ```
 kubectl exec -it fi-mongodb-primary-0 bash
-mongodump --uri="mongodb://fyipe:password@34.67.53.212:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
-mongorestore --uri="mongodb://root:root@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```
 
-**Step 4:** Block the exposed Mongodb from the internet
+**Step 3:** Block the exposed Mongodb from the internet
 
 On source cluster: 
 
-`helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=false fi ./helm-chart/public/fyipe`
+```
+kubectl delete job fi-init-script
+helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=false fi ./helm-chart/public/fyipe
+```
 
 ## Method 2: Copy data locally and move to another MognoDB server. 
 
@@ -77,7 +100,7 @@ Syntax:
 
 Example: 
 
-`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://root:Q5YzzJTZ6Vdfu0yEtz06@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive
+`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 ## Misc commands
 
