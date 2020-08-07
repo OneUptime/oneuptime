@@ -267,6 +267,7 @@ class Incident extends React.Component {
                             incident={this.props.incident}
                             deleting={this.props.deleting}
                             currentProject={this.props.currentProject}
+                            component={this.props.component}
                             componentId={this.props.componentId}
                         />
                     </RenderIfSubProjectAdmin>
