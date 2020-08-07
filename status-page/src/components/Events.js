@@ -25,18 +25,46 @@ class Events extends Component {
                                 <div className="text">
                                     <span
                                         style={{
-                                            fontWeight: 'Bold',
-                                            ...this.props.primaryTextColor,
+                                            ...this.props.secondaryTextColor,
+                                            fontWeight: 'bold',
                                         }}
                                     >
-                                        {event.monitorId.name
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            event.monitorId.name.substr(1)}
+                                        Monitor
                                     </span>
                                     :{' '}
-                                    <span style={this.props.secondaryTextColor}>
-                                        {event.name}.
+                                    <span
+                                        style={{
+                                            fontWeight: 'Bold',
+                                            ...this.props.primaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
+                                        {event.monitors[0].monitorId.name
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            event.monitors[0].monitorId.name.substr(
+                                                1
+                                            )}
+                                    </span>
+                                </div>
+                                <div className="text">
+                                    <span
+                                        style={{
+                                            ...this.props.secondaryTextColor,
+                                            fontWeight: 'bold',
+                                        }}
+                                    >
+                                        Event
+                                    </span>
+                                    :{' '}
+                                    <span
+                                        style={{
+                                            fontWeight: 'Bold',
+                                            ...this.props.primaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
+                                        {event.name}
                                     </span>
                                 </div>
                             </div>
