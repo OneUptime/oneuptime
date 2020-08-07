@@ -84,7 +84,7 @@ class IncidentPriorities extends React.Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name="Incident priorities"
+                        name="Incident Settings"
                     />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">

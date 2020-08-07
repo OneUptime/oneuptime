@@ -365,7 +365,7 @@ export const groups = [
                         index: 9,
                     },
                     {
-                        title: 'Incidents',
+                        title: 'Incident Settings',
                         path:
                             '/dashboard/project/:projectId/settings/incidents',
                         visible: true,
