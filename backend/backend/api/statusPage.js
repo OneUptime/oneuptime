@@ -643,7 +643,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
     const query = {
-        monitorId: req.params.monitorId,
+        'monitors.monitorId': req.params.monitorId,
         showEventOnStatusPage: true,
         deleted: false,
         startDate: { $lt: end },
