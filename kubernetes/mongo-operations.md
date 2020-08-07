@@ -90,26 +90,26 @@ Follow these steps on the destination cluster.
 
 Syntax: 
 
-`kubectl cp <localfilePath> <pod>:<filepath> `
+`sudo kubectl cp <localfilePath> <pod>:<filepath> `
 
 Example: 
-`kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive`
+`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive`
 
 
 **Step 2**: Mongorestore on the container.
 
 Syntax: 
 
-`kubectl exec <pod> -- mongorestore --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
+`sudo kubectl exec <pod> -- mongorestore --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
 
 Example: 
 
-`kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 ## Misc commands
 
 Get into a MongoDB container with mongo shell: 
-`kubectl exec -it fi-mongodb-primary-0 mongo`
+`sudo kubectl exec -it fi-mongodb-primary-0 mongo`
 
 ## Change / Rotate MongoDB Password
 
