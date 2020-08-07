@@ -330,7 +330,6 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
-
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`
                 );
@@ -341,9 +340,9 @@ describe('Components', () => {
                     'Offline',
                     monitorPage
                 );
+                await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
                 await monitorPage.waitFor(2000);
-
                 let monitorSpanElement = await monitorPage.waitForSelector(
                     `#monitor-status-${monitorName}`
                 );
@@ -525,6 +524,7 @@ describe('Components', () => {
                 await page.click(`#createIncident_${newMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitFor(2000);
                 await page.waitForSelector(
