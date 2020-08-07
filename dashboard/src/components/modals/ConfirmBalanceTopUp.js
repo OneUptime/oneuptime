@@ -55,6 +55,7 @@ class ConfirmBalanceTopUp extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
+                                        id="cancelBalanceTopUp"
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
@@ -62,7 +63,7 @@ class ConfirmBalanceTopUp extends Component {
                                         <span>Cancel</span>
                                     </button>
                                     <button
-                                        id="ConfirmBalanceTopUp"
+                                        id="confirmBalanceTopUp"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}

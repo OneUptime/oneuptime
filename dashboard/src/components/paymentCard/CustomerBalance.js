@@ -224,6 +224,7 @@ export class CustomerBalance extends Component {
                                                                         Current
                                                                         balance:{' '}
                                                                         <span
+                                                                            id="currentBalance"
                                                                             style={{
                                                                                 fontWeight:
                                                                                     'bold',
