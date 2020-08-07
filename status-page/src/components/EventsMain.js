@@ -59,7 +59,7 @@ class EventsMain extends Component {
         this.props.getMoreEvent(
             this.props.projectId,
             this.props.statusPageId,
-            this.props.skip + 5
+            this.props.skip + 1
         );
     };
 
@@ -197,7 +197,8 @@ class EventsMain extends Component {
                                 this.props.eventData &&
                                 this.props.eventData.events &&
                                 this.props.eventData.events.length &&
-                                this.props.count > this.props.skip + 5 &&
+                                this.props.count >
+                                    this.props.eventData.events.length &&
                                 !this.props.eventData.requesting &&
                                 !this.props.requestingmoreevents &&
                                 !this.props.eventData.error &&
