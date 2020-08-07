@@ -68,13 +68,15 @@ export class SidebarNavItem extends Component {
                         >
                             <span>{route.title}</span>
                         </span>
-                        <ShouldRender if={route.shortcut}>
+                        {route.shortcut && (
                             <span className="tooltiptext">
                                 <strong>{routes[0]}</strong>
-                                <span> then </span>
+                                <span> + </span>
                                 <strong>{routes[1]}</strong>
+                                <span> + </span>
+                                <strong>{routes[2]}</strong>
                             </span>
-                        </ShouldRender>
+                        )}
                     </div>
                 </div>
             </div>
@@ -165,13 +167,15 @@ export class SidebarNavItem extends Component {
                                                     {child.title}
                                                 </span>
                                             </span>
-                                            <ShouldRender if={child.shortcut}>
+                                            {child.shortcut && (
                                                 <span className="tooltiptext">
                                                     <strong>{routes[0]}</strong>
-                                                    <span> then </span>
+                                                    <span> + </span>
                                                     <strong>{routes[1]}</strong>
+                                                    <span> + </span>
+                                                    <strong>{routes[2]}</strong>
                                                 </span>
-                                            </ShouldRender>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

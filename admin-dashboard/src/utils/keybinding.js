@@ -15,17 +15,17 @@ const keyBind = (event, route, keys, resetKeys) => {
     let shortcut = [];
     if (route.shortcut) {
         shortcut = route.shortcut.split('+');
+        keys.push(event.key.toLowerCase());
 
-        // reasons to use keydown
-        // 1 --> gives the user impression that they can press and hold two keys simultaneously
-        // 2 --> accommodate users that don't like pressing and holding two keys simultaneously (which is the actual behaviour, (^-^))
-        keys.push(event.key);
-        if (keys.length === 1 && !initKeys.includes(event.key)) {
-            resetKeys();
-        }
+        if (keys.length === 1 && keys[0] !== 'control') resetKeys();
+        if (keys.length === 2 && !initKeys.includes(keys[1])) resetKeys();
 
-        if (keys.length === 2) {
-            if (keys[0] === shortcut[0] && keys[1] === shortcut[1]) {
+        if (keys.length === 3) {
+            if (
+                keys[0] === 'control' &&
+                keys[1] === shortcut[1] &&
+                keys[2] === shortcut[2]
+            ) {
                 resetKeys();
                 if (route.path.includes('dashboard')) {
                     return window.location.replace(route.path);
@@ -40,6 +40,9 @@ const keyBind = (event, route, keys, resetKeys) => {
 export const navKeyBind = route => {
     let keys = [];
     const resetKeys = () => (keys = []);
+    // reasons to use keydown
+    // 1 --> gives the user impression that they can press and hold two keys simultaneously
+    // 2 --> accommodate users that don't like pressing and holding two keys simultaneously (which is the actual behaviour, (^-^))
     window.addEventListener('keydown', e => keyBind(e, route, keys, resetKeys));
 };
 
