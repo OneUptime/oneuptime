@@ -206,6 +206,7 @@ export const groups = [
                 component: Home,
                 subRoutes: [],
                 index: 1,
+                shortcut: 'p+h',
             },
             {
                 title: 'Components',
