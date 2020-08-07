@@ -145,6 +145,7 @@ describe('Incident API', function() {
         await IntegrationService.hardDeleteBy({
             monitorId,
         });
+        await IncidentService.hardDeleteBy({ projectId: projectId });
     });
 
     it('should create an incident', async function() {
@@ -153,7 +154,6 @@ describe('Incident API', function() {
             await chai
                 .request('http://127.0.0.1:3010')
                 .get('/api/webhooks/msteams');
-            throw Error();
         } catch (e) {
             expect(e.response.status).to.eql(404);
         }
@@ -161,7 +161,6 @@ describe('Incident API', function() {
             await chai
                 .request('http://127.0.0.1:3010')
                 .get('/api/webhooks/slack');
-            throw Error();
         } catch (e) {
             expect(e.response.status).to.eql(404);
         }
@@ -634,6 +633,7 @@ describe('Incident API', function() {
                 balance: 100,
             },
         });
+        await IncidentService.hardDeleteBy({ projectId: projectId });
         const createdIncident = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
