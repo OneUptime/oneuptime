@@ -65,26 +65,32 @@ export class IncidentList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '150px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Title</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Priority</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>status</span>
                                         </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                                 <td
@@ -95,20 +101,6 @@ export class IncidentList extends Component {
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Acknowledged By</span>
                                         </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="placeholder-right"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                                 <td
@@ -302,6 +294,55 @@ export class IncidentList extends Component {
                                                     </div>
                                                 </td>
                                                 <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                    style={{
+                                                        height: '1px',
+                                                    }}
+                                                >
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        {incident.title}
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                    style={{
+                                                        height: '1px',
+                                                    }}
+                                                >
+                                                    {incident.incidentPriority && (
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <div className="Flex-flex Flex-alignItems--center">
+                                                                <span
+                                                                    className="Margin-right--4"
+                                                                    style={{
+                                                                        display:
+                                                                            'inline-block',
+                                                                        backgroundColor: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
+                                                                        height:
+                                                                            '15px',
+                                                                        width:
+                                                                            '15px',
+                                                                        borderRadius:
+                                                                            '30%',
+                                                                    }}
+                                                                ></span>
+                                                                <span
+                                                                    className="Text-fontWeight--medium"
+                                                                    style={{
+                                                                        color: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        incident
+                                                                            .incidentPriority
+                                                                            .name
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>{' '}
+                                                <td
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{ height: '1px' }}
                                                 >
@@ -358,23 +399,6 @@ export class IncidentList extends Component {
                                                                     </div>
                                                                 </div>
                                                             </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                <td
-                                                    aria-hidden="true"
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{
-                                                        height: '1px',
-                                                        maxWidth: '48px',
-                                                        minWidth: '48px',
-                                                        width: '48px',
-                                                    }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            ⁣
                                                         </div>
                                                     </div>
                                                 </td>
@@ -537,23 +561,6 @@ export class IncidentList extends Component {
                                                                     ) : null}
                                                                 </div>
                                                             </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                <td
-                                                    aria-hidden="true"
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{
-                                                        height: '1px',
-                                                        maxWidth: '48px',
-                                                        minWidth: '48px',
-                                                        width: '48px',
-                                                    }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            ⁣
                                                         </div>
                                                     </div>
                                                 </td>
