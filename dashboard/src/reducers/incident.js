@@ -65,12 +65,18 @@ const initialState = {
         error: null,
         success: false,
     },
+    editIncident: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
     fetchIncidentTimelineRequest: false,
     incidentMessages: {},
 };
 
 export default function incident(state = initialState, action) {
     let incidents,
+        index,
         isExistingIncident,
         failureIncidentMessage,
         requestIncidentMessage,
@@ -203,6 +209,59 @@ export default function incident(state = initialState, action) {
                     error: action.payload,
                     success: false,
                     monitorId: null,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_REQUEST:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_SUCCESS:
+            incidents = Object.assign([], state.incidents.incidents);
+            index = incidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index >= 0) incidents[index] = action.payload;
+            return Object.assign({}, state, {
+                incidents: {
+                    ...state.incidents,
+                    incidents,
+                },
+                incident: {
+                    ...state.incident,
+                    incident: action.payload,
+                },
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_FAILED:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_RESET:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: false,
                 },
             });
 
