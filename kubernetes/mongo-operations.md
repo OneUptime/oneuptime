@@ -8,9 +8,9 @@ Admin mongodb username is: `root`
 
 **Step 1:** Expose Mongodb over the internet on source cluster.
 
-Run these on source cluster: 
+Run these on source cluster:
 
-Example: 
+Example:
 
 ```
 # Delete audit logs (optional, but recommended)
@@ -89,9 +89,9 @@ Follow these steps on the destination cluster.
 
 Syntax:
 
-`sudo kubectl cp <localfilePath> <pod>:<filepath> `
+`sudo kubectl cp <localfilePath> <pod>:<filepath>`
 
-Example: 
+Example:
 `sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive`
 
 **Step 2**: Mongorestore on the container.
@@ -106,7 +106,7 @@ Example:
 
 ## Misc commands
 
-Get into a MongoDB container with mongo shell: 
+Get into a MongoDB container with mongo shell:
 `sudo kubectl exec -it fi-mongodb-primary-0 mongo`
 
 ## Change / Rotate MongoDB Password

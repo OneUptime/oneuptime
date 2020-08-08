@@ -261,7 +261,9 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
-                            monitorState.monitorIssue.data.performance
+                            monitorState.monitorIssue.data.performance &&
+                            monitorState.monitorIssue.data.performance.length >
+                                0
                         }
                     >
                         <WebsiteIssuesBox
@@ -275,7 +277,9 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.accessibility &&
                             monitorState.monitorIssue.data.accessibility
+                                .length > 0
                         }
                     >
                         <WebsiteIssuesBox
@@ -291,7 +295,9 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
+                            monitorState.monitorIssue.data.bestPractices &&
                             monitorState.monitorIssue.data.bestPractices
+                                .length > 0
                         }
                     >
                         <WebsiteIssuesBox
@@ -307,7 +313,8 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
-                            monitorState.monitorIssue.data.seo
+                            monitorState.monitorIssue.data.seo &&
+                            monitorState.monitorIssue.data.seo.length > 0
                         }
                     >
                         <WebsiteIssuesBox
@@ -321,7 +328,8 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
-                            monitorState.monitorIssue.data.pwa
+                            monitorState.monitorIssue.data.pwa &&
+                            monitorState.monitorIssue.data.pwa.length > 0
                         }
                     >
                         <WebsiteIssuesBox
