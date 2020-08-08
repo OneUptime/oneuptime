@@ -140,14 +140,14 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
+                await page.waitForSelector('span#Components-text');
+                await page.click('span#Components-text');
 
                 await page.waitForSelector(
                     `button[id=view-resource-${monitorName}]`
                 );
                 await page.click(`button[id=view-resource-${monitorName}]`);
-                await init.addIncident(monitorName, 'Offline', page);
+                await init.addMonitorIncident(monitorName, 'Offline', page);
                 await page.waitForSelector('#closeIncident_0', {
                     visible: true,
                 });
