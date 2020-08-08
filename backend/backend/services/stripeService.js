@@ -280,13 +280,14 @@ const Services = {
             const metadata = {
                 projectId,
             };
-            const paymentIntent = await this.createInvoice(
+            let paymentIntent = await this.createInvoice(
                 stripechargeAmount,
                 stripeCustomerId,
                 description,
                 metadata
             );
-            ///IMPORTANT: Balance gets updated via Stripe Webhook if payment is successfull.
+            // IMPORTANT: Payment Intent is sent for confirmation instally, not using the Stripe Webhook anymore.
+            paymentIntent = this.confirmPayment(paymentIntent);
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.addBalance', error);
@@ -368,6 +369,18 @@ const Services = {
             return paymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.makeTestCharge', error);
+            throw error;
+        }
+    },
+    confirmPayment: async function(paymentIntent) {
+        try {
+            const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+                paymentIntent.id
+            );
+            await this.updateBalance(confirmedPaymentIntent);
+            return confirmedPaymentIntent;
+        } catch (error) {
+            ErrorService.log('stripeService.confirmPayment', error);
             throw error;
         }
     },
