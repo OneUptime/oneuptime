@@ -407,6 +407,40 @@ router.put(
     }
 );
 
+// update incident details
+// title, description, priority and type
+router.put(
+    '/:projectId/incident/:incidentId/details',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        const projectId = req.params.projectId;
+        const incidentId = req.params.incidentId;
+        const data = req.body;
+        if (!incidentId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'incidentId must be set.',
+            });
+        }
+        try {
+            await IncidentService.updateOneBy(
+                {
+                    projectId,
+                    _id: incidentId,
+                },
+                data
+            );
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 router.post(
     '/:projectId/incident/:incidentId/message',
     getUser,
