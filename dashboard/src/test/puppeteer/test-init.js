@@ -113,9 +113,9 @@ module.exports = {
         await page.waitFor(3000);
     },
     addComponent: async function(component, page, projectName = null) {
-        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('span#Components-text');
+        await page.click('span#Components-text');
         await page.waitForSelector('#components', { visible: true });
-
         await page.click('#components');
 
         // Fill and submit New Component form
@@ -532,15 +532,24 @@ module.exports = {
         ]);
     },
     addIncident: async function(monitorName, incidentType, page) {
-        await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector(`button[id=view-resource-${monitorName}]`);
-        await page.click(`button[id=view-resource-${monitorName}]`);
+        await page.waitForSelector(`button[id=create_incident_${monitorName}]`);
+        await page.click(`button[id=create_incident_${monitorName}]`);
+        await page.waitForSelector('button[id=createIncident]');
+        await this.selectByText('#incidentType', incidentType, page);
+        await page.waitForSelector('input[id=title]');
+        await page.type('input[id=title]', incidentType);
+        await page.click('button[id=createIncident]');
+        await page.waitFor(5000);
+    },
+    addMonitorIncident: async function(monitorName, incidentType, page) {
         await page.waitForSelector(
             `button[id=monitorCreateIncident_${monitorName}]`
         );
         await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
         await page.waitForSelector('button[id=createIncident]');
         await this.selectByText('#incidentType', incidentType, page);
+        await page.waitForSelector('input[id=title]');
+        await page.type('input[id=title]', incidentType);
         await page.click('button[id=createIncident]');
         await page.waitFor(5000);
     },
