@@ -120,7 +120,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 2,
-                        shortcut: 'ctrl+s+m',
+                        shortcut: 'ctrl+s+p',
                     },
                     {
                         title: 'Twilio',
