@@ -57,6 +57,7 @@ class Projects extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <div
+                    id="fyipeProject"
                     onKeyDown={this.handleKeyBoard}
                     className="Box-root Margin-vertical--12"
                 >
