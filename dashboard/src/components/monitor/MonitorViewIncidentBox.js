@@ -141,7 +141,7 @@ export class MonitorViewIncidentBox extends Component {
                                     />
                                     <Dropdown.Menu>
                                         <MenuItem
-                                            title="Clear Filters"
+                                            title="clear"
                                             onClick={() =>
                                                 this.filterIncidentLogs('clear')
                                             }
@@ -149,7 +149,7 @@ export class MonitorViewIncidentBox extends Component {
                                             Clear Filters
                                         </MenuItem>
                                         <MenuItem
-                                            title="Acknowledged"
+                                            title="unacknowledged"
                                             onClick={() =>
                                                 this.filterIncidentLogs(
                                                     'acknowledged'
@@ -159,7 +159,7 @@ export class MonitorViewIncidentBox extends Component {
                                             Unacknowledged
                                         </MenuItem>
                                         <MenuItem
-                                            title="Resolved"
+                                            title="unresolved"
                                             onClick={() =>
                                                 this.filterIncidentLogs(
                                                     'resolved'
