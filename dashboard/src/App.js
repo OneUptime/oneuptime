@@ -75,7 +75,7 @@ const App = () => (
                     key={'404'}
                     component={NotFound}
                 />
-                <Redirect to="/dashboard/project/project/components" />
+                <Redirect to="/dashboard/project/project" />
             </Switch>
         </Router>
         <BackboneModals />

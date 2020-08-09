@@ -138,6 +138,29 @@ describe('Notification API', function() {
             });
     });
 
+    it('should close a notification', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/notification/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                message: 'New Notification',
+                icon: 'bell',
+            })
+            .end(function(err, res) {
+                const notificationId = res.body._id;
+                request
+                    .put(`/notification/${projectId}/${notificationId}/closed`)
+                    .set('Authorization', authorization)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.be.an('object');
+                        expect(res.body._id).to.be.equal(notificationId);
+                        done();
+                    });
+            });
+    });
+
     it('should mark all project notifications as read', function(done) {
         const authorization = `Basic ${token}`;
         request

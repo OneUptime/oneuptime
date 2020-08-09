@@ -2,6 +2,7 @@ import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
 
 const {
+    Home,
     Settings,
     TeamMembers,
     TeamMemberProfile,
@@ -191,6 +192,16 @@ export const groups = [
         visible: true,
         routes: [
             {
+                title: 'Home',
+                path: '/dashboard/project/:projectId',
+                icon: 'home',
+                exact: true,
+                visible: true,
+                component: Home,
+                subRoutes: [],
+                index: 1,
+            },
+            {
                 title: 'Components',
                 path: '/dashboard/project/:projectId/components',
                 icon: 'square',
@@ -198,7 +209,7 @@ export const groups = [
                 visible: true,
                 exact: true,
                 subRoutes: [],
-                index: 1,
+                index: 2,
             },
             {
                 title: 'Status Pages',

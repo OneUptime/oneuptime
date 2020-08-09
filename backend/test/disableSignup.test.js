@@ -45,24 +45,14 @@ describe('Disable Sign up test', function() {
     });
 
     it('should not sign up the user when sign up is disabled', done => {
-        createUser(request, data.user, function(err) {
-            if (
-                err &&
-                err.response &&
-                err.response.body &&
-                err.response.body.message
-            ) {
-                expect(err.response.body.message).to.be.equals(
-                    'Sign up is disabled.'
-                );
-                done();
-            } else {
-                done(new Error('User signed up'));
-            }
+        createUser(request, data.user, function(err, res) {
+            expect(res).to.have.status(400);
+            expect(res.body.message).to.be.equal('Sign up is disabled.');
+            done();
         });
     });
 
-    it('should sign up a new when user is admin.', done => {
+    it('should sign up a new user when user is admin', done => {
         const authorization = `Basic ${token}`;
         request
             .post('/stripe/checkCard')
@@ -85,12 +75,12 @@ describe('Disable Sign up test', function() {
                             },
                             ...data.anotherUser,
                         })
-                        .end(function(err) {
-                            if (err) {
-                                done(err);
-                            } else {
-                                done();
-                            }
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.have.property('email');
+                            expect(res.body).to.have.property('role');
+                            expect(res.body.role).to.equal('user');
+                            done();
                         });
                 });
             });

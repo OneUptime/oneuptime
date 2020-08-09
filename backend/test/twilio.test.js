@@ -171,7 +171,7 @@ describe('Twilio API', function() {
         });
     });
 
-    it('should return status code 500 (server error) when accountSid is invalid', done => {
+    it('should return status code 400 when accountSid is invalid', done => {
         const authorization = `Basic ${token}`;
 
         GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
@@ -188,7 +188,7 @@ describe('Twilio API', function() {
                 .set('Authorization', authorization)
                 .send(payload)
                 .end((err, res) => {
-                    expect(res).to.have.status(500);
+                    expect(res).to.have.status(400);
                     done();
                 });
         });

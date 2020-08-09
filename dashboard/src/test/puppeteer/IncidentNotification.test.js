@@ -19,6 +19,7 @@ describe('Incident Created test', () => {
     const operationTimeOut = 500000;
 
     let cluster;
+    const monitorName = utils.generateRandomString();
 
     beforeAll(async () => {
         jest.setTimeout(500000);
@@ -52,7 +53,6 @@ describe('Incident Created test', () => {
         async () => {
             const projectName = 'Project1';
             const componentName = 'Home Page';
-            const monitorName = 'My Monitor';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 // Rename project
@@ -66,9 +66,10 @@ describe('Incident Created test', () => {
 
                 await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(null, monitorName, page);
-                await init.addIncidentToProject(monitorName, projectName, page);
+                await init.addIncident(monitorName, 'Degraded', page);
                 const viewIncidentButton = await page.$(
-                    'button[id=viewIncident-0]'
+                    'button[id=viewIncident-0]',
+                    { visible: true }
                 );
                 expect(viewIncidentButton).not.toEqual(null);
             });
@@ -117,6 +118,8 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 await page.waitForSelector('button[id=viewIncident-0]');
                 await page.click('button[id=viewIncident-0]');
@@ -125,6 +128,76 @@ describe('Incident Created test', () => {
                 pageTitle = await pageTitle.jsonValue();
                 pageTitle.should.be.exactly('Incident');
                 expect(pageTitle).not.toEqual(null);
+                await init.logout(page);
+                await init.loginUser(user, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should close an incident',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.waitForSelector(
+                    `button[id=view-resource-${monitorName}]`
+                );
+                await page.click(`button[id=view-resource-${monitorName}]`);
+                await init.addIncident(monitorName, 'Offline', page);
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.click('#closeIncident_0');
+                await page.waitFor(5000);
+                const closeButton = await page.$('span#closeIncident_0');
+                expect(closeButton).toEqual(null);
+                await init.logout(page);
+                await init.loginUser(user1, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should show closed incident to other team members',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(projectName, page);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+                await page.waitFor(5000);
+
+                const viewIncidentButton = await page.$(
+                    'button[id=viewIncident-0]'
+                );
+                expect(viewIncidentButton).not.toEqual(null);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should show active incidents on the dashboard',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(projectName, page);
+                await page.waitFor(5000);
+                let activeIncidents = await page.$('span#activeIncidents', {
+                    visible: true,
+                });
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('2 Incidents Currently Active');
             });
         },
         operationTimeOut

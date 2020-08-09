@@ -1,3 +1,5 @@
+import Home from './Home';
+
 import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
@@ -46,6 +48,7 @@ import DeleteAccountPage from './DeleteAccountPage';
 
 export default {
     ChangePassword,
+    Home,
     Monitor,
     Component,
     Settings,

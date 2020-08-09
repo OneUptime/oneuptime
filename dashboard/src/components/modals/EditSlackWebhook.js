@@ -128,7 +128,7 @@ class EditWebHook extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="endpoint"
-                                                            placeholder="Enter webhook url"
+                                                            placeholder="Enter Slack Webhook URL"
                                                             id="endpoint"
                                                             type="url"
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
