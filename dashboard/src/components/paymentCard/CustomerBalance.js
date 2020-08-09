@@ -16,6 +16,8 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, env, User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
+import DataPathHoC from '../DataPathHoC';
 
 function validate(value) {
     const errors = {};
@@ -24,6 +26,8 @@ function validate(value) {
         errors.rechargeBalanceAmount = 'Amount is required';
     } else if (!Validate.number(value.rechargeBalanceAmount)) {
         errors.rechargeBalanceAmount = 'Enter a valid number';
+    } else if (!Validate.numberGreaterThanZero(value.rechargeBalanceAmount)) {
+        errors.rechargeBalanceAmount = 'Enter a valid number greater than 0';
     }
 
     return errors;
@@ -32,14 +36,15 @@ function validate(value) {
 export class CustomerBalance extends Component {
     state = {
         MessageBoxId: uuid.v4(),
+        createTopUpModalId: uuid.v4(),
     };
 
     submitForm = values => {
-        const { addBalance, projectId, openModal, currentProject } = this.props;
+        const { projectId, openModal, currentProject } = this.props;
         const userId = User.getUserId();
 
         if (isOwnerOrAdmin(userId, currentProject)) {
-            const { MessageBoxId } = this.state;
+            const { createTopUpModalId } = this.state;
             const { rechargeBalanceAmount } = values;
             if (SHOULD_LOG_ANALYTICS) {
                 logEvent(
@@ -49,19 +54,15 @@ export class CustomerBalance extends Component {
             }
 
             if (rechargeBalanceAmount) {
-                addBalance(projectId, values)
-                    .then(() => {
-                        const { paymentIntent } = this.props;
-                        this.handlePaymentIntent(paymentIntent.client_secret);
-                    })
-                    .catch(err => {
-                        openModal({
-                            id: MessageBoxId,
-                            content: MessageBox,
-                            title: 'Message',
-                            message: err.message,
-                        });
-                    });
+                openModal({
+                    id: createTopUpModalId,
+                    onClose: () => '',
+                    onConfirm: () => this.sendPayment(values),
+                    content: DataPathHoC(ConfirmBalanceTopUp, {
+                        amount: values.rechargeBalanceAmount,
+                        isRequesting: this.props.isRequesting,
+                    }),
+                });
             }
         } else {
             openModal({
@@ -69,6 +70,23 @@ export class CustomerBalance extends Component {
                 content: Unauthorised,
             });
         }
+    };
+    sendPayment = values => {
+        const { addBalance, projectId, openModal } = this.props;
+        const { MessageBoxId } = this.state;
+        return addBalance(projectId, values)
+            .then(() => {
+                const { paymentIntent } = this.props;
+                this.handlePaymentIntent(paymentIntent.client_secret);
+            })
+            .catch(err => {
+                openModal({
+                    id: MessageBoxId,
+                    content: MessageBox,
+                    title: 'Message',
+                    message: err.message,
+                });
+            });
     };
     handlePaymentIntent = paymentIntentClientSecret => {
         const { stripe, openModal, getProjects, balance } = this.props;
@@ -208,6 +226,7 @@ export class CustomerBalance extends Component {
                                                                         Current
                                                                         balance:{' '}
                                                                         <span
+                                                                            id="currentBalance"
                                                                             style={{
                                                                                 fontWeight:
                                                                                     'bold',

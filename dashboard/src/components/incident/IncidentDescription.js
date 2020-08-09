@@ -58,6 +58,7 @@ function IncidentDescription(props) {
                                                             props.incident
                                                                 .monitorId._id
                                                         }
+                                                        id="backToMonitorView"
                                                     >
                                                         {
                                                             props.incident
