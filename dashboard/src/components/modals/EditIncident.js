@@ -190,7 +190,7 @@ class EditIncident extends Component {
                                         <span>Cancel</span>
                                     </button>
                                     <button
-                                        id="createIncident"
+                                        id="saveIncident"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
                                             editIncident &&
