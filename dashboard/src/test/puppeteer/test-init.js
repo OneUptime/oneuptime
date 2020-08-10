@@ -372,6 +372,21 @@ module.exports = {
             await page.waitFor(5000);
         }
     },
+    addIncidentPriority: async function(incidentPriority, page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('#incidentSettings');
+        await page.click('#incidentSettings');
+        await page.waitForSelector('#addNewPriority');
+        await page.click('#addNewPriority');
+        await page.waitForSelector('#CreateIncidentPriority');
+        await page.type('input[name=name]', incidentPriority);
+        await page.click('#CreateIncidentPriority');
+        await page.waitFor(3000);
+    },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
