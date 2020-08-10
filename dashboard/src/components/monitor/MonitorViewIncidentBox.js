@@ -20,14 +20,8 @@ export class MonitorViewIncidentBox extends Component {
         super(props);
         this.state = {
             createIncidentModalId: uuid.v4(),
-            incidents: {},
             filteredIncidents: [],
         };
-    }
-
-    componentDidMount() {
-        const { monitor } = this.props;
-        this.setState(() => ({ incidents: monitor }));
     }
 
     prevClicked = () => {
@@ -80,11 +74,11 @@ export class MonitorViewIncidentBox extends Component {
     };
 
     filterIncidentLogs = status => {
-        const { monitor: incidents } = this.props;
+        const { monitor } = this.props;
         const filteredIncidents = [];
         switch (status) {
             case 'acknowledged':
-                incidents.incidents.forEach(incident => {
+                monitor.incidents.forEach(incident => {
                     if (!incident.acknowledged) {
                         filteredIncidents.push(incident);
                     }
@@ -92,7 +86,7 @@ export class MonitorViewIncidentBox extends Component {
                 this.setState(() => ({ filteredIncidents }));
                 break;
             case 'resolved':
-                incidents.incidents.forEach(incident => {
+                monitor.incidents.forEach(incident => {
                     if (!incident.resolved) {
                         filteredIncidents.push(incident);
                     }
@@ -106,11 +100,7 @@ export class MonitorViewIncidentBox extends Component {
     };
 
     render() {
-        const {
-            createIncidentModalId,
-            filteredIncidents,
-            incidents,
-        } = this.state;
+        const { createIncidentModalId, filteredIncidents } = this.state;
         const creating = this.props.create ? this.props.create : false;
 
         return (
@@ -210,7 +200,7 @@ export class MonitorViewIncidentBox extends Component {
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList
                         componentId={this.props.componentId}
-                        incidents={incidents}
+                        incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
