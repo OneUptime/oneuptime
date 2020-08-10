@@ -90,7 +90,7 @@ describe('Incident Priority API', () => {
         await page.click('input[name=name]',{clickCount:3});
         await page.keyboard.press('Backspace');
         await page.type('input[name=name]','Medium');
-        await page.click('#EditIncidentPrioriy');
+        await page.click('#EditIncidentPriority');
         await page.waitFor(3000);
         await page.reload({
           waitUntil: 'networkidle0',
