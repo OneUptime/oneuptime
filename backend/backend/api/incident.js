@@ -416,7 +416,14 @@ router.put(
     async function(req, res) {
         const projectId = req.params.projectId;
         const incidentId = req.params.incidentId;
-        const data = req.body;
+        const { title, description, incidentPriority } = req.body;
+
+        const query = {
+            title,
+            description,
+            incidentPriority,
+        };
+
         if (!incidentId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -429,7 +436,7 @@ router.put(
                     projectId,
                     _id: incidentId,
                 },
-                data
+                query
             );
             const incident = await IncidentService.findOneBy({
                 projectId,
