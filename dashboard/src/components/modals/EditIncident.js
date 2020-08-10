@@ -234,8 +234,8 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
-    const incident = state.incident.incident.incident;
+function mapStateToProps(state,ownProps) {
+    const incident = ownProps.data.incident;
     const initialValues = {
         title: incident.title,
         description: incident.description,
