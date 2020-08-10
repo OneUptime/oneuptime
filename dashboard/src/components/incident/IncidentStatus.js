@@ -130,7 +130,8 @@ export class IncidentStatus extends Component {
                                             id: this.state.editIncidentModalId,
                                             content: DataPathHoC(EditIncident, {
                                                 incident: this.props.incident,
-                                                incidentId:this.props.incident._id
+                                                incidentId: this.props.incident
+                                                    ._id,
                                             }),
                                         });
                                     }}

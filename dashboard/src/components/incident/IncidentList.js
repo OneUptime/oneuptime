@@ -299,54 +299,54 @@ export class IncidentList extends Component {
                                                 </div>
                                             </td>
                                             <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                    style={{
-                                                        height: '1px',
-                                                    }}
-                                                >
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{
+                                                    height: '1px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    {incident.title}
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{
+                                                    height: '1px',
+                                                }}
+                                            >
+                                                {incident.incidentPriority && (
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        {incident.title}
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                    style={{
-                                                        height: '1px',
-                                                    }}
-                                                >
-                                                    {incident.incidentPriority && (
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            <div className="Flex-flex Flex-alignItems--center">
-                                                                <span
-                                                                    className="Margin-right--4"
-                                                                    style={{
-                                                                        display:
-                                                                            'inline-block',
-                                                                        backgroundColor: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
-                                                                        height:
-                                                                            '15px',
-                                                                        width:
-                                                                            '15px',
-                                                                        borderRadius:
-                                                                            '30%',
-                                                                    }}
-                                                                ></span>
-                                                                <span
-                                                                    className="Text-fontWeight--medium"
-                                                                    style={{
-                                                                        color: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        incident
-                                                                            .incidentPriority
-                                                                            .name
-                                                                    }
-                                                                </span>
-                                                            </div>
+                                                        <div className="Flex-flex Flex-alignItems--center">
+                                                            <span
+                                                                className="Margin-right--4"
+                                                                style={{
+                                                                    display:
+                                                                        'inline-block',
+                                                                    backgroundColor: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
+                                                                    height:
+                                                                        '15px',
+                                                                    width:
+                                                                        '15px',
+                                                                    borderRadius:
+                                                                        '30%',
+                                                                }}
+                                                            ></span>
+                                                            <span
+                                                                className="Text-fontWeight--medium"
+                                                                style={{
+                                                                    color: `rgba(${incident.incidentPriority.color.r},${incident.incidentPriority.color.g},${incident.incidentPriority.color.b},${incident.incidentPriority.color.a})`,
+                                                                }}
+                                                            >
+                                                                {
+                                                                    incident
+                                                                        .incidentPriority
+                                                                        .name
+                                                                }
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                </td>
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}

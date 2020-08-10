@@ -184,7 +184,7 @@ class CreateIncidentPriority extends Component {
                                             this.props.newIncidentPriority
                                                 .requesting
                                         }
-                                        id='CreateIncidentPriority'
+                                        id="CreateIncidentPriority"
                                     >
                                         <ShouldRender
                                             if={

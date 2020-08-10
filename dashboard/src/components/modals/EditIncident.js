@@ -234,12 +234,14 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state,ownProps) {
+function mapStateToProps(state, ownProps) {
     const incident = ownProps.data.incident;
     const initialValues = {
         title: incident.title,
         description: incident.description,
-        incidentPriority: incident.incidentPriority ? incident.incidentPriority._id: null,
+        incidentPriority: incident.incidentPriority
+            ? incident.incidentPriority._id
+            : null,
         incidentType: incident.incidentType,
     };
     return {

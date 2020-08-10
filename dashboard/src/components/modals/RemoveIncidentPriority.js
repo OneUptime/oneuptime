@@ -84,7 +84,7 @@ class RemoveIncidentPriority extends Component {
                                             this.props.deleteIncidentPriority
                                                 .requesting
                                         }
-                                        id='RemoveIncidentPriority'
+                                        id="RemoveIncidentPriority"
                                     >
                                         <span>Delete</span>
                                         <ShouldRender
