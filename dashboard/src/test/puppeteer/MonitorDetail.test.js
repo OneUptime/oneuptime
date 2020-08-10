@@ -83,7 +83,7 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and create an incident',
         async () => {
-            expect.assertions(1);
+            expect.assertions(2);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -98,13 +98,17 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('#title', 'new incident');
+                await init.selectByText('#incidentPriority', priorityName, page);
+                await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
-
                 expect((await page.$$(selector)).length).toEqual(1);
+
+                const selector1 = 'tr.incidentListItem:first-of-type';
+                const rowContent = await page.$eval(selector1, e => e.textContent);
+                expect(rowContent).toContain(priorityName)
             });
         },
         operationTimeOut
