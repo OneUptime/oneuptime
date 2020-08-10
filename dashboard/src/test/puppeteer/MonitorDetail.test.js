@@ -14,6 +14,7 @@ const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
+const priorityName = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = 500000;
@@ -48,6 +49,7 @@ describe('Monitor Detail API', () => {
             await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
+            await init.addIncidentPriority(priorityName, page);
         });
     });
 
