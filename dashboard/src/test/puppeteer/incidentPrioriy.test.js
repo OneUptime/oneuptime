@@ -44,7 +44,7 @@ describe('Monitor API', () => {
   });
 
   test(
-    'Should create incident priority',
+    'Should create incident priority.',
     async () => {
       return await cluster.execute(null, async ({ page }) => {
         await page.goto(utils.DASHBOARD_URL, {
@@ -67,6 +67,38 @@ describe('Monitor API', () => {
         await page.waitForSelector(firstRowFirstColumnIndentifier);
         const content = await page.$eval(firstRowFirstColumnIndentifier, e=> e.textContent)
         expect(content).toEqual('High');
+      })
+    },
+    operationTimeOut
+  );
+
+  test(
+    'Should edit incident priority.',
+    async () => {
+      return await cluster.execute(null, async ({ page }) => {
+        await page.goto(utils.DASHBOARD_URL, {
+          waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('#incidentSettings');
+        await page.click('#incidentSettings');
+        const editButtonFirstRowIndentifier= '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:first-child>button';
+        await page.waitForSelector(editButtonFirstRowIndentifier);
+        await page.click(editButtonFirstRowIndentifier);
+        await page.waitForSelector('#EditIncidentPrioriy');
+        await page.click('input[name=name]',{clickCount:3});
+        await page.keyboard.press('Backspace');
+        await page.type('input[name=name]','Medium');
+        await page.click('#EditIncidentPrioriy');
+        await page.waitFor(3000);
+        await page.reload({
+          waitUntil: 'networkidle0',
+        });
+        const firstRowIndentifier= '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:first-child';
+        await page.waitForSelector(firstRowIndentifier);
+        const content = await page.$eval(firstRowIndentifier, e=> e.textContent)
+        expect(content).toEqual('Medium');
       })
     },
     operationTimeOut
