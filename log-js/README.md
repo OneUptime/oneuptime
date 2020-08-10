@@ -19,11 +19,13 @@ $ npm install fyipe-log-js
 
 ## Basic Usage
 
+### In a Node.js Project
+
 ```javascript
-import Logger from 'fyipe-log-js';
+import FyipeLogger from 'fyipe-log-js';
 
 // constructor
-const logger = new Logger(
+const logger = new FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
@@ -54,6 +56,35 @@ const tag = 'testing';
 logger.log(item, tag);
 ```
 
+### In the Browser
+
+```javascript
+<script src="./logger.js"></script>
+    <script>
+      function logError() {
+        const logger = new FyipeLogger.default(
+            'API_URL', // https://fyipe.com/api
+            'APPLICATION_LOG_ID',
+            'APPLICATION_LOG_KEY'
+        );
+
+        logger.error("I logged this error", ['server', 'monitor']).then(
+          (res) => console.log(res),
+          (err) => console.log(err)
+        );
+        // Sending a string log to the server
+        const item = 'This is a simple log';
+
+        logger.log(item); // returns a promise
+
+        // Alternatively, Logs can be tagged with either a string or an array of strings
+        const item = 'This is a simple log';
+        const tags = ['server', 'monitor'];
+        logger.log(item, tags);
+    }
+    </script>
+```
+
 ## API Documentation
 
 Main API to send logs to the server.
@@ -64,8 +95,10 @@ Main API to send logs to the server.
     -   [Installation](#installation)
         -   [NPM Install](#npm-install)
     -   [Basic Usage](#basic-usage)
+        -   [In a Node.js Project](#in-a-nodejs-project)
+        -   [In the Browser](#in-the-browser)
     -   [API Documentation](#api-documentation)
-        -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
+        -   [new FyipeLogger(apiUrl, applicationId, applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(log, tags)](#loggerwarninglog-tags)
             -   [logger.error(log, tags)](#loggererrorlog-tags)
@@ -73,7 +106,7 @@ Main API to send logs to the server.
 
 <a name="logger_api--logger"></a>
 
-### new Logger(apiUrl, applicationId, applicationKey)
+### new FyipeLogger(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -90,7 +123,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -102,7 +135,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -114,7 +147,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Promise</code> - A promise response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
