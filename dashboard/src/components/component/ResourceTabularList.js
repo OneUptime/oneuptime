@@ -29,7 +29,7 @@ class ResourceTabularList extends Component {
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':
-            case 'server-monitor monitor':
+            case 'server-monitor':
             case 'script monitor':
                 route = 'monitoring';
                 break;
@@ -52,7 +52,7 @@ class ResourceTabularList extends Component {
         let statusDescription = 'TBD';
         let indicator, monitor, logs, probe;
         let appSecurityStatus = 'no data yet',
-            monitorStatus;
+            monitorStatus = 'online';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
         switch (componentResource.type) {
@@ -60,24 +60,34 @@ class ResourceTabularList extends Component {
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':
-            case 'server-monitor monitor':
+            case 'server-monitor':
             case 'script monitor':
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
-                if (monitor.statuses) {
-                    // Get the latest status here if the monitor is changing status elsewheree
-                    monitorStatus = monitor.statuses[0].statuses[0].status;
-                } else {
-                    // Get the latest status here if the page is just loading
-                    probe =
-                        monitor && probes && probes.length > 0
-                            ? probes[probes.length < 2 ? 0 : activeProbe]
-                            : null;
-                    logs = filterProbeData(monitor, probe, startDate, endDate)
-                        .logs;
-                    monitorStatus = getMonitorStatus(monitor.incidents, logs);
+                // Monitor already exists in the list of monitors
+                if (monitor) {
+                    if (monitor.statuses && monitor.statuses[0]) {
+                        // Get the latest status here if the monitor is changing status elsewheree
+                        monitorStatus = monitor.statuses[0].statuses[0].status;
+                    } else {
+                        // Get the latest status here if the page is just loading
+                        probe =
+                            monitor && probes && probes.length > 0
+                                ? probes[probes.length < 2 ? 0 : activeProbe]
+                                : null;
+                        logs = filterProbeData(
+                            monitor,
+                            probe,
+                            startDate,
+                            endDate
+                        ).logs;
+                        monitorStatus = getMonitorStatus(
+                            monitor.incidents,
+                            logs
+                        );
+                    }
                 }
 
                 indicator = (
