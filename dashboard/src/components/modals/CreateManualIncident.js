@@ -192,6 +192,7 @@ class CreateManualIncident extends Component {
                                                                 RenderSelect
                                                             }
                                                             name="incidentPriority"
+                                                            id="incidentPriority"
                                                             placeholder="Incident Priority"
                                                             disabled={
                                                                 this.props
