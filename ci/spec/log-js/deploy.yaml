@@ -43,6 +43,9 @@ deploy_production_log-js:
         - npm install
         - npm run build
         - sudo npm install -g json
+        - git init
+        - git add .
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         # - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
