@@ -46,6 +46,7 @@ class Probes extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <div
+                    id="fyipeProbe"
                     onKeyDown={this.handleKeyBoard}
                     className="Box-root Margin-vertical--12"
                 >

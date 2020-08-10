@@ -28,7 +28,10 @@ class License extends Component {
                                     <span data-reactroot="">
                                         <div>
                                             <div>
-                                                <div className="Box-root Margin-bottom--12">
+                                                <div
+                                                    id="fyipeLicense"
+                                                    className="Box-root Margin-bottom--12"
+                                                >
                                                     <LicenseSetting />
                                                 </div>
                                             </div>

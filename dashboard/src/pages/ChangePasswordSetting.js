@@ -21,7 +21,10 @@ const ChangePasswordSetting = props => {
                                 <span data-reactroot="">
                                     <div>
                                         <div>
-                                            <div className="Box-root Margin-bottom--12">
+                                            <div
+                                                id="changePasswordSetting"
+                                                className="Box-root Margin-bottom--12"
+                                            >
                                                 <ChangePassword />
                                             </div>
                                         </div>

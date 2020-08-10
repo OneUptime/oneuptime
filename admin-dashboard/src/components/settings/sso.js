@@ -62,7 +62,10 @@ export class Component extends React.Component {
         const canPrev = skip > 0;
         const canNext = skip + limit < count;
         return (
-            <div className="bs-ContentSection Card-root Card-shadow--medium">
+            <div
+                id="fyipeSso"
+                className="bs-ContentSection Card-root Card-shadow--medium"
+            >
                 <div className="Box-root">
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
