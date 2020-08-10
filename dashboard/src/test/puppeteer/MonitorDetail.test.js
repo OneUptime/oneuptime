@@ -15,6 +15,8 @@ const componentName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
 const priorityName = utils.generateRandomString();
+const incidentTitle = utils.generateRandomString();
+const newIncidentTitle = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = 500000;
@@ -109,6 +111,39 @@ describe('Monitor Detail API', () => {
                 const selector1 = 'tr.incidentListItem:first-of-type';
                 const rowContent = await page.$eval(selector1, e => e.textContent);
                 expect(rowContent).toContain(priorityName)
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should navigate to monitor\'s incident details and edit details',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const selector = 'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
+                await page.waitForSelector(selector);
+                await page.click(selector);
+                await page.waitForSelector('#EditIncidentDetails');
+                await page.waitFor(3000);
+                const incidentTitleSelector = '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
+                let currentTitle=await page.$eval(incidentTitleSelector, e=> e.textContent);
+                expect(currentTitle).toEqual(incidentTitle);
+                await page.click('#EditIncidentDetails');
+                await page.waitForSelector('#saveIncident');
+                await page.click('#title',{clickCount:3});
+                await page.keyboard.press('Backspace');
+                await page.type('#title', newIncidentTitle);
+                await page.click('#saveIncident');
+                await page.waitFor(3000);
+                currentTitle=await page.$eval(incidentTitleSelector, e=> e.textContent);
+                expect(currentTitle).toEqual(newIncidentTitle);
             });
         },
         operationTimeOut
