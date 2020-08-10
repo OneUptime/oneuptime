@@ -137,4 +137,50 @@ describe('Incident Priority API', () => {
     operationTimeOut
   );
 
+  test(
+    'Should add multiple incidents and paginate priorities list.',
+    async () => {
+      return await cluster.execute(null, async ({ page }) => {
+        await page.goto(utils.DASHBOARD_URL, {
+          waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('#incidentSettings');
+        await page.click('#incidentSettings');
+        const incidentPrioritiesCountIdentifier='#incidentPrioritiesCount';
+        await page.waitForSelector(incidentPrioritiesCountIdentifier);
+        let incidentPrioritiesCount = await page.$eval(incidentPrioritiesCountIdentifier,e=>e.textContent);
+        expect(incidentPrioritiesCount).toEqual('0 Priorities');
+
+        for(let i=0;i<11;i++){
+          await page.waitForSelector('#addNewPriority');
+          await page.click('#addNewPriority');
+          await page.waitForSelector('#CreateIncidentPriority');
+          await page.type('input[name=name]','High');
+          await page.click('#CreateIncidentPriority');
+        }
+
+        await page.reload({
+          waitUntil: 'networkidle0',
+        });
+        await page.waitFor(3000);
+
+        await page.waitForSelector('#btnNext');
+        await page.click('#btnNext');
+        await page.waitFor(3000);
+        incidentPrioritiesCount = await page.$eval(incidentPrioritiesCountIdentifier,e=>e.textContent);
+        expect(incidentPrioritiesCount).toEqual('1 Priority');
+
+        await page.waitForSelector('#btnPrev');
+        await page.click('#btnPrev');
+        await page.waitFor(3000);
+        incidentPrioritiesCount = await page.$eval(incidentPrioritiesCountIdentifier,e=>e.textContent);
+        expect(incidentPrioritiesCount).toEqual('10 Priorities');
+
+      })
+    },
+    operationTimeOut
+  );
+
 });
