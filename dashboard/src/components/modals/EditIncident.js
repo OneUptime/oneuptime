@@ -200,7 +200,7 @@ class EditIncident extends Component {
                                     >
                                         {editIncident &&
                                             !editIncident.requesting && (
-                                                <span>Create</span>
+                                                <span>Save</span>
                                             )}
                                         {editIncident &&
                                             editIncident.requesting && (
