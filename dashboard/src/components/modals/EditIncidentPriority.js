@@ -188,7 +188,7 @@ class EditIncidentPriority extends Component {
                                             this.props.editIncidentPriority
                                                 .requesting
                                         }
-                                        id="EditIncidentPrioriy"
+                                        id="EditIncidentPriority"
                                     >
                                         <ShouldRender
                                             if={
