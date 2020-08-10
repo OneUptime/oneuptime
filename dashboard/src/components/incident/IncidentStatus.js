@@ -124,6 +124,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="Button bs-ButtonLegacy ActionIconParent"
+                                    id='EditIncidentDetails'
                                     type="button"
                                     onClick={() => {
                                         this.props.openModal({
