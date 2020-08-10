@@ -1,4 +1,4 @@
-import axios from '../node_modules/axios';
+import axios from 'axios';
 class Logger {
     #applicationLogId;
     #applicationLogKey;

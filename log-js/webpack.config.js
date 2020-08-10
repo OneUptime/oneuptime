@@ -6,7 +6,8 @@ module.exports = {
     output: {
         path: path.resolve('dist'),
         filename: 'logger.js',
-        libraryTarget: 'commonjs2',
+        library: 'Logger',
+        libraryTarget: 'umd',
     },
     module: {
         rules: [
