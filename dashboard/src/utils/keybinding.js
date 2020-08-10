@@ -14,7 +14,7 @@ const initKeys = ['c', 'p', 's', 'u', 't', 'm', 'a', 'o'];
 
 const keyBind = (event, route, path, keys, resetKeys) => {
     let shortcut = [];
-    if (route.shortcut) {
+    if (route.shortcut && event.key) {
         shortcut = route.shortcut.split('+');
         keys.push(event.key.toLowerCase());
 
