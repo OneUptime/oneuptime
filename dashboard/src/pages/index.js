@@ -45,6 +45,7 @@ import DockerCredential from './DockerCredential';
 import FyipeApi from './FyipeApi';
 import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
+import GeneralIncidentLog from './GeneralIncidentLog';
 
 export default {
     ChangePassword,
@@ -84,4 +85,5 @@ export default {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    GeneralIncidentLog,
 };

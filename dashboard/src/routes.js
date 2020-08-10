@@ -38,6 +38,7 @@ const {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    GeneralIncidentLog,
 } = pages;
 
 export const groups = [
@@ -281,6 +282,15 @@ export const groups = [
                 component: Reports,
                 index: 5,
                 shortcut: 'ctrl+p+r',
+            },
+            {
+                title: 'Incident Logs',
+                path: '/dashboard/project/:projectId/incidents',
+                icon: 'info',
+                visible: true,
+                subRoutes: [],
+                component: GeneralIncidentLog,
+                index: 6,
             },
         ],
     },
