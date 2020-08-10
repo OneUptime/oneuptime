@@ -144,7 +144,7 @@ export class Reports extends Component {
                     <BreadCrumbItem route={pathname} name="Reports" />
                     <div className="Box-root Margin-vertical--12">
                         <div>
-                            <div>
+                            <div id="reportPage">
                                 <div className="db-RadarRulesLists-page">
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="bs-ContentSection Card-root Card-shadow--medium">
