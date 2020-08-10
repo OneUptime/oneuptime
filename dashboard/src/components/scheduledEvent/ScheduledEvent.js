@@ -165,7 +165,12 @@ class ScheduledEventBox extends Component {
                                         onClick={() => {
                                             this.props.openModal({
                                                 id: createScheduledEventModalId,
-                                                content: CreateSchedule,
+                                                content: DataPathHoC(
+                                                    CreateSchedule,
+                                                    {
+                                                        projectId,
+                                                    }
+                                                ),
                                             });
                                         }}
                                         className="Button bs-ButtonLegacy ActionIconParent"
