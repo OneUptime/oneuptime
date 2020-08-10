@@ -9,7 +9,7 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-describe('Monitor API', () => {
+describe('Incident Priority API', () => {
   const operationTimeOut = 500000;
 
   let cluster;
@@ -56,9 +56,9 @@ describe('Monitor API', () => {
         await page.click('#incidentSettings');
         await page.waitForSelector('#addNewPriority');
         await page.click('#addNewPriority');
-        await page.waitForSelector('#CreateIncidentPrioriy');
+        await page.waitForSelector('#CreateIncidentPriority');
         await page.type('input[name=name]','High');
-        await page.click('#CreateIncidentPrioriy');
+        await page.click('#CreateIncidentPriority');
         await page.waitFor(3000);
         await page.reload({
           waitUntil: 'networkidle0',
@@ -86,7 +86,7 @@ describe('Monitor API', () => {
         const editButtonFirstRowIndentifier= '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:first-child>button';
         await page.waitForSelector(editButtonFirstRowIndentifier);
         await page.click(editButtonFirstRowIndentifier);
-        await page.waitForSelector('#EditIncidentPrioriy');
+        await page.waitForSelector('#EditIncidentPriority');
         await page.click('input[name=name]',{clickCount:3});
         await page.keyboard.press('Backspace');
         await page.type('input[name=name]','Medium');
@@ -99,6 +99,39 @@ describe('Monitor API', () => {
         await page.waitForSelector(firstRowIndentifier);
         const content = await page.$eval(firstRowIndentifier, e=> e.textContent)
         expect(content).toEqual('Medium');
+      })
+    },
+    operationTimeOut
+  );
+
+  test(
+    'Should delete incident priority.',
+    async () => {
+      return await cluster.execute(null, async ({ page }) => {
+        await page.goto(utils.DASHBOARD_URL, {
+          waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('#incidentSettings');
+        await page.click('#incidentSettings');
+        await page.waitFor(3000);
+        const incidentPrioritiesCount='#incidentPrioritiesCount';
+        await page.waitForSelector(incidentPrioritiesCount);
+        const incidentsCountBeforeDeletion = await page.$eval(incidentPrioritiesCount, e => e.textContent);
+        expect(incidentsCountBeforeDeletion).toEqual('1 Priority');
+        const deleteButtonFirstRowIndentifier= '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:nth-child(2)>button';
+        await page.click(deleteButtonFirstRowIndentifier);
+        await page.waitForSelector('#RemoveIncidentPriority');
+        await page.click('#RemoveIncidentPriority');
+        await page.waitFor(3000);
+        await page.reload({
+          waitUntil: 'networkidle0',
+        });
+        await page.waitFor(3000);
+        const incidentsCountAfterDeletion = await page.$eval(incidentPrioritiesCount, e => e.textContent);
+        expect(incidentsCountAfterDeletion).toEqual('0 Priorities');
+
       })
     },
     operationTimeOut
