@@ -6,7 +6,7 @@ module.exports = {
     output: {
         path: path.resolve('dist'),
         filename: 'logger.js',
-        library: 'Logger',
+        library: 'FyipeLogger',
         libraryTarget: 'umd',
     },
     module: {
