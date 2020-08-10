@@ -20,14 +20,8 @@ export class MonitorViewIncidentBox extends Component {
         super(props);
         this.state = {
             createIncidentModalId: uuid.v4(),
-            incidents: {},
             filteredIncidents: [],
         };
-    }
-
-    componentDidMount() {
-        const { monitor } = this.props;
-        this.setState(() => ({ incidents: monitor }));
     }
 
     prevClicked = () => {
@@ -109,7 +103,6 @@ export class MonitorViewIncidentBox extends Component {
         const {
             createIncidentModalId,
             filteredIncidents,
-            incidents,
         } = this.state;
         const creating = this.props.create ? this.props.create : false;
 
@@ -210,7 +203,7 @@ export class MonitorViewIncidentBox extends Component {
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList
                         componentId={this.props.componentId}
-                        incidents={incidents}
+                        incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
