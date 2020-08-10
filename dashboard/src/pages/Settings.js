@@ -46,7 +46,7 @@ class Settings extends Component {
                         className="Margin-vertical--12"
                     >
                         <div>
-                            <div>
+                            <div id="settingsPage">
                                 <div className="db-BackboneViewContainer">
                                     <div className="react-settings-view react-view">
                                         <span>

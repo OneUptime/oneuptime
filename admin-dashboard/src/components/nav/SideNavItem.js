@@ -5,12 +5,33 @@ import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
+import { navKeyBind, cleanBind } from '../../utils/keybinding';
 
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
 
         this.RenderListItems = this.RenderListItems.bind(this);
+    }
+
+    componentDidMount() {
+        const { route } = this.props;
+        navKeyBind(route);
+
+        route.subRoutes.map(subRoute => {
+            navKeyBind(subRoute);
+            return subRoute;
+        });
+    }
+
+    componentWillUnmount() {
+        const { route } = this.props;
+        cleanBind(route);
+
+        route.subRoutes.map(subRoute => {
+            cleanBind(subRoute);
+            return subRoute;
+        });
     }
 
     camalize = function camalize(str) {
@@ -20,10 +41,12 @@ export class SidebarNavItem extends Component {
     };
 
     routeInnerDiv = (route, isLinkActive) => {
+        const routes = route.shortcut && route.shortcut.split('+');
+
         return (
             <div style={{ outline: 'none' }}>
                 <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
-                    <div className="Box-root Flex-flex Flex-alignItems--center">
+                    <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
                         <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
                             <span
                                 className={`db-SideNav-icon db-SideNav-icon--${
@@ -45,6 +68,15 @@ export class SidebarNavItem extends Component {
                         >
                             <span>{route.title}</span>
                         </span>
+                        {route.shortcut && (
+                            <span className="tooltiptext">
+                                <strong>{routes[0]}</strong>
+                                <span> + </span>
+                                <strong>{routes[1]}</strong>
+                                <span> + </span>
+                                <strong>{routes[2]}</strong>
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -107,6 +139,8 @@ export class SidebarNavItem extends Component {
 
     RenderListItems({ active, onLoad }) {
         return this.props.route.subRoutes.map((child, index) => {
+            const routes = child.shortcut && child.shortcut.split('+');
+
             const removedLinks = ['User', 'Project'];
             if (removedLinks.some(link => link === child.title)) return null;
 
@@ -121,7 +155,7 @@ export class SidebarNavItem extends Component {
                             <Link to={link} onClick={() => onLoad(child.title)}>
                                 <div style={{ outline: 'none' }}>
                                     <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
-                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
+                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
                                             <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                 <span
                                                     className={
@@ -133,6 +167,15 @@ export class SidebarNavItem extends Component {
                                                     {child.title}
                                                 </span>
                                             </span>
+                                            {child.shortcut && (
+                                                <span className="tooltiptext">
+                                                    <strong>{routes[0]}</strong>
+                                                    <span> + </span>
+                                                    <strong>{routes[1]}</strong>
+                                                    <span> + </span>
+                                                    <strong>{routes[2]}</strong>
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

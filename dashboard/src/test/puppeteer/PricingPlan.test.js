@@ -80,39 +80,44 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    test(
-        'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
-        async () => {
-            await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
-                // select the first item from the table row
-                const rowItem = await page.waitForSelector(
-                    '#statusPagesListContainer > tr',
-                    { visible: true }
-                );
-                rowItem.click();
-                await page.waitForSelector('ul#customTabList > li', {
-                    visible: true,
-                });
-                await page.$$eval('ul#customTabList > li', elems =>
-                    elems[3].click()
-                );
-                await page.$eval('input[name="isSubscriberEnabled"]', elem =>
-                    elem.click()
-                );
+    /**
+     * Commented the code below because it was testing for enterprise plan, which is not available for now
+     * Will rewrite it once a component which needs an enterprise plan is created
+     */
 
-                const modal = await page.waitForSelector('#pricingPlanModal', {
-                    visible: true,
-                });
-                const emailBtn = await page.waitForSelector('#enterpriseMail');
+    // test(
+    //     'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
+    //     async () => {
+    //         await cluster.execute(null, async ({ page }) => {
+    //             await page.goto(utils.DASHBOARD_URL);
+    //             await page.$eval('#statusPages > a', elem => elem.click());
+    //             // select the first item from the table row
+    //             const rowItem = await page.waitForSelector(
+    //                 '#statusPagesListContainer > tr',
+    //                 { visible: true }
+    //             );
+    //             rowItem.click();
+    //             await page.waitForSelector('ul#customTabList > li', {
+    //                 visible: true,
+    //             });
+    //             await page.$$eval('ul#customTabList > li', elems =>
+    //                 elems[3].click()
+    //             );
+    //             await page.$eval('input[name="isSubscriberEnabled"]', elem =>
+    //                 elem.click()
+    //             );
 
-                expect(modal).toBeDefined();
-                expect(emailBtn).toBeDefined();
-            });
-        },
-        operationTimeOut
-    );
+    //             const modal = await page.waitForSelector('#pricingPlanModal', {
+    //                 visible: true,
+    //             });
+    //             const emailBtn = await page.waitForSelector('#enterpriseMail');
+
+    //             expect(modal).toBeDefined();
+    //             expect(emailBtn).toBeDefined();
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',

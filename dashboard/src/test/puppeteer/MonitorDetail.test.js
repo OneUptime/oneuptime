@@ -382,7 +382,7 @@ describe('Monitor Detail API', () => {
                         utils.generateRandomBusinessEmail()
                     );
                     await page.$eval('#createSubscriber', e => e.click());
-                    await page.waitFor(1000);
+                    await page.waitFor(5000);
                 }
 
                 const createdSubscriberSelector =
@@ -958,7 +958,7 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('input[id=siteUrl]');
                 await page.$eval('input[id=siteUrl]', e => e.click());
-                await page.type('input[id=siteUrl]', 'http://localhost:3010');
+                await page.type('input[id=siteUrl]', 'https://fyipe.com');
                 await page.$eval('#addSiteUrlButton', e => e.click());
                 await page.waitFor(5000);
 

@@ -59,7 +59,13 @@ class CreateIncident extends Component {
             if (monitor._id === values)
                 projectId = monitor.projectId._id || monitor.projectId;
         });
-        createNewIncident(projectId, monitorId, incidentType, title, description).then(
+        createNewIncident(
+            projectId,
+            monitorId,
+            incidentType,
+            title,
+            description
+        ).then(
             function() {
                 closeThisDialog();
             },

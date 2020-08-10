@@ -24,7 +24,10 @@ const Profile = props => {
                                     <span data-reactroot="">
                                         <div>
                                             <div>
-                                                <div className="Margin-vertical--12">
+                                                <div
+                                                    id="profileSettingPage"
+                                                    className="Margin-vertical--12"
+                                                >
                                                     <ProfileSetting />
                                                 </div>
                                             </div>
