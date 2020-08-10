@@ -239,7 +239,7 @@ function mapStateToProps(state,ownProps) {
     const initialValues = {
         title: incident.title,
         description: incident.description,
-        incidentPriority: incident.incidentPriority._id,
+        incidentPriority: incident.incidentPriority ? incident.incidentPriority._id: null,
         incidentType: incident.incidentType,
     };
     return {
