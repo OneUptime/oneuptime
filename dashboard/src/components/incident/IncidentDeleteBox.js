@@ -24,7 +24,7 @@ export class IncidentDeleteBox extends Component {
         const projectId =
             this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
-        const componentId = this.props.component._id;
+        const componentId = this.props.componentId;
         const monitorId = this.props.incident.monitorId._id;
 
         const promise = this.props.deleteIncident(projectId, incidentId);
@@ -68,7 +68,7 @@ export class IncidentDeleteBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Delete This Incident</span>
+                                    <span>Delete Incident</span>
                                 </span>
                                 <p>
                                     <span>
@@ -127,7 +127,7 @@ IncidentDeleteBox.propTypes = {
     incident: PropTypes.object.isRequired,
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
-    component: PropTypes.shape({ _id: PropTypes.string }),
+    componentId: PropTypes.string,
 };
 
 export default withRouter(

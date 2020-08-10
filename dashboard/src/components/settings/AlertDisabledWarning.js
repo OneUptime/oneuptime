@@ -19,7 +19,12 @@ class AlertDisabledWarning extends Component {
                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                    <ShouldRender if={page === 'Component'}>
+                                    <ShouldRender
+                                        if={
+                                            page === 'Home' ||
+                                            page === 'Component'
+                                        }
+                                    >
                                         <span>
                                             SMS and Call Alerts are disabled for
                                             this project. Please go to{' '}

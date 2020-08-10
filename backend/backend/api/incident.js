@@ -37,6 +37,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         const monitorId = req.params.monitorId;
         const projectId = req.params.projectId;
         const incidentType = req.body.incidentType;
+        const title = req.body.title;
+        const description = req.body.description;
         const userId = req.user ? req.user.id : null;
         let oldIncidentsCount = null;
 
@@ -68,6 +70,13 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             });
         }
 
+        if (!title) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Title must be present.',
+            });
+        }
+
         if (incidentType) {
             if (!['offline', 'online', 'degraded'].includes(incidentType)) {
                 return sendErrorResponse(req, res, {
@@ -81,6 +90,11 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
                 incidentType,
                 resolved: false,
                 deleted: false,
+            });
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'IncidentType must be present.',
             });
         }
 
@@ -97,6 +111,8 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             createdById: userId,
             manuallyCreated: true,
             incidentType,
+            title,
+            description,
         });
         await MonitorStatusService.create({
             monitorId,
