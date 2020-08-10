@@ -210,7 +210,7 @@ export class MonitorViewIncidentBox extends Component {
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList
                         componentId={this.props.componentId}
-                        incidents={incidents}
+                        incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
