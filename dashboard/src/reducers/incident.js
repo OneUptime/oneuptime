@@ -75,8 +75,11 @@ const initialState = {
 };
 
 export default function incident(state = initialState, action) {
-    let incidents,
+    let incident,
+        incidents,
+        unresolvedincidents,
         index,
+        index1,
         isExistingIncident,
         failureIncidentMessage,
         requestIncidentMessage,
@@ -228,6 +231,18 @@ export default function incident(state = initialState, action) {
                 incident => incident._id === action.payload._id
             );
             if (index >= 0) incidents[index] = action.payload;
+
+            if(state.incident.incident && state.incident.incident._id === action.payload._id)
+                incident = Object.assign({},action.payload)
+            else
+                Object.assign(incident,state.incident.incident)
+
+            unresolvedincidents = Object.assign([], state.unresolvedincidents.incidents);
+            index1 = unresolvedincidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index1 >= 0) unresolvedincidents[index1] = action.payload;
+
             return Object.assign({}, state, {
                 incidents: {
                     ...state.incidents,
@@ -235,7 +250,11 @@ export default function incident(state = initialState, action) {
                 },
                 incident: {
                     ...state.incident,
-                    incident: action.payload,
+                    incident,
+                },
+                unresolvedincidents: {
+                    ...state.unresolvedincidents,
+                    incidents:unresolvedincidents,
                 },
                 editIncident: {
                     ...state.editIncident,
