@@ -59,19 +59,16 @@ logger.log(item, tag);
 ### In the Browser
 
 ```javascript
-<script src="./logger.js"></script>
-    <script>
-      function logError() {
+<script src="https://unpkg.com/fyipe-log-js"></script>
+<script>
+    function logError() {
+        // constructor
         const logger = new FyipeLogger.default(
             'API_URL', // https://fyipe.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
         );
 
-        logger.error("I logged this error", ['server', 'monitor']).then(
-          (res) => console.log(res),
-          (err) => console.log(err)
-        );
         // Sending a string log to the server
         const item = 'This is a simple log';
 
@@ -82,7 +79,7 @@ logger.log(item, tag);
         const tags = ['server', 'monitor'];
         logger.log(item, tags);
     }
-    </script>
+</script>
 ```
 
 ## API Documentation
