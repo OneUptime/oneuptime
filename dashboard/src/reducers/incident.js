@@ -232,12 +232,17 @@ export default function incident(state = initialState, action) {
             );
             if (index >= 0) incidents[index] = action.payload;
 
-            if(state.incident.incident && state.incident.incident._id === action.payload._id)
-                incident = Object.assign({},action.payload)
-            else
-                Object.assign(incident,state.incident.incident)
+            if (
+                state.incident.incident &&
+                state.incident.incident._id === action.payload._id
+            )
+                incident = Object.assign({}, action.payload);
+            else Object.assign(incident, state.incident.incident);
 
-            unresolvedincidents = Object.assign([], state.unresolvedincidents.incidents);
+            unresolvedincidents = Object.assign(
+                [],
+                state.unresolvedincidents.incidents
+            );
             index1 = unresolvedincidents.findIndex(
                 incident => incident._id === action.payload._id
             );
@@ -254,7 +259,7 @@ export default function incident(state = initialState, action) {
                 },
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
-                    incidents:unresolvedincidents,
+                    incidents: unresolvedincidents,
                 },
                 editIncident: {
                     ...state.editIncident,
