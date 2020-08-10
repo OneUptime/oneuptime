@@ -50,7 +50,10 @@ class DockerCredential extends Component {
                     />
                     <div className="Margin-vertical--12">
                         <div>
-                            <div className="db-BackboneViewContainer">
+                            <div
+                                id="dockerCredentialPage"
+                                className="db-BackboneViewContainer"
+                            >
                                 <div className="react-settings-view react-view">
                                     <span>
                                         <DockerCredentialList

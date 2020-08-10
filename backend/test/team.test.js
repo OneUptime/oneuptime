@@ -214,7 +214,7 @@ userData.newUser.email = 'newUser@company.com'; // overide test emails to test p
 userData.anotherUser.email = 'anotherUser@company.com'; // overide test emails to test project seats.
 
 describe('Team API with Sub-Projects', async function() {
-    this.timeout(20000);
+    this.timeout(60000);
     before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();

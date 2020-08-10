@@ -74,11 +74,11 @@ export class MonitorViewIncidentBox extends Component {
     };
 
     filterIncidentLogs = status => {
-        const { monitor: incidents } = this.props;
+        const { monitor } = this.props;
         const filteredIncidents = [];
         switch (status) {
             case 'acknowledged':
-                incidents.incidents.forEach(incident => {
+                monitor.incidents.forEach(incident => {
                     if (!incident.acknowledged) {
                         filteredIncidents.push(incident);
                     }
@@ -86,7 +86,7 @@ export class MonitorViewIncidentBox extends Component {
                 this.setState(() => ({ filteredIncidents }));
                 break;
             case 'resolved':
-                incidents.incidents.forEach(incident => {
+                monitor.incidents.forEach(incident => {
                     if (!incident.resolved) {
                         filteredIncidents.push(incident);
                     }

@@ -24,7 +24,7 @@ $ npm install fyipe-server-monitor
 You can use on the CLI:
 
 ```
-$ fyipe-server-monitor 
+$ fyipe-server-monitor
 
 ```
 
@@ -50,7 +50,7 @@ const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',
     // (optional) If you have installed Fyipe Platform on your server,
     // this should be your API URL
-    apiUrl: 'https://fyipe.com/api',  
+    apiUrl: 'https://fyipe.com/api',
     apiKey: 'b02798c0-c898-11e9-9f14-4963dc67e2ab',
     monitorId: '5d7775e9f14a531364ba6917',
     interval: '*/5 * * * * *', // cron job interval
