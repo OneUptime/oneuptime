@@ -146,7 +146,7 @@ export class IncidentStatus extends Component {
                                         this.props.incident.resolved
                                     }
                                 >
-                                    <div className="Box-root">
+                                    <div className="Box-root Margin-left--12">
                                         <span
                                             className="incident-close-button"
                                             onClick={this.closeIncident}
@@ -160,9 +160,7 @@ export class IncidentStatus extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            <ShouldRender
-                                                if={this.props.incident.title}
-                                            >
+                                            {this.props.incident.title && (
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Title :
@@ -182,10 +180,9 @@ export class IncidentStatus extends Component {
                                                         </span>
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={this.props.incident}
-                                            >
+                                            )}
+                                            {this.props.incident
+                                                .description && (
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Description :
@@ -205,13 +202,9 @@ export class IncidentStatus extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.incident
-                                                        .incidentPriority
-                                                }
-                                            >
+                                            )}
+                                            {this.props.incident
+                                                .incidentPriority && (
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Priority :
@@ -253,7 +246,7 @@ export class IncidentStatus extends Component {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </ShouldRender>
+                                            )}
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Created At:
