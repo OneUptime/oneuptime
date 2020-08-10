@@ -227,11 +227,13 @@ describe('Monitor Detail API', () => {
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
                 await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
 
                 await page.type('input[name=name]', utils.scheduledEventName);
                 await page.type(
@@ -284,11 +286,13 @@ describe('Monitor Detail API', () => {
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
                 await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
 
                 await page.type(
                     'input[name=name]',
