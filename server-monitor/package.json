@@ -12,7 +12,7 @@
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "test": "NODE_ENV=development mocha --exit",
         "doc": "jsdoc -r ./bin ./lib --readme README.md",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='pino-pretty'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='pino-pretty,osx-temperature-sensor'"
     },
     "author": "HackerBay, Inc.",
     "license": "ISC",
@@ -38,7 +38,7 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
-        "mocha": "^6.2.0",
+        "mocha": "^8.1.1",
         "npm-audit-ci-wrapper": "^2.5.1"
     },
     "directories": {

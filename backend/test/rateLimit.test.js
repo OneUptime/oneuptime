@@ -8,7 +8,8 @@ let _;
 let app, request, sandbox;
 
 describe('API limit rate', function() {
-    before(function() {
+    this.timeout(10000);
+    before(function(done) {
         process.env.PORT = 3020;
         process.env.RATE_LIMITTER_TIME_PERIOD_IN_MS = 5000;
         process.env.RATE_LIMITTER_REQUEST_LIMIT = 3;
@@ -22,9 +23,9 @@ describe('API limit rate', function() {
         sandbox.stub(process.env, 'RATE_LIMITTER_REQUEST_LIMIT').value('3');
         sandbox.stub(process.env, 'RATE_LIMITTER_ENABLED').value('true');
         app = require('../server');
-        request = chai.request(app);
+        request = chai.request.agent(app);
+        done();
     });
-    this.timeout(10000);
 
     it('should get too many requests response after 3 requests', async function() {
         for (let i = 1; i <= 3; i++) {
@@ -40,7 +41,8 @@ describe('API limit rate', function() {
             expect(err.status).to.be.equal(429);
         }
     });
-    after(function() {
+    after(function(done) {
         sandbox.restore();
+        done();
     });
 });

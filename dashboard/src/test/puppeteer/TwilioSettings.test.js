@@ -13,6 +13,7 @@ const projectName = 'project';
 const componentName = 'component1';
 const monitorName = 'monitor1';
 const phoneNumber = '9173976235';
+const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
     const operationTimeOut = 500000;
@@ -106,11 +107,18 @@ describe('Custom Twilio Settings', () => {
                 await init.selectByText('#countryCodeId', '+1', page);
                 await page.type('#contactPhoneId', phoneNumber);
                 await page.click('#createSubscriber');
-                await init.addIncidentToProject(monitorName, projectName, page);
+
+                await page.waitForSelector(`#createIncident_${monitorName}`);
+                await page.click(`#createIncident_${monitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType','Offline',page);
+                await page.type('input[name=title]',incidentTitle);
+                await page.click('#createIncident');
+                await page.waitFor(3000);
                 await page.waitForSelector(
                     '#incident_monitor1_0 > td:nth-child(2)'
                 );
-                await page.click('#incident_monitor1_0 > td:nth-child(2)');
+                await page.$eval('#incident_monitor1_0 > td:nth-child(2)',e=>e.click());
                 await page.waitForSelector(
                     '#subscriberAlertTable>tbody>tr>td:nth-child(2)'
                 );

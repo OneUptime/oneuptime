@@ -19,6 +19,13 @@ export const CREATE_INCIDENT_FAILED = 'incidents/CREATE_INCIDENT_FAILED';
 export const CREATE_INCIDENT_REQUEST = 'incidents/CREATE_INCIDENT_REQUEST';
 export const CREATE_INCIDENT_RESET = 'incidents/CREATE_INCIDENT_RESET';
 
+// Update an incident
+
+export const UPDATE_INCIDENT_SUCCESS = 'incidents/UPDATE_INCIDENT_SUCCESS';
+export const UPDATE_INCIDENT_FAILED = 'incidents/UPDATE_INCIDENT_FAILED';
+export const UPDATE_INCIDENT_REQUEST = 'incidents/UPDATE_INCIDENT_REQUEST';
+export const UPDATE_INCIDENT_RESET = 'incidents/UPDATE_INCIDENT_RESET';
+
 // Incident portion
 
 export const INCIDENT_SUCCESS = 'incident/INCIDENT_SUCCESS';

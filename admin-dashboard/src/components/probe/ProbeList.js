@@ -6,7 +6,6 @@ import moment from 'moment';
 import { ListLoader, FormLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
-import { deleteProbe } from '../../actions/probe';
 import { openModal, closeModal } from '../../actions/modal';
 import ProbeDeleteModal from './ProbeDeleteModal';
 import uuid from 'uuid';
@@ -19,19 +18,11 @@ export class ProbeList extends Component {
     }
 
     handleClick = probeId => {
-        const { deleteProbe } = this.props;
-        const thisObj = this;
         const { deleteModalId } = this.state;
         this.props.openModal({
             id: deleteModalId,
-            onConfirm: () => {
-                return deleteProbe(probeId).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Probe Deleted');
-                    }
-                });
-            },
             content: ProbeDeleteModal,
+            probeId,
         });
     };
 
@@ -411,7 +402,7 @@ export class ProbeList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ deleteProbe, openModal, closeModal }, dispatch);
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -428,7 +419,6 @@ ProbeList.displayName = 'ProbeList';
 
 ProbeList.propTypes = {
     addRequesting: PropTypes.bool,
-    deleteProbe: PropTypes.func,
     deleteRequesting: PropTypes.bool,
     nextClicked: PropTypes.func.isRequired,
     openModal: PropTypes.func,

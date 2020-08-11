@@ -47,7 +47,10 @@ class GitCredential extends Component {
                     <BreadCrumbItem route={pathname} name="Git Credentials" />
                     <div className="Margin-vertical--12">
                         <div>
-                            <div className="db-BackboneViewContainer">
+                            <div
+                                id="gitCredentialPage"
+                                className="db-BackboneViewContainer"
+                            >
                                 <div className="react-settings-view react-view">
                                     <span>
                                         <GitCredentialList

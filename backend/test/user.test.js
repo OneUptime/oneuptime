@@ -28,10 +28,12 @@ const fetchIdpSAMLResponse = async function({
 }) {
     let firstIdpResponse;
     try {
-        await chai
+        const response = await chai
             .request(SAMLRequest)
             .get('')
             .redirects(0);
+        expect(response).to.have.status(302);
+        firstIdpResponse = response;
     } catch (error) {
         expect(error.response).to.have.status(302);
         firstIdpResponse = error.response;
@@ -680,10 +682,11 @@ describe('SSO authentication', function() {
 
         let response;
         try {
-            await request
+            response = await request
                 .post('/api/user/sso/callback')
                 .redirects(0)
                 .send({ SAMLResponse });
+            expect(response).to.have.status(302);
         } catch (error) {
             expect(error.response).to.have.status(302);
             response = error.response;
@@ -727,10 +730,11 @@ describe('SSO authentication', function() {
 
         let response;
         try {
-            await request
+            response = await request
                 .post('/api/user/sso/callback')
                 .redirects(0)
                 .send({ SAMLResponse });
+            expect(response).to.have.status(302);
         } catch (error) {
             expect(error.response).to.have.status(302);
             response = error.response;

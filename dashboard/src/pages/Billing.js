@@ -42,7 +42,7 @@ class Billing extends Component {
                         name="Project Settings"
                     />
                     <BreadCrumbItem route={pathname} name="Billing" />
-                    <div className="Margin-vertical--12">
+                    <div id="billingSetting" className="Margin-vertical--12">
                         <ShouldRender if={!alertEnable}>
                             <AlertDisabledWarning page="Billing" />
                         </ShouldRender>

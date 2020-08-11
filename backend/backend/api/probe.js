@@ -110,7 +110,42 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 status = 'unknown';
             }
         }
+        if (type === 'script') {
+            const validUp = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? ProbeService.scriptConditions(res, resp, monitor.criteria.up)
+                : false);
+            const validDegraded = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.degraded
+                ? ProbeService.scriptConditions(
+                      res,
+                      resp,
+                      monitor.criteria.degraded
+                  )
+                : false);
+            const validDown = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? ProbeService.scriptConditions(
+                      res,
+                      resp,
+                      monitor.criteria.down
+                  )
+                : false);
 
+            if (validDown) {
+                status = 'failed';
+            } else if (validDegraded) {
+                status = 'degraded';
+            } else if (validUp) {
+                status = 'success';
+            } else {
+                status = 'unknown';
+            }
+            resp.status = null;
+        }
         if (type === 'device') {
             if (res) {
                 status = 'online';
@@ -165,6 +200,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 log = await ProbeService.saveLighthouseLog(data);
             } else {
                 log = await ProbeService.saveMonitorLog(data);
+                if (type === 'script') {
+                    await MonitorService.updateBy(
+                        { _id: req.params.monitorId },
+                        {
+                            scriptRunStatus: 'completed',
+                            scriptRunBy: req.probe.id,
+                        }
+                    );
+                }
             }
         }
 

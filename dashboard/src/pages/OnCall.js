@@ -265,7 +265,11 @@ export class OnCall extends Component {
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem route={pathname} name="On-Call Schedules" />
-                    <div tabIndex="0" onKeyDown={this.handleKeyBoard}>
+                    <div
+                        id="onCallSchedulePage"
+                        tabIndex="0"
+                        onKeyDown={this.handleKeyBoard}
+                    >
                         <div>
                             <div>
                                 <ShouldRender

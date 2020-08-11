@@ -53,7 +53,7 @@ class EmailTemplatesBox extends React.Component {
                 ? this.props.emailTemplates.emailTemplates.templates
                 : [];
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div id="emailTemplate" className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div

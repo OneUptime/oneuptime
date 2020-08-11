@@ -69,6 +69,8 @@ describe('Components', () => {
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
@@ -330,7 +332,6 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
-
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`
                 );
@@ -341,9 +342,9 @@ describe('Components', () => {
                     'Offline',
                     monitorPage
                 );
+                await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
                 await monitorPage.waitFor(2000);
-
                 let monitorSpanElement = await monitorPage.waitForSelector(
                     `#monitor-status-${monitorName}`
                 );
@@ -490,6 +491,8 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
                 await page.waitForSelector(`#edit-component-${componentName}`);
                 await page.click(`#edit-component-${componentName}`);
@@ -525,6 +528,7 @@ describe('Components', () => {
                 await page.click(`#createIncident_${newMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitFor(2000);
                 await page.waitForSelector(
@@ -543,6 +547,10 @@ describe('Components', () => {
                 await page.type('input[id=name]', utils.generateRandomString());
                 await page.click('label[for=Startup_month]');
                 await page.click('button[type=submit]');
+
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
                 let currentPage = await page.waitForSelector('#cbComponents');
                 currentPage = await currentPage.getProperty('innerText');
                 currentPage = await currentPage.jsonValue();
