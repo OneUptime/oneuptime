@@ -690,6 +690,20 @@ module.exports = {
         );
         return projects;
     },
+    toggleStoringAuditLogs: async function(projectId) {
+        try {
+            const _this = this;
+            let project = await _this.findOneBy({ _id: projectId });
+            project = await _this.updateOneBy(
+                { _id: projectId },
+                { isStoringAuditLogs: !project.isStoringAuditLogs }
+            );
+            return project;
+        } catch (error) {
+            ErrorService.log('projectService.toggleStoringAuditLogs', error);
+            throw error;
+        }
+    },
 };
 
 const ProjectModel = require('../models/project');
