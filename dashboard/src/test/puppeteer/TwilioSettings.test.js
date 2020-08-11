@@ -63,10 +63,10 @@ describe('Custom Twilio Settings', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
                 await page.click('#sms');
-                await page.waitForSelector('label[for=smssmtpswitch]', {
+                await page.waitForSelector('label[for=enabled]', {
                     visible: true,
                 });
-                await page.click('label[for=smssmtpswitch]');
+                await page.click('label[for=enabled]');
                 await page.type('#accountSid', twilioCredentials.accountSid);
                 await page.type('#authToken', twilioCredentials.authToken);
                 await page.type('#phoneNumber', twilioCredentials.phoneNumber);
@@ -111,14 +111,16 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
-                await init.selectByText('#incidentType','Offline',page);
-                await page.type('input[name=title]',incidentTitle);
+                await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('input[name=title]', incidentTitle);
                 await page.click('#createIncident');
                 await page.waitFor(3000);
                 await page.waitForSelector(
                     '#incident_monitor1_0 > td:nth-child(2)'
                 );
-                await page.$eval('#incident_monitor1_0 > td:nth-child(2)',e=>e.click());
+                await page.$eval('#incident_monitor1_0 > td:nth-child(2)', e =>
+                    e.click()
+                );
                 await page.waitForSelector(
                     '#subscriberAlertTable>tbody>tr>td:nth-child(2)'
                 );
