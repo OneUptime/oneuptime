@@ -27,6 +27,15 @@ import {
     FETCH_MONITOR_LOGS_REQUEST,
     FETCH_MONITOR_LOGS_SUCCESS,
     FETCH_MONITOR_LOGS_FAILURE,
+    FETCH_EVENT_NOTES_FAILURE,
+    FETCH_EVENT_NOTES_REQUEST,
+    FETCH_EVENT_NOTES_SUCCESS,
+    FETCH_EVENT_FAILURE,
+    FETCH_EVENT_REQUEST,
+    FETCH_EVENT_SUCCESS,
+    MORE_EVENT_NOTE_FAILURE,
+    MORE_EVENT_NOTE_REQUEST,
+    MORE_EVENT_NOTE_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -56,6 +65,22 @@ const INITIAL_STATE = {
     notesmessage: null,
     eventsmessage: null,
     activeProbe: 0,
+    eventNoteList: {
+        requesting: false,
+        success: false,
+        error: null,
+        eventNotes: [],
+        skip: 0,
+        count: 0,
+    },
+    requestingMoreNote: false,
+    moreNoteError: null,
+    scheduledEvent: {
+        requesting: false,
+        success: false,
+        error: null,
+        event: {},
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -689,6 +714,105 @@ export default (state = INITIAL_STATE, action) => {
                           }
                 ),
             });
+
+        case FETCH_EVENT_REQUEST:
+            return {
+                ...state,
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_EVENT_SUCCESS:
+            return {
+                ...state,
+                scheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    event: action.payload.data,
+                },
+            };
+
+        case FETCH_EVENT_FAILURE:
+            return {
+                ...state,
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_REQUEST:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    eventNotes: action.payload.data,
+                    count: action.payload.count,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_FAILURE:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case MORE_EVENT_NOTE_REQUEST:
+            return {
+                ...state,
+                requestingMoreNote: true,
+                moreNoteError: null,
+            };
+
+        case MORE_EVENT_NOTE_SUCCESS: {
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes: [
+                        ...state.eventNoteList.eventNotes,
+                        ...action.payload.data,
+                    ],
+                    skip: action.payload.skip,
+                },
+                requestingMoreNote: false,
+                moreNoteError: null,
+            };
+        }
+
+        case MORE_EVENT_NOTE_FAILURE:
+            return {
+                ...state,
+                requestingMoreNote: false,
+                moreNoteError: action.payload,
+            };
+
         default:
             return state;
     }
