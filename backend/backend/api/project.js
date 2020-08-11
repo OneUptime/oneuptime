@@ -1007,34 +1007,4 @@ router.post('/projects/search', getUser, isUserMasterAdmin, async function(
     }
 });
 
-// Description: Toggle saving audit logs for a project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId};
-// Returns: 200: {project}; 400: Error.
-router.post(
-    '/:projectId/toggleStoringAuditLogs',
-    getUser,
-    isAuthorized,
-    isUserOwner,
-    async function(req, res) {
-        try {
-            const projectId = req.params.projectId;
-
-            if (!projectId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'ProjectId must be present.',
-                });
-            }
-
-            const project = await ProjectService.toggleStoringAuditLogs(
-                projectId
-            );
-            return sendItemResponse(req, res, project);
-        } catch (error) {
-            sendErrorResponse(req, res, error);
-        }
-    }
-);
-
 module.exports = router;
