@@ -8,6 +8,10 @@ import {
     DELETE_ALL_AUDITLOGS_REQUEST,
     DELETE_ALL_AUDITLOGS_SUCCESS,
     DELETE_ALL_AUDITLOGS_FAILURE,
+    FETCH_AUDITLOG_STATUS_FAILED,
+    FETCH_AUDITLOG_STATUS_REQUEST,
+    FETCH_AUDITLOG_STATUS_SUCCESS,
+    FETCH_AUDITLOG_STATUS_RESET,
 } from '../constants/auditLogs';
 
 const INITIAL_STATE = {
@@ -26,6 +30,12 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
         success: false,
+    },
+    auditLogStatus: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: null,
     },
 };
 
@@ -141,6 +151,48 @@ export default function project(state = INITIAL_STATE, action) {
                     deleteRequest: false,
                 },
             };
+        case FETCH_AUDITLOG_STATUS_REQUEST:
+            return Object.assign({}, state, {
+                auditLogStatus: {
+                    error: null,
+                    requesting: true,
+                    success: false,
+                    data: null,
+                },
+            });
+
+        case FETCH_AUDITLOG_STATUS_SUCCESS: {
+            return Object.assign({}, state, {
+                auditLogStatus: {
+                    error: null,
+                    requesting: false,
+                    success: true,
+                    data: {
+                        ...action.payload.data[0],
+                    },
+                },
+            });
+        }
+
+        case FETCH_AUDITLOG_STATUS_FAILED:
+            return Object.assign({}, state, {
+                auditLogStatus: {
+                    ...state.auditLogStatus,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case FETCH_AUDITLOG_STATUS_RESET:
+            return Object.assign({}, state, {
+                auditLogStatus: {
+                    error: null,
+                    requesting: false,
+                    success: false,
+                    data: null,
+                },
+            });
 
         default:
             return state;
