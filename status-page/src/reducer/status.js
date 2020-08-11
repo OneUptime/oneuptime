@@ -37,7 +37,6 @@ import {
     MORE_EVENT_NOTE_REQUEST,
     MORE_EVENT_NOTE_SUCCESS,
 } from '../constants/status';
-import moment from 'moment';
 
 const INITIAL_STATE = {
     error: null,
@@ -84,12 +83,6 @@ const INITIAL_STATE = {
 };
 
 export default (state = INITIAL_STATE, action) => {
-    let dayStart, dayEnd;
-    if (state.individualevent) {
-        dayStart = moment(state.individualevent.date).startOf('day');
-        dayEnd = moment(state.individualevent.date).endOf('day');
-    }
-
     switch (action.type) {
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
@@ -419,49 +412,17 @@ export default (state = INITIAL_STATE, action) => {
         }
 
         case 'UPDATE_SCHEDULED_EVENT': {
-            const events = Object.assign([], state.events.events);
-            const index = events.findIndex(
-                event => event._id === action.payload._id
-            );
-
-            if (
-                index < 0 &&
-                action.payload.showEventOnStatusPage &&
-                (!state.individualevent ||
-                    (state.individualevent &&
-                        moment(action.payload.startDate).isBefore(dayEnd) &&
-                        moment(action.payload.endDate).isAfter(dayStart) &&
-                        state.individualevent._id ===
-                            action.payload.monitorId._id))
-            ) {
-                // add event
-                events.unshift(action.payload);
-            } else {
-                if (
-                    index > -1 &&
-                    (!action.payload.showEventOnStatusPage ||
-                        (state.individualevent &&
-                            !(
-                                moment(action.payload.startDate).isBefore(
-                                    dayEnd
-                                ) &&
-                                moment(action.payload.endDate).isAfter(dayStart)
-                            ) &&
-                            state.individualevent._id ===
-                                action.payload.monitorId._id))
-                ) {
-                    // remove event
-                    events.splice(index, 1);
-                } else {
-                    // update event
-                    if (index > -1) events[index] = action.payload;
+            const events = state.events.events.map(event => {
+                if (event._id === action.payload._id) {
+                    // monitors are not updated during scheduled event update
+                    return { ...action.payload, monitors: event.monitors };
                 }
-            }
+                return event;
+            });
 
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
-
                     events,
                 },
             });
