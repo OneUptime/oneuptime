@@ -5,6 +5,7 @@ import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
+import { navKeyBind, cleanBind } from '../../utils/keybinding';
 
 export class SidebarNavItem extends Component {
     constructor(props) {
@@ -12,6 +13,61 @@ export class SidebarNavItem extends Component {
 
         this.RenderListItems = this.RenderListItems.bind(this);
     }
+
+    componentDidMount() {
+        const { route } = this.props;
+        const path = this.mainRoute();
+
+        navKeyBind(route, path);
+
+        route.subRoutes.map(subRoute => {
+            const link = this.subRoute(subRoute);
+
+            navKeyBind(subRoute, link);
+            return subRoute;
+        });
+    }
+
+    componentWillUnmount() {
+        const { route } = this.props;
+        const path = this.mainRoute();
+
+        cleanBind(route, path);
+
+        route.subRoutes.map(subRoute => {
+            const link = this.subRoute(subRoute);
+
+            cleanBind(subRoute, link);
+            return subRoute;
+        });
+    }
+
+    mainRoute = () => {
+        const { match, currentProject, route } = this.props;
+        return route.path
+            .replace(
+                ':projectId',
+                match.params.projectId || (currentProject || {})._id
+            )
+            .replace(':subProjectId', match.params.subProjectId)
+            .replace(':componentId', match.params.componentId)
+            .replace(':monitorId', match.params.monitorId)
+            .replace(':applicationLogId', match.params.applicationLogId);
+    };
+
+    subRoute = subRoute => {
+        const { match, currentProject } = this.props;
+        return subRoute.path
+            .replace(
+                ':projectId',
+                match.params.projectId || (currentProject || {})._id
+            )
+            .replace(':componentId', match.params.componentId)
+            .replace(/:issueId/, match.params.issueId)
+            .replace(/:scheduleId/, match.params.scheduleId)
+            .replace(/:incidentId/, match.params.incidentId)
+            .replace(/:monitorId/, match.params.monitorId);
+    };
 
     camalize = function camalize(str) {
         return str
@@ -132,6 +188,8 @@ export class SidebarNavItem extends Component {
             marginTop: route.title === 'Back to Dashboard' ? '20px' : 0,
         };
 
+        const routes = route.shortcut && route.shortcut.split('+');
+
         return (
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
@@ -144,7 +202,7 @@ export class SidebarNavItem extends Component {
                     >
                         <div style={{ outline: 'none' }}>
                             <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
-                                <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
                                     {route.icon ? (
                                         <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
                                             <span
@@ -174,6 +232,15 @@ export class SidebarNavItem extends Component {
                                             {route.title}
                                         </span>
                                     </span>
+                                    {route.shortcut && (
+                                        <span className="tooltiptext">
+                                            <strong>{routes[0]}</strong>
+                                            <span> + </span>
+                                            <strong>{routes[1]}</strong>
+                                            <span> + </span>
+                                            <strong>{routes[2]}</strong>
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -263,6 +330,8 @@ export class SidebarNavItem extends Component {
                         ? true
                         : false;
 
+                const routes = child.shortcut && child.shortcut.split('+');
+
                 return (
                     <ul key={`nav ${index}`}>
                         <li id={this.camalize(child.title)}>
@@ -273,7 +342,7 @@ export class SidebarNavItem extends Component {
                                 >
                                     <div style={{ outline: 'none' }}>
                                         <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
-                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32">
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span
                                                         className={
@@ -288,6 +357,21 @@ export class SidebarNavItem extends Component {
                                                         {child.title}
                                                     </span>
                                                 </span>
+                                                {child.shortcut && (
+                                                    <span className="tooltiptext">
+                                                        <strong>
+                                                            {routes[0]}
+                                                        </strong>
+                                                        <span> + </span>
+                                                        <strong>
+                                                            {routes[1]}
+                                                        </strong>
+                                                        <span> + </span>
+                                                        <strong>
+                                                            {routes[2]}
+                                                        </strong>
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -1,6 +1,9 @@
+import Home from './Home';
+
 import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
+import IncidentPriorities from './IncidentPriorities';
 
 import StatusPage from './StatusPage';
 import StatusPages from './StatusPages';
@@ -48,6 +51,7 @@ import DeleteAccountPage from './DeleteAccountPage';
 
 export default {
     ChangePassword,
+    Home,
     Monitor,
     Component,
     Settings,
@@ -60,6 +64,7 @@ export default {
     AlertLog,
     IncidentLog,
     Incident,
+    IncidentPriorities,
     Billing,
     Monitors,
     Schedule,

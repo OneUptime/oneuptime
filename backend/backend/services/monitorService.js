@@ -415,8 +415,21 @@ module.exports = {
             const monitors = await MonitorModel.find({
                 pollTime: { $lt: date },
                 deleted: false,
+                scriptRunStatus: { $nin: ['inProgress'] },
             });
+
             if (monitors && monitors.length) {
+                await monitors.map(async m => {
+                    if (m.type === 'script') {
+                        await MonitorModel.update(
+                            { _id: m._id, deleted: false },
+                            { $set: { scriptRunStatus: 'inProgress' } },
+                            { multi: true }
+                        );
+                    }
+                    return m;
+                });
+
                 await MonitorModel.update(
                     { pollTime: { $lt: date }, deleted: false },
                     { $set: { pollTime: newdate } },

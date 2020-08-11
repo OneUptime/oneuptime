@@ -173,6 +173,7 @@ export class Component extends React.Component {
         const { settings, handleSubmit } = this.props;
         return (
             <div
+                id="fyipeSmtp"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
