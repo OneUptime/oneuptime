@@ -19,13 +19,12 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
-const validate = (values,props) => {
+const validate = (values, props) => {
     const errors = {};
     if (props.showSmsSmtpConfiguration) {
         if (values.accountSid) {
             if (!Validate.text(values.accountSid)) {
-                errors.accountSid =
-                    'Please input accountSid in text format .';
+                errors.accountSid = 'Please input accountSid in text format .';
             }
         } else {
             errors.accountSid =
@@ -44,8 +43,7 @@ const validate = (values,props) => {
 
         if (values.authToken) {
             if (!Validate.text(values.authToken)) {
-                errors.authToken =
-                    'Please input authToken in proper format .';
+                errors.authToken = 'Please input authToken in proper format .';
             }
         } else {
             errors.authToken =
@@ -83,7 +81,7 @@ export class SmsSmtpBox extends Component {
         } else if (smtpConfigurations.config._id) {
             this.props.deleteSmtpConfig(
                 this.props.currentProject._id,
-                smtpConfigurations.config._id,
+                smtpConfigurations.config._id
             );
         }
         if (SHOULD_LOG_ANALYTICS) {
@@ -469,7 +467,7 @@ SmsSmtpBox.propTypes = {
 const SmsSmtpBoxForm = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
-    validate // <--- validation function given to redux-for
+    validate, // <--- validation function given to redux-for
 })(SmsSmtpBox);
 
 const mapDispatchToProps = dispatch => {
