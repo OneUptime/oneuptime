@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 
 class Events extends Component {
     render() {
+        const { history } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -12,7 +14,11 @@ class Events extends Component {
                     return (
                         <li
                             className="scheduledEvent feed-item clearfix"
+                            style={{ cursor: 'pointer' }}
                             key={i}
+                            onClick={() =>
+                                history.push(`/scheduledEvent/${event._id}`)
+                            }
                         >
                             <div
                                 className="message"
@@ -98,6 +104,7 @@ Events.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
+    history: PropTypes.object,
 };
 
-export default Events;
+export default withRouter(Events);
