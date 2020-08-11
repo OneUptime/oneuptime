@@ -135,4 +135,31 @@ describe('Custom Twilio Settings', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should send SMS to external subscribers if an incident is acknowledged.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.navigateToMonitorDetails(componentName,monitorName,page);
+                await page.waitForSelector(
+                    '#incident_monitor1_0 > td:nth-child(2)'
+                );
+                await page.$eval('#incident_monitor1_0 > td:nth-child(2)', e =>
+                    e.click()
+                );
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.$eval('#btnAcknowledge_0', e => e.click());
+                
+                await page.reload();
+                
+                await page.waitForSelector('#subscriberAlertTable >tbody>tr');
+                const rowsCount = (await page.$$('#subscriberAlertTable >tbody>tr')).length;
+                expect(rowsCount).toEqual(2);
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
 });
