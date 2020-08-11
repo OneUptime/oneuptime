@@ -45,6 +45,7 @@ const INITIAL_STATE = {
         events: [],
         requesting: false,
         skip: 0,
+        count: 0,
     },
     logs: [],
     requestingmore: false,
@@ -363,22 +364,34 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'ADD_SCHEDULED_EVENT':
+        case 'ADD_SCHEDULED_EVENT': {
+            let monitorInStatusPage = false;
+            const eventArray = [];
+            action.payload.monitors.map(monitor => {
+                return state.statusPage.monitors.map(monitorData => {
+                    if (
+                        String(monitorData.monitor) ===
+                        String(monitor.monitorId._id)
+                    ) {
+                        const dataObj = { ...action.payload };
+                        dataObj.monitors = [monitor];
+                        eventArray.push(dataObj);
+                        monitorInStatusPage = true;
+                    }
+                    return monitorData;
+                });
+            });
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
-
-                    events:
-                        !state.individualevent ||
-                        (state.individualevent &&
-                            moment(action.payload.startDate).isBefore(dayEnd) &&
-                            moment(action.payload.endDate).isAfter(dayStart) &&
-                            state.individualevent._id ===
-                                action.payload.monitorId._id)
-                            ? [action.payload, ...state.events.events]
-                            : state.events.events,
+                    events: monitorInStatusPage
+                        ? [...eventArray, ...state.events.events]
+                        : [...state.events.events],
+                    count: state.events.count + eventArray.length,
                 },
             });
+        }
 
         case 'UPDATE_SCHEDULED_EVENT': {
             const events = Object.assign([], state.events.events);
