@@ -62,13 +62,14 @@ class TopContent extends Component {
 
     renderActiveIncidents = incidentCounter =>
         incidentCounter > 0 ? (
-            <Fade top>
-                <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4">
-                    <span id="activeIncidents">
-                        {`${incidentCounter} Incidents Currently Active`}
-                    </span>
-                </div>
-            </Fade>
+            <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4">
+                <span id="activeIncidents">
+                    {`${incidentCounter +
+                        (incidentCounter === 1
+                            ? ' Incident Currently Active'
+                            : ' Incidents Currently Active')}`}
+                </span>
+            </div>
         ) : null;
 
     render() {
