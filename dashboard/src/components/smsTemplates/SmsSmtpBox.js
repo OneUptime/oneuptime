@@ -70,7 +70,7 @@ export class SmsSmtpBox extends Component {
             currentProject,
         } = this.props;
 
-        if (values.smssmtpswitch) {
+        if (values.enabled) {
             if (smtpConfigurations.config && smtpConfigurations.config._id) {
                 updateSmtpConfig(
                     currentProject._id,
@@ -142,7 +142,7 @@ export class SmsSmtpBox extends Component {
                                                                     >
                                                                         <label
                                                                             className="Checkbox responsive"
-                                                                            htmlFor="smssmtpswitch"
+                                                                            htmlFor="enabled"
                                                                             style={{
                                                                                 marginLeft:
                                                                                     '150px',
@@ -151,10 +151,10 @@ export class SmsSmtpBox extends Component {
                                                                             <Field
                                                                                 component="input"
                                                                                 type="checkbox"
-                                                                                name="smssmtpswitch"
+                                                                                name="enabled"
                                                                                 data-test="RetrySettings-failedPaymentsCheckbox"
                                                                                 className="Checkbox-source"
-                                                                                id="smssmtpswitch"
+                                                                                id="enabled"
                                                                                 onChange={
                                                                                     this
                                                                                         .changeValue
@@ -491,14 +491,14 @@ function mapStateToProps(state) {
     const showSmsSmtpConfiguration =
         state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
     let values = {
-        smssmtpswitch: false,
+        enabled: false,
         accountSid: '',
         authToken: '',
         phoneNumber: '',
     };
     if (showSmsSmtpConfiguration) {
         values = {
-            smssmtpswitch: true,
+            enabled: true,
             accountSid: smtpConfigurations.config.accountSid,
             authToken: smtpConfigurations.config.authToken,
             phoneNumber: smtpConfigurations.config.phoneNumber,
