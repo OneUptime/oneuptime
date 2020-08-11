@@ -11,6 +11,7 @@ import {
     getIncidentTimeline,
     fetchIncidentMessages,
 } from '../actions/incident';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
 import IncidentDescription from '../components/incident/IncidentDescription';
@@ -154,6 +155,7 @@ class Incident extends React.Component {
     };
 
     ready = () => {
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -385,6 +387,7 @@ const mapDispatchToProps = dispatch => {
             getIncident,
             getIncidentTimeline,
             fetchIncidentMessages,
+            fetchIncidentPriorities,
         },
         dispatch
     );
@@ -415,6 +418,7 @@ Incident.propTypes = {
     ),
     componentId: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
+    fetchIncidentPriorities: PropTypes.func.isRequired,
 };
 
 Incident.displayName = 'Incident';

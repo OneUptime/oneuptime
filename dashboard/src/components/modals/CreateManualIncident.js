@@ -63,7 +63,8 @@ class CreateManualIncident extends Component {
             monitorId,
             values.incidentType,
             values.title,
-            values.description
+            values.description,
+            values.incidentPriority
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -90,7 +91,7 @@ class CreateManualIncident extends Component {
     };
 
     render() {
-        const { handleSubmit, newIncident } = this.props;
+        const { handleSubmit, newIncident, incidentPriorities } = this.props;
         const sameError =
             newIncident &&
             newIncident.error &&
@@ -174,7 +175,50 @@ class CreateManualIncident extends Component {
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row Margin-bottom--12">
+                                            <ShouldRender
+                                                if={
+                                                    incidentPriorities.length >
+                                                    0
+                                                }
+                                            >
+                                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            name="incidentPriority"
+                                                            id="incidentPriority"
+                                                            placeholder="Incident Priority"
+                                                            disabled={
+                                                                this.props
+                                                                    .newIncident
+                                                                    .requesting
+                                                            }
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Select type',
+                                                                },
+                                                                ...incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Incident title
                                                 </label>
@@ -302,7 +346,9 @@ class CreateManualIncident extends Component {
 }
 
 CreateManualIncident.displayName = 'CreateManualIncident';
-
+CreateManualIncident.propTypes = {
+    incidentPriorities: PropTypes.array.isRequired,
+};
 const CreateManualIncidentForm = reduxForm({
     form: 'CreateManualIncident',
 })(CreateManualIncident);
@@ -322,6 +368,8 @@ function mapStateToProps(state) {
     return {
         newIncident: state.incident.newIncident,
         createIncidentModalId: state.modal.modals[0].id,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 }
 

@@ -364,6 +364,27 @@ describe('Incident API', function() {
             });
     });
 
+    it('should update incident details.', function(done) {
+        const authorization = `Basic ${token}`;
+        const incidentTitle = 'New incident title';
+        const incidentDescription = 'New incident description';
+
+        request
+            .put(`/incident/${projectId}/incident/${incidentId}/details`)
+            .set('Authorization', authorization)
+            .send({
+                title: incidentTitle,
+                description: incidentDescription,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body.title).to.be.equal(incidentTitle);
+                expect(res.body.description).to.be.equal(incidentDescription);
+                done();
+            });
+    });
+
     it('should get incident timeline by incidentId', function(done) {
         const authorization = `Basic ${token}`;
         request

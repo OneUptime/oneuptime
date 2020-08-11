@@ -11,6 +11,7 @@ import {
     getIncidents,
     getProjectIncidents,
 } from '../actions/incident';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
@@ -40,6 +41,7 @@ class IncidentLog extends React.Component {
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -259,6 +261,7 @@ const mapDispatchToProps = dispatch => {
             getProjectIncidents,
             openModal,
             closeModal,
+            fetchIncidentPriorities,
         },
         dispatch
     );
@@ -286,6 +289,7 @@ IncidentLog.propTypes = {
             name: PropTypes.string,
         })
     ),
+    fetchIncidentPriorities: PropTypes.func.isRequired,
 };
 
 IncidentLog.displayName = 'IncidentLog';
