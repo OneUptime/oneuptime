@@ -100,7 +100,10 @@ export class MonitorViewIncidentBox extends Component {
     };
 
     render() {
-        const { createIncidentModalId, filteredIncidents } = this.state;
+        const {
+            createIncidentModalId,
+            filteredIncidents,
+        } = this.state;
         const creating = this.props.create ? this.props.create : false;
 
         return (
