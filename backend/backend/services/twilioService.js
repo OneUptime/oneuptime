@@ -283,13 +283,17 @@ const _this = {
                 );
                 let alertLimit = true;
 
-                alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
 
                 if (alertLimit) {
                     const message = await twilioClient.messages.create(options);
                     return message;
                 } else {
-                    const error = new Error('Alerts limit reached for the day.');
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
                     error.code = 400;
                     return error;
                 }
@@ -364,13 +368,17 @@ const _this = {
                 );
                 let alertLimit = true;
 
-                alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
 
                 if (alertLimit) {
                     const message = await twilioClient.messages.create(options);
                     return message;
                 } else {
-                    const error = new Error('Alerts limit reached for the day.');
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
                     error.code = 400;
                     return error;
                 }
