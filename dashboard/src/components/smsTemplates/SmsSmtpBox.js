@@ -84,7 +84,6 @@ export class SmsSmtpBox extends Component {
             this.props.deleteSmtpConfig(
                 this.props.currentProject._id,
                 smtpConfigurations.config._id,
-                values
             );
         }
         if (SHOULD_LOG_ANALYTICS) {
