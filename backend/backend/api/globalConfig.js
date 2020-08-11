@@ -49,7 +49,8 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 });
             }
 
-            if (!value) {
+            if (!value && name !== 'auditLogMonitoringStatus') {
+                // Audit Log Status can be 'false'
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Value must be present.',
@@ -100,10 +101,25 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const names = req.body;
 
-        const globalConfigs = await GlobalConfigService.findBy({
+        let globalConfigs = await GlobalConfigService.findBy({
             name: { $in: names },
         });
 
+        // If audit logs status was fetched and it doesnt exist, we need to create it
+        if (
+            globalConfigs.length < 1 &&
+            names.includes('auditLogMonitoringStatus')
+        ) {
+            const auditLogConfig = {
+                name: 'auditLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(auditLogConfig);
+        }
+
+        globalConfigs = await GlobalConfigService.findBy({
+            name: { $in: names },
+        });
         if (globalConfigs && globalConfigs.length > 0) {
             return sendListResponse(req, res, globalConfigs);
         } else {
