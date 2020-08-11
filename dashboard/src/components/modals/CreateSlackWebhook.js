@@ -98,11 +98,20 @@ class CreateSlack extends React.Component {
                                     <span>Create Slack Webhook</span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>Click {' '}
-                                        <a target="_blank" rel="noopener noreferrer" href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack" style={{textDecoration: "underline"}}>
+                                    <span>
+                                        Click{' '}
+                                        <a
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack"
+                                            style={{
+                                                textDecoration: 'underline',
+                                            }}
+                                        >
                                             here
-                                        </a> {' '}
-                                        to check documentation on how to integrate Slack with Fyipe.
+                                        </a>{' '}
+                                        to check documentation on how to
+                                        integrate Slack with Fyipe.
                                     </span>
                                 </span>
                             </div>
