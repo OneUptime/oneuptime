@@ -206,3 +206,60 @@ export const fetchAuditLogStatus = () => async dispatch => {
         return 'error';
     }
 };
+
+// change auditLogStatus
+
+export function changeAuditLogStatusRequest(promise) {
+    return {
+        type: types.CHANGE_AUDITLOG_STATUS_REQUEST,
+        payload: promise,
+    };
+}
+
+export function changeAuditLogStatusError(error) {
+    return {
+        type: types.CHANGE_AUDITLOG_STATUS_FAILED,
+        payload: error,
+    };
+}
+
+export function changeAuditLogStatusSuccess(auditLogStatus) {
+    return {
+        type: types.CHANGE_AUDITLOG_STATUS_SUCCESS,
+        payload: auditLogStatus,
+    };
+}
+
+export const resetConfirmAuditLogStatus = () => {
+    return {
+        type: types.CHANGE_AUDITLOG_STATUS_RESET,
+    };
+};
+
+// Calls the API to change auditLogStatus
+export const auditLogStatusChange = values => async dispatch => {
+    dispatch(changeAuditLogStatusRequest());
+
+    try {
+        const response = await postApi('globalConfig/', [
+            { name: 'auditLogMonitoringStatus', value: values.status },
+        ]);
+        const data = response.data;
+        dispatch(changeAuditLogStatusSuccess(data));
+        return data;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(changeAuditLogStatusError(errors(errorMsg)));
+        return 'error';
+    }
+};
