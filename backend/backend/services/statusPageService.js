@@ -434,6 +434,8 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
+            query.deleted = false;
+
             const statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter(
@@ -480,6 +482,46 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('statusPageService.getEvents', error);
+            throw error;
+        }
+    },
+
+    getEvent: async function(query) {
+        try {
+            const scheduledEvent = await ScheduledEventsService.findOneBy(
+                query
+            );
+            return scheduledEvent;
+        } catch (error) {
+            ErrorService.log('statusPageService.getEvent', error);
+            throw error;
+        }
+    },
+
+    getEventNotes: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = Number(skip);
+
+            if (typeof limit === 'string') limit = Number(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const eventNote = await ScheduledEventNoteService.findBy(
+                query,
+                limit,
+                skip
+            );
+
+            const count = await ScheduledEventNoteService.countBy(query);
+
+            return { notes: eventNote, count };
+        } catch (error) {
+            ErrorService.log('statusPageService.getEventNotes', error);
             throw error;
         }
     },
@@ -740,3 +782,4 @@ const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
 const flattenArray = require('../utils/flattenArray');
+const ScheduledEventNoteService = require('./scheduledEventNoteService');
