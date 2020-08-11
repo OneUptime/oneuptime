@@ -101,25 +101,10 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const names = req.body;
 
-        let globalConfigs = await GlobalConfigService.findBy({
+        const globalConfigs = await GlobalConfigService.findBy({
             name: { $in: names },
         });
 
-        // If audit logs status was fetched and it doesnt exist, we need to create it
-        if (
-            globalConfigs.length < 1 &&
-            names.includes('auditLogMonitoringStatus')
-        ) {
-            const auditLogConfig = {
-                name: 'auditLogMonitoringStatus',
-                value: true,
-            };
-            await GlobalConfigService.create(auditLogConfig);
-        }
-
-        globalConfigs = await GlobalConfigService.findBy({
-            name: { $in: names },
-        });
         if (globalConfigs && globalConfigs.length > 0) {
             return sendListResponse(req, res, globalConfigs);
         } else {
@@ -139,7 +124,18 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const globalConfig = await GlobalConfigService.findOneBy({
+        let globalConfig = await GlobalConfigService.findOneBy({
+            name: req.params.name,
+        });
+        // If audit logs status was fetched and it doesnt exist, we need to create it
+        if (!globalConfig && req.params.name === 'auditLogMonitoringStatus') {
+            const auditLogConfig = {
+                name: 'auditLogMonitoringStatus',
+                value: true,
+            };
+            await GlobalConfigService.create(auditLogConfig);
+        }
+        globalConfig = await GlobalConfigService.findOneBy({
             name: req.params.name,
         });
 
