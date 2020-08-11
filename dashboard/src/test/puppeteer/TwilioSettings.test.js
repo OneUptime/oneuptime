@@ -63,10 +63,10 @@ describe('Custom Twilio Settings', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
                 await page.click('#sms');
-                await page.waitForSelector('label[for=smssmtpswitch]', {
+                await page.waitForSelector('label[for=enabled]', {
                     visible: true,
                 });
-                await page.click('label[for=smssmtpswitch]');
+                await page.click('label[for=enabled]');
                 await page.type('#accountSid', twilioCredentials.accountSid);
                 await page.type('#authToken', twilioCredentials.authToken);
                 await page.type('#phoneNumber', twilioCredentials.phoneNumber);
