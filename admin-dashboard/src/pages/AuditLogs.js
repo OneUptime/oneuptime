@@ -4,9 +4,14 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import AuditLogsList from '../components/auditLogs/AuditLogsList';
-import { fetchAuditLogs, searchAuditLogs } from '../actions/auditLogs';
+import {
+    fetchAuditLogs,
+    searchAuditLogs,
+    fetchAuditLogStatus,
+    auditLogStatusChange,
+} from '../actions/auditLogs';
 import Dashboard from '../components/Dashboard';
-
+import { ListLoader } from '../components/basic/Loader';
 class AuditLogs extends React.Component {
     constructor(props) {
         super(props);
@@ -44,6 +49,7 @@ class AuditLogs extends React.Component {
 
     ready = () => {
         this.props.fetchAuditLogs();
+        this.props.fetchAuditLogStatus();
     };
 
     onChange = e => {
@@ -53,8 +59,16 @@ class AuditLogs extends React.Component {
         this.setState({ searchBox: value });
         searchAuditLogs(value, 0, 10);
     };
+    handleCheckChange = checked => {
+        const { auditLogStatus, auditLogStatusChange } = this.props;
+        checked.persist();
+        auditLogStatusChange({
+            status: !auditLogStatus.data.value,
+        });
+    };
 
     render() {
+        const { auditLogStatus, changeAuditLogStatus } = this.props;
         return (
             <Dashboard ready={this.ready}>
                 <div
@@ -112,6 +126,60 @@ class AuditLogs extends React.Component {
                                                                         />
                                                                     </div>
                                                                 </div>
+                                                                {auditLogStatus.data ? (
+                                                                    <div className="Flex-flex Flex-justifyContent--flexEnd Flex-alignItems--center Margin-vertical--8">
+                                                                        <label className="Margin-right--8">
+                                                                            {auditLogStatus
+                                                                                .data
+                                                                                .value
+                                                                                ? `Disable `
+                                                                                : 'Enable '}
+                                                                            Audit
+                                                                            Logs
+                                                                        </label>
+                                                                        <div>
+                                                                            <label className="Toggler-wrap">
+                                                                                <input
+                                                                                    className="btn-toggler"
+                                                                                    type="checkbox"
+                                                                                    onChange={
+                                                                                        this
+                                                                                            .handleCheckChange
+                                                                                    }
+                                                                                    name="auditStatusToggler"
+                                                                                    id="auditStatusToggler"
+                                                                                    checked={
+                                                                                        auditLogStatus
+                                                                                            .data
+                                                                                            .value
+                                                                                    }
+                                                                                    disabled={
+                                                                                        changeAuditLogStatus.requesting
+                                                                                    }
+                                                                                />
+                                                                                <span className="TogglerBtn-slider round"></span>
+                                                                            </label>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : null}
+                                                                {this.props
+                                                                    .changeAuditLogStatus
+                                                                    .requesting ? (
+                                                                    <ListLoader />
+                                                                ) : changeAuditLogStatus.error ? (
+                                                                    <div className="Flex-flex Flex-justifyContent--flexEnd Flex-alignItems--center Margin-vertical--8">
+                                                                        <span
+                                                                            style={{
+                                                                                color:
+                                                                                    'red',
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                changeAuditLogStatus.error
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -146,7 +214,15 @@ class AuditLogs extends React.Component {
 AuditLogs.displayName = 'AuditLogs';
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchAuditLogs, searchAuditLogs }, dispatch);
+    return bindActionCreators(
+        {
+            fetchAuditLogs,
+            searchAuditLogs,
+            fetchAuditLogStatus,
+            auditLogStatusChange,
+        },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
@@ -158,10 +234,13 @@ const mapStateToProps = state => {
                 ? true
                 : false
             : false;
-
+    const auditLogStatus = state.auditLogs.auditLogStatus;
+    const changeAuditLogStatus = state.auditLogs.changeAuditLogStatus;
     return {
         auditLogs,
         requesting,
+        auditLogStatus,
+        changeAuditLogStatus,
     };
 };
 
@@ -171,6 +250,10 @@ AuditLogs.propTypes = {
     requesting: PropTypes.bool,
     auditLogs: PropTypes.object,
     userId: PropTypes.string,
+    fetchAuditLogStatus: PropTypes.func.isRequired,
+    auditLogStatus: PropTypes.object,
+    changeAuditLogStatus: PropTypes.object,
+    auditLogStatusChange: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogs);
