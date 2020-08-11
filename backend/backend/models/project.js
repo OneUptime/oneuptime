@@ -78,6 +78,10 @@ const projectSchema = new Schema({
             createdAt: { type: Date },
         },
     ],
+    isStoringAuditLogs: {
+        type: Boolean,
+        default: true, // When false, no audit logs will be saved for this project
+    },
 });
 
 module.exports = mongoose.model('Project', projectSchema);
