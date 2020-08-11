@@ -617,6 +617,26 @@ router.get('/:projectId/:statusPageId/events', checkUser, async function(
     }
 });
 
+router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
+    req,
+    res
+) {
+    const { scheduledEventId } = req.params;
+    const { skip, limit, type } = req.query;
+
+    try {
+        const response = await StatusPageService.getEventNotes(
+            { scheduledEventId, type },
+            skip,
+            limit
+        );
+        const { notes, count } = response;
+        return sendListResponse(req, res, notes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     req,
     res
@@ -664,6 +684,24 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// get a particular scheduled event
+router.get(
+    '/:projectId/scheduledEvent/:scheduledEventId',
+    checkUser,
+    async function(req, res) {
+        const { scheduledEventId } = req.params;
+
+        try {
+            const response = await StatusPageService.getEvent({
+                _id: scheduledEventId,
+            });
+            return sendListResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 // Route
 // Description: Get all Monitor Statuses by monitorId
 router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
