@@ -20,6 +20,7 @@ describe('Incident Created test', () => {
 
     let cluster;
     const monitorName = utils.generateRandomString();
+    const monitorName2 = utils.generateRandomString();
 
     beforeAll(async () => {
         jest.setTimeout(500000);
@@ -292,6 +293,28 @@ describe('Incident Created test', () => {
                 const filteredIncidentsCount = filteredIncidents.length;
 
                 expect(filteredIncidentsCount).toEqual(3);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should show incidents of different components on the incident logs menu',
+        async () => {
+            const componentName = 'New Component';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.addComponent(componentName, page);
+                await init.addMonitorToComponent(null, monitorName2, page);
+                await init.addIncident(monitorName2, 'Offline', page);
+                await page.goto(utils.DASHBOARD_URL);
+
+                await page.waitForSelector('#incidentLogs');
+                await page.click('#incidentLogs');
+                await page.waitForSelector('tr.incidentListItem');
+                const filteredIncidents = await page.$$('tr.incidentListItem');
+                const filteredIncidentsCount = filteredIncidents.length;
+                expect(filteredIncidentsCount).toEqual(4);
             });
         },
         operationTimeOut
