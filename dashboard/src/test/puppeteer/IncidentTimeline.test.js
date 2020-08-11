@@ -450,6 +450,7 @@ describe('Incident Timeline API', () => {
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
+            await page.waitFor(2000);
 
             for (let i = 0; i < 10; i++) {
                 // add internal note
@@ -462,7 +463,7 @@ describe('Incident Timeline API', () => {
                 await init.selectByText('#incident_state', 'update', page);
 
                 await page.click(`#${type}-addButton`);
-                await page.waitFor(1000);
+                await page.waitFor(2000);
             }
 
             await page.waitForSelector('tr.incidentListItem');
@@ -472,7 +473,6 @@ describe('Incident Timeline API', () => {
             expect(countIncidentTimelines).toEqual(10);
 
             const nextSelector = await page.$('#btnTimelineNext');
-
             await nextSelector.click();
             await page.waitFor(7000);
             incidentTimelineRows = await page.$$('tr.incidentListItem');
@@ -480,7 +480,6 @@ describe('Incident Timeline API', () => {
             expect(countIncidentTimelines).toEqual(10);
 
             const prevSelector = await page.$('#btnTimelinePrev');
-
             await prevSelector.click();
             await page.waitFor(7000);
             incidentTimelineRows = await page.$$('tr.incidentListItem');
