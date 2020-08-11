@@ -576,8 +576,13 @@ module.exports = {
             let msg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
-            }
-            if (downtime > 60) {
+            } else if (downtime > 24 * 60) {
+                downtimestring = `${Math.floor(
+                    downtime / (24 * 60)
+                )} days ${Math.floor(
+                    (downtime % (24 * 60)) / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            } else if (downtime > 60) {
                 downtimestring = `${Math.floor(
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;
