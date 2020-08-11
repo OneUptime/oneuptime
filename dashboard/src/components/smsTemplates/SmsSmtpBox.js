@@ -19,49 +19,48 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
+const validate = (values,props) => {
+    const errors = {};
+    if (props.showSmsSmtpConfiguration) {
+        if (values.accountSid) {
+            if (!Validate.text(values.accountSid)) {
+                errors.accountSid =
+                    'Please input accountSid in text format .';
+            }
+        } else {
+            errors.accountSid =
+                'Please input accountSid this cannot be left blank.';
+        }
+
+        if (values.phoneNumber) {
+            if (!Validate.number(values.phoneNumber)) {
+                errors.phoneNumber =
+                    'Please input phoneNumber in number format .';
+            }
+        } else {
+            errors.phoneNumber =
+                'Please input phoneNumber this cannot be left blank.';
+        }
+
+        if (values.authToken) {
+            if (!Validate.text(values.authToken)) {
+                errors.authToken =
+                    'Please input authToken in proper format .';
+            }
+        } else {
+            errors.authToken =
+                'Please input authToken this cannot be left blank.';
+        }
+    }
+    return errors;
+};
+
 export class SmsSmtpBox extends Component {
-    constructor(props) {
-        super(props);
+    constructor() {
+        super();
         this.changeValue = this.changeValue.bind(this);
         this.submitForm = this.submitForm.bind(this);
     }
-
-    //Client side validation
-    validate = values => {
-        const errors = {};
-        if (this.props.showSmsSmtpConfiguration) {
-            if (values.accountSid) {
-                if (!Validate.text(values.accountSid)) {
-                    errors.accountSid =
-                        'Please input accountSid in text format .';
-                }
-            } else {
-                errors.accountSid =
-                    'Please input accountSid this cannot be left blank.';
-            }
-
-            if (values.phoneNumber) {
-                if (!Validate.number(values.phoneNumber)) {
-                    errors.phoneNumber =
-                        'Please input phoneNumber in number format .';
-                }
-            } else {
-                errors.phoneNumber =
-                    'Please input phoneNumber this cannot be left blank.';
-            }
-
-            if (values.authToken) {
-                if (!Validate.text(values.authToken)) {
-                    errors.authToken =
-                        'Please input authToken in proper format .';
-                }
-            } else {
-                errors.authToken =
-                    'Please input authToken this cannot be left blank.';
-            }
-        }
-        return errors;
-    };
 
     submitForm = values => {
         const {
@@ -471,7 +470,7 @@ SmsSmtpBox.propTypes = {
 const SmsSmtpBoxForm = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
-    validate: SmsSmtpBox.validate, // <--- validation function given to redux-for
+    validate // <--- validation function given to redux-for
 })(SmsSmtpBox);
 
 const mapDispatchToProps = dispatch => {
