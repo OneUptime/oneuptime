@@ -189,6 +189,7 @@ describe('Incident API With SubProjects', () => {
                 // acknowledge incident
                 await page.waitForSelector('#btnAcknowledge_0');
                 await page.click('#btnAcknowledge_0');
+                await page.waitFor(2000);
                 await page.waitForSelector('#AcknowledgeText_0');
 
                 const acknowledgeTextSelector = await page.$(
@@ -216,6 +217,7 @@ describe('Incident API With SubProjects', () => {
                 // resolve incident
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
+                await page.waitFor(2000);
                 await page.waitForSelector('#ResolveText_0');
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
