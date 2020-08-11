@@ -100,7 +100,11 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await init.selectByText('#incidentPriority', priorityName, page);
+                await init.selectByText(
+                    '#incidentPriority',
+                    priorityName,
+                    page
+                );
                 await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
 
@@ -109,15 +113,18 @@ describe('Monitor Detail API', () => {
                 expect((await page.$$(selector)).length).toEqual(1);
 
                 const selector1 = 'tr.incidentListItem:first-of-type';
-                const rowContent = await page.$eval(selector1, e => e.textContent);
-                expect(rowContent).toContain(priorityName)
+                const rowContent = await page.$eval(
+                    selector1,
+                    e => e.textContent
+                );
+                expect(rowContent).toContain(priorityName);
             });
         },
         operationTimeOut
     );
 
     test(
-        'Should navigate to monitor\'s incident details and edit details',
+        "Should navigate to monitor's incident details and edit details",
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
@@ -127,22 +134,30 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                const selector = 'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
+                const selector =
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
                 await page.waitForSelector(selector);
                 await page.click(selector);
                 await page.waitForSelector('#EditIncidentDetails');
                 await page.waitFor(3000);
-                const incidentTitleSelector = '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
-                let currentTitle=await page.$eval(incidentTitleSelector, e=> e.textContent);
+                const incidentTitleSelector =
+                    '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
+                let currentTitle = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
                 expect(currentTitle).toEqual(incidentTitle);
                 await page.click('#EditIncidentDetails');
                 await page.waitForSelector('#saveIncident');
-                await page.click('#title',{clickCount:3});
+                await page.click('#title', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 await page.type('#title', newIncidentTitle);
                 await page.click('#saveIncident');
                 await page.waitFor(3000);
-                currentTitle=await page.$eval(incidentTitleSelector, e=> e.textContent);
+                currentTitle = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
                 expect(currentTitle).toEqual(newIncidentTitle);
             });
         },
