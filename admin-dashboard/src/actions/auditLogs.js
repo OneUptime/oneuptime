@@ -184,12 +184,9 @@ export const fetchAuditLogStatus = () => async dispatch => {
     dispatch(fetchAuditLogStatusRequest());
 
     try {
-        const response = await postApi('globalConfig/configs', [
-            'auditLogMonitoringStatus',
-        ]);
-        const data = response.data;
-        dispatch(fetchAuditLogStatusSuccess(data));
-        return data;
+        const response = await getApi('globalConfig/auditLogMonitoringStatus');
+        dispatch(fetchAuditLogStatusSuccess(response.data));
+        return response;
     } catch (error) {
         let errorMsg;
         if (error && error.response && error.response.data)

@@ -177,7 +177,7 @@ export default function project(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: true,
                     data: {
-                        ...action.payload.data[0],
+                        ...action.payload,
                     },
                 },
             });
