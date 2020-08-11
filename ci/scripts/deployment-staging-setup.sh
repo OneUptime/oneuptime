@@ -1,2 +1,5 @@
-sudo $HOME/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ./ci/credentials/encrypted-credentials/staging/fyipe-staging.json
-sudo $HOME/google-cloud-sdk/bin/gcloud container clusters get-credentials fyipe-helm --zone us-central1-c --project fyipe-staging
+echo "Get KubeCluster Config"
+sudo doctl kubernetes cluster kubeconfig save fyipe-staging
+sudo mv /root/.kube/config /gitlab-runner/.kube/config 
+sudo kubectl config get-contexts
+sudo kubectl config use-context do-nyc3-fyipe-staging

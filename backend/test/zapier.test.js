@@ -550,20 +550,37 @@ describe('Zapier API', function() {
             });
     });
     it('should acknowledge all incident', function(done) {
+        const authorization = `Basic ${token}`;
         request
-            .post(
-                `/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}&projectId=${projectId}`
-            )
-            .send({
-                monitors: [monitorId],
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('incidents');
-                expect(res.body.incidents.length).to.be.equal(1);
-                expect(res.body.incidents[0].acknowledged).to.be.equal(true);
-                done();
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData)
+            .end(function() {
+                request
+                    .post(`/incident/${projectId}/${monitorId}`)
+                    .set('Authorization', authorization)
+                    .send(incidentData)
+                    .end(function() {
+                        request
+                            .post(
+                                `/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}&projectId=${projectId}`
+                            )
+                            .send({
+                                monitors: [monitorId],
+                            })
+                            .end(function(err, res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.be.an('object');
+                                expect(res.body).to.have.property('incidents');
+                                expect(res.body.incidents.length).to.be.equal(
+                                    1
+                                );
+                                expect(
+                                    res.body.incidents[0].acknowledged
+                                ).to.be.equal(true);
+                                done();
+                            });
+                    });
             });
     });
     it('should fail to resolve all incidents when apiKey is missing in query', function(done) {

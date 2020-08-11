@@ -13,7 +13,7 @@ const ApplicationSecurity = require('./applicationSecurity');
 const ContainerSecurity = require('./containerSecurity');
 
 module.exports = {
-    runJob: async function () {
+    runJob: async function() {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = monitors.data;
@@ -36,7 +36,7 @@ module.exports = {
             ErrorService.log('getApi', error);
         }
     },
-    runApplicationScan: async function () {
+    runApplicationScan: async function() {
         try {
             const securities = await getApi('probe/applicationSecurities');
             if (securities && securities.length > 0) {
@@ -52,7 +52,7 @@ module.exports = {
             ErrorService.log('runApplicationScan.getApi', error);
         }
     },
-    runContainerScan: async function () {
+    runContainerScan: async function() {
         try {
             const securities = await getApi('probe/containerSecurities');
             if (securities && securities.length > 0) {

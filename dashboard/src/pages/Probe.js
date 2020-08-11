@@ -55,7 +55,10 @@ class Probe extends React.Component {
                     <div className="Box-root Margin-vertical--12">
                         <div>
                             <div>
-                                <div className="db-RadarRulesLists-page">
+                                <div
+                                    id="probeList"
+                                    className="db-RadarRulesLists-page"
+                                >
                                     <div className="Box-root Margin-bottom--12">
                                         <div className="bs-ContentSection Card-root Card-shadow--medium">
                                             <div className="Box-root">

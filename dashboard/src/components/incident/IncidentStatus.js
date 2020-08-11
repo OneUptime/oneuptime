@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import uuid from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -14,11 +15,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import DataPathHoC from '../DataPathHoC';
+import { openModal } from '../../actions/modal';
+import EditIncident from '../modals/EditIncident';
 
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
-        this.props = props;
+        this.state = {
+            editIncidentModalId: uuid.v4(),
+        };
     }
     acknowledge = () => {
         const userId = User.getUserId();
@@ -112,63 +118,137 @@ export class IncidentStatus extends Component {
                                     </span>
                                 </p>
                             </div>
-                            <ShouldRender
-                                if={
-                                    this.props.multiple &&
-                                    this.props.incident &&
-                                    this.props.incident.resolved
-                                }
+                            <div
+                                className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
+                                style={{ marginTop: '-20px' }}
                             >
-                                <div
-                                    className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
-                                    style={{ marginTop: '-20px' }}
+                                <button
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    id="EditIncidentDetails"
+                                    type="button"
+                                    onClick={() => {
+                                        this.props.openModal({
+                                            id: this.state.editIncidentModalId,
+                                            content: DataPathHoC(EditIncident, {
+                                                incident: this.props.incident,
+                                                incidentId: this.props.incident
+                                                    ._id,
+                                            }),
+                                        });
+                                    }}
                                 >
-                                    <div className="Box-root">
+                                    <span className="bs-Button bs-Button--icon">
+                                        <span>Edit Incident</span>
+                                    </span>
+                                </button>
+                                <ShouldRender
+                                    if={
+                                        this.props.multiple &&
+                                        this.props.incident &&
+                                        this.props.incident.resolved
+                                    }
+                                >
+                                    <div className="Box-root Margin-left--12">
                                         <span
                                             className="incident-close-button"
                                             onClick={this.closeIncident}
                                         ></span>
                                     </div>
-                                </div>
-                            </ShouldRender>
+                                </ShouldRender>
+                            </div>
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Title :
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{ marginTop: '6px' }}
-                                                >
-                                                    <span className="value">
-                                                        {
-                                                            this.props.incident
-                                                                .title
-                                                        }
-                                                    </span>
+                                            {this.props.incident.title && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Title :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <span className="value">
+                                                            {
+                                                                this.props
+                                                                    .incident
+                                                                    .title
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
-                                                    Description :
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{ marginTop: '6px' }}
-                                                >
-                                                    <ReactMarkdown
-                                                        source={
-                                                            this.props.incident
-                                                                .description
-                                                        }
-                                                    />
+                                            )}
+                                            {this.props.incident
+                                                .description && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Description :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <ReactMarkdown
+                                                            source={
+                                                                this.props
+                                                                    .incident
+                                                                    .description
+                                                            }
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
+                                            {this.props.incident
+                                                .incidentPriority && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <div className="Flex-flex Flex-alignItems--center">
+                                                            <span
+                                                                className="Margin-right--4"
+                                                                style={{
+                                                                    display:
+                                                                        'inline-block',
+                                                                    backgroundColor: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                    height:
+                                                                        '15px',
+                                                                    width:
+                                                                        '15px',
+                                                                    borderRadius:
+                                                                        '30%',
+                                                                }}
+                                                            ></span>
+                                                            <span
+                                                                className="Text-fontWeight--medium"
+                                                                style={{
+                                                                    color: `rgba(${this.props.incident.incidentPriority.color.r},${this.props.incident.incidentPriority.color.g},${this.props.incident.incidentPriority.color.b},${this.props.incident.incidentPriority.color.a})`,
+                                                                }}
+                                                            >
+                                                                {
+                                                                    this.props
+                                                                        .incident
+                                                                        .incidentPriority
+                                                                        .name
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Created At:
@@ -631,7 +711,7 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { resolveIncident, acknowledgeIncident, closeIncident },
+        { resolveIncident, acknowledgeIncident, closeIncident, openModal },
         dispatch
     );
 };
@@ -647,6 +727,7 @@ IncidentStatus.propTypes = {
     subProjects: PropTypes.array.isRequired,
     multiple: PropTypes.bool,
     count: PropTypes.number,
+    openModal: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

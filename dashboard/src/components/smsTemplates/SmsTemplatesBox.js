@@ -50,7 +50,7 @@ class SmsTemplatesBox extends React.Component {
                 ? this.props.smsTemplates.smsTemplates.templates
                 : [];
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div id="smsTemplate" className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="Box-root Margin-bottom--12">

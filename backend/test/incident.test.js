@@ -145,6 +145,7 @@ describe('Incident API', function() {
         await IntegrationService.hardDeleteBy({
             monitorId,
         });
+        await IncidentService.hardDeleteBy({ projectId: projectId });
     });
 
     it('should create an incident', async function() {
@@ -153,7 +154,6 @@ describe('Incident API', function() {
             await chai
                 .request('http://127.0.0.1:3010')
                 .get('/api/webhooks/msteams');
-            throw Error();
         } catch (e) {
             expect(e.response.status).to.eql(404);
         }
@@ -161,7 +161,6 @@ describe('Incident API', function() {
             await chai
                 .request('http://127.0.0.1:3010')
                 .get('/api/webhooks/slack');
-            throw Error();
         } catch (e) {
             expect(e.response.status).to.eql(404);
         }
@@ -361,6 +360,27 @@ describe('Incident API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body.resolved).to.be.equal(true);
+                done();
+            });
+    });
+
+    it('should update incident details.', function(done) {
+        const authorization = `Basic ${token}`;
+        const incidentTitle = 'New incident title';
+        const incidentDescription = 'New incident description';
+
+        request
+            .put(`/incident/${projectId}/incident/${incidentId}/details`)
+            .set('Authorization', authorization)
+            .send({
+                title: incidentTitle,
+                description: incidentDescription,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body.title).to.be.equal(incidentTitle);
+                expect(res.body.description).to.be.equal(incidentDescription);
                 done();
             });
     });
@@ -634,6 +654,7 @@ describe('Incident API', function() {
                 balance: 100,
             },
         });
+        await IncidentService.hardDeleteBy({ projectId: projectId });
         const createdIncident = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)

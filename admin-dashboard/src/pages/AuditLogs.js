@@ -72,6 +72,7 @@ class AuditLogs extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <div
+                    id="fyipeAuditLog"
                     onKeyDown={this.handleKeyBoard}
                     className="Box-root Margin-vertical--12"
                 >

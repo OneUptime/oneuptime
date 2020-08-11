@@ -152,6 +152,17 @@ export const Validate = {
             return false;
         }
     },
+    numberGreaterThanZero(number) {
+        if (typeof number === 'string' && number.length === 0) {
+            return false;
+        }
+
+        if (number && !isNaN(number) && number > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    },
 
     email(email) {
         if (this.text(email)) return isEmail(email);
