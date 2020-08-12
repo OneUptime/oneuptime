@@ -549,6 +549,42 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function(
     }
 });
 
+router.get('/:projectId/incident/:incidentId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+
+        const incident = await StatusPageService.getIncident({
+            _id: incidentId,
+        });
+        return sendItemResponse(req, res, incident);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+        const { skip, limit, type } = req.query;
+
+        const response = await StatusPageService.getIncidentNotes(
+            { incidentId, type },
+            skip,
+            limit
+        );
+        const { message, count } = response;
+        return sendListResponse(req, res, message, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     req,
     res
