@@ -93,6 +93,7 @@ class EventsMain extends Component {
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
                 />
             );
         }

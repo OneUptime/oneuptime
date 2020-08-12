@@ -36,7 +36,7 @@ const App = () => (
                 />
                 <Route
                     exact
-                    path="/scheduledEvent/:eventId"
+                    path="/status-page/:statusPageId/scheduledEvent/:eventId"
                     component={ScheduledEvent}
                 />
                 <Redirect to="/" />

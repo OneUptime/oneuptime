@@ -6,7 +6,7 @@ import ShouldRender from './ShouldRender';
 
 class Events extends Component {
     render() {
-        const { history } = this.props;
+        const { history, statusPageId } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -17,7 +17,9 @@ class Events extends Component {
                             style={{ cursor: 'pointer' }}
                             key={i}
                             onClick={() =>
-                                history.push(`/scheduledEvent/${event._id}`)
+                                history.push(
+                                    `/status-page/${statusPageId}/scheduledEvent/${event._id}`
+                                )
                             }
                         >
                             <div
@@ -105,6 +107,7 @@ Events.propTypes = {
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
     history: PropTypes.object,
+    statusPageId: PropTypes.string,
 };
 
 export default withRouter(Events);
