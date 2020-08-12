@@ -108,6 +108,7 @@ class ScheduledEvent extends Component {
             scheduledEvent,
             eventNotes,
             count,
+            history,
         } = this.props;
 
         return (
@@ -334,6 +335,16 @@ class ScheduledEvent extends Component {
                         </div>
                     </ShouldRender>
                     <div id="footer">
+                        <span
+                            onClick={() => history.goBack()}
+                            className="sp__icon sp__icon--back"
+                            style={{
+                                color: 'rgb(76, 76, 76)',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Back to status page
+                        </span>
                         <p>
                             <a
                                 href="https://fyipe.com"
@@ -367,6 +378,7 @@ ScheduledEvent.propTypes = {
     moreEventNote: PropTypes.func,
     count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    history: PropTypes.object,
 };
 
 const mapStateToProps = state => {
