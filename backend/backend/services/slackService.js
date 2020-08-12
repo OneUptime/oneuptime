@@ -58,44 +58,39 @@ module.exports = {
     },
 
     // send notification to slack workspace channels
-    async notify(
-        project,
-        monitor,
-        incident,
-        integration,
-        component,
-        duration
-    ) {
+    async notify(project, monitor, incident, integration, component, duration) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
             const yellow = '#fedc56';
             const green = '#028A0F';
-            let payload ;
-            if(incident.resolved) {
-                payload={
-                    "attachments": [
+            let payload;
+            if (incident.resolved) {
+                payload = {
+                    attachments: [
                         {
-                            "color": green,
-                            "title": `Incident Resolved`,
-                            "title_link": uri,
-                            "text": `Incident on *${component.name} / ${
+                            color: green,
+                            title: `Incident Resolved`,
+                            title_link: uri,
+                            text: `Incident on *${component.name} / ${
                                 monitor.name
                             }* is resolved by ${
-                                incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
+                                incident.resolvedBy
+                                    ? incident.resolvedBy.name
+                                    : 'Fyipe'
                             } after being ${
                                 incident.incidentType
-                            } for ${duration}`
-                        }
-                    ]
-                }
-            } else if( incident.acknowledged){
-                payload={
-                    "attachments": [
+                            } for ${duration}`,
+                        },
+                    ],
+                };
+            } else if (incident.acknowledged) {
+                payload = {
+                    attachments: [
                         {
-                            "color": yellow,
-                            "title": `Incident Acknowledged`,
-                            "title_link": uri,
-                            "text": `Incident on *${component.name} / ${
+                            color: yellow,
+                            title: `Incident Acknowledged`,
+                            title_link: uri,
+                            text: `Incident on *${component.name} / ${
                                 monitor.name
                             }* is acknowledged by ${
                                 incident.acknowledgedBy
@@ -103,81 +98,85 @@ module.exports = {
                                     : 'Fyipe'
                             } after being ${
                                 incident.incidentType
-                            } for ${duration}`
-                        }
-                    ]
-                }
+                            } for ${duration}`,
+                        },
+                    ],
+                };
             } else {
-                payload={
-                    "attachments": [
+                payload = {
+                    attachments: [
                         {
-                            "color": incident.incidentType === 'online'? green: incident.incidentType === 'degraded'? yellow: "#f00",
-                            "title": `New ${incident.incidentType} incident for ${monitor.name}`,
-                            "title_link": uri,
-                            "fields": [
+                            color:
+                                incident.incidentType === 'online'
+                                    ? green
+                                    : incident.incidentType === 'degraded'
+                                    ? yellow
+                                    : '#f00',
+                            title: `New ${incident.incidentType} incident for ${monitor.name}`,
+                            title_link: uri,
+                            fields: [
                                 {
-                                    "title": "Project Name:",
-                                    "value": project.name,
-                                    'short': true
+                                    title: 'Project Name:',
+                                    value: project.name,
+                                    short: true,
                                 },
                                 {
-                                    "title": "Monitor Name:",
-                                    "value": `${component.name} / ${monitor.name}`,
-                                    'short': true
+                                    title: 'Monitor Name:',
+                                    value: `${component.name} / ${monitor.name}`,
+                                    short: true,
                                 },
-                                ...(
-                                    incident.title ?
-                                    [
-                                        {
-                                            "title": "Incident Title:",
-                                            "value": `${incident.title}`,
-                                            'short': true
-                                        }
-                                    ]
-                                    :[]
-                                ),
-                                ...(
-                                    incident.description ?
-                                    [
-                                        {
-                                            "title": "Incident Description:",
-                                            "value": `${incident.description}`,
-                                            'short': true
-                                        }
-                                    ]
-                                    :[]
-                                ),
-                                ...(
-                                    incident.incidentPriority ?
-                                    [
-                                        {
-                                            "title": "Incident Priority:",
-                                            "value": `${incident.incidentPriority.name}`,
-                                            'short': true
-                                        }
-                                    ]
-                                    :[]
-                                ),
+                                ...(incident.title
+                                    ? [
+                                          {
+                                              title: 'Incident Title:',
+                                              value: `${incident.title}`,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.description
+                                    ? [
+                                          {
+                                              title: 'Incident Description:',
+                                              value: `${incident.description}`,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.incidentPriority
+                                    ? [
+                                          {
+                                              title: 'Incident Priority:',
+                                              value: `${incident.incidentPriority.name}`,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
                                 {
-                                    "title": "Created By:",
-                                    "value": `${incident.createdById ? incident.createdById.name : 'Fyipe'}`,
-                                    'short': true
+                                    title: 'Created By:',
+                                    value: `${
+                                        incident.createdById
+                                            ? incident.createdById.name
+                                            : 'Fyipe'
+                                    }`,
+                                    short: true,
                                 },
                                 {
-                                    "title": "Incident Status::",
-                                    "value": `${
+                                    title: 'Incident Status::',
+                                    value: `${
                                         incident.incidentType === 'online'
                                             ? 'Online'
-                                            : incident.incidentType === 'degraded'
+                                            : incident.incidentType ===
+                                              'degraded'
                                             ? 'Degraded'
                                             : 'Offline'
                                     }`,
-                                    'short': true
+                                    short: true,
                                 },
                             ],
-                        }
-                    ]
-                }
+                        },
+                    ],
+                };
             }
             await axios.post(
                 integration.data.endpoint,
@@ -202,5 +201,4 @@ module.exports = {
 const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
-const MonitorStatusService = require('./monitorStatusService');
 const ErrorService = require('./errorService');
