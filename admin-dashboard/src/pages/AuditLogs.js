@@ -129,7 +129,10 @@ class AuditLogs extends React.Component {
                                                                 </div>
                                                                 {auditLogStatus.data ? (
                                                                     <div className="Flex-flex Flex-justifyContent--flexEnd Flex-alignItems--center Margin-vertical--8">
-                                                                        <label className="Margin-right--8">
+                                                                        <label
+                                                                            id="toggle-label-title"
+                                                                            className="Margin-right--8"
+                                                                        >
                                                                             {auditLogStatus
                                                                                 .data
                                                                                 .value
