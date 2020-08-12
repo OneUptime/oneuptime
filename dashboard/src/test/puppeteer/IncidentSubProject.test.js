@@ -248,10 +248,10 @@ describe('Incident API With SubProjects', () => {
                     { visible: true }
                 );
                 await page.click(`#incident_${projectMonitorName1}_0`);
-                await page.waitFor(2000);
 
                 let type = 'internal';
                 // fill internal message thread form
+                await page.waitForSelector(`#add-${type}-message`);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
@@ -278,6 +278,7 @@ describe('Incident API With SubProjects', () => {
 
                 type = 'investigation';
                 // fill investigation message thread form
+                await page.waitForSelector(`#add-${type}-message`);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
@@ -334,6 +335,7 @@ describe('Incident API With SubProjects', () => {
 
                 for (let i = 0; i < 10; i++) {
                     // fill internal message thread form
+                    await page.waitForSelector(`#add-${type}-message`);
                     await page.click(`#add-${type}-message`);
                     await page.waitForSelector(
                         `#form-new-incident-${type}-message`

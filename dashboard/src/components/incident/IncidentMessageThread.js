@@ -46,7 +46,9 @@ export class IncidentMessageThread extends Component {
                         <button
                             className="bs-Button bs-ButtonLegacy ActionIconParent"
                             type="button"
-                            id={`add-${title.toLowerCase()}-message`}
+                            id={`add-${
+                                title.toLowerCase().split(' ')[0]
+                            }-message`}
                             onClick={() =>
                                 openModal({
                                     id: createMessageModalId,
