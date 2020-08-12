@@ -36,6 +36,15 @@ import {
     MORE_EVENT_NOTE_FAILURE,
     MORE_EVENT_NOTE_REQUEST,
     MORE_EVENT_NOTE_SUCCESS,
+    FETCH_INCIDENT_NOTES_REQUEST,
+    FETCH_INCIDENT_NOTES_SUCCESS,
+    FETCH_INCIDENT_NOTES_FAILURE,
+    FETCH_INCIDENT_REQUEST,
+    FETCH_INCIDENT_SUCCESS,
+    FETCH_INCIDENT_FAILURE,
+    MORE_INCIDENT_NOTES_FAILURE,
+    MORE_INCIDENT_NOTES_REQUEST,
+    MORE_INCIDENT_NOTES_SUCCESS,
 } from '../constants/status';
 
 const INITIAL_STATE = {
@@ -80,6 +89,22 @@ const INITIAL_STATE = {
         error: null,
         event: {},
     },
+    incident: {
+        requesting: false,
+        success: false,
+        error: null,
+        incident: {},
+    },
+    incidentNotes: {
+        requesting: false,
+        success: false,
+        error: null,
+        notes: [],
+        skip: 0,
+        count: 0,
+    },
+    moreIncidentNotes: false,
+    moreIncidentNotesError: null,
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -772,6 +797,101 @@ export default (state = INITIAL_STATE, action) => {
                 ...state,
                 requestingMoreNote: false,
                 moreNoteError: action.payload,
+            };
+
+        case FETCH_INCIDENT_REQUEST:
+            return {
+                ...state,
+                incident: {
+                    ...state.incident,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_INCIDENT_SUCCESS:
+            return {
+                ...state,
+                incident: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    incident: action.payload,
+                },
+            };
+
+        case FETCH_INCIDENT_FAILURE:
+            return {
+                ...state,
+                incident: {
+                    ...state.incident,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_REQUEST:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    notes: action.payload.data,
+                    count: action.payload.count,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_FAILURE:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case MORE_INCIDENT_NOTES_REQUEST:
+            return {
+                ...state,
+                moreIncidentNotes: true,
+            };
+
+        case MORE_INCIDENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                moreIncidentNotes: false,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes: [
+                        ...state.incidentNotes.notes,
+                        ...action.payload.data,
+                    ],
+                    skip: action.payload.skip,
+                },
+            };
+
+        case MORE_INCIDENT_NOTES_FAILURE:
+            return {
+                ...state,
+                moreIncidentNotes: false,
+                moreIncidentNotesError: action.payload,
             };
 
         default:
