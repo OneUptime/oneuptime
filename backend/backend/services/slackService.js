@@ -162,7 +162,7 @@ module.exports = {
                                     short: true,
                                 },
                                 {
-                                    title: 'Incident Status::',
+                                    title: 'Incident Status:',
                                     value: `${
                                         incident.incidentType === 'online'
                                             ? 'Online'
