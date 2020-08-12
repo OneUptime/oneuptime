@@ -118,7 +118,6 @@ class ScheduledEvent extends Component {
             >
                 <div className="innernew" style={{ width: 609 }}>
                     <div
-                        id="scheduledEvents"
                         className="twitter-feed white box"
                         style={{ overflow: 'visible' }}
                     >
@@ -190,7 +189,7 @@ class ScheduledEvent extends Component {
                                             className="time"
                                             style={{
                                                 color: 'rgba(0, 0, 0, 0.5)',
-                                                fontSize: 14,
+                                                fontSize: 12,
                                             }}
                                         >
                                             {moment(
@@ -207,7 +206,7 @@ class ScheduledEvent extends Component {
                     </div>
 
                     <div
-                        id="scheduledEvents"
+                        id="scheduledEventNotes"
                         className="twitter-feed white box"
                         style={{ overflow: 'visible' }}
                     >
