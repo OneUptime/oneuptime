@@ -129,7 +129,7 @@ module.exports = {
                                     ? [
                                           {
                                               title: 'Incident Title:',
-                                              value: `${incident.title}`,
+                                              value: incident.title,
                                               short: true,
                                           },
                                       ]
@@ -138,7 +138,7 @@ module.exports = {
                                     ? [
                                           {
                                               title: 'Incident Description:',
-                                              value: `${incident.description}`,
+                                              value: incident.description,
                                               short: true,
                                           },
                                       ]
@@ -147,30 +147,29 @@ module.exports = {
                                     ? [
                                           {
                                               title: 'Incident Priority:',
-                                              value: `${incident.incidentPriority.name}`,
+                                              value:
+                                                  incident.incidentPriority
+                                                      .name,
                                               short: true,
                                           },
                                       ]
                                     : []),
                                 {
                                     title: 'Created By:',
-                                    value: `${
-                                        incident.createdById
-                                            ? incident.createdById.name
-                                            : 'Fyipe'
-                                    }`,
+                                    value: incident.createdById
+                                        ? incident.createdById.name
+                                        : 'Fyipe',
                                     short: true,
                                 },
                                 {
                                     title: 'Incident Status:',
-                                    value: `${
+                                    value:
                                         incident.incidentType === 'online'
                                             ? 'Online'
                                             : incident.incidentType ===
                                               'degraded'
                                             ? 'Degraded'
-                                            : 'Offline'
-                                    }`,
+                                            : 'Offline',
                                     short: true,
                                 },
                             ],
