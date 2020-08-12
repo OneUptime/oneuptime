@@ -106,8 +106,6 @@ module.exports = {
                           ? 'Degraded'
                           : 'Offline'
                   }
-
-**Monitor status:** ${monitorStatus}
 `;
             const buttonText =
                 !incident.resolved && !incident.acknowledged
