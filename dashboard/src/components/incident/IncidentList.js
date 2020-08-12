@@ -155,12 +155,7 @@ export class IncidentList extends Component {
                                                 history.push(
                                                     '/dashboard/project/' +
                                                         this.props
-                                                            .currentProject
-                                                            ._id +
-                                                        '/' +
-                                                        this.props.componentId +
-                                                        '/incidents/' +
-                                                        incident._id
+                                                            .currentProject._id
                                                 );
                                             }}
                                         >
@@ -863,7 +858,6 @@ IncidentList.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    componentId: PropTypes.string.isRequired,
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,

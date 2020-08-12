@@ -319,4 +319,35 @@ describe('Incident Created test', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should create an incident from the incident logs page and add it to the incident list',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.click('#closeIncident_0');
+                await page.waitForSelector('#incidentLogs');
+                await page.click('#incidentLogs');
+                await page.waitForSelector(`#btnCreateIncident_${projectName}`);
+                await page.click(`#btnCreateIncident_${projectName}`);
+                await page.waitForSelector('#frmIncident');
+                await init.selectByText('#monitorList', monitorName2, page);
+                await init.selectByText('#incidentType', 'Degraded', page);
+                await page.waitForSelector('input[id=title]');
+                await page.type('input[id=title]', 'degraded');
+                await page.waitForSelector('#createIncident');
+                await page.click('#createIncident');
+                await page.waitFor(5000);
+                await page.waitForSelector('tr.incidentListItem');
+                const filteredIncidents = await page.$$('tr.incidentListItem');
+                const filteredIncidentsCount = filteredIncidents.length;
+                expect(filteredIncidentsCount).toEqual(5);
+            });
+        },
+        operationTimeOut
+    );
 });

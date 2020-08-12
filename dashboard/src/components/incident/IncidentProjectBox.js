@@ -13,7 +13,7 @@ const IncidentProjectBox = props => {
 
     useEffect(() => {
         setIncidents(props.subProjectIncident);
-    }, [incidents]);
+    }, [props]);
 
     const filterIncidentLogs = status => {
         const unFilteredIncidents = props.subProjectIncident;
@@ -159,7 +159,7 @@ IncidentProjectBox.displayName = 'IncidentProjectBox';
 
 IncidentProjectBox.propTypes = {
     openModal: PropTypes.func.isRequired,
-    componentId: PropTypes.string.isRequired,
+    componentId: PropTypes.string,
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     subProjectIncident: PropTypes.object.isRequired,
