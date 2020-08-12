@@ -68,13 +68,15 @@ module.exports = {
     ) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
+            const yellow = '#fedc56';
+            const green = '#028A0F';
             let payload ;
             if(incident.resolved) {
                 payload={
                     "attachments": [
                         {
-                            "color": "#0f0",
-                            "title": `Incident resolved`,
+                            "color": green,
+                            "title": `Incident Resolved`,
                             "title_link": uri,
                             "text": `Incident on *${component.name} / ${
                                 monitor.name
@@ -90,8 +92,8 @@ module.exports = {
                 payload={
                     "attachments": [
                         {
-                            "color": "#ffd300",
-                            "title": `Incident acknowledged`,
+                            "color": yellow,
+                            "title": `Incident Acknowledged`,
                             "title_link": uri,
                             "text": `Incident on *${component.name} / ${
                                 monitor.name
@@ -109,7 +111,7 @@ module.exports = {
                 payload={
                     "attachments": [
                         {
-                            "color": incident.incidentType === 'online'? "#0f0": incident.incidentType === 'degraded'? "#ffd300": "#f00",
+                            "color": incident.incidentType === 'online'? green: incident.incidentType === 'degraded'? yellow: "#f00",
                             "title": `New ${incident.incidentType} incident for ${monitor.name}`,
                             "title_link": uri,
                             "fields": [
