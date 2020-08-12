@@ -73,47 +73,104 @@ module.exports = {
     ) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
-
-            const payloadText = incident.resolved
-                ? `Incident on *${component.name} / ${
-                      monitor.name
-                  }* is resolved by ${
-                      incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${incident.resolvedAt} after being ${
-                      incident.incidentType
-                  } for ${duration}\n <${uri}|More details>`
-                : incident.acknowledged
-                ? `Incident on *${component.name} / ${
-                      monitor.name
-                  }* is acknowledge by ${
-                      incident.acknowledgedBy
-                          ? incident.acknowledgedBy.name
-                          : 'Fyipe'
-                  } at ${incident.acknowledgedAt} after being ${
-                      incident.incidentType
-                  } for ${duration}\n <${uri}|More details>`
-                : `
-*New Incident:*
-
-*Project Name:* ${project.name}
-
-*Monitor Name:* ${component.name} / ${monitor.name}
-
-*Created By:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
-
-*Incident Status:* ${
-                      incident.incidentType === 'online'
-                          ? 'Online'
-                          : incident.incidentType === 'degraded'
-                          ? 'Degraded'
-                          : 'Offline'
-                  }
-
-<${uri}|Click here to view incident>
-`;
-            const payload = {
-                text: payloadText,
-            };
+            let payload ;
+            if(incident.resolved) {
+                payload={
+                    "attachments": [
+                        {
+                            "color": "#0f0",
+                            "title": `Incident resolved`,
+                            "title_link": uri,
+                            "text": `Incident on *${component.name} / ${
+                                monitor.name
+                            }* is resolved by ${
+                                incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`
+                        }
+                    ]
+                }
+            } else if( incident.acknowledged){
+                payload={
+                    "attachments": [
+                        {
+                            "color": "#ffd300",
+                            "title": `Incident acknowledged`,
+                            "title_link": uri,
+                            "text": `Incident on *${component.name} / ${
+                                monitor.name
+                            }* is acknowledged by ${
+                                incident.acknowledgedBy
+                                    ? incident.acknowledgedBy.name
+                                    : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`
+                        }
+                    ]
+                }
+            } else {
+                payload={
+                    "attachments": [
+                        {
+                            "color": incident.incidentType === 'online'? "#0f0": incident.incidentType === 'degraded'? "#ffd300": "#f00",
+                            "title": `New ${incident.incidentType} incident for ${monitor.name}`,
+                            "title_link": uri,
+                            "fields": [
+                                {
+                                    "title": "Project Name:",
+                                    "value": project.name,
+                                    'short': true
+                                },
+                                {
+                                    "title": "Monitor Name:",
+                                    "value": `${component.name} / ${monitor.name}`,
+                                    'short': true
+                                },
+                                ...(
+                                    incident.title ?
+                                    [
+                                        {
+                                            "title": "Title:",
+                                            "value": `${incident.title}`,
+                                            'short': true
+                                        }
+                                    ]
+                                    :[]
+                                ),
+                                ...(
+                                    incident.description ?
+                                    [
+                                        {
+                                            "title": "Description:",
+                                            "value": `${incident.description}`,
+                                            'short': true
+                                        }
+                                    ]
+                                    :[]
+                                ),
+                                {
+                                    "title": "Created By:",
+                                    "value": `${incident.createdById ? incident.createdById.name : 'Fyipe'}`,
+                                    'short': true
+                                },
+                                {
+                                    "title": "Incident Status::",
+                                    "value": `${
+                                        incident.incidentType === 'online'
+                                            ? 'Online'
+                                            : incident.incidentType === 'degraded'
+                                            ? 'Degraded'
+                                            : 'Offline'
+                                    }`,
+                                    'short': true
+                                },
+                            ],
+                        }
+                    ]
+                }
+            }
             await axios.post(
                 integration.data.endpoint,
                 {
