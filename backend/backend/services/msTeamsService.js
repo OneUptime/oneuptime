@@ -39,9 +39,6 @@ module.exports = {
                 return;
             }
             const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             for (const integration of integrations) {
                 response = await self.notify(
@@ -49,7 +46,6 @@ module.exports = {
                     monitor,
                     incident,
                     integration,
-                    monitorStatus ? monitorStatus.status : null,
                     component,
                     duration
                 );
@@ -67,67 +63,126 @@ module.exports = {
         monitor,
         incident,
         integration,
-        monitorStatus,
         component,
         duration
     ) {
         try {
-            const payloadText = incident.resolved
-                ? `Incident on **${component.name} / ${
-                      monitor.name
-                  }** is resolved by ${
-                      incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${incident.resolvedAt} after being ${
-                      incident.incidentType
-                  } for ${duration}`
-                : incident.acknowledged
-                ? `Incident on **${component.name} / ${
-                      monitor.name
-                  }** is acknowledge by ${
-                      incident.acknowledgedBy
-                          ? incident.acknowledgedBy.name
-                          : 'Fyipe'
-                  } at ${incident.acknowledgedAt} after being ${
-                      incident.incidentType
-                  } for ${duration}`
-                : `
-**New Incident:**
-
-**Project Name:** ${project.name}
-
-**Monitor Name:** ${component.name} / ${monitor.name}
-
-**Created By:** ${incident.createdById ? incident.createdById.name : 'Fyipe'}
-
-**Incident Status:** ${
-                      incident.incidentType === 'online'
-                          ? 'Online'
-                          : incident.incidentType === 'degraded'
-                          ? 'Degraded'
-                          : 'Offline'
-                  }
-
-**Monitor status:** ${monitorStatus}
-`;
-            const buttonText =
-                !incident.resolved && !incident.acknowledged
-                    ? 'Acknowledge'
-                    : 'More details';
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
-            const payload = {
-                '@context': 'https://schema.org/extensions',
-                '@type': 'MessageCard',
-                themeColor: '000000',
-                title: 'Fyipe',
-                text: payloadText,
-                potentialAction: [
-                    {
-                        '@type': 'OpenUri',
-                        name: buttonText,
-                        targets: [{ os: 'default', uri }],
-                    },
-                ],
-            };
+            const yellow = '#fedc56';
+            const green = '#028A0F';
+            let payload;
+
+            if (incident.resolved) {
+                payload = {
+                    '@context': 'https://schema.org/extensions',
+                    '@type': 'MessageCard',
+                    themeColor: green,
+                    summary: 'Incident Resolved',
+                    sections: [
+                        {
+                            activityTitle: `[Incident Resolved](${uri})`,
+                            activitySubtitle: `Incident on **${
+                                component.name
+                            } / ${monitor.name}** is resolved by ${
+                                incident.resolvedBy
+                                    ? incident.resolvedBy.name
+                                    : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`,
+                        },
+                    ],
+                };
+            } else if (incident.acknowledged) {
+                payload = {
+                    '@context': 'https://schema.org/extensions',
+                    '@type': 'MessageCard',
+                    themeColor: yellow,
+                    summary: 'Incident Acknowledged',
+                    sections: [
+                        {
+                            activityTitle: `[Incident Acknowledged](${uri})`,
+                            activitySubtitle: `Incident on **${
+                                component.name
+                            } / ${monitor.name}** is acknowledged by ${
+                                incident.acknowledgedBy
+                                    ? incident.acknowledgedBy.name
+                                    : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`,
+                        },
+                    ],
+                };
+            } else {
+                payload = {
+                    '@context': 'https://schema.org/extensions',
+                    '@type': 'MessageCard',
+                    themeColor:
+                        incident.incidentType === 'online'
+                            ? green
+                            : incident.incidentType === 'degraded'
+                            ? yellow
+                            : '#f00',
+                    summary: 'Incident',
+                    sections: [
+                        {
+                            activityTitle: `[New ${incident.incidentType} incident for ${monitor.name}](${uri})`,
+                            facts: [
+                                {
+                                    name: 'Project Name:',
+                                    value: project.name,
+                                },
+                                {
+                                    name: 'Monitor Name:',
+                                    value: `${component.name} / ${monitor.name}`,
+                                },
+                                ...(incident.title
+                                    ? [
+                                          {
+                                              name: 'Incident Title:',
+                                              value: `${incident.title}`,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.description
+                                    ? [
+                                          {
+                                              name: 'Incident Description:',
+                                              value: `${incident.description}`,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.incidentPriority
+                                    ? [
+                                          {
+                                              name: 'Incident Priority:',
+                                              value: `${incident.incidentPriority.name}`,
+                                          },
+                                      ]
+                                    : []),
+                                {
+                                    name: 'Created By:',
+                                    value: incident.createdById
+                                        ? incident.createdById.name
+                                        : 'Fyipe',
+                                },
+                                {
+                                    name: 'Incident Status:',
+                                    value:
+                                        incident.incidentType === 'online'
+                                            ? 'Online'
+                                            : incident.incidentType ===
+                                              'degraded'
+                                            ? 'Degraded'
+                                            : 'Offline',
+                                },
+                            ],
+                            markdown: true,
+                        },
+                    ],
+                };
+            }
             await axios.post(
                 integration.data.endpoint,
                 {

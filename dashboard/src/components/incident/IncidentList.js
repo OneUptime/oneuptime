@@ -155,12 +155,7 @@ export class IncidentList extends Component {
                                                 history.push(
                                                     '/dashboard/project/' +
                                                         this.props
-                                                            .currentProject
-                                                            ._id +
-                                                        '/' +
-                                                        this.props.componentId +
-                                                        '/incidents/' +
-                                                        incident._id
+                                                            .currentProject._id
                                                 );
                                             }}
                                         >
@@ -735,7 +730,7 @@ export class IncidentList extends Component {
                     </table>
                 </div>
 
-                {(this.props.incidents && this.props.incidents.requesting) ||
+                {(this.props.incidents && this.props.requesting) ||
                 (this.props.monitorState &&
                     this.props.monitorState.fetchMonitorsIncidentRequest &&
                     this.props.incidents.incidents &&
@@ -850,6 +845,7 @@ function mapStateToProps(state) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
+        requesting: state.incident.incidents.requesting,
     };
 }
 
@@ -862,10 +858,10 @@ IncidentList.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
-    componentId: PropTypes.string.isRequired,
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,
+    requesting: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
