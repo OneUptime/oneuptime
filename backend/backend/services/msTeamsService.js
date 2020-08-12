@@ -39,9 +39,6 @@ module.exports = {
                 return;
             }
             const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             for (const integration of integrations) {
                 response = await self.notify(
@@ -49,7 +46,6 @@ module.exports = {
                     monitor,
                     incident,
                     integration,
-                    monitorStatus ? monitorStatus.status : null,
                     component,
                     duration
                 );
@@ -67,7 +63,6 @@ module.exports = {
         monitor,
         incident,
         integration,
-        monitorStatus,
         component,
         duration
     ) {
