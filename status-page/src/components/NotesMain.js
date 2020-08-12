@@ -115,6 +115,7 @@ class NotesMain extends Component {
                     uptimeColor={uptimeColor}
                     degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
                 />
             );
         }
