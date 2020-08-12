@@ -147,6 +147,17 @@ module.exports = {
                                     ]
                                     :[]
                                 ),
+                                ...(
+                                    incident.incidentPriority ?
+                                    [
+                                        {
+                                            "title": "Incident Priority:",
+                                            "value": `${incident.incidentPriority.name}`,
+                                            'short': true
+                                        }
+                                    ]
+                                    :[]
+                                ),
                                 {
                                     "title": "Created By:",
                                     "value": `${incident.createdById ? incident.createdById.name : 'Fyipe'}`,
