@@ -123,6 +123,29 @@ class ScheduledEvent extends Component {
                         style={{ overflow: 'visible' }}
                     >
                         <div
+                            className="largestatus"
+                            style={{ padding: '30px 36px' }}
+                        >
+                            <div className="title-wrapper">
+                                <span
+                                    className="title"
+                                    style={{
+                                        color: 'rgb(0, 0, 0)',
+                                        padding: 0,
+                                    }}
+                                >
+                                    Scheduled Event
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="scheduledEvents"
+                        className="twitter-feed white box"
+                        style={{ overflow: 'visible' }}
+                    >
+                        <div
                             className="messages"
                             style={{
                                 position: 'relative',
