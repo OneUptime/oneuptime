@@ -129,7 +129,7 @@ module.exports = {
                                     incident.title ?
                                     [
                                         {
-                                            "title": "Title:",
+                                            "title": "Incident Title:",
                                             "value": `${incident.title}`,
                                             'short': true
                                         }
@@ -140,7 +140,7 @@ module.exports = {
                                     incident.description ?
                                     [
                                         {
-                                            "title": "Description:",
+                                            "title": "Incident Description:",
                                             "value": `${incident.description}`,
                                             'short': true
                                         }
