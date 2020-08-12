@@ -188,10 +188,12 @@ class IncidentLog extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name={componentName}
-                    />
+                    <ShouldRender if={!pathname.endsWith('incidents')}>
+                        <BreadCrumbItem
+                            route={getParentRoute(pathname)}
+                            name={componentName}
+                        />
+                    </ShouldRender>
                     <BreadCrumbItem route={pathname} name="Incident Log" />
                     <div>
                         <div>
