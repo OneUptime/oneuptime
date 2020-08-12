@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Fade from 'react-reveal/Fade';
 import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
