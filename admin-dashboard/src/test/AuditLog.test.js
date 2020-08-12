@@ -169,4 +169,126 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should note that audit logs are currently enabled and get it disabled',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#auditLogs');
+                await page.click('#auditLogs');
+                let labelElement = await page.waitForSelector(
+                    `#toggle-label-title`
+                );
+                labelElement = await labelElement.getProperty('innerText');
+                labelElement = await labelElement.jsonValue();
+
+                expect(labelElement).toMatch('Disable Audit Logs');
+
+                // turn audit log off
+                await page.$eval('input[name=auditStatusToggler]', e =>
+                    e.click()
+                );
+
+                await page.waitFor(5000);
+
+                // confirm that the audit log is turned off
+                labelElement = await page.waitForSelector(
+                    `#toggle-label-title`
+                );
+                labelElement = await labelElement.getProperty('innerText');
+                labelElement = await labelElement.jsonValue();
+
+                expect(labelElement).toMatch('Enable Audit Logs');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should validate that audit logs are currently disabled and on page change no audit is logged',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#auditLogs');
+                await page.click('#auditLogs');
+                let labelElement = await page.waitForSelector(
+                    `#toggle-label-title`
+                );
+                labelElement = await labelElement.getProperty('innerText');
+                labelElement = await labelElement.jsonValue();
+
+                expect(labelElement).toMatch('Enable Audit Logs');
+
+                await page.waitFor(5000);
+                // count currently availbe logs
+                let logCount = await page.waitForSelector(`#log-count`);
+                logCount = await logCount.getProperty('innerText');
+                logCount = await logCount.jsonValue();
+
+                // goto other pages
+                await page.waitForSelector('#probes');
+                await page.click('#probes');
+
+                // come back to logs page
+                await page.waitForSelector('#auditLogs');
+                await page.click('#auditLogs');
+
+                await page.waitFor(5000);
+                // validate that the number doesnt change
+                let newLogCount = await page.waitForSelector(`#log-count`);
+                newLogCount = await newLogCount.getProperty('innerText');
+                newLogCount = await newLogCount.jsonValue();
+
+                expect(logCount).toEqual(newLogCount);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should validate that audit logs are enabled and on page change audit is logged',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#auditLogs');
+                await page.click('#auditLogs');
+                let labelElement = await page.waitForSelector(
+                    `#toggle-label-title`
+                );
+                labelElement = await labelElement.getProperty('innerText');
+                labelElement = await labelElement.jsonValue();
+
+                expect(labelElement).toMatch('Enable Audit Logs');
+                // turn audit log on
+                await page.$eval('input[name=auditStatusToggler]', e =>
+                    e.click()
+                );
+
+                await page.waitFor(5000);
+                // count currently available logs
+                let logCount = await page.waitForSelector(`#log-count`);
+                logCount = await logCount.getProperty('innerText');
+                logCount = await logCount.jsonValue();
+                logCount = Number(logCount.split(' ')[0]);
+
+                // goto other pages
+                await page.waitForSelector('#probes');
+                await page.click('#probes');
+
+                // come back to logs page
+                await page.waitForSelector('#auditLogs');
+                await page.click('#auditLogs');
+
+                await page.waitFor(5000);
+                // validate that the number has change
+                let newLogCount = await page.waitForSelector(`#log-count`);
+                newLogCount = await newLogCount.getProperty('innerText');
+                newLogCount = await newLogCount.jsonValue();
+                newLogCount = Number(newLogCount.split(' ')[0]);
+
+                expect(newLogCount).toBeGreaterThan(logCount);
+            });
+        },
+        operationTimeOut
+    );
 });
