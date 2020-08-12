@@ -98,7 +98,7 @@ class EventsMain extends Component {
             );
         }
 
-        return (
+        return this.props.eventData.events.length > 0 ? (
             <div
                 id="scheduledEvents"
                 className="twitter-feed white box"
@@ -270,7 +270,7 @@ class EventsMain extends Component {
                     </ShouldRender>
                 </div>
             </div>
-        );
+        ) : null;
     }
 }
 
