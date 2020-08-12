@@ -280,9 +280,9 @@ export function deleteSmtpConfigSuccess(config) {
     };
 }
 
-export function deleteSmtpConfig(projectId, smtpId, data) {
+export function deleteSmtpConfig(projectId, smtpId) {
     return function(dispatch) {
-        const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`, data);
+        const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`);
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(

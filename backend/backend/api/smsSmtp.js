@@ -77,11 +77,16 @@ router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function(
     res
 ) {
     try {
-        const data = req.body;
         const smsSmtpId = req.params.smsSmtpId;
+        const payload = {
+            enabled: false,
+            accountSid: '',
+            authToken: '',
+            phoneNumber: '',
+        };
         const smsSmtp = await SmsSmtpService.updateOneBy(
             { _id: smsSmtpId },
-            data
+            payload
         );
         return sendItemResponse(req, res, smsSmtp);
     } catch (error) {
