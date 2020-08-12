@@ -1022,6 +1022,45 @@ margin-left:10px;
   height: 100%;
 }
 
+.note__wrapper {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  vertical-align: top;
+}
+
+.note__wrapper > span {
+  padding: 10px;
+}
+
+.note-badge {
+  color: #24b47e;
+  padding: 2px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.badge {
+  border-radius: 20px;
+}
+
+.badge__color--green {
+  box-shadow: inset 0 0 0 1px rgba(36, 180, 126, 0.2);
+}
+
+.sp__icon {
+  background-color: transparent;
+  background-size: 15px 15px;
+  height: 15px;
+  width: 15px;
+  margin-top: -3px;
+  padding-left: 25px;
+}
+
+.sp__icon--back {
+  background-image: url('../images/back-light.svg');
+  background-repeat: no-repeat;
+}
+
 @media screen and (max-width: 500px) {
   .box-inner {
     padding: 16px;

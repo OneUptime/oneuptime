@@ -115,7 +115,7 @@ class ScheduledEvent extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                <div className="innernew" style={{ width: '45%' }}>
+                <div className="innernew" style={{ width: 609 }}>
                     <div
                         id="scheduledEvents"
                         className="twitter-feed white box"
@@ -128,132 +128,56 @@ class ScheduledEvent extends Component {
                             }}
                         >
                             <div className="box-inner">
-                                <div
-                                    className="feed-header clearfix"
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        flexWrap: 'nowrap',
-                                    }}
-                                >
-                                    <span
-                                        className="feed-title"
-                                        style={{ color: 'rgb(76, 76, 76)' }}
+                                {!fetchingEvent && scheduledEvent.name && (
+                                    <div
+                                        className="feed-header clearfix"
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            flexWrap: 'nowrap',
+                                        }}
                                     >
-                                        Scheduled Event
-                                    </span>
-                                </div>
+                                        <span
+                                            className="feed-title"
+                                            style={{
+                                                color: 'rgb(76, 76, 76)',
+                                                fontWeight: 'bold',
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            {scheduledEvent.name}
+                                        </span>
+                                        <span
+                                            style={{
+                                                color: 'rgba(0, 0, 0, 0.5)',
+                                            }}
+                                        >
+                                            {scheduledEvent.description}
+                                        </span>
+                                    </div>
+                                )}
                                 <ShouldRender if={fetchingEvent}>
                                     <ListLoader />
                                 </ShouldRender>
-                                {!fetchingEvent && scheduledEvent.name && (
-                                    <ul className="feed-contents plain">
-                                        <li className="scheduledEvent feed-item clearfix">
-                                            <div
-                                                className="message"
-                                                style={{
-                                                    width: '100%',
-                                                    marginLeft: 0,
-                                                    background:
-                                                        'rgb(247, 247, 247)',
-                                                }}
-                                            >
-                                                <div className="text">
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'bold',
-                                                            color:
-                                                                'rgb(76, 76, 76)',
-                                                        }}
-                                                    >
-                                                        Event Name:
-                                                    </span>{' '}
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'Bold',
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {scheduledEvent.name}
-                                                    </span>
-                                                </div>
-                                                <div className="text">
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'bold',
-                                                            color:
-                                                                'rgb(76, 76, 76)',
-                                                        }}
-                                                    >
-                                                        Event Description:
-                                                    </span>{' '}
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'Bold',
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {
-                                                            scheduledEvent.description
-                                                        }
-                                                    </span>
-                                                </div>
-                                                <div className="text">
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'bold',
-                                                            color:
-                                                                'rgb(76, 76, 76)',
-                                                        }}
-                                                    >
-                                                        Start Date
-                                                    </span>
-                                                    :{' '}
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'Bold',
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {moment(
-                                                            scheduledEvent.startDate
-                                                        ).format(
-                                                            'MMMM Do YYYY, h:mm a'
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <div className="text">
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'bold',
-                                                            color:
-                                                                'rgb(76, 76, 76)',
-                                                        }}
-                                                    >
-                                                        End Date
-                                                    </span>
-                                                    :{' '}
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 'Bold',
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                        }}
-                                                    >
-                                                        {moment(
-                                                            scheduledEvent.startDate
-                                                        ).format(
-                                                            'MMMM Do YYYY, h:mm a'
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                )}
+                                {!fetchingEvent &&
+                                    scheduledEvent.startDate &&
+                                    scheduledEvent.endDate && (
+                                        <span
+                                            className="time"
+                                            style={{
+                                                color: 'rgba(0, 0, 0, 0.5)',
+                                                fontSize: 14,
+                                            }}
+                                        >
+                                            {moment(
+                                                scheduledEvent.startDate
+                                            ).format('MMMM Do YYYY, h:mm a')}
+                                            &nbsp;&nbsp;-&nbsp;&nbsp;
+                                            {moment(
+                                                scheduledEvent.endDate
+                                            ).format('MMMM Do YYYY, h:mm a')}
+                                        </span>
+                                    )}
                             </div>
                         </div>
                     </div>
@@ -268,28 +192,33 @@ class ScheduledEvent extends Component {
                             style={{ position: 'relative' }}
                         >
                             <div className="box-inner">
-                                <div
-                                    className="feed-header clearfix"
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        flexWrap: 'nowrap',
-                                    }}
-                                >
-                                    <span
-                                        className="feed-title"
-                                        style={{ color: 'rgb(76, 76, 76)' }}
+                                <ShouldRender if={!fetchingNotes}>
+                                    <div
+                                        className="feed-header clearfix"
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                        }}
                                     >
-                                        Scheduled Event Notes (Investigation)
-                                    </span>
-                                </div>
+                                        <span
+                                            className="feed-title"
+                                            style={{
+                                                color: 'rgb(76, 76, 76)',
+                                                fontWeight: 'bold',
+                                            }}
+                                        >
+                                            Scheduled Event Notes
+                                        </span>
+                                    </div>
+                                </ShouldRender>
                                 <ShouldRender if={fetchingNotes}>
                                     <ListLoader />
                                 </ShouldRender>
                                 <ul className="feed-contents plain">
                                     {!fetchingNotes &&
-                                    eventNotes &&
-                                    eventNotes.length > 0 ? (
+                                        eventNotes &&
+                                        eventNotes.length > 0 &&
                                         eventNotes.map(note => (
                                             <li
                                                 key={note._id}
@@ -304,21 +233,16 @@ class ScheduledEvent extends Component {
                                                             'rgb(247, 247, 247)',
                                                     }}
                                                 >
-                                                    <div className="text">
+                                                    <div className="note__wrapper">
+                                                        <span>
+                                                            <span className="note-badge badge badge__color--green">
+                                                                {
+                                                                    note.incident_state
+                                                                }
+                                                            </span>
+                                                        </span>
                                                         <span
                                                             style={{
-                                                                fontWeight:
-                                                                    'bold',
-                                                                color:
-                                                                    'rgb(76, 76, 76)',
-                                                            }}
-                                                        >
-                                                            Note:
-                                                        </span>{' '}
-                                                        <span
-                                                            style={{
-                                                                fontWeight:
-                                                                    'Bold',
                                                                 color:
                                                                     'rgba(0, 0, 0, 0.5)',
                                                             }}
@@ -326,58 +250,37 @@ class ScheduledEvent extends Component {
                                                             {note.content}
                                                         </span>
                                                     </div>
-                                                    <div className="text">
-                                                        <span
-                                                            style={{
-                                                                fontWeight:
-                                                                    'bold',
-                                                                color:
-                                                                    'rgb(76, 76, 76)',
-                                                            }}
-                                                        >
-                                                            Created By:
-                                                        </span>{' '}
-                                                        <span
-                                                            style={{
-                                                                fontWeight:
-                                                                    'Bold',
-                                                                color:
-                                                                    'rgba(0, 0, 0, 0.5)',
-                                                            }}
-                                                        >
-                                                            {
-                                                                note.createdById
-                                                                    .name
-                                                            }
-                                                        </span>
-                                                    </div>
                                                 </div>
                                             </li>
-                                        ))
-                                    ) : (
-                                        <li
-                                            className="feed-item clearfix"
-                                            style={{
-                                                minHeight: '5px',
-                                                marginBottom: '10px',
-                                                display: 'flex',
-                                                flexDirection: 'row',
-                                                flexWrap: 'nowrap',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <span
-                                                className="time"
+                                        ))}
+
+                                    {!fetchingNotes &&
+                                        eventNotes &&
+                                        eventNotes.length === 0 && (
+                                            <li
+                                                className="feed-item clearfix"
                                                 style={{
-                                                    fontSize: '0.8em',
-                                                    marginLeft: '0px',
-                                                    color: 'rgb(76, 76, 76)',
+                                                    minHeight: '5px',
+                                                    marginBottom: '10px',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    flexWrap: 'nowrap',
+                                                    justifyContent: 'center',
                                                 }}
                                             >
-                                                No scheduled event note yet.
-                                            </span>
-                                        </li>
-                                    )}
+                                                <span
+                                                    className="time"
+                                                    style={{
+                                                        fontSize: '0.8em',
+                                                        marginLeft: '0px',
+                                                        color:
+                                                            'rgb(76, 76, 76)',
+                                                    }}
+                                                >
+                                                    No scheduled event note yet.
+                                                </span>
+                                            </li>
+                                        )}
                                 </ul>
                             </div>
                             <ShouldRender
