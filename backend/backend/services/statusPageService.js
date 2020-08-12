@@ -397,6 +397,45 @@ module.exports = {
         }
     },
 
+    getIncident: async function(query) {
+        try {
+            const incident = await IncidentService.findOneBy(query);
+
+            return incident;
+        } catch (error) {
+            ErrorService.log('statusPageService.getIncident', error);
+            throw error;
+        }
+    },
+
+    getIncidentNotes: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = Number(skip);
+
+            if (typeof limit === 'string') limit = Number(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const message = await IncidentMessageService.findBy(
+                query,
+                skip,
+                limit
+            );
+
+            const count = await IncidentMessageService.countBy(query);
+
+            return { message, count };
+        } catch (error) {
+            ErrorService.log('statusPageService.getIncidentNotes', error);
+            throw error;
+        }
+    },
+
     getNotesByDate: async function(query, skip, limit) {
         try {
             const incidents = await IncidentService.findBy(query, limit, skip);
@@ -783,3 +822,4 @@ const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
 const flattenArray = require('../utils/flattenArray');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const IncidentMessageService = require('./incidentMessageService');
