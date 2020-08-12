@@ -657,3 +657,133 @@ export function moreEventNote(projectId, scheduledEventId, type, skip) {
         }
     };
 }
+
+// handle incident
+export function fetchIncidentRequest() {
+    return {
+        type: types.FETCH_INCIDENT_REQUEST,
+    };
+}
+
+export function fetchIncidentSuccess(payload) {
+    return {
+        type: types.FETCH_INCIDENT_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchIncidentFailure(error) {
+    return {
+        type: types.FETCH_INCIDENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchIncident(projectId, incidentId) {
+    return async function(dispatch) {
+        try {
+            dispatch(fetchIncidentRequest());
+            const response = await getApi(
+                `statusPage/${projectId}/incident/${incidentId}`
+            );
+
+            dispatch(fetchIncidentSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchIncidentFailure(errorMsg));
+        }
+    };
+}
+
+export function fetchIncidentNotesRequest() {
+    return {
+        type: types.FETCH_INCIDENT_NOTES_REQUEST,
+    };
+}
+
+export function fetchIncidentNotesSuccess(payload) {
+    return {
+        type: types.FETCH_INCIDENT_NOTES_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchIncidentNotesFailure(error) {
+    return {
+        type: types.FETCH_INCIDENT_NOTES_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchIncidentNotes(projectId, incidentId, type) {
+    return async function(dispatch) {
+        try {
+            dispatch(fetchIncidentNotesRequest());
+
+            const response = await getApi(
+                `statusPage/${projectId}/${incidentId}/incidentNotes?type=${type}`
+            );
+            dispatch(fetchIncidentNotesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchIncidentNotesFailure(errorMsg));
+        }
+    };
+}
+
+export function moreIncidentNotesRequest() {
+    return {
+        type: types.MORE_INCIDENT_NOTES_REQUEST,
+    };
+}
+
+export function moreIncidentNotesSuccess(payload) {
+    return {
+        type: types.MORE_INCIDENT_NOTES_SUCCESS,
+        payload,
+    };
+}
+
+export function moreIncidentNotesFailure(error) {
+    return {
+        type: types.MORE_INCIDENT_NOTES_FAILURE,
+        payload: error,
+    };
+}
+
+export function moreIncidentNotes(projectId, incidentId, type, skip) {
+    return async function(dispatch) {
+        try {
+            dispatch(moreIncidentNotesRequest());
+
+            const response = await getApi(
+                `statusPage/${projectId}/${incidentId}/incidentNotes?type=${type}&skip=${skip}`
+            );
+            dispatch(moreIncidentNotesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(moreIncidentNotesFailure(errorMsg));
+        }
+    };
+}
