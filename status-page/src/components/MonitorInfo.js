@@ -26,11 +26,12 @@ const calculateTime = (statuses, start, range) => {
             downTime: 0,
             upTime: 0,
             degradedTime: 0,
+            status: null,
             emptytime: dayStart.toISOString(),
         };
 
         reversedStatuses.forEach(monitor => {
-            let monitorStatus = Object.assign({},monitor);
+            const monitorStatus = Object.assign({}, monitor);
             if (monitorStatus.endTime === null) {
                 monitorStatus.endTime = new Date().toISOString();
             }
@@ -39,6 +40,16 @@ const calculateTime = (statuses, start, range) => {
                 moment(monitorStatus.startTime).isBefore(dayEnd) &&
                 moment(monitorStatus.endTime).isAfter(dayStartIn)
             ) {
+                if (
+                    monitor.endTime === null &&
+                    (monitor.status === 'offline' ||
+                        (monitorStatus.status === 'degraded' &&
+                            timeObj.status !== 'offline') ||
+                        timeObj.status === null)
+                ) {
+                    timeObj.status = monitorStatus.status;
+                }
+
                 const start = moment(monitorStatus.startTime).isBefore(
                     dayStartIn
                 )
