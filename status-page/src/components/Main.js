@@ -362,7 +362,7 @@ class Main extends Component {
                     ''
                 )}
                 {view ? (
-                    <div className="innernew">
+                    <div className="innernew" style={{ width: 609 }}>
                         {headerHTML ? (
                             <React.Fragment>
                                 <style>{sanitizedCSS}</style>
