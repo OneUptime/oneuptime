@@ -428,7 +428,7 @@ describe('Incident Timeline API', () => {
     );
 
     test('should get incident timeline and paginate for incident timeline in project', async () => {
-        expect.assertions(1);
+        expect.assertions(3);
         const internalNote = utils.generateRandomString();
         const type = 'internal';
         return await cluster.execute(null, async ({ page }) => {
@@ -457,10 +457,24 @@ describe('Incident Timeline API', () => {
             }
 
             await page.waitForSelector('tr.incidentListItem');
-            const incidentTimelineRows = await page.$$('tr.incidentListItem');
-            const countIncidentTimelines = incidentTimelineRows.length;
+            let incidentTimelineRows = await page.$$('tr.incidentListItem');
+            let countIncidentTimelines = incidentTimelineRows.length;
 
-            expect(countIncidentTimelines).toEqual(16);
+            expect(countIncidentTimelines).toEqual(10);
+
+            const nextSelector = await page.$('#btnTimelineNext');
+            await nextSelector.click();
+            await page.waitFor(7000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(10);
+
+            const prevSelector = await page.$('#btnTimelinePrev');
+            await prevSelector.click();
+            await page.waitFor(7000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(10);
         });
     }, 300000);
 });
