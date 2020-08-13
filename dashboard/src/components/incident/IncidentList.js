@@ -155,7 +155,12 @@ export class IncidentList extends Component {
                                                 history.push(
                                                     '/dashboard/project/' +
                                                         this.props
-                                                            .currentProject._id
+                                                            .currentProject
+                                                            ._id +
+                                                        '/' +
+                                                        this.props.componentId +
+                                                        '/incidents/' +
+                                                        incident._id
                                                 );
                                             }}
                                         >
@@ -862,6 +867,7 @@ IncidentList.propTypes = {
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
+    componentId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
