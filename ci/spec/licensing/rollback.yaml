@@ -9,7 +9,7 @@ staging_rollback_licensing:
         - chmod +x ./ci/scripts/job-status.sh
         - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
         - if [[ $smoke_test_staging_status == \"success\" ]]; then exit 0; fi
-        - sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/fi-licensing
+        - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-licensing
     only:
         refs:
             - master
@@ -27,7 +27,7 @@ production_rollback_licensing:
         - chmod +x ./ci/scripts/job-status.sh
         - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`
         - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
-        - sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/fi-licensing
+        - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-licensing
     only:
         refs:
             - release

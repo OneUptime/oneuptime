@@ -12,7 +12,7 @@ deploy_production_admin-dashboard:
         - sudo docker tag fyipeproject/admin-dashboard:latest fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/admin-dashboard:latest
-        - sudo kubectl --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG --kubeconfig=$KUBECONFIG set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config --kubeconfig=/root/.kube/config set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -40,7 +40,7 @@ deploy_staging_admin-dashboard:
         - sudo docker tag fyipeproject/admin-dashboard:master fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/admin-dashboard:master
-        - sudo kubectl --kubeconfig=$KUBECONFIG set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

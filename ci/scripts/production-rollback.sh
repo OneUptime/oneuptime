@@ -10,7 +10,7 @@ function rollback {
   if [[ $status == \"success\" ]]
     then
         echo "Rolling back $1"
-        sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/$1
+        sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/$1
     else
         echo "Rollback skipped $1"
   fi

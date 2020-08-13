@@ -12,7 +12,7 @@ deploy_production_api-docs:
         - sudo docker tag fyipeproject/api-docs:latest fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/api-docs:latest
-        - sudo kubectl --kubeconfig=$KUBECONFIG set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -40,7 +40,7 @@ deploy_staging_api-docs:
         - sudo docker tag fyipeproject/api-docs:master fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/api-docs:master
-        - sudo kubectl --kubeconfig=$KUBECONFIG set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
