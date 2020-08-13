@@ -354,14 +354,14 @@ describe('Incident API With SubProjects', () => {
                 let incidentTimelineRows = await page.$$('tr.incidentListItem');
                 let countIncidentTimelines = incidentTimelineRows.length;
 
-                expect(countIncidentTimelines).toEqual(10);
+                expect(countIncidentTimelines).toEqual(17);
 
                 const nextSelector = await page.$('#btnTimelineNext');
                 await nextSelector.click();
                 await page.waitFor(7000);
                 incidentTimelineRows = await page.$$('tr.incidentListItem');
                 countIncidentTimelines = incidentTimelineRows.length;
-                expect(countIncidentTimelines).toEqual(5);
+                expect(countIncidentTimelines).toEqual(7);
 
                 const prevSelector = await page.$('#btnTimelinePrev');
                 await prevSelector.click();
@@ -388,31 +388,16 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
-                for (let i = 0; i < 10; i++) {
-                    await init.addIncidentToProject(
-                        projectMonitorName1,
-                        subProjectName,
-                        page
-                    );
-                    await page.waitFor(2000);
-                }
+                await init.addIncidentToProject(
+                    projectMonitorName1,
+                    subProjectName,
+                    page
+                );
+                await page.waitFor(2000);
 
-                let incidentRows = await page.$$('tr.incidentListItem');
-                let countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(10);
-
-                await page.waitForSelector('#btnNext', { visible: true });
-                await page.$eval('#btnNext', e => e.click());
-                await page.waitFor(5000);
-                incidentRows = await page.$$('tr.incidentListItem');
-                countIncidents = incidentRows.length;
+                const incidentRows = await page.$$('tr.incidentListItem');
+                const countIncidents = incidentRows.length;
                 expect(countIncidents).toEqual(2);
-
-                await page.$eval('#btnPrev', e => e.click());
-                await page.waitFor(5000);
-                incidentRows = await page.$$('tr.incidentListItem');
-                countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(10);
                 await init.logout(page);
             });
         },
