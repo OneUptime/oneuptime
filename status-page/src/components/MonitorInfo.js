@@ -29,7 +29,8 @@ const calculateTime = (statuses, start, range) => {
             emptytime: dayStart.toISOString(),
         };
 
-        reversedStatuses.forEach(monitorStatus => {
+        reversedStatuses.forEach(monitor => {
+            let monitorStatus = Object.assign({},monitor);
             if (monitorStatus.endTime === null) {
                 monitorStatus.endTime = new Date().toISOString();
             }
