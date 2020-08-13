@@ -36,6 +36,7 @@ class Notes extends Component {
                                         style={{
                                             fontWeight: 'Bold',
                                             ...this.props.primaryTextColor,
+                                            color: 'rgb(76, 76, 76)',
                                         }}
                                     >
                                         {note.monitorId.name
@@ -44,7 +45,12 @@ class Notes extends Component {
                                             note.monitorId.name.substr(1)}
                                     </span>
                                     :{' '}
-                                    <span style={this.props.secondaryTextColor}>
+                                    <span
+                                        style={{
+                                            ...this.props.secondaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
                                         {note.description}.
                                     </span>
                                 </div>
