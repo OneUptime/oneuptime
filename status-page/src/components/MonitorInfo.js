@@ -83,7 +83,11 @@ const calculateTime = (statuses, start, range) => {
             timeObj.upTime +
             timeObj.degradedTime +
             timeObj.downTime;
-
+        if (timeObj.status === null) {
+            if (timeObj.downTime > 0) timeObj.status = 'offline';
+            else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
+            else if (timeObj.upTime > 0) timeObj.status = 'online';
+        }
         timeBlock.push(Object.assign({}, timeObj));
 
         dayStart = dayStart.subtract(1, 'days');
