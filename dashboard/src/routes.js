@@ -491,7 +491,7 @@ export const groups = [
         ],
     },
     {
-        group: 'service',
+        group: 'services',
         visible: true,
         routes: [
             {
