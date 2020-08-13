@@ -391,6 +391,42 @@ class Main extends Component {
                                 </div>
                             </div>
                         )}
+                        {this.props.events &&
+                            this.props.events.length > 0 &&
+                            this.props.statusData &&
+                            this.props.statusData._id && (
+                                <div
+                                    className="content white box"
+                                    style={{ marginBottom: 40 }}
+                                >
+                                    <div className="box-inner">
+                                        <div>Ongoing Scheduled Event</div>
+
+                                        {this.props.events.map(event => (
+                                            <span
+                                                key={event._id}
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.6)',
+                                                    background:
+                                                        'rgba(108, 219, 86, 0.6)',
+                                                    padding: '2px 15px',
+                                                    display: 'inline-block',
+                                                    borderRadius: 10,
+                                                    margin: '10px 10px 0 10px',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={() => {
+                                                    this.props.history.push(
+                                                        `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                                    );
+                                                }}
+                                            >
+                                                {event.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         <div className="content">
                             <div
                                 className="white box"
@@ -745,6 +781,7 @@ const mapStateToProps = state => ({
     monitorState: state.status.statusPage.monitorsData,
     monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
+    events: state.status.events.events,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -768,6 +805,8 @@ Main.propTypes = {
     selectedProbe: PropTypes.func,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
+    events: PropTypes.array,
+    history: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
