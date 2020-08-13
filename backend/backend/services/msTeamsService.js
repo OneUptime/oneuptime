@@ -58,14 +58,7 @@ module.exports = {
     },
 
     // send notification to slack workspace channels
-    async notify(
-        project,
-        monitor,
-        incident,
-        integration,
-        component,
-        duration
-    ) {
+    async notify(project, monitor, incident, integration, component, duration) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
             const yellow = '#fedc56';
@@ -206,5 +199,4 @@ module.exports = {
 const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
-const MonitorStatusService = require('./monitorStatusService');
 const ErrorService = require('./errorService');
