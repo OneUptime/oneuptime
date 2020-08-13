@@ -485,12 +485,17 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor)
                 : [];
             if (monitorIds && monitorIds.length) {
+                const currentDate = moment();
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         let scheduledEvents = await ScheduledEventsService.findBy(
                             {
                                 'monitors.monitorId': monitorId,
                                 showEventOnStatusPage: true,
+                                startDate: { $lte: currentDate },
+                                endDate: {
+                                    $gte: currentDate,
+                                },
                             }
                         );
 
@@ -823,3 +828,4 @@ const DomainVerificationService = require('./domainVerificationService');
 const flattenArray = require('../utils/flattenArray');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const IncidentMessageService = require('./incidentMessageService');
+const moment = require('moment');
