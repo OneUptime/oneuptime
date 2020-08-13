@@ -434,8 +434,8 @@ describe('Incident Timeline API', () => {
         return await cluster.execute(null, async ({ page }) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector(`#componentResource_0`);
-            await page.click(`#componentResource_0`);
+            await page.waitFor(2000);
+
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
@@ -457,23 +457,9 @@ describe('Incident Timeline API', () => {
             }
 
             await page.waitForSelector('tr.incidentListItem');
-            let incidentTimelineRows = await page.$$('tr.incidentListItem');
-            let countIncidentTimelines = incidentTimelineRows.length;
+            const incidentTimelineRows = await page.$$('tr.incidentListItem');
+            const countIncidentTimelines = incidentTimelineRows.length;
 
-            expect(countIncidentTimelines).toEqual(10);
-
-            const nextSelector = await page.$('#btnTimelineNext');
-            await nextSelector.click();
-            await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
-            countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(10);
-
-            const prevSelector = await page.$('#btnTimelinePrev');
-            await prevSelector.click();
-            await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
-            countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(10);
         });
     }, 300000);
