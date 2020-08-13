@@ -15,7 +15,7 @@ deploy_staging_status-page:
         - sudo docker tag fyipeproject/status-page:master fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/status-page:master
-        - sudo kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=$KUBECONFIG set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -40,7 +40,7 @@ deploy_production_status-page:
         - sudo docker tag fyipeproject/status-page:latest fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/status-page:latest
-        - sudo kubectl set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=$KUBECONFIG set image deployment/fi-status fi-status=fyipeproject/status-page:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

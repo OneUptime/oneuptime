@@ -10,12 +10,12 @@ function rollback {
   if [[ $status == \"success\" ]]
     then
         echo "Rolling back $1"
-        sudo kubectl rollout undo deployment/fi-$1
+        sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/fi-$1
         if [[ $1 == \"probe\" ]]
           then
           echo "Rolling back probe1"
-          sudo kubectl rollout undo deployment/fi-probe1
-          sudo kubectl rollout undo deployment/fi-probe2
+          sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/fi-probe1
+          sudo kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/fi-probe2
         fi
     else
         echo "Rollback skipped $1"
