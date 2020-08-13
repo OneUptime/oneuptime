@@ -282,6 +282,15 @@ export const groups = [
                 index: 5,
                 shortcut: 'ctrl+p+r',
             },
+            {
+                title: 'Incident Logs',
+                path: '/dashboard/project/:projectId/incidents',
+                icon: 'info',
+                visible: true,
+                subRoutes: [],
+                component: IncidentLog,
+                index: 6,
+            },
         ],
     },
     {
