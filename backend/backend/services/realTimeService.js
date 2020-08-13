@@ -39,6 +39,28 @@ module.exports = {
         }
     },
 
+    updateIncident: async incident => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`updateIncident-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateIncident', error);
+            throw error;
+        }
+    },
+
     deleteIncidentNote: async incident => {
         try {
             const project = await ProjectService.findOneBy({
