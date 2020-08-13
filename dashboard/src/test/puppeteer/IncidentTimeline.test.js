@@ -268,19 +268,15 @@ describe('Incident Timeline API', () => {
                 const type = 'investigation';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-
                 await page.waitFor(2000);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
 
-                await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
-                await page.waitFor(2000);
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
+                await page.waitFor(5000);
 
                 // edit investigation message thread form
                 await page.waitForSelector(`#edit-${type}`);
@@ -314,16 +310,13 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // fill internal message thread form
-                await page.waitFor(2000);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
@@ -362,16 +355,15 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
+                await page.waitFor(5000);
 
                 // edit investigation message thread form
                 await page.waitForSelector(`#edit-${type}`);
@@ -409,14 +401,12 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#delete_${type}_incident_message_0`);
                 await page.waitFor(5000);
