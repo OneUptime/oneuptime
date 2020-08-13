@@ -894,6 +894,33 @@ export default (state = INITIAL_STATE, action) => {
                 moreIncidentNotesError: action.payload,
             };
 
+        case 'INCIDENT_CREATED':
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes: [...state.notes.notes, action.payload],
+                    count: state.notes.count + 1,
+                },
+            };
+
+        case 'INCIDENT_UPDATED': {
+            const notes = state.notes.notes.map(note => {
+                if (String(note._id) === String(action.payload._id)) {
+                    note = action.payload;
+                    return note;
+                }
+                return note;
+            });
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes,
+                },
+            };
+        }
+
         default:
             return state;
     }
