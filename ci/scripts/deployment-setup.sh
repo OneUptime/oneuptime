@@ -12,6 +12,7 @@ sudo snap connect doctl:dot-docker
 # Make .config folder
 sudo mkdir /root/.config || echo "Directory already created."
 sudo mkdir /root/.kube || echo "Directory already created."
+sudo mkdir /gitlab-runner || echo "Directory already created."
 sudo mkdir /gitlab-runner/.kube || echo "Directory already created."
 sudo mkdir /gitlab-runner/.config || echo "Directory already created."
 #Init auth
