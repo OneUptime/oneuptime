@@ -491,6 +491,7 @@ div.feed-header {
     color: #000000;
     font-size: 15px;
     padding-right: 10px;
+    text-transform: capitalize;
   }
 
   .feed-icon {
