@@ -441,16 +441,8 @@ module.exports = {
             const incidents = await IncidentService.findBy(query, limit, skip);
 
             const investigationNotes = incidents.map(incident => {
-                return {
-                    investigationNote: incident.investigationNote
-                        ? incident.investigationNote
-                        : '',
-                    incidentType: incident.incidentType,
-                    createdAt: incident.createdAt,
-                    monitorId: incident.monitorId,
-                    resolved: incident.resolved,
-                    _id: incident._id,
-                };
+                // return all the incident object
+                return incident;
             });
             const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
