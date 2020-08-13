@@ -13,7 +13,9 @@ sudo snap connect doctl:dot-docker
 sudo mkdir /root/.config || echo "Directory already created."
 sudo mkdir /root/.kube || echo "Directory already created."
 # SET Kubeconfig path. 
+echo "Setting Kube Config Path"
 KUBECONFIG=/root/.kube/config
+echo $KUBECONFIG
 #Init auth
 echo "Auth doctl"
 sudo doctl auth init -t $DIGITALOCEAN_TOKEN
