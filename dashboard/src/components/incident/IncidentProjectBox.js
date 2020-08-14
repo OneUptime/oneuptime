@@ -10,6 +10,7 @@ import DataPathHoC from '../DataPathHoC';
 const IncidentProjectBox = props => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
+    const [filterOption, setFilterOption] = useState('Filter By');
 
     useEffect(() => {
         setIncidents(props.subProjectIncident);
@@ -76,33 +77,42 @@ const IncidentProjectBox = props => {
                                 <Dropdown>
                                     <Dropdown.Toggle
                                         id="filterToggle"
-                                        title="Filter By"
+                                        title={filterOption}
                                         className="bs-Button bs-DeprecatedButton"
                                     />
                                     <Dropdown.Menu>
                                         <MenuItem
                                             title="clear"
-                                            onClick={() =>
-                                                filterIncidentLogs('clear')
-                                            }
+                                            onClick={() => {
+                                                setFilterOption('Filter By');
+                                                return filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                            }}
                                         >
                                             Clear Filters
                                         </MenuItem>
                                         <MenuItem
                                             title="unacknowledged"
-                                            onClick={() =>
-                                                filterIncidentLogs(
+                                            onClick={() => {
+                                                setFilterOption(
+                                                    'Unacknowledged'
+                                                );
+                                                return filterIncidentLogs(
                                                     'acknowledged'
-                                                )
-                                            }
+                                                );
+                                            }}
                                         >
                                             Unacknowledged
                                         </MenuItem>
                                         <MenuItem
                                             title="unresolved"
-                                            onClick={() =>
-                                                filterIncidentLogs('resolved')
-                                            }
+                                            onClick={() => {
+                                                setFilterOption('Unresolved');
+                                                return filterIncidentLogs(
+                                                    'resolved'
+                                                );
+                                            }}
                                         >
                                             Unresolved
                                         </MenuItem>
