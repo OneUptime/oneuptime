@@ -1062,6 +1062,39 @@ margin-left:10px;
   background-repeat: no-repeat;
 }
 
+.box__yellow--dark {
+  background: #abab08;
+  color: white;
+}
+
+.ongoing__schedulebox {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  background-image: url('../images/arrow-right.svg');
+  background-repeat: no-repeat;
+  background-size: 25px;
+  background-position-x: 94%;
+  background-position-y: 10px;
+}
+
+.ongoing__scheduleitem {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ongoing__scheduleitem > span {
+  display: inline-block;
+  font-size: 15px;
+}
+
+.ongoing__scheduleitem > span:first-of-type {
+  text-transform: capitalize;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 @media screen and (max-width: 500px) {
   .box-inner {
     padding: 16px;
