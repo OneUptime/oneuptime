@@ -20,7 +20,7 @@
 
 .tooltip .tooltiptext {
     visibility: hidden;
-    width: 100px;
+    width: 70px;
     background-color: #555;
     color: #fff;
     text-align: center;
@@ -35,6 +35,7 @@
     display: flex;
     align-items: center;
     justify-content: space-evenly;
+    padding: 5px;
 }
 
 .tooltip .tooltiptext strong {
