@@ -679,31 +679,19 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 ) {
     let date = req.query.date;
     date = new Date(date);
-    const start = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        0,
-        0,
-        0
-    );
-    const end = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        23,
-        59,
-        59
-    );
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
+
+    const currentDate = moment();
     const query = {
         'monitors.monitorId': req.params.monitorId,
         showEventOnStatusPage: true,
         deleted: false,
-        startDate: { $lt: end },
-        endDate: { $gte: start },
+        startDate: { $lte: date },
+        endDate: {
+            $gte: currentDate,
+        },
     };
 
     try {
