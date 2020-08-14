@@ -15,7 +15,7 @@
 }
 
 .tooltip {
-  position: relative;
+    position: relative;
 }
 
 .tooltip .tooltiptext {
@@ -27,7 +27,6 @@
     border-radius: 6px;
     z-index: 1;
     opacity: 0;
-    transition: opacity 0.5s;
     height: 25px;
     right: 0;
     position: absolute;
@@ -57,9 +56,16 @@
 }
 
 .tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
+    animation: fadeIn 0.2s;
+    animation-delay: 0.8s;
+    animation-fill-mode: forwards;
 }
+
+@keyframes fadeIn {
+    from { visibility: hidden; opacity: 0; }
+    to { visibility: visible; opacity: 1; }
+}
+
 #frmCreateProject input[name='planId'],
 #pricingPlanModal input[name='planId']:checked,
 #frmCreateProject input[name='planId']:checked  {
