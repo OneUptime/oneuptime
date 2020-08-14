@@ -14,7 +14,8 @@ const initKeys = ['f', 'c', 'p'];
 
 const keyBind = (event, route, path, keys, resetKeys) => {
     let shortcut = [];
-    if (route.shortcut && event.key) {
+    // ensure the target is always body and not inside any other element (input, textarea, etc)
+    if (route.shortcut && event.target.localName === 'body' && event.key) {
         shortcut = route.shortcut.split('+');
         keys.push(event.key.toLowerCase());
 
