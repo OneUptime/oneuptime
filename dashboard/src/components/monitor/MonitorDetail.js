@@ -503,10 +503,13 @@ export class MonitorDetail extends Component {
                                         startDate,
                                         endDate
                                     );
-                                    const status = getMonitorStatus(
-                                        monitor.incidents,
-                                        logs
-                                    );
+                                    const checkLogs = logs && logs.length > 0;
+                                    const status = checkLogs
+                                        ? logs[0].status
+                                        : getMonitorStatus(
+                                              monitor.incidents,
+                                              logs
+                                          );
                                     const probe = probes.filter(
                                         probe => probe._id === location._id
                                     );
