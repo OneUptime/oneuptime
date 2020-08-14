@@ -478,9 +478,10 @@ module.exports = {
                 : [];
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
+                const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        let scheduledEvents = await ScheduledEventsService.findBy(
+                        const scheduledEvents = await ScheduledEventsService.findBy(
                             {
                                 'monitors.monitorId': monitorId,
                                 showEventOnStatusPage: true,
@@ -490,15 +491,11 @@ module.exports = {
                                 },
                             }
                         );
-
-                        // restructure to get the monitor
-                        scheduledEvents = scheduledEvents.map(event => {
-                            event.monitors = event.monitors.filter(
-                                monitor =>
-                                    String(monitor.monitorId._id) ===
-                                    String(monitorId)
-                            );
-
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
                             return event;
                         });
 
@@ -507,6 +504,12 @@ module.exports = {
                 );
 
                 events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
+                });
                 const count = events.length;
 
                 return { events: limitEvents(events, limit, skip), count };
