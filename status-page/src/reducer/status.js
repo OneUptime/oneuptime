@@ -46,6 +46,7 @@ import {
     MORE_INCIDENT_NOTES_REQUEST,
     MORE_INCIDENT_NOTES_SUCCESS,
 } from '../constants/status';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     error: null,
@@ -409,46 +410,78 @@ export default (state = INITIAL_STATE, action) => {
 
         case 'ADD_SCHEDULED_EVENT': {
             let monitorInStatusPage = false;
-            const eventArray = [];
-            action.payload.monitors.map(monitor => {
-                return state.statusPage.monitors.map(monitorData => {
+            let addEvent = false;
+            state.statusPage.monitors.map(monitorData => {
+                action.payload.monitors.map(monitor => {
                     if (
-                        String(monitorData.monitor) ===
-                        String(monitor.monitorId._id)
+                        String(monitor.monitorId._id) ===
+                        String(monitorData.monitor)
                     ) {
-                        const dataObj = { ...action.payload };
-                        dataObj.monitors = [monitor];
-                        eventArray.push(dataObj);
                         monitorInStatusPage = true;
                     }
-                    return monitorData;
+                    return monitor;
                 });
+                return monitorData;
             });
+
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
+            if (
+                monitorInStatusPage &&
+                startDate <= currentDate &&
+                endDate >= currentDate
+            ) {
+                addEvent = true;
+            }
 
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
-                    events: monitorInStatusPage
-                        ? [...eventArray, ...state.events.events]
+                    events: addEvent
+                        ? [action.payload, ...state.events.events]
                         : [...state.events.events],
-                    count: state.events.count + eventArray.length,
+                    count: addEvent
+                        ? state.events.count + 1
+                        : state.events.count,
                 },
             });
         }
 
         case 'UPDATE_SCHEDULED_EVENT': {
-            const events = state.events.events.map(event => {
-                if (event._id === action.payload._id) {
-                    // monitors are not updated during scheduled event update
-                    return { ...action.payload, monitors: event.monitors };
+            let addEvent = false;
+            let eventExist = false;
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
+
+            const updatedEvents = state.events.events.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    eventExist = true;
+                    event = action.payload;
                 }
                 return event;
             });
 
+            if (!eventExist) {
+                updatedEvents.push(action.payload);
+            }
+
+            const removeEvent = state.events.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
+            if (startDate <= currentDate && endDate >= currentDate) {
+                addEvent = true;
+            }
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
-                    events,
+                    events: addEvent ? updatedEvents : removeEvent,
+                    count: addEvent
+                        ? state.events.count
+                        : state.events.count - 1,
                 },
             });
         }
