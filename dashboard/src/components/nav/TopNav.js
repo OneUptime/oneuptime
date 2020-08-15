@@ -72,6 +72,7 @@ class TopContent extends Component {
             <div
                 className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer"
                 onClick={this.handleActiveIncidentClick}
+                id="activeIncidents"
             >
                 <span
                     className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
@@ -81,7 +82,7 @@ class TopContent extends Component {
                         marginRight: '5px',
                     }}
                 />
-                <span id="activeIncidents">
+                <span id="activeIncidentsText">
                     {`${incidentCounter +
                         (incidentCounter === 1
                             ? ' Incident Currently Active'
