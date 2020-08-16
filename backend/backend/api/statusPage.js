@@ -653,6 +653,26 @@ router.get('/:projectId/:statusPageId/events', checkUser, async function(
     }
 });
 
+router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageId } = req.params;
+        const { skip = 0, limit = 5 } = req.query;
+
+        const response = await StatusPageService.getFutureEvents(
+            { _id: statusPageId },
+            skip,
+            limit
+        );
+        const { events, count } = response;
+        return sendListResponse(req, res, events, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
     req,
     res
