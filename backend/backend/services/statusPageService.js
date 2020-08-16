@@ -512,15 +512,85 @@ module.exports = {
                 });
                 const count = events.length;
 
-                return { events: limitEvents(events, limit, skip), count };
+                return { events, count };
             } else {
                 const error = new Error('no monitor to check');
                 error.code = 400;
-                ErrorService.log('statusPage.getEvents', error);
+                ErrorService.log('statusPageService.getEvents', error);
                 throw error;
             }
         } catch (error) {
             ErrorService.log('statusPageService.getEvents', error);
+            throw error;
+        }
+    },
+
+    getFutureEvents: async function(query, skip, limit) {
+        try {
+            const _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const statuspages = await _this.findBy(query, 0, limit);
+
+            const withMonitors = statuspages.filter(
+                statusPage => statusPage.monitors.length
+            );
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage
+                ? statuspage.monitors.map(m => m.monitor)
+                : [];
+            if (monitorIds && monitorIds.length) {
+                const currentDate = moment();
+                const eventIds = [];
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $gt: currentDate },
+                            }
+                        );
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
+                );
+
+                events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
+                });
+                const count = events.length;
+
+                return { events: limitEvents(events, limit, skip), count };
+            } else {
+                const error = new Error('no monitor to check');
+                error.code = 400;
+                ErrorService.log('statusPageService.getFutureEvents', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.getFutureEvents', error);
             throw error;
         }
     },
