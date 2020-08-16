@@ -18,8 +18,6 @@ import {
     MORE_EVENTS_SUCCESS,
     MORE_EVENTS_FAILURE,
     SCHEDULED_EVENTS_RESET,
-    INDIVIDUAL_EVENTS_ENABLE,
-    INDIVIDUAL_EVENTS_DISABLE,
     SELECT_PROBE,
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
@@ -45,6 +43,15 @@ import {
     MORE_INCIDENT_NOTES_FAILURE,
     MORE_INCIDENT_NOTES_REQUEST,
     MORE_INCIDENT_NOTES_SUCCESS,
+    FUTURE_EVENTS_FAILURE,
+    FUTURE_EVENTS_REQUEST,
+    FUTURE_EVENTS_SUCCESS,
+    MORE_FUTURE_EVENTS_FAILURE,
+    MORE_FUTURE_EVENTS_REQUEST,
+    MORE_FUTURE_EVENTS_SUCCESS,
+    INDIVIDUAL_EVENTS_FAILURE,
+    INDIVIDUAL_EVENTS_SUCCESS,
+    INDIVIDUAL_EVENTS_REQUEST,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -65,14 +72,35 @@ const INITIAL_STATE = {
         skip: 0,
         count: 0,
     },
+    futureEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        skip: 0,
+        count: 0,
+    },
+    moreFutureEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    individualEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        count: 0,
+        show: false,
+        monitorName: null,
+        date: null,
+    },
     logs: [],
     requestingmore: false,
     requestingmoreevents: false,
     requestingstatuses: false,
     individualnote: null,
-    individualevent: null,
     notesmessage: null,
-    eventsmessage: null,
     activeProbe: 0,
     eventNoteList: {
         requesting: false,
@@ -558,17 +586,87 @@ export default (state = INITIAL_STATE, action) => {
         case MORE_EVENTS_REQUEST:
             return Object.assign({}, state, { requestingmoreevents: true });
 
-        case INDIVIDUAL_EVENTS_ENABLE:
-            return Object.assign({}, state, {
-                individualevent: action.payload.name,
-                eventsmessage: action.payload.message,
-            });
+        case MORE_FUTURE_EVENTS_REQUEST:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
 
-        case INDIVIDUAL_EVENTS_DISABLE:
-            return Object.assign({}, state, {
-                individualevent: null,
-                eventsmessage: null,
-            });
+        case MORE_FUTURE_EVENTS_SUCCESS:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: state.futureEvents.events.concat(
+                        action.payload.data
+                    ),
+                    skip: action.payload.skip,
+                    count: action.payload.count
+                        ? action.payload.count
+                        : state.events.count,
+                },
+            };
+
+        case MORE_FUTURE_EVENTS_FAILURE:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_REQUEST:
+            return {
+                ...state,
+                individualEvents: {
+                    ...state.individualEvents,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                    show: true,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_SUCCESS:
+            return {
+                ...state,
+                individualEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                    monitorName: action.payload.monitorName,
+                    date: action.payload.date,
+                    show: true,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_FAILURE:
+            return {
+                ...state,
+                individualEvents: {
+                    ...state.individualEvents,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         case SELECT_PROBE:
             return Object.assign({}, state, {
@@ -996,6 +1094,45 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
         }
+
+        case FUTURE_EVENTS_REQUEST:
+            return {
+                ...state,
+                futureEvents: {
+                    ...state.futureEvents,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
+
+        case FUTURE_EVENTS_SUCCESS:
+            return {
+                ...state,
+                futureEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                    skip: action.payload.skip || 0,
+                },
+            };
+
+        case FUTURE_EVENTS_FAILURE:
+            return {
+                ...state,
+                futureEvents: {
+                    ...state.futureEvents,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         default:
             return state;
