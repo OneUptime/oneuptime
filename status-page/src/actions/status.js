@@ -204,18 +204,6 @@ export const scheduledEventReset = () => {
     };
 };
 
-export const individualEventEnable = message => {
-    return {
-        type: types.INDIVIDUAL_EVENTS_ENABLE,
-        payload: message,
-    };
-};
-export const individualEventDisable = () => {
-    return {
-        type: types.INDIVIDUAL_EVENTS_DISABLE,
-    };
-};
-
 // Calls the API to get events
 export const getScheduledEvent = (projectId, statusPageId, skip) => {
     return function(dispatch) {
@@ -228,7 +216,6 @@ export const getScheduledEvent = (projectId, statusPageId, skip) => {
         promise.then(
             Data => {
                 dispatch(scheduledEventSuccess(Data.data));
-                dispatch(individualEventDisable());
             },
             error => {
                 if (error && error.response && error.response.data)
@@ -248,25 +235,35 @@ export const getScheduledEvent = (projectId, statusPageId, skip) => {
     };
 };
 
+export const individualEventsRequest = () => ({
+    type: types.INDIVIDUAL_EVENTS_REQUEST,
+});
+
+export const individualEventsSuccess = payload => ({
+    type: types.INDIVIDUAL_EVENTS_SUCCESS,
+    payload,
+});
+
+export const individualEventsFailure = error => ({
+    type: types.INDIVIDUAL_EVENTS_FAILURE,
+    payload: error,
+});
+
 export const getIndividualEvent = (projectId, monitorId, date, name) => {
     return function(dispatch) {
         const promise = getApi(
             `statusPage/${projectId}/${monitorId}/individualevents?date=${date}`
         );
 
-        dispatch(scheduledEventRequest());
+        dispatch(individualEventsRequest());
 
         promise.then(
             Data => {
-                dispatch(scheduledEventSuccess(Data.data));
                 dispatch(
-                    individualEventEnable({
-                        message: Data.data.message,
-                        name: {
-                            _id: monitorId,
-                            name,
-                            date,
-                        },
+                    individualEventsSuccess({
+                        ...Data.data,
+                        date,
+                        monitorName: name,
                     })
                 );
             },
@@ -282,7 +279,7 @@ export const getIndividualEvent = (projectId, monitorId, date, name) => {
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(scheduledEventFailure(errors(error)));
+                dispatch(individualEventsFailure(errors(error)));
             }
         );
     };
