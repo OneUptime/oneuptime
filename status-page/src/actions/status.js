@@ -285,6 +285,44 @@ export const getIndividualEvent = (projectId, monitorId, date, name) => {
     };
 };
 
+export const futureEventsRequest = () => ({
+    type: types.FUTURE_EVENTS_REQUEST,
+});
+
+export const futureEventsSuccess = payload => ({
+    type: types.FUTURE_EVENTS_SUCCESS,
+    payload,
+});
+
+export const futureEventsFailure = error => ({
+    type: types.FUTURE_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchFutureEvents = (
+    projectId,
+    statusPageId,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(futureEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageId}/futureEvents?skip=${skip}`
+        );
+        dispatch(futureEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(futureEventsFailure(errorMsg));
+    }
+};
+
 export const notmonitoredDays = (monitorId, date, name, message) => {
     return function(dispatch) {
         dispatch(statusPageNoteReset());
@@ -397,6 +435,44 @@ export const getMoreEvent = (projectId, statusPageId, skip) => {
             }
         );
     };
+};
+
+export const moreFutureEventsRequest = () => ({
+    type: types.MORE_FUTURE_EVENTS_REQUEST,
+});
+
+export const moreFutureEventsSuccess = payload => ({
+    type: types.MORE_FUTURE_EVENTS_SUCCESS,
+    payload,
+});
+
+export const moreFutureEventsFailure = error => ({
+    type: types.MORE_FUTURE_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchMoreFutureEvents = (
+    projectId,
+    statusPageId,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(moreFutureEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageId}/futureEvents?skip=${skip}`
+        );
+        dispatch(moreFutureEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(moreFutureEventsFailure(errorMsg));
+    }
 };
 
 export function selectedProbe(val) {
