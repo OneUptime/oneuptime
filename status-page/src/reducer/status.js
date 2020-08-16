@@ -411,6 +411,7 @@ export default (state = INITIAL_STATE, action) => {
         case 'ADD_SCHEDULED_EVENT': {
             let monitorInStatusPage = false;
             let addEvent = false;
+            let addFutureEvent = false;
             state.statusPage.monitors.map(monitorData => {
                 action.payload.monitors.map(monitor => {
                     if (
@@ -435,6 +436,10 @@ export default (state = INITIAL_STATE, action) => {
                 addEvent = true;
             }
 
+            if (monitorInStatusPage && startDate > currentDate) {
+                addFutureEvent = true;
+            }
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
@@ -445,11 +450,22 @@ export default (state = INITIAL_STATE, action) => {
                         ? state.events.count + 1
                         : state.events.count,
                 },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: addFutureEvent
+                        ? [action.payload, ...state.futureEvents.events]
+                        : [...state.futureEvents.events],
+                    count: addFutureEvent
+                        ? state.futureEvents.count + 1
+                        : state.futureEvents.count,
+                },
             });
         }
 
         case 'UPDATE_SCHEDULED_EVENT': {
             let addEvent = false;
+            let addFutureEvent = false;
+            let futureEventExist = false;
             let eventExist = false;
             const currentDate = moment().format();
             const startDate = moment(action.payload.startDate).format();
@@ -463,11 +479,27 @@ export default (state = INITIAL_STATE, action) => {
                 return event;
             });
 
+            const updatedFutureEvent = state.futureEvents.events.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    futureEventExist = true;
+                    event = action.payload;
+                }
+                return event;
+            });
+
             if (!eventExist) {
                 updatedEvents.push(action.payload);
             }
 
+            if (!futureEventExist) {
+                updatedFutureEvent.push(action.payload);
+            }
+
             const removeEvent = state.events.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
+            const removeFutureEvent = state.futureEvents.events.filter(
                 event => String(event._id) !== String(action.payload._id)
             );
 
@@ -475,13 +507,24 @@ export default (state = INITIAL_STATE, action) => {
                 addEvent = true;
             }
 
+            if (startDate > currentDate) {
+                addFutureEvent = true;
+            }
+
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
                     events: addEvent ? updatedEvents : removeEvent,
-                    count: addEvent
-                        ? state.events.count
-                        : state.events.count - 1,
+                    count: addEvent ? updatedEvents.length : removeEvent.length,
+                },
+                futureEvents: {
+                    ...state.events,
+                    events: addFutureEvent
+                        ? updatedFutureEvent
+                        : removeFutureEvent,
+                    count: addFutureEvent
+                        ? updatedFutureEvent.length
+                        : removeFutureEvent.length,
                 },
             });
         }
