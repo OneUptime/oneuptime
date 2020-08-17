@@ -11077,6 +11077,7 @@ table {
     border-radius: 4px;
     margin: 0 0 10px;
     display: flex;
+    width: 100%;
 }
 .custom-tab {
     padding: 15px;
@@ -11089,8 +11090,14 @@ table {
 }
 .custom-tab-selected {
     color: #000;
-    border-bottom: 1px solid;
-} 
+}
+#tab-slider {
+    position: absolute;
+    border-bottom: 1px solid #000;
+    transition: transform 0.5s;
+    width: 25%;
+    margin-top: 45px;
+}
 @media only screen and (max-width: 470px) {
   /* single column system on mobile */
   .price-list-3c,
