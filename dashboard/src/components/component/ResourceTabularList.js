@@ -10,6 +10,7 @@ import threatLevel from '../../utils/threatLevel';
 import StatusIndicator from '../monitor/StatusIndicator';
 import moment from 'moment';
 import IssueIndicator from '../security/IssueIndicator';
+import sortByName from '../../utils/sortByName';
 
 class ResourceTabularList extends Component {
     constructor(props) {
@@ -160,6 +161,10 @@ class ResourceTabularList extends Component {
     }
     render() {
         const { componentResource } = this.props;
+        const componentResources =
+            componentResource && componentResource.componentResources
+                ? sortByName(componentResource.componentResources)
+                : [];
 
         return (
             <div>
@@ -210,10 +215,9 @@ class ResourceTabularList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            {componentResource &&
-                            componentResource.componentResources &&
-                            componentResource.componentResources.length > 0 ? (
-                                componentResource.componentResources.map(
+                            {componentResources &&
+                            componentResources.length > 0 ? (
+                                componentResources.map(
                                     (componentResource, i) => {
                                         return (
                                             <tr

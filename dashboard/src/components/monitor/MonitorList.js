@@ -3,12 +3,14 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import MonitorDetail from './MonitorDetail';
+import sortByName from '../../utils/sortByName';
 
 export function MonitorList(props) {
     let monitorDetails = null;
 
     if (props.monitors && props.monitors.length > 0) {
-        monitorDetails = props.monitors.map((monitor, i) => (
+        const monitors = sortByName(props.monitors);
+        monitorDetails = monitors.map((monitor, i) => (
             <div id={`monitor${i}`} key={monitor._id}>
                 <RenderIfUserInSubProject
                     subProjectId={monitor.projectId._id || monitor.projectId}
