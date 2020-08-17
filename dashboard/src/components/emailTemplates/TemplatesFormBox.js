@@ -16,14 +16,6 @@ import { setRevealVariable } from '../../actions/emailTemplates';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-const style = {
-    backgroundColor: '#fff',
-    borderRadius: '4px',
-    width: '600px',
-    boxShadow:
-        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-};
-
 const bulletpoints = {
     display: 'listItem',
     listStyleType: 'disc',
@@ -40,7 +32,6 @@ function validate(values) {
     }
     return errors;
 }
-
 
 export class TemplatesFormBox extends Component {
     render() {
@@ -124,10 +115,9 @@ export class TemplatesFormBox extends Component {
                                                         className="db-FeedbackForm-textarea"
                                                         name="body"
                                                         id="templateTextArea"
-                                                        style={style}
                                                         placeholder="This can be markdown"
                                                         height="504px"
-                                                        width="600px"                                                  
+                                                        width="600px"
                                                     />
                                                 </div>
                                             </div>
