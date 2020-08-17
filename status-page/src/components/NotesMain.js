@@ -142,13 +142,22 @@ class NotesMain extends Component {
                     <ShouldRender
                         if={this.props.noteData && !this.props.noteData.error}
                     >
-                        <div className="box-inner">
+                        <div
+                            className="box-inner"
+                            style={{
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                width: '100%',
+                            }}
+                        >
                             <div
                                 className="feed-header clearfix"
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'row',
                                     flexWrap: 'nowrap',
+                                    paddingLeft: 40,
+                                    paddingRight: 40,
                                 }}
                             >
                                 <ShouldRender if={!this.props.individualnote}>

@@ -247,7 +247,7 @@ class Incident extends Component {
                                         incidentNotes.map(note => (
                                             <li
                                                 key={note._id}
-                                                className="scheduledEvent feed-item clearfix"
+                                                className="feed-item clearfix"
                                             >
                                                 <div
                                                     className="message"

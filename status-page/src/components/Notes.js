@@ -14,7 +14,7 @@ class Notes extends Component {
                     if (!note) return <div>No note</div>;
                     return (
                         <li
-                            className="feed-item clearfix"
+                            className="incidentlist feed-item clearfix"
                             key={i}
                             style={{ cursor: 'pointer' }}
                             onClick={() =>
@@ -31,7 +31,16 @@ class Notes extends Component {
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
-                                <div className="text">
+                                <div
+                                    className="text"
+                                    style={{
+                                        paddingLeft: 0,
+                                        paddingRight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexWrap: 'nowrap',
+                                    }}
+                                >
                                     <span
                                         style={{
                                             fontWeight: 'Bold',
@@ -44,7 +53,6 @@ class Notes extends Component {
                                             .toUpperCase() +
                                             note.monitorId.name.substr(1)}
                                     </span>
-                                    :{' '}
                                     <span
                                         style={{
                                             ...this.props.secondaryTextColor,
@@ -59,7 +67,8 @@ class Notes extends Component {
                                 className="time"
                                 style={{
                                     ...this.props.secondaryTextColor,
-                                    marginLeft: 12,
+                                    marginLeft: 0,
+                                    paddingBottom: 10,
                                 }}
                             >
                                 {moment(note.createdAt).format(
