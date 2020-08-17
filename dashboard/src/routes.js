@@ -340,6 +340,7 @@ export const groups = [
                         title: 'Incident Settings',
                         path:
                             '/dashboard/project/:projectId/settings/incidents',
+                        icon: 'incidentSettings',
                         visible: true,
                         subRoutes: [],
                         component: IncidentPriorities,
