@@ -350,17 +350,25 @@ describe('Incident API With SubProjects', () => {
                     await page.waitFor(2000);
                 }
 
-                await page.reload({
-                    waitUntil: ['networkidle0', 'domcontentloaded'],
-                });
-
                 await page.waitForSelector('tr.incidentListItem');
-                const incidentTimelineRows = await page.$$(
-                    'tr.incidentListItem'
-                );
-                const countIncidentTimelines = incidentTimelineRows.length;
+                let incidentTimelineRows = await page.$$('tr.incidentListItem');
+                let countIncidentTimelines = incidentTimelineRows.length;
 
-                expect(countIncidentTimelines).toEqual(21);
+                expect(countIncidentTimelines).toEqual(10);
+
+                const nextSelector = await page.$('#btnTimelineNext');
+                await nextSelector.click();
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(5);
+
+                const prevSelector = await page.$('#btnTimelinePrev');
+                await prevSelector.click();
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(10);
                 await init.logout(page);
             });
         },
