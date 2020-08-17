@@ -95,7 +95,7 @@ class IncidentPriorities extends React.Component {
                                                         <span>Incident Priority</span>
                                                     </span>
                                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <span>DESCRIPTION</span>
+                                                        <span>Incidents can have different severity or priority. You can define your organization incident severity policy here.</span>
                                                     </span>
                                                 </div>
                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
