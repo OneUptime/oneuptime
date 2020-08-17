@@ -52,7 +52,7 @@ class ResourceTabularList extends Component {
         let statusDescription = 'TBD';
         let indicator, monitor, logs, probe;
         let appSecurityStatus = 'no data yet',
-            monitorStatus = 'online';
+            monitorStatus = '';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
         switch (componentResource.type) {
