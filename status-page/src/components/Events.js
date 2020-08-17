@@ -14,7 +14,6 @@ class Events extends Component {
                     return (
                         <li
                             className="scheduledEvent feed-item clearfix"
-                            style={{ cursor: 'pointer' }}
                             key={i}
                             onClick={() =>
                                 history.push(
@@ -30,57 +29,43 @@ class Events extends Component {
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
-                                <div className="text">
+                                <div
+                                    className="text"
+                                    style={{
+                                        paddingLeft: 0,
+                                        paddingRight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexWrap: 'nowrap',
+                                    }}
+                                >
                                     <span
+                                        className="feed-title"
                                         style={{
                                             ...this.props.secondaryTextColor,
+                                            color: 'rgb(76, 76, 76)',
                                             fontWeight: 'bold',
-                                        }}
-                                    >
-                                        Monitor
-                                    </span>
-                                    :{' '}
-                                    <span
-                                        style={{
-                                            fontWeight: 'Bold',
-                                            ...this.props.primaryTextColor,
-                                            color: 'rgba(0, 0, 0, 0.5)',
-                                        }}
-                                    >
-                                        {event.monitors[0].monitorId.name
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            event.monitors[0].monitorId.name.substr(
-                                                1
-                                            )}
-                                    </span>
-                                </div>
-                                <div className="text">
-                                    <span
-                                        style={{
-                                            ...this.props.secondaryTextColor,
-                                            fontWeight: 'bold',
-                                        }}
-                                    >
-                                        Event
-                                    </span>
-                                    :{' '}
-                                    <span
-                                        style={{
-                                            fontWeight: 'Bold',
-                                            ...this.props.primaryTextColor,
-                                            color: 'rgba(0, 0, 0, 0.5)',
+                                            fontSize: 14,
                                         }}
                                     >
                                         {event.name}
+                                    </span>
+                                    <span
+                                        style={{
+                                            ...this.props.primaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
+                                        {event.description}
                                     </span>
                                 </div>
                             </div>
                             <span
                                 className="time"
                                 style={{
-                                    marginLeft: 12,
+                                    marginLeft: 0,
                                     ...this.props.secondaryTextColor,
+                                    paddingBottom: 10,
                                 }}
                             >
                                 {moment(event.startDate).format(
