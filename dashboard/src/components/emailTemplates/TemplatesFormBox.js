@@ -14,9 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/emailTemplates';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
-import AceEditor from 'react-ace';
-import 'brace/mode/html';
-import 'brace/theme/github';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 const style = {
     backgroundColor: '#fff',
@@ -43,34 +41,6 @@ function validate(values) {
     return errors;
 }
 
-const MarkdownEditor = ({ input, style }) => (
-    <AceEditor
-        mode="html"
-        theme="github"
-        value={input.value}
-        editorProps={{
-            $blockScrolling: true,
-        }}
-        height="504px"
-        width="600px"
-        highlightActiveLine={true}
-        setOptions={{
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            enableSnippets: true,
-            showGutter: false,
-        }}
-        onChange={input.onChange}
-        placeholder="This can be markdown"
-        style={style}
-    />
-);
-
-MarkdownEditor.displayName = 'MarkdownEditor';
-MarkdownEditor.propTypes = {
-    input: PropTypes.object.isRequired,
-    style: PropTypes.object
-};
 
 export class TemplatesFormBox extends Component {
     render() {
@@ -148,12 +118,16 @@ export class TemplatesFormBox extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
                                                         component={
-                                                            MarkdownEditor
+                                                            RenderCodeEditor
                                                         }
+                                                        mode="html"
                                                         className="db-FeedbackForm-textarea"
                                                         name="body"
                                                         id="templateTextArea"
                                                         style={style}
+                                                        placeholder="This can be markdown"
+                                                        height="504px"
+                                                        width="600px"                                                  
                                                     />
                                                 </div>
                                             </div>
