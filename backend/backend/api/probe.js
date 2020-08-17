@@ -67,6 +67,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
 router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
+            req.probe.id,
             new Date(new Date().getTime() - 60 * 1000)
         );
         //Update the lastAlive in the probe servers list located in the status pages.
