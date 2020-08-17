@@ -542,14 +542,14 @@ div.feed-header {
 
        /* Swoop */
       .feed-item div.message::before {
-        content: " ";
+        /* content: " ";
         position: absolute;
         width: 10px;
         height: 10px;
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background-color: inherit;
+        background-color: inherit; */
       }
 
 
@@ -1063,18 +1063,13 @@ margin-left:10px;
 }
 
 .box__yellow--dark {
-  background: #abab08;
+  background: #e39f48;
   color: white;
 }
 
 .ongoing__schedulebox {
   padding-top: 15px;
   padding-bottom: 15px;
-  background-image: url('../images/arrow-right.svg');
-  background-repeat: no-repeat;
-  background-size: 25px;
-  background-position-x: 94%;
-  background-position-y: 10px;
 }
 
 .ongoing__scheduleitem {
@@ -1090,9 +1085,30 @@ margin-left:10px;
 
 .ongoing__scheduleitem > span:first-of-type {
   text-transform: capitalize;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   font-weight: 600;
+  font-size: 16px;
+}
+
+.ongoing__affectedmonitor {
+  margin-top: 15px;
   font-size: 14px;
+}
+
+.ongoing__affectedmonitor--title {
+  font-weight: 900;
+}
+
+.scheduledEvent,
+.incidentlist {
+  cursor: pointer;
+  background: rgb(247, 247, 247);
+  padding-left: 20px;
+  padding-right: 20px;
+  margin: 0 20px 20px;
+  border-radius: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 @media screen and (max-width: 500px) {
