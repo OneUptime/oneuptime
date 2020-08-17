@@ -399,23 +399,6 @@ describe('Incident API', function() {
             });
     });
 
-    it('should update the internal and investigation notes of an incident', function(done) {
-        const authorization = `Basic ${token}`;
-        request
-            .put(`/incident/${projectId}/incident/${incidentId}`)
-            .set('Authorization', authorization)
-            .send({
-                internalNote: 'Update the internal notes',
-                investigationNote: 'Update the investigation notes',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body._id).to.be.equal(incidentId);
-                done();
-            });
-    });
-
     it('should require an incident state', function(done) {
         const authorization = `Basic ${token}`;
         request
