@@ -513,7 +513,7 @@ const _this = {
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
                     error.code = 400;
-                    return error;
+                    throw error;
                 }
 
                 const verificationRequest = await twilioClient.verify
