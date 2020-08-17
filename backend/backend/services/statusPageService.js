@@ -580,8 +580,11 @@ module.exports = {
                         event => String(event._id) === String(id)
                     );
                 });
-                const count = events.length;
 
+                // sort in ascending start date
+                events = events.sort((a, b) => a.startDate - b.startDate);
+
+                const count = events.length;
                 return { events: limitEvents(events, limit, skip), count };
             } else {
                 const error = new Error('no monitor to check');
