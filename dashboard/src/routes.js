@@ -38,6 +38,7 @@ const {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    Consulting,
 } = pages;
 
 export const groups = [
@@ -219,6 +220,15 @@ export const groups = [
                 subRoutes: [],
                 index: 2,
                 shortcut: 'ctrl+p+c',
+            },
+            {
+                title: 'Incident Logs',
+                path: '/dashboard/project/:projectId/incidents',
+                icon: 'info',
+                visible: true,
+                subRoutes: [],
+                component: IncidentLog,
+                index: 6,
             },
             {
                 title: 'Status Pages',
@@ -477,6 +487,21 @@ export const groups = [
                 subRoutes: [],
                 index: 6,
                 shortcut: 'ctrl+p+c',
+            },
+        ],
+    },
+    {
+        group: 'services',
+        visible: true,
+        routes: [
+            {
+                title: 'Consulting & Services',
+                path: '/dashboard/project/:projectId/consulting',
+                icon: 'consulting',
+                visible: true,
+                component: Consulting,
+                subRoutes: [],
+                index: 1,
             },
         ],
     },
