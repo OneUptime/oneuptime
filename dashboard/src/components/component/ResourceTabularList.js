@@ -55,6 +55,7 @@ class ResourceTabularList extends Component {
             monitorStatus = '';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
+        let data = null;
         switch (componentResource.type) {
             case 'website monitor':
             case 'device monitor':
@@ -112,14 +113,19 @@ class ResourceTabularList extends Component {
                 } else {
                     statusDescription = 'No Scan Yet';
                 }
+                data =
+                    componentResource.securityLog &&
+                    componentResource.securityLog.data
+                        ? componentResource.securityLog.data
+                        : null;
                 indicator = (
                     <IssueIndicator
                         status={appSecurityStatus}
                         resourceName={componentResource.name}
                         count={
-                            componentResource.securityLog.data.vulnerabilities[
-                                appSecurityStatus
-                            ]
+                            data && data.vulnerabilities
+                                ? data.vulnerabilities[appSecurityStatus]
+                                : 0
                         }
                     />
                 );
