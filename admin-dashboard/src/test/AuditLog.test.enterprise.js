@@ -33,7 +33,7 @@ describe('Audit Logs', () => {
                 email: data.email,
                 password: data.password,
             };
-            await init.loginUser(user, page);
+            await init.registerEnterpriseUser(user, page, false);
         });
     });
 
