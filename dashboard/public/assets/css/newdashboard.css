@@ -11096,8 +11096,24 @@ table {
     border-bottom: 1px solid #000;
     transition: transform 0.5s;
     width: 25%;
-    margin-top: 45px;
 }
+@media only screen and (max-width: 594px) {
+    #tab-slider {
+        margin-top: 63px;
+    }
+  }
+  @media only screen and (min-width: 595px) {
+    #tab-slider {
+        margin-top: 45px;
+    }
+    
+}
+@media only screen and (min-width: 761px) and (max-width: 838px) {
+    #tab-slider {
+        margin-top: 63px;
+    }
+  }
+
 @media only screen and (max-width: 470px) {
   /* single column system on mobile */
   .price-list-3c,
