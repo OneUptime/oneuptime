@@ -65,6 +65,7 @@ class Application extends Component {
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
         } = this.props;
+
         const applicationSecurities = appSecurities
             ? sortByName(appSecurities)
             : [];
