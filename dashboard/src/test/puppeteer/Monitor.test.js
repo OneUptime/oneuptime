@@ -588,6 +588,54 @@ describe('API Monitor API', () => {
     );
 
     test(
+        'should not add API monitor with invalid payload in advance options',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'api', page);
+                await init.selectByText('#method', 'post', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type(
+                    '#url',
+                    'https://fyipe.com/api/monitor/valid-project-id'
+                );
+                await page.waitForSelector('#advanceOptions');
+                await page.click('#advanceOptions');
+
+                await page.waitForSelector('input[id=headers_1000_0_key]');
+                await page.click('input[id=headers_1000_0_key]');
+                await page.type(
+                    'input[id=headers_1000_0_key]',
+                    'Authorization'
+                );
+                await page.click('input[id=headers_1000_0_value]');
+                await page.type(
+                    'input[id=headers_1000_0_value]',
+                    'Basic valid-token'
+                );
+                await init.selectByText('#bodyType', 'text/plain', page);
+                await page.click('#feedback-textarea');
+                await page.type('#feedback-textarea', 'BAD');
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    '#formNewMonitorError'
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Unauthorized');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should add API monitor with valid url and payload',
         async () => {
             return await cluster.execute(null, async ({ page }) => {

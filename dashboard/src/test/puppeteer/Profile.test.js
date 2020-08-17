@@ -134,4 +134,42 @@ describe('Profile -> Delete Account Component test', () => {
         },
         operationTimeOut
     );
+    test(
+        'Should not activate google authenticator if the verification code is wrong',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // visit the dashboard
+                await page.goto(utils.DASHBOARD_URL);
+                // click on the profile page
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+
+                // toggle the google authenticator
+                await page.$eval('input[name=twoFactorAuthEnabled]', e =>
+                    e.click()
+                );
+
+                // click on the next button
+                await page.waitForSelector('#nextFormButton');
+                await page.click('#nextFormButton');
+
+                // enter a random verification code
+                await page.waitForSelector('input[name=token]');
+                await page.type('input[name=token]', '021196');
+
+                // click the verification button
+                await page.waitForSelector('#enableTwoFactorAuthButton');
+                await page.click('#enableTwoFactorAuthButton');
+
+                // verify there is an error message
+                let spanElement = await page.waitForSelector('#modal-message');
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Invalid token.');
+            });
+        },
+        operationTimeOut
+    );
 });

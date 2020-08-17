@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -18,6 +19,31 @@ export class ProfileMenu extends Component {
 
         this.state = { aboutId: uuid.v4() };
     }
+
+    componentDidMount() {
+        window.addEventListener('keydown', e => this.handleShortcut(e));
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', e => this.handleShortcut(e));
+    }
+
+    handleShortcut = event => {
+        // Only execute keyboard shortcut when profile menu is open
+        if (event.target.localName === 'button') {
+            if (event.key === 'p' || event.key === 'P') {
+                this.props.hideProfileMenu();
+                this.props.history.push('/dashboard/profile/settings');
+            }
+            if (event.key === 'b' || event.key === 'B') {
+                this.props.hideProfileMenu();
+                this.props.history.push('/dashboard/profile/billing');
+            }
+            if (event.key === 'a' || event.key === 'A') {
+                this.showAboutModal();
+            }
+        }
+    };
 
     showAboutModal = () => {
         this.props.hideProfileMenu();
@@ -116,11 +142,28 @@ export class ProfileMenu extends Component {
                                                 this.props.hideProfileMenu()
                                             }
                                         >
-                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
+                                            <div
+                                                className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed"
+                                                style={{
+                                                    display: 'flex',
+                                                    width: '100%',
+                                                    justifyContent:
+                                                        'space-between',
+                                                    flexDirection: 'row',
+                                                }}
+                                            >
                                                 <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <span>Profile</span>
                                                     </span>
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        color: '#8898aa',
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    Press P
                                                 </span>
                                             </div>
                                         </Link>
@@ -143,11 +186,28 @@ export class ProfileMenu extends Component {
                                                     this.props.hideProfileMenu()
                                                 }
                                             >
-                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
+                                                <div
+                                                    className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed"
+                                                    style={{
+                                                        display: 'flex',
+                                                        width: '100%',
+                                                        justifyContent:
+                                                            'space-between',
+                                                        flexDirection: 'row',
+                                                    }}
+                                                >
                                                     <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                         <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>Billing</span>
                                                         </span>
+                                                    </span>
+                                                    <span
+                                                        style={{
+                                                            color: '#8898aa',
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        Press B
                                                     </span>
                                                 </div>
                                             </Link>
@@ -168,12 +228,30 @@ export class ProfileMenu extends Component {
                                             onClick={() =>
                                                 this.showAboutModal()
                                             }
+                                            style={{ width: '100%' }}
                                         >
-                                            <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
+                                            <div
+                                                className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed"
+                                                style={{
+                                                    display: 'flex',
+                                                    width: '100%',
+                                                    justifyContent:
+                                                        'space-between',
+                                                    flexDirection: 'row',
+                                                }}
+                                            >
                                                 <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <span className="Text-color--primary Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <span>About</span>
                                                     </span>
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        color: '#8898aa',
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    Press A
                                                 </span>
                                             </div>
                                         </button>
@@ -244,6 +322,10 @@ ProfileMenu.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     position: PropTypes.number,
+    history: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProfileMenu);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(withRouter(ProfileMenu));

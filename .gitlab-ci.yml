@@ -38,13 +38,13 @@ include:
   - '/ci/spec/api-docs/deploy.yaml'
   - '/ci/spec/api-docs/rollback.yaml'
 
-  # # BACKEND
+  # BACKEND
   - '/ci/spec/backend/audit.yaml'
   - '/ci/spec/backend/build-n-test.yaml'
   - '/ci/spec/backend/deploy.yaml'
   - '/ci/spec/backend/rollback.yaml'
 
-  # # DASHBOARD
+  # DASHBOARD
   - '/ci/spec/dashboard/audit.yaml'
   - '/ci/spec/dashboard/build-n-test.yaml'
   - '/ci/spec/dashboard/deploy.yaml'

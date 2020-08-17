@@ -34,7 +34,7 @@ describe('Enterprise User API', () => {
                 password: data.password,
             };
             // user
-            await init.registerEnterpriseUser(user, page);
+            await init.registerEnterpriseUser(user, page, false);
         });
 
         await cluster.queue({ email, password, userEmail });

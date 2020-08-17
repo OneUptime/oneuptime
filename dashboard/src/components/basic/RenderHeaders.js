@@ -32,6 +32,7 @@ const RenderHeaders = ({ fields }) => {
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     type="text"
+                                    id={`${val.replace(/\[|\]/gi, '_')}key`}
                                     name={`${val}.key`}
                                     component={RenderField}
                                     placeholder="KEY"
@@ -54,6 +55,7 @@ const RenderHeaders = ({ fields }) => {
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     type="text"
+                                    id={`${val.replace(/\[|\]/gi, '_')}value`}
                                     name={`${val}.value`}
                                     component={RenderField}
                                     placeholder="VALUE"

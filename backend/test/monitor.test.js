@@ -380,6 +380,7 @@ describe('Monitor API', function() {
     });
 });
 
+const BACKEND_URL = `http://localhost:${process.env.PORT}/api`;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
@@ -449,7 +450,7 @@ describe('API Monitor API', function() {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should not add API monitor with invalid url', function(done) {
+    it('should not add API monitor with invalid website url', function(done) {
         let authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -470,7 +471,7 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should not add API monitor with invalid payload', function(done) {
+    it('should not add API monitor with invalid url', function(done) {
         let authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -488,7 +489,68 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should add API monitor with valid url and payload', function(done) {
+    it('should not add API monitor with empty or invalid header', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'post',
+                data: { url: `${BACKEND_URL}/monitor/${projectId}` },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Unauthorized');
+                done();
+            });
+    });
+
+    it('should not add API monitor with empty body', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'post',
+                headers: [{ key: 'Authorization', value: authorization }],
+                data: { url: `${BACKEND_URL}/monitor/${projectId}` },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Bad Request');
+                done();
+            });
+    });
+
+    it('should not add API monitor with invalid body', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Monitor 30',
+                type: 'api',
+                method: 'post',
+                bodyType: 'text/plain',
+                text: 'BAD',
+                headers: [{ key: 'Authorization', value: authorization }],
+                data: { url: `${BACKEND_URL}/monitor/${projectId}` },
+                componentId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Bad Request');
+                done();
+            });
+    });
+
+    it('should add API monitor with valid url', function(done) {
         let authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)

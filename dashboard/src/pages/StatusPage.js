@@ -63,6 +63,12 @@ class StatusPage extends Component {
             );
         }
     }
+    tabSelected = index => {
+        const tabWidth = document.getElementById('react-tabs-0').offsetWidth;
+        document.getElementById(
+            'tab-slider'
+        ).style.transform = `translate(calc(${tabWidth}px*${index}), 0px)`;
+    };
 
     render() {
         const {
@@ -83,16 +89,26 @@ class StatusPage extends Component {
                         name={pageName}
                         pageTitle="Status Page"
                     />
-                    <Tabs selectedTabClassName={'custom-tab-selected'}>
-                        <TabList
-                            id="customTabList"
-                            className={'custom-tab-list'}
-                        >
-                            <Tab className={'custom-tab'}>Basic</Tab>
-                            <Tab className={'custom-tab'}>Domain</Tab>
-                            <Tab className={'custom-tab'}>Branding</Tab>
-                            <Tab className={'custom-tab'}>Advance</Tab>
-                        </TabList>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab className={'custom-tab'}>Basic</Tab>
+                                <Tab className={'custom-tab'}>
+                                    Domain Settings
+                                </Tab>
+                                <Tab className={'custom-tab'}>Branding</Tab>
+                                <Tab className={'custom-tab'}>
+                                    Advanced Options
+                                </Tab>
+                                <div id="tab-slider"></div>
+                            </TabList>
+                        </div>
 
                         <div className="Box-root">
                             <div>

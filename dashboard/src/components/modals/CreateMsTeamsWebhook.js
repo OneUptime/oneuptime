@@ -95,7 +95,7 @@ class CreateMsTeams extends React.Component {
                                 }}
                             >
                                 <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap Margin-bottom--4">
-                                    <span>Create MS Teams Webhook</span>
+                                    <span>Create Microsoft Teams Webhook</span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>

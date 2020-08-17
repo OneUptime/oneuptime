@@ -12,6 +12,7 @@ const AuditLogsService = require('../services/auditLogsService');
 const ErrorService = require('../services/errorService');
 const sendErrorResponse = require('./response').sendErrorResponse;
 const { getProjectId } = require('./api');
+const GlobalConfigService = require('../services/globalConfigService');
 
 module.exports = {
     log: async function(req, res, next) {
@@ -31,59 +32,71 @@ module.exports = {
                 let projectId = getProjectId(req, res);
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
-                const parsedUrl = url.parse(req.originalUrl);
-
-                // Avoiding logging any audit data, if its a blacklisted url/route.
-                const isBlackListedRoute = blackListedRoutes.some(
-                    blackListedRouteName => {
-                        const fullApiUrl = req.originalUrl || '';
-                        const paramsRouteUrl =
-                            (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
-
-                        return (
-                            fullApiUrl.includes(blackListedRouteName) ||
-                            paramsRouteUrl.includes(blackListedRouteName)
-                        );
-                    }
-                );
-
-                if (isBlackListedRoute) {
-                    return;
-                }
-
-                // Removing specified blacklisted object paths for security and other reasons.
-                const modifiedReq = _.omit(
-                    { ...req },
-                    blackListedReqObjectPaths
-                );
-                const modifiedRes = _.omit(res, blackListedResObjectPaths);
-
-                const apiRequestDetails = {
-                    apiSection: parsedUrl.pathname, // url path without any query strings.
-                    apiUrl: modifiedReq.originalUrl,
-                    protocol: modifiedReq.protocol,
-                    hostname: modifiedReq.hostname,
-                    port: modifiedReq.socket.address().port,
-                    method: modifiedReq.method,
-                    params: modifiedReq.params,
-                    queries: modifiedReq.query,
-                    body: modifiedReq.body || {},
-                    headers: modifiedReq.headers,
-                };
-
-                const apiResponseDetails = {
-                    statusCode: modifiedRes.statusCode,
-                    statusMessage: modifiedRes.statusMessage,
-                    resBody: modifiedRes.resBody || {},
-                    headers: modifiedRes.getHeaders(),
-                };
-
-                await AuditLogsService.create({
-                    userId: userId,
-                    projectId: projectId,
-                    request: apiRequestDetails,
-                    response: apiResponseDetails,
+                const auditLogStatus = await GlobalConfigService.findOneBy({
+                    name: 'auditLogMonitoringStatus',
                 });
+                // check if the global config has auditLog flag and is storing logs before trying to store logs
+                const shouldStoreLogs = !(
+                    auditLogStatus && !auditLogStatus.value
+                );
+                //  skip storing if audit log config exist and it is not storing
+
+                if (shouldStoreLogs) {
+                    // store logs if storing
+                    const parsedUrl = url.parse(req.originalUrl);
+
+                    // Avoiding logging any audit data, if its a blacklisted url/route.
+                    const isBlackListedRoute = blackListedRoutes.some(
+                        blackListedRouteName => {
+                            const fullApiUrl = req.originalUrl || '';
+                            const paramsRouteUrl =
+                                (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
+
+                            return (
+                                fullApiUrl.includes(blackListedRouteName) ||
+                                paramsRouteUrl.includes(blackListedRouteName)
+                            );
+                        }
+                    );
+
+                    if (isBlackListedRoute) {
+                        return;
+                    }
+
+                    // Removing specified blacklisted object paths for security and other reasons.
+                    const modifiedReq = _.omit(
+                        { ...req },
+                        blackListedReqObjectPaths
+                    );
+                    const modifiedRes = _.omit(res, blackListedResObjectPaths);
+
+                    const apiRequestDetails = {
+                        apiSection: parsedUrl.pathname, // url path without any query strings.
+                        apiUrl: modifiedReq.originalUrl,
+                        protocol: modifiedReq.protocol,
+                        hostname: modifiedReq.hostname,
+                        port: modifiedReq.socket.address().port,
+                        method: modifiedReq.method,
+                        params: modifiedReq.params,
+                        queries: modifiedReq.query,
+                        body: modifiedReq.body || {},
+                        headers: modifiedReq.headers,
+                    };
+
+                    const apiResponseDetails = {
+                        statusCode: modifiedRes.statusCode,
+                        statusMessage: modifiedRes.statusMessage,
+                        resBody: modifiedRes.resBody || {},
+                        headers: modifiedRes.getHeaders(),
+                    };
+
+                    await AuditLogsService.create({
+                        userId: userId,
+                        projectId: projectId,
+                        request: apiRequestDetails,
+                        response: apiResponseDetails,
+                    });
+                }
             });
 
             next();
