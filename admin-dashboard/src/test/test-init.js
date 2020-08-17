@@ -16,7 +16,7 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
-    registerEnterpriseUser: async function(user, page) {
+    registerEnterpriseUser: async function(user, page, createExtraUser = true) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -48,7 +48,9 @@ module.exports = {
             ]);
         } else {
             await this.loginUser(masterAdmin, page);
-            await this.createUserFromAdminDashboard(user, page);
+            createExtraUser
+                ? await this.createUserFromAdminDashboard(user, page)
+                : null;
         }
     },
     registerUser: async function(user, page, checkCard = true) {

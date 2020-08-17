@@ -32,7 +32,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                 email: data.email,
                 password: data.password,
             };
-            await init.registerEnterpriseUser(user, page);
+            await init.registerEnterpriseUser(user, page, false);
         });
 
         done();
