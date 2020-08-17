@@ -27,7 +27,7 @@ export const groups = [
                 icon: 'customers',
                 component: Users,
                 visible: true,
-                shortcut: 'ctrl+p+u',
+                shortcut: 'f+u',
                 subRoutes: [
                     {
                         title: 'User',
@@ -47,7 +47,7 @@ export const groups = [
                 icon: 'projects',
                 component: Projects,
                 visible: true,
-                shortcut: 'ctrl+p+r',
+                shortcut: 'f+p',
                 subRoutes: [
                     {
                         title: 'Project',
@@ -69,7 +69,7 @@ export const groups = [
                 visible: true,
                 subRoutes: [],
                 index: 3,
-                shortcut: 'ctrl+p+b',
+                shortcut: 'f+b',
             },
             {
                 title: 'Audit Logs',
@@ -79,7 +79,7 @@ export const groups = [
                 visible: true,
                 subRoutes: [],
                 index: 4,
-                shortcut: 'ctrl+a+l',
+                shortcut: 'f+a',
             },
         ],
     },
@@ -100,7 +100,7 @@ export const groups = [
                         : Settings,
                 exact: true,
                 visible: true,
-                shortcut: 'ctrl+s+m',
+                shortcut: 'f+s',
                 subRoutes: [
                     {
                         title: 'License',
@@ -110,7 +110,7 @@ export const groups = [
                         visible: !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE,
                         subRoutes: [],
                         index: 1,
-                        shortcut: 'ctrl+s+l',
+                        shortcut: 'f+l',
                     },
                     {
                         title: 'SMTP',
@@ -120,7 +120,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 2,
-                        shortcut: 'ctrl+s+p',
+                        shortcut: 'f+m',
                     },
                     {
                         title: 'Twilio',
@@ -130,7 +130,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 3,
-                        shortcut: 'ctrl+s+t',
+                        shortcut: 'f+t',
                     },
                     {
                         title: 'SSO',
@@ -140,7 +140,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 4,
-                        shortcut: 'ctrl+s+o',
+                        shortcut: 'f+o',
                     },
                 ],
                 index: 1,
@@ -160,7 +160,7 @@ export const groups = [
                 subRoutes: [],
                 index: 1,
                 external: true,
-                shortcut: 'ctrl+p+c',
+                shortcut: 'f+d',
             },
         ],
     },

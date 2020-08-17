@@ -233,10 +233,8 @@ export class SidebarNavItem extends Component {
                                     {route.shortcut && (
                                         <span className="tooltiptext">
                                             <strong>{routes[0]}</strong>
-                                            <span> + </span>
+                                            <span> then </span>
                                             <strong>{routes[1]}</strong>
-                                            <span> + </span>
-                                            <strong>{routes[2]}</strong>
                                         </span>
                                     )}
                                 </div>
@@ -348,13 +346,9 @@ export class SidebarNavItem extends Component {
                                                         <strong>
                                                             {routes[0]}
                                                         </strong>
-                                                        <span> + </span>
+                                                        <span> then </span>
                                                         <strong>
                                                             {routes[1]}
-                                                        </strong>
-                                                        <span> + </span>
-                                                        <strong>
-                                                            {routes[2]}
                                                         </strong>
                                                     </span>
                                                 )}

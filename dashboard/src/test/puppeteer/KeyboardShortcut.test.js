@@ -47,13 +47,12 @@ describe('Keyboard Shortcut: Dashboard', () => {
     });
 
     test(
-        'should navigate to component pages with keyboard shortcut (ctrl + p + c)',
+        'should navigate to component pages with keyboard shortcut (f + c)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('p');
+                await page.keyboard.press('f');
                 await page.keyboard.press('c');
                 const componentForm = await page.waitForSelector(
                     '#form-new-component',
@@ -67,14 +66,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to status pages with keyboard shortcut (ctrl + s + t)',
+        'should navigate to status pages with keyboard shortcut (f + u)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#statusPages', { visible: true });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
-                await page.keyboard.press('t');
+                await page.keyboard.press('f');
+                await page.keyboard.press('u');
                 const statusPageTable = await page.waitForSelector(
                     '#statusPageTable',
                     { visible: true }
@@ -87,15 +85,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to on-call schedule page with keyboard shortcut (ctrl + p + o)',
+        'should navigate to on-call schedule page with keyboard shortcut (f + o)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('p');
+                await page.keyboard.press('f');
                 await page.keyboard.press('o');
                 const onCall = await page.waitForSelector(
                     '#onCallSchedulePage',
@@ -109,15 +106,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should naviage to alert log page with keyboard shortcut (ctrl + o + a)',
+        'should naviage to alert log page with keyboard shortcut (f + a)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('o');
+                await page.keyboard.press('f');
                 await page.keyboard.press('a');
                 const alertLog = await page.waitForSelector('#alertLogPage', {
                     visible: true,
@@ -130,13 +126,12 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to reports page with keyboard shortcut (ctrl + p + r)',
+        'should navigate to reports page with keyboard shortcut (f + r)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#reports', { visible: true });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('p');
+                await page.keyboard.press('f');
                 await page.keyboard.press('r');
                 const report = await page.waitForSelector('#reportPage', {
                     visible: true,
@@ -149,14 +144,13 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to team members page with keyboard shortcut (ctrl + t + m)',
+        'should navigate to team members page with keyboard shortcut (f + t)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#teamMembers', { visible: true });
-                await page.keyboard.press('Control');
+                await page.keyboard.press('f');
                 await page.keyboard.press('t');
-                await page.keyboard.press('m');
                 const teamMember = await page.waitForSelector(
                     '#teamMemberPage',
                     { visible: true }
@@ -169,16 +163,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to project settings page with keyboard shortcut (ctrl + p + s)',
+        'should navigate to project settings page with keyboard shortcut (f + p)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
+                await page.keyboard.press('f');
                 await page.keyboard.press('p');
-                await page.keyboard.press('s');
                 const projectSettings = await page.waitForSelector(
                     '#settingsPage',
                     { visible: true }
@@ -191,15 +184,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to billing settings page with keyboard shortcut (ctrl + s + b)',
+        'should navigate to billing settings page with keyboard shortcut (f + b)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
+                await page.keyboard.press('f');
                 await page.keyboard.press('b');
                 const billing = await page.waitForSelector('#billingSetting', {
                     visible: true,
@@ -212,16 +204,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to monitors category page with keyboard shortcut (ctrl + m + t)',
+        'should navigate to monitors category page with keyboard shortcut (f + m)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
+                await page.keyboard.press('f');
                 await page.keyboard.press('m');
-                await page.keyboard.press('t');
                 const monitorCategory = await page.waitForSelector(
                     '#monitorCategories',
                     { visible: true }
@@ -234,15 +225,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to integrations page with keyboard shortcut (ctrl + s + i)',
+        'should navigate to integrations page with keyboard shortcut (f + i)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
+                await page.keyboard.press('f');
                 await page.keyboard.press('i');
                 const zapier = await page.waitForSelector('#zapierId', {
                     visible: true,
@@ -255,15 +245,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to email setttings page with keyboard shortcut (ctrl + s + e)',
+        'should navigate to email setttings page with keyboard shortcut (f + e)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
+                await page.keyboard.press('f');
                 await page.keyboard.press('e');
                 const emailTemplate = await page.waitForSelector(
                     '#emailTemplate',
@@ -277,16 +266,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to sms settings page with keyboard shortcut (ctrl + s + m)',
+        'should navigate to sms settings page with keyboard shortcut (f + s)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
+                await page.keyboard.press('f');
                 await page.keyboard.press('s');
-                await page.keyboard.press('m');
                 const smsTemplate = await page.waitForSelector('#smsTemplate', {
                     visible: true,
                 });
@@ -298,16 +286,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to probe in settings page with keyboard shortcut (ctrl + s + p)',
+        'should navigate to probe in settings page with keyboard shortcut (f + x)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
-                await page.keyboard.press('p');
+                await page.keyboard.press('f');
+                await page.keyboard.press('x');
                 const probe = await page.waitForSelector('#probeList', {
                     visible: true,
                 });
@@ -319,15 +306,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to git credential page with keyboard shortcut (ctrl + s + g)',
+        'should navigate to git credential page with keyboard shortcut (f + g)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
+                await page.keyboard.press('f');
                 await page.keyboard.press('g');
                 const gitCredential = await page.waitForSelector(
                     '#gitCredentialPage',
@@ -341,15 +327,14 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to docker credential page with keyboard shortcut (ctrl + s + d)',
+        'should navigate to docker credential page with keyboard shortcut (f + d)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('s');
+                await page.keyboard.press('f');
                 await page.keyboard.press('d');
                 const dockerCredential = await page.waitForSelector(
                     '#dockerCredentialPage',
@@ -363,16 +348,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to api page with keyboard shortcut (ctrl + a + i)',
+        'should navigate to api page with keyboard shortcut (f + w)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
-                await page.keyboard.press('Control');
-                await page.keyboard.press('a');
-                await page.keyboard.press('i');
+                await page.keyboard.press('f');
+                await page.keyboard.press('w');
                 const fyipeApi = await page.waitForSelector('#fyipeApi', {
                     visible: true,
                 });
@@ -384,7 +368,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to profile settings with keyboard shortcut (ctrl + u + p)',
+        'should navigate to profile settings with keyboard shortcut (p + s)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -396,9 +380,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
 
-                await page.keyboard.press('Control');
-                await page.keyboard.press('u');
                 await page.keyboard.press('p');
+                await page.keyboard.press('s');
                 const profileSetting = await page.waitForSelector(
                     '#profileSettingPage',
                     { visible: true }
@@ -411,7 +394,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to change password page with keyboard shortcut (ctrl + u + c)',
+        'should navigate to change password page with keyboard shortcut (p + c)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -423,8 +406,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
 
-                await page.keyboard.press('Control');
-                await page.keyboard.press('u');
+                await page.keyboard.press('p');
                 await page.keyboard.press('c');
                 const changePassword = await page.waitForSelector(
                     '#changePasswordSetting',
@@ -438,7 +420,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to profile billing page with keyboard shortcut (ctrl + u + b)',
+        'should navigate to profile billing page with keyboard shortcut (p + b)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -448,8 +430,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 await page.click('#userProfile');
                 await page.waitForSelector('#billing', { visible: true });
 
-                await page.keyboard.press('Control');
-                await page.keyboard.press('u');
+                await page.keyboard.press('p');
                 await page.keyboard.press('b');
                 const profileBilling = await page.waitForSelector(
                     '#profileBilling',
@@ -463,7 +444,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to advanced page with keyboard shortcut (ctrl + u + a)',
+        'should navigate to advanced page with keyboard shortcut (p + a)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -473,8 +454,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 await page.click('#userProfile');
                 await page.waitForSelector('#advanced', { visible: true });
 
-                await page.keyboard.press('Control');
-                await page.keyboard.press('u');
+                await page.keyboard.press('p');
                 await page.keyboard.press('a');
                 const deleteBtn = await page.waitForSelector(
                     '#btn_delete_account',
@@ -488,7 +468,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate back to dashboard from profile using keyboard shortcut (ctrl + p + c)',
+        'should navigate back to dashboard from profile using keyboard shortcut (p + d)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -500,9 +480,8 @@ describe('Keyboard Shortcut: Dashboard', () => {
                     visible: true,
                 });
 
-                await page.keyboard.press('Control');
                 await page.keyboard.press('p');
-                await page.keyboard.press('c');
+                await page.keyboard.press('d');
                 const component = await page.waitForSelector('#components', {
                     visible: true,
                 });
