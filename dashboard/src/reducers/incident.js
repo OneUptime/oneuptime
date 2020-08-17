@@ -65,12 +65,21 @@ const initialState = {
         error: null,
         success: false,
     },
+    editIncident: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
     fetchIncidentTimelineRequest: false,
     incidentMessages: {},
 };
 
 export default function incident(state = initialState, action) {
-    let incidents,
+    let incident,
+        incidents,
+        unresolvedincidents,
+        index,
+        index1,
         isExistingIncident,
         failureIncidentMessage,
         requestIncidentMessage,
@@ -203,6 +212,80 @@ export default function incident(state = initialState, action) {
                     error: action.payload,
                     success: false,
                     monitorId: null,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_REQUEST:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_SUCCESS:
+            incidents = Object.assign([], state.incidents.incidents);
+            index = incidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index >= 0) incidents[index] = action.payload;
+
+            if (
+                state.incident.incident &&
+                state.incident.incident._id === action.payload._id
+            )
+                incident = Object.assign({}, action.payload);
+            else Object.assign(incident, state.incident.incident);
+
+            unresolvedincidents = Object.assign(
+                [],
+                state.unresolvedincidents.incidents
+            );
+            index1 = unresolvedincidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index1 >= 0) unresolvedincidents[index1] = action.payload;
+
+            return Object.assign({}, state, {
+                incidents: {
+                    ...state.incidents,
+                    incidents,
+                },
+                incident: {
+                    ...state.incident,
+                    incident,
+                },
+                unresolvedincidents: {
+                    ...state.unresolvedincidents,
+                    incidents: unresolvedincidents,
+                },
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_FAILED:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_RESET:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: false,
                 },
             });
 
@@ -541,6 +624,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -627,6 +711,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };

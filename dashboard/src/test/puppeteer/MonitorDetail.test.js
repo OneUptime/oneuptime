@@ -14,6 +14,9 @@ const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const webhookEndpoint = utils.generateRandomWebsite();
+const priorityName = utils.generateRandomString();
+const incidentTitle = utils.generateRandomString();
+const newIncidentTitle = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = 500000;
@@ -48,6 +51,7 @@ describe('Monitor Detail API', () => {
             await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
+            await init.addIncidentPriority(priorityName, page);
         });
     });
 
@@ -81,7 +85,7 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and create an incident',
         async () => {
-            expect.assertions(1);
+            expect.assertions(2);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -96,13 +100,65 @@ describe('Monitor Detail API', () => {
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('#title', 'new incident');
+                await init.selectByText(
+                    '#incidentPriority',
+                    priorityName,
+                    page
+                );
+                await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
-
                 expect((await page.$$(selector)).length).toEqual(1);
+
+                const selector1 = 'tr.incidentListItem:first-of-type';
+                const rowContent = await page.$eval(
+                    selector1,
+                    e => e.textContent
+                );
+                expect(rowContent).toContain(priorityName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        "Should navigate to monitor's incident details and edit details",
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                const selector =
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
+                await page.waitForSelector(selector);
+                await page.click(selector);
+                await page.waitForSelector('#EditIncidentDetails');
+                await page.waitFor(3000);
+                const incidentTitleSelector =
+                    '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
+                let currentTitle = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
+                expect(currentTitle).toEqual(incidentTitle);
+                await page.click('#EditIncidentDetails');
+                await page.waitForSelector('#saveIncident');
+                await page.click('#title', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await page.type('#title', newIncidentTitle);
+                await page.click('#saveIncident');
+                await page.waitFor(3000);
+                currentTitle = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
+                expect(currentTitle).toEqual(newIncidentTitle);
             });
         },
         operationTimeOut
@@ -227,11 +283,13 @@ describe('Monitor Detail API', () => {
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
                 await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
 
                 await page.type('input[name=name]', utils.scheduledEventName);
                 await page.type(
@@ -284,11 +342,13 @@ describe('Monitor Detail API', () => {
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
                 await page.$eval('input[name=endDate]', e => e.click());
                 await page.$eval(
                     'div.MuiDialogActions-root button:nth-child(2)',
                     e => e.click()
                 );
+                await page.waitFor(2000);
 
                 await page.type(
                     'input[name=name]',

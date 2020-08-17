@@ -22,6 +22,7 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
+                .populate('incidentPriority', 'name color')
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -53,6 +54,7 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
+                incident.incidentPriority = data.incidentPriority;
                 incident.title = data.title;
                 incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
@@ -144,6 +146,7 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
+                .populate('incidentPriority', 'name color')
                 .populate('probes.probeId', 'probeName');
             return incident;
         } catch (error) {
@@ -335,8 +338,13 @@ module.exports = {
                 let downtimestring = `${Math.ceil(downtime)} minutes`;
                 if (downtime < 1) {
                     downtimestring = 'less than a minute';
-                }
-                if (downtime > 60) {
+                } else if (downtime > 24 * 60) {
+                    downtimestring = `${Math.floor(
+                        downtime / (24 * 60)
+                    )} days ${Math.floor(
+                        (downtime % (24 * 60)) / 60
+                    )} hours ${Math.floor(downtime % 60)} minutes`;
+                } else if (downtime > 60) {
                     downtimestring = `${Math.floor(
                         downtime / 60
                     )} hours ${Math.floor(downtime % 60)} minutes`;
@@ -568,8 +576,13 @@ module.exports = {
             let msg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
-            }
-            if (downtime > 60) {
+            } else if (downtime > 24 * 60) {
+                downtimestring = `${Math.floor(
+                    downtime / (24 * 60)
+                )} days ${Math.floor(
+                    (downtime % (24 * 60)) / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            } else if (downtime > 60) {
                 downtimestring = `${Math.floor(
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;

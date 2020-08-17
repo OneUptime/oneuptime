@@ -8,6 +8,7 @@ import {
     getMonitorLogs,
     fetchLighthouseLogs,
 } from '../actions/monitor';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import MonitorViewHeader from '../components/monitor/MonitorViewHeader';
@@ -83,6 +84,7 @@ class MonitorView extends React.Component {
 
     ready = () => {
         const { monitor } = this.props;
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
@@ -501,6 +503,7 @@ const mapStateToProps = (state, props) => {
         match: props.match,
         component,
         probeList: state.probe.probes,
+        currentProject: state.project.currentProject,
     };
 };
 
@@ -512,6 +515,7 @@ const mapDispatchToProps = dispatch => {
             getMonitorLogs,
             fetchLighthouseLogs,
             getProbes,
+            fetchIncidentPriorities,
         },
         dispatch
     );
@@ -535,6 +539,8 @@ MonitorView.propTypes = {
     ),
     getProbes: PropTypes.func.isRequired,
     probeList: PropTypes.object,
+    currentProject: PropTypes.object.isRequired,
+    fetchIncidentPriorities: PropTypes.func.isRequired,
 };
 
 MonitorView.displayName = 'MonitorView';

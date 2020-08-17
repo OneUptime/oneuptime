@@ -3,6 +3,7 @@ import Home from './Home';
 import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
+import IncidentPriorities from './IncidentPriorities';
 
 import StatusPage from './StatusPage';
 import StatusPages from './StatusPages';
@@ -44,6 +45,7 @@ import DockerCredential from './DockerCredential';
 import FyipeApi from './FyipeApi';
 import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
+import Consulting from './Consulting';
 
 export default {
     ChangePassword,
@@ -60,6 +62,7 @@ export default {
     AlertLog,
     IncidentLog,
     Incident,
+    IncidentPriorities,
     Billing,
     Monitors,
     Schedule,
@@ -82,4 +85,5 @@ export default {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    Consulting,
 };
