@@ -106,36 +106,53 @@ class CreateSchedule extends React.Component {
     };
 
     renderMonitors = ({ fields }) => {
-        const { addMonitor, monitorError } = this.state;
+        const { monitorError } = this.state;
+        const { formValues } = this.props;
         return (
             <>
-                {!addMonitor && (
-                    <div className="Checkbox-label Box-root Margin-left--8">
-                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <span>
-                                By default all monitors are selected, you can
-                                add specific monitors if you want
-                            </span>
-                        </span>
-                        <button
-                            id="addMoreMonitor"
-                            className="Button bs-ButtonLegacy ActionIconParent"
-                            style={{
-                                marginTop: 8,
-                            }}
-                            type="button"
-                            onClick={() => {
-                                this.handleAddMoreMonitors();
-                                fields.push();
-                            }}
+                {formValues && formValues.selectAllMonitors && (
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ padding: 0, width: '100%' }}
+                    >
+                        <div
+                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                            style={{ padding: 0 }}
                         >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add Monitor</span>
-                            </span>
-                        </button>
+                            <div
+                                className="Box-root"
+                                style={{
+                                    height: '5px',
+                                }}
+                            ></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                <label
+                                    className="Checkbox"
+                                    htmlFor="selectAllMonitorsBox"
+                                >
+                                    <Field
+                                        component="input"
+                                        type="checkbox"
+                                        name="selectAllMonitors"
+                                        className="Checkbox-source"
+                                        id="selectAllMonitorsBox"
+                                    />
+                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                        <div className="Checkbox-target Box-root">
+                                            <div className="Checkbox-color Box-root"></div>
+                                        </div>
+                                    </div>
+                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>All Monitors Selected</span>
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 )}
-                {addMonitor && (
+                {formValues && !formValues.selectAllMonitors && (
                     <div
                         style={{
                             width: '100%',
@@ -159,6 +176,50 @@ class CreateSchedule extends React.Component {
                                 <span>Add Monitor</span>
                             </span>
                         </button>
+                        {fields.length === 0 && !formValues.selectAllMonitors && (
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0, width: '100%' }}
+                            >
+                                <div
+                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            height: '5px',
+                                        }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="selectAllMonitorsBox"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="selectAllMonitors"
+                                                className="Checkbox-source"
+                                                id="selectAllMonitorsBox"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        No Monitors Selected
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {fields.map((field, index) => {
                             return (
                                 <div
@@ -240,10 +301,6 @@ class CreateSchedule extends React.Component {
                 )}
             </>
         );
-    };
-
-    handleAddMoreMonitors = () => {
-        this.setState({ addMonitor: true });
     };
 
     render() {
