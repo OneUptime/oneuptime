@@ -490,7 +490,7 @@ div.feed-header {
   .feed-title {
     color: #000000;
     font-size: 15px;
-    padding-right: 10px;
+    /* padding-right: 10px; */
     text-transform: capitalize;
   }
 
@@ -1105,7 +1105,7 @@ margin-left:10px;
   background: rgb(247, 247, 247);
   padding-left: 20px;
   padding-right: 20px;
-  margin: 0 20px 20px;
+  margin: 0 40px 20px;
   border-radius: 10px;
   padding-top: 10px;
   padding-bottom: 10px;
