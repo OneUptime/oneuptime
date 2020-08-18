@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
-import "ace-builds/src-noconflict/mode-markdown";
-import "ace-builds/src-noconflict/mode-html";
-import "ace-builds/src-noconflict/mode-css";
-import "ace-builds/src-noconflict/theme-github";
+import 'ace-builds/src-noconflict/mode-markdown';
+import 'ace-builds/src-noconflict/mode-html';
+import 'ace-builds/src-noconflict/mode-css';
+import 'ace-builds/src-noconflict/theme-github';
 
 const RenderCodeEditor = ({
     id,

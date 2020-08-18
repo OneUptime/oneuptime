@@ -31,8 +31,8 @@ import { User } from '../../config';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
-import "ace-builds/src-noconflict/mode-javascript";
-import "ace-builds/src-noconflict/theme-github";
+import 'ace-builds/src-noconflict/mode-javascript';
+import 'ace-builds/src-noconflict/theme-github';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
@@ -1101,12 +1101,14 @@ class NewMonitor extends Component {
                                                                                 .state
                                                                                 .script
                                                                         }
-                                                                        style = {{
-                                                                            backgroundColor: '#fff',
-                                                                            borderRadius: '4px',
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                '#fff',
+                                                                            borderRadius:
+                                                                                '4px',
                                                                             boxShadow:
                                                                                 '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-                                                                        }}                                                                    
+                                                                        }}
                                                                         name={`script_${this.props.index}`}
                                                                         id="script"
                                                                         editorProps={{
@@ -1117,7 +1119,7 @@ class NewMonitor extends Component {
                                                                             enableLiveAutocompletion: true,
                                                                             enableSnippets: true,
                                                                             showGutter: false,
-                                                                        }}                                                                
+                                                                        }}
                                                                         height="150px"
                                                                         highlightActiveLine={
                                                                             true
