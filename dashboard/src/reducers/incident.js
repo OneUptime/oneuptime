@@ -624,6 +624,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -710,6 +711,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };

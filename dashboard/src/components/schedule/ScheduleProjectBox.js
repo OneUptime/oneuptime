@@ -10,6 +10,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import uuid from 'uuid';
+import sortByName from '../../utils/sortByName';
 
 const ScheduleProjectBox = props => (
     <div className="Box-root">
@@ -87,7 +88,7 @@ const ScheduleProjectBox = props => (
                     </thead>
                     <tbody className="Table-body">
                         <OnCallTableRows
-                            schedules={props.schedules}
+                            schedules={sortByName(props.schedules)}
                             requesting={props.isRequesting}
                             subProjectId={props.subProjectSchedule._id}
                         />

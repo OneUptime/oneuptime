@@ -285,7 +285,10 @@ export class AuditLogsList extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span
+                                    id="log-count"
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                >
                                     {this.props.auditLogs &&
                                     this.props.auditLogs.count
                                         ? this.props.auditLogs.count +

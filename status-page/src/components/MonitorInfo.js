@@ -26,10 +26,12 @@ const calculateTime = (statuses, start, range) => {
             downTime: 0,
             upTime: 0,
             degradedTime: 0,
+            status: null,
             emptytime: dayStart.toISOString(),
         };
 
-        reversedStatuses.forEach(monitorStatus => {
+        reversedStatuses.forEach(monitor => {
+            const monitorStatus = Object.assign({}, monitor);
             if (monitorStatus.endTime === null) {
                 monitorStatus.endTime = new Date().toISOString();
             }
@@ -38,6 +40,16 @@ const calculateTime = (statuses, start, range) => {
                 moment(monitorStatus.startTime).isBefore(dayEnd) &&
                 moment(monitorStatus.endTime).isAfter(dayStartIn)
             ) {
+                if (
+                    monitor.endTime === null &&
+                    (monitor.status === 'offline' ||
+                        (monitorStatus.status === 'degraded' &&
+                            timeObj.status !== 'offline') ||
+                        timeObj.status === null)
+                ) {
+                    timeObj.status = monitorStatus.status;
+                }
+
                 const start = moment(monitorStatus.startTime).isBefore(
                     dayStartIn
                 )
@@ -71,7 +83,11 @@ const calculateTime = (statuses, start, range) => {
             timeObj.upTime +
             timeObj.degradedTime +
             timeObj.downTime;
-
+        if (timeObj.status === null || timeObj.status === 'online') {
+            if (timeObj.downTime > 0) timeObj.status = 'offline';
+            else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
+            else if (timeObj.upTime > 0) timeObj.status = 'online';
+        }
         timeBlock.push(Object.assign({}, timeObj));
 
         dayStart = dayStart.subtract(1, 'days');

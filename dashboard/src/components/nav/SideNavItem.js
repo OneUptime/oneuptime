@@ -129,7 +129,9 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/scheduledEvents/
             ) &&
-                route.title === 'Scheduled Events');
+                route.title === 'Scheduled Events') ||
+            (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
+                route.title === 'Consulting & Services');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(
@@ -235,10 +237,8 @@ export class SidebarNavItem extends Component {
                                     {route.shortcut && (
                                         <span className="tooltiptext">
                                             <strong>{routes[0]}</strong>
-                                            <span> + </span>
+                                            <span> then </span>
                                             <strong>{routes[1]}</strong>
-                                            <span> + </span>
-                                            <strong>{routes[2]}</strong>
                                         </span>
                                     )}
                                 </div>
@@ -362,13 +362,9 @@ export class SidebarNavItem extends Component {
                                                         <strong>
                                                             {routes[0]}
                                                         </strong>
-                                                        <span> + </span>
+                                                        <span> then </span>
                                                         <strong>
                                                             {routes[1]}
-                                                        </strong>
-                                                        <span> + </span>
-                                                        <strong>
-                                                            {routes[2]}
                                                         </strong>
                                                     </span>
                                                 )}

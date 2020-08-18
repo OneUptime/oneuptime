@@ -114,8 +114,6 @@ module.exports = {
     },
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
-        await page.waitForSelector('span#Components-text');
-        await page.click('span#Components-text');
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
 
