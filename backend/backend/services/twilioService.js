@@ -508,22 +508,27 @@ const _this = {
                 if (!to.startsWith('+')) {
                     to = '+' + to;
                 }
-                const channel = 'sms';
 
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
                     error.code = 400;
                     throw error;
                 }
-
-                const verificationRequest = await twilioClient.verify
-                    .services(creds['verification-sid'])
-                    .verifications.create({ to, channel });
-
+                const alertPhoneVerificationCode = Math.random().toString(10).substr(2, 6);
+                const template = `Your verification code: ${alertPhoneVerificationCode}`
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to,
+                };    
+                const verificationRequest = await twilioClient.messages.create(options);
                 await SmsCountService.create(userId, to, projectId);
                 await UserService.updateOneBy(
                     { _id: userId },
-                    { tempAlertPhoneNumber: to }
+                    { tempAlertPhoneNumber: to,
+                      alertPhoneVerificationCode,
+                      alertPhoneVerificationCodeRequestTime: Date.now(),
+                    }
                 );
                 return verificationRequest;
             } else {
