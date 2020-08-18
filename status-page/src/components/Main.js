@@ -7,7 +7,7 @@ import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
 import EventsMain from './EventsMain';
-import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
+import { API_URL, ACCOUNTS_URL, getServiceStatus, capitalize } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
@@ -262,6 +262,56 @@ class Main extends Component {
         }
     }
 
+    handleResources = event => {
+        const { monitorState } = this.props;
+        const affectedMonitors = [];
+        let monitorCount = 0;
+
+        const eventMonitors = [];
+        // populate the ids of the event monitors in an array
+        event.monitors.map(monitor => {
+            eventMonitors.push(String(monitor.monitorId._id));
+            return monitor;
+        });
+
+        monitorState.map(monitor => {
+            if (eventMonitors.includes(String(monitor._id))) {
+                affectedMonitors.push(monitor);
+                monitorCount += 1;
+            }
+            return monitor;
+        });
+
+        // check if the length of monitors on status page equals the monitor count
+        // if they are equal then all the monitors in status page is in a particular scheduled event
+        if (monitorCount === monitorState.length) {
+            return (
+                <>
+                    <span className="ongoing__affectedmonitor--title">
+                        Resources Affected:{' '}
+                    </span>
+                    <span className="ongoing__affectedmonitor--content">
+                        All resources are affected
+                    </span>
+                </>
+            );
+        } else {
+            return (
+                <>
+                    <span className="ongoing__affectedmonitor--title">
+                        Resources Affected:{' '}
+                    </span>
+                    <span className="ongoing__affectedmonitor--content">
+                        {affectedMonitors
+                            .map(monitor => capitalize(monitor.name))
+                            .join(', ')
+                            .replace(/, ([^,]*)$/, ' and $1')}
+                    </span>
+                </>
+            );
+        }
+    };
+
     render() {
         const { headerHTML, footerHTML, customCSS } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
@@ -362,7 +412,7 @@ class Main extends Component {
                     ''
                 )}
                 {view ? (
-                    <div className="innernew">
+                    <div className="innernew" style={{ width: 609 }}>
                         {headerHTML ? (
                             <React.Fragment>
                                 <style>{sanitizedCSS}</style>
@@ -391,6 +441,59 @@ class Main extends Component {
                                 </div>
                             </div>
                         )}
+                        {this.props.events &&
+                            this.props.events.length > 0 &&
+                            this.props.statusData &&
+                            this.props.statusData._id &&
+                            this.props.events.map(event => (
+                                <div
+                                    className="content box box__yellow--dark"
+                                    style={{
+                                        marginBottom: 40,
+                                        cursor: 'pointer',
+                                    }}
+                                    key={event._id}
+                                    onClick={() => {
+                                        this.props.history.push(
+                                            `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                        );
+                                    }}
+                                >
+                                    <div className="box-inner ongoing__schedulebox">
+                                        <div
+                                            style={{
+                                                textTransform: 'uppercase',
+                                                fontSize: 11,
+                                                fontWeight: 900,
+                                            }}
+                                        >
+                                            Ongoing Scheduled Event
+                                        </div>
+                                        <div className="ongoing__scheduleitem">
+                                            <span>{event.name}</span>
+                                            <span>{event.description}</span>
+                                        </div>
+                                        <div className="ongoing__affectedmonitor">
+                                            {this.handleResources(event)}
+                                        </div>
+
+                                        <span
+                                            style={{
+                                                display: 'inline-block',
+                                                fontSize: 12,
+                                            }}
+                                        >
+                                            {moment(event.startDate).format(
+                                                'MMMM Do YYYY, h:mm a'
+                                            )}
+                                            &nbsp;&nbsp;-&nbsp;&nbsp;
+                                            {moment(event.endDate).format(
+                                                'MMMM Do YYYY, h:mm a'
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         <div className="content">
                             <div
                                 className="white box"
@@ -745,6 +848,7 @@ const mapStateToProps = state => ({
     monitorState: state.status.statusPage.monitorsData,
     monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
+    events: state.status.events.events,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -768,6 +872,8 @@ Main.propTypes = {
     selectedProbe: PropTypes.func,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
+    events: PropTypes.array,
+    history: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

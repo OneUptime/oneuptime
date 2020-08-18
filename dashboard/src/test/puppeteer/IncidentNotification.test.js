@@ -189,7 +189,7 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.switchProject(projectName, page);
                 await page.waitFor(5000);
-                let activeIncidents = await page.$('span#activeIncidents', {
+                let activeIncidents = await page.$('span#activeIncidentsText', {
                     visible: true,
                 });
                 activeIncidents = await activeIncidents.getProperty(
@@ -197,6 +197,31 @@ describe('Incident Created test', () => {
                 );
                 activeIncidents = await activeIncidents.jsonValue();
                 expect(activeIncidents).toEqual('2 Incidents Currently Active');
+                await init.logout(page);
+                await init.loginUser(user, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should redirect to home page when active incidents is clicked',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(projectName, page);
+                await page.waitFor(5000);
+                await page.waitForSelector('#activeIncidents');
+                await page.click('#activeIncidents');
+                let activeIncidents = await page.$('#cbHome', {
+                    visible: true,
+                });
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('Home');
                 await init.logout(page);
                 await init.loginUser(user, page);
             });
@@ -271,7 +296,7 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should filter clear filters',
+        'Should clear filters',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);

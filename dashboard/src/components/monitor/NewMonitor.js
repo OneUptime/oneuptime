@@ -1186,6 +1186,7 @@ class NewMonitor extends Component {
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
                                                             <button
+                                                                id="advanceOptions"
                                                                 className="button-as-anchor"
                                                                 onClick={() =>
                                                                     this.openAdvance()

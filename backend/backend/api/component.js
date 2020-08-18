@@ -228,8 +228,12 @@ router.get(
                     _id: elem._id,
                     name: elem.name,
                     type: `${
-                        elem.type === 'url' ? 'website' : elem.type
-                    } monitor`,
+                        elem.type === 'server-monitor'
+                            ? 'server-monitor'
+                            : elem.type === 'url'
+                            ? 'website monitor'
+                            : elem.type + ` monitor`
+                    }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                 };

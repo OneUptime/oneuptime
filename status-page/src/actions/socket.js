@@ -69,3 +69,21 @@ export function updateprobebysocket(probe) {
         });
     };
 }
+
+export function incidentcreatedbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_CREATED',
+            payload: incident,
+        });
+    };
+}
+
+export function updateincidentbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_UPDATED',
+            payload: incident,
+        });
+    };
+}

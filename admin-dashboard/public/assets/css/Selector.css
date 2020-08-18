@@ -10,19 +10,18 @@
 }
 
 .tooltip {
-  position: relative;
+    position: relative;
 }
 
 .tooltip .tooltiptext {
     visibility: hidden;
-    width: 100px;
+    width: 70px;
     background-color: #555;
     color: #fff;
     text-align: center;
     border-radius: 6px;
     z-index: 1;
     opacity: 0;
-    transition: opacity 0.5s;
     height: 25px;
     right: 0;
     position: absolute;
@@ -30,6 +29,7 @@
     display: flex;
     align-items: center;
     justify-content: space-evenly;
+    padding: 5px;
 }
 
 .tooltip .tooltiptext strong {
@@ -51,6 +51,12 @@
 }
 
 .tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
+    animation: fadeIn 0.2s;
+    animation-delay: 0.8s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes fadeIn {
+    from { visibility: hidden; opacity: 0; }
+    to { visibility: visible; opacity: 1; }
 }

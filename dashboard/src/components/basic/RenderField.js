@@ -12,7 +12,7 @@ const RenderField = ({
     initialValue,
     style,
 }) => (
-    <span>
+    <span style={{ width: '100%' }}>
         <span>
             <input
                 {...input}

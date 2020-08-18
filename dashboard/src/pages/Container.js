@@ -19,6 +19,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import io from 'socket.io-client';
+import sortByName from '../utils/sortByName';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -55,7 +56,7 @@ class Container extends Component {
         const {
             componentId,
             projectId,
-            containerSecurities,
+            containerSecurities: securities,
             gettingContainerSecurities,
             gettingSecurityLogs,
             location: { pathname },
@@ -64,6 +65,7 @@ class Container extends Component {
             getContainerSecuritySuccess,
         } = this.props;
 
+        const containerSecurities = securities ? sortByName(securities) : [];
         containerSecurities.length > 0 &&
             containerSecurities.map(containerSecurity => {
                 socket.on(`security_${containerSecurity._id}`, data => {
