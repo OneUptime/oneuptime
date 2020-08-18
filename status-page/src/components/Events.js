@@ -54,6 +54,8 @@ class Events extends Component {
                                         style={{
                                             ...this.props.primaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
+                                            display: 'block',
+                                            textAlign: 'justify',
                                         }}
                                     >
                                         {event.description}

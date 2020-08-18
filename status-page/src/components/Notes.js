@@ -57,6 +57,8 @@ class Notes extends Component {
                                         style={{
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
+                                            display: 'block',
+                                            textAlign: 'justify',
                                         }}
                                     >
                                         {note.description}.
