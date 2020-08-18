@@ -541,61 +541,6 @@ const _this = {
             throw error;
         }
     },
-    verifySMSCode: async function(to, code, userId, projectId) {
-        try {
-            const creds = await _this.getSettings();
-
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-
-            const alertLimit = await AlertService.checkPhoneAlertsLimit(
-                projectId
-            );
-            if (alertLimit) {
-                if (!to.startsWith('+')) {
-                    to = '+' + to;
-                }
-
-                const verificationResult = await twilioClient.verify
-                    .services(creds['verification-sid'])
-                    .verificationChecks.create({ to, code });
-                if (verificationResult.status === 'pending') {
-                    const error = new Error('Incorrect code');
-                    error.code = 400;
-                    throw error;
-                }
-                if (verificationResult.status === 'approved') {
-                    await UserModel.findByIdAndUpdate(userId, {
-                        $set: {
-                            alertPhoneNumber: to,
-                            tempAlertPhoneNumber: null,
-                        },
-                    });
-                }
-                return verificationResult;
-            } else {
-                const newError = new Error('Alerts limit reached for the day.');
-                newError.code = 400;
-                throw newError;
-            }
-        } catch (error) {
-            if (error.message === 'Invalid parameter: To') {
-                const invalidNumbererror = new Error('Invalid number');
-                error.code = 400;
-                throw invalidNumbererror;
-            }
-            ErrorService.log('twillioService.verifySMSCode', error);
-            throw error;
-        }
-    },
 };
 
 module.exports = _this;
