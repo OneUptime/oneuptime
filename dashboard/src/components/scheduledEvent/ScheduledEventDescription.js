@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { withRouter } from 'react-router-dom';
+import { capitalize } from '../../config';
 
-function ScheduledEventDescription({ scheduledEvent }) {
+function ScheduledEventDescription({ scheduledEvent, isOngoing, history }) {
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -10,7 +12,11 @@ function ScheduledEventDescription({ scheduledEvent }) {
                     <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                         <div className="Box-root">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Scheduled Event Description</span>
+                                {isOngoing ? (
+                                    <span>Ongoing Scheduled Event</span>
+                                ) : (
+                                    <span>Scheduled Event Description</span>
+                                )}
                             </span>
                             <p>
                                 <span>
@@ -19,6 +25,24 @@ function ScheduledEventDescription({ scheduledEvent }) {
                                 </span>
                             </p>
                         </div>
+                        {isOngoing && (
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    id="viewOngoingEvent"
+                                    type="button"
+                                    onClick={() =>
+                                        history.push(
+                                            `/dashboard/project/${scheduledEvent.projectId._id}/scheduledEvents/${scheduledEvent._id}`
+                                        )
+                                    }
+                                >
+                                    <span className="bs-Button">
+                                        <span>View Event</span>
+                                    </span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                         <div>
@@ -34,7 +58,9 @@ function ScheduledEventDescription({ scheduledEvent }) {
                                                     className="value"
                                                     style={{ marginTop: '6px' }}
                                                 >
-                                                    {scheduledEvent.name}
+                                                    {capitalize(
+                                                        scheduledEvent.name
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -104,6 +130,12 @@ ScheduledEventDescription.displayName = 'ScheduledEventDescription';
 
 ScheduledEventDescription.propTypes = {
     scheduledEvent: PropTypes.object,
+    isOngoing: PropTypes.bool,
+    history: PropTypes.object,
 };
 
-export default ScheduledEventDescription;
+ScheduledEventDescription.defaultProps = {
+    isOngoing: false,
+};
+
+export default withRouter(ScheduledEventDescription);
