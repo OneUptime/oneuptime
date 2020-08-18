@@ -433,7 +433,7 @@ module.exports = {
                                                 pollTime: { $size: 0 },
                                             },
                                             {
-                                                //Avoid monitors that has been pinged during the last interval of time. 
+                                                //Avoid monitors that has been pinged during the last interval of time.
                                                 pollTime: {
                                                     $not: {
                                                         $elemMatch: {

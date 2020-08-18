@@ -105,7 +105,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const probe = await ProbeModel.findOne(query);
+            const probe = await ProbeModel.findOne(query, { deleted: false });
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.findOneBy', error);

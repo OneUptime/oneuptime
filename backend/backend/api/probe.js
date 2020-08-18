@@ -7,6 +7,7 @@
 const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
+const ProjectService = require('../services/projectService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
@@ -88,7 +89,6 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
                 const probe = await ProbeService.findOneBy({
                     _id: req.probe.id,
                 });
-                delete probe.deleted;
                 global.io.emit(`updateProbe-${projectId}`, probe);
             }
         }
