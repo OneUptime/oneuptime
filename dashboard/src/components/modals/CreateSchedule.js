@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field, formValueSelector, FieldArray } from 'redux-form';
 import {
     createScheduledEvent,
     fetchscheduledEvents,
@@ -13,6 +13,7 @@ import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
+import { RenderSelect } from '../basic/RenderSelect';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import DateTimeSelector from '../basic/DateTimeSelector';
 
@@ -31,6 +32,9 @@ function validate(values) {
 class CreateSchedule extends React.Component {
     state = {
         currentDate: moment(),
+        addMonitor: false,
+        dateError: null,
+        monitorError: null,
     };
 
     submitForm = values => {
@@ -39,10 +43,17 @@ class CreateSchedule extends React.Component {
             closeModal,
             createScheduledEventModalId,
             fetchscheduledEvents,
+            data,
         } = this.props;
-        const projectId = this.props.data.projectId;
-        const monitorId = this.props.data.monitorId;
+        const projectId = data.projectId;
         const postObj = {};
+
+        if (values.monitors && values.monitors.length > 0) {
+            const monitors = values.monitors.filter(
+                monitorId => typeof monitorId === 'string'
+            );
+            postObj.monitors = monitors;
+        }
 
         postObj.name = values.name;
         postObj.startDate = moment(values.startDate);
@@ -53,11 +64,33 @@ class CreateSchedule extends React.Component {
         postObj.monitorDuringEvent = values.monitorDuringEvent;
         postObj.alertSubscriber = values.alertSubscriber;
 
-        createScheduledEvent(projectId, monitorId, postObj).then(() => {
-            fetchscheduledEvents(projectId, monitorId, 0, 5);
-            closeModal({
-                id: createScheduledEventModalId,
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
             });
+            return;
+        }
+
+        if (postObj.startDate > postObj.endDate) {
+            this.setState({
+                dateError: 'Start date should always be less than End date',
+            });
+            return;
+        }
+
+        createScheduledEvent(projectId, postObj).then(() => {
+            if (!this.props.scheduledEventError) {
+                fetchscheduledEvents(projectId, 0, 10);
+                closeModal({
+                    id: createScheduledEventModalId,
+                });
+            }
         });
     };
 
@@ -70,6 +103,147 @@ class CreateSchedule extends React.Component {
             default:
                 return false;
         }
+    };
+
+    renderMonitors = ({ fields }) => {
+        const { addMonitor, monitorError } = this.state;
+        return (
+            <>
+                {!addMonitor && (
+                    <div className="Checkbox-label Box-root Margin-left--8">
+                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <span>
+                                By default all monitors are selected, you can
+                                add specific monitors if you want
+                            </span>
+                        </span>
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                marginTop: 8,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                this.handleAddMoreMonitors();
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                    </div>
+                )}
+                {addMonitor && (
+                    <div
+                        style={{
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                    >
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                position: 'absolute',
+                                zIndex: 1,
+                                right: 0,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                        {fields.map((field, index) => {
+                            return (
+                                <div
+                                    style={{
+                                        width: '65%',
+                                        marginBottom: 10,
+                                    }}
+                                    key={index}
+                                >
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={field}
+                                        id={`monitorfield_${index}`}
+                                        placeholder="Monitor"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: '',
+                                                label: 'Select a Monitor',
+                                            },
+                                            ...(this.props.monitors &&
+                                            this.props.monitors.length > 0
+                                                ? this.props.monitors.map(
+                                                      monitor => ({
+                                                          value: monitor._id,
+                                                          label: monitor.name,
+                                                      })
+                                                  )
+                                                : []),
+                                        ]}
+                                    />
+                                    <button
+                                        id="addMoreMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {monitorError && (
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                style={{
+                                    marginTop: '5px',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div
+                                    className="Box-root Margin-right--8"
+                                    style={{ marginTop: '2px' }}
+                                >
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span
+                                        id="monitorError"
+                                        style={{ color: 'red' }}
+                                    >
+                                        {monitorError}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </>
+        );
+    };
+
+    handleAddMoreMonitors = () => {
+        this.setState({ addMonitor: true });
     };
 
     render() {
@@ -93,7 +267,7 @@ class CreateSchedule extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal">
+                    <div className="bs-Modal" style={{ width: 600 }}>
                         <div className="bs-Modal-header">
                             <div
                                 className="bs-Modal-header-copy"
@@ -107,7 +281,10 @@ class CreateSchedule extends React.Component {
                                 </span>
                             </div>
                         </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="scheduledEventForm"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-Modal-content">
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="Margin-bottom--16">
@@ -126,7 +303,7 @@ class CreateSchedule extends React.Component {
                                                     <div
                                                         className="bs-Fieldset-field"
                                                         style={{
-                                                            width: '70%',
+                                                            width: '100%',
                                                         }}
                                                     >
                                                         <Field
@@ -138,7 +315,7 @@ class CreateSchedule extends React.Component {
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
-                                                                width: 250,
+                                                                width: '100%',
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
@@ -148,7 +325,78 @@ class CreateSchedule extends React.Component {
                                             </div>
                                         </div>
                                     </fieldset>
-
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="endpoint"
+                                                >
+                                                    <span>Monitors</span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <FieldArray
+                                                            name="monitors"
+                                                            component={
+                                                                this
+                                                                    .renderMonitors
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="monitorIds"
+                                                >
+                                                    <span>
+                                                        Event Description
+                                                    </span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            className="bs-TextArea"
+                                                            component={
+                                                                RenderTextArea
+                                                            }
+                                                            type="text"
+                                                            name="description"
+                                                            rows="5"
+                                                            id="description"
+                                                            placeholder="Event Description"
+                                                            style={{
+                                                                width: '100%',
+                                                                resize: 'none',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
                                     <fieldset className="Margin-bottom--16">
                                         <div className="bs-Fieldset-rows">
                                             <div
@@ -228,34 +476,42 @@ class CreateSchedule extends React.Component {
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor="monitorIds"
-                                                >
-                                                    <span>
-                                                        Event Description
-                                                    </span>
-                                                </label>
+                                                ></label>
                                                 <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '70%',
-                                                        }}
+                                                    <ShouldRender
+                                                        if={
+                                                            this.state.dateError
+                                                        }
                                                     >
-                                                        <Field
-                                                            className="bs-TextArea"
-                                                            component={
-                                                                RenderTextArea
-                                                            }
-                                                            type="text"
-                                                            name="description"
-                                                            rows="5"
-                                                            id="description"
-                                                            placeholder="Event Description"
-                                                            style={{
-                                                                width: 250,
-                                                                resize: 'none',
-                                                            }}
-                                                        />
-                                                    </div>
+                                                        <div className="bs-Tail-copy">
+                                                            <div
+                                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '10px',
+                                                                }}
+                                                            >
+                                                                <div className="Box-root Margin-right--8">
+                                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                                </div>
+                                                                <div className="Box-root">
+                                                                    <span
+                                                                        style={{
+                                                                            color:
+                                                                                'red',
+                                                                        }}
+                                                                        id="dateError"
+                                                                    >
+                                                                        {
+                                                                            this
+                                                                                .state
+                                                                                .dateError
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                         </div>
@@ -503,8 +759,12 @@ CreateSchedule.propTypes = {
     createScheduledEventModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    scheduledEventError: PropTypes.object,
-    minStartDate: PropTypes.object,
+    scheduledEventError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    monitors: PropTypes.array,
 };
 
 const NewCreateSchedule = reduxForm({
@@ -528,12 +788,22 @@ const selector = formValueSelector('newCreateSchedule');
 
 const mapStateToProps = state => {
     const minStartDate = selector(state, 'startDate');
+
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
         requesting: state.scheduledEvent.newScheduledEvent.requesting,
         scheduledEventError: state.scheduledEvent.newScheduledEvent.error,
         createScheduledEventModalId: state.modal.modals[0].id,
         minStartDate,
+        monitors: state.monitor.monitorsList.monitors[0].monitors,
+        initialValues: {
+            monitorDuringEvent: true,
+            alertSubscriber: true,
+            callScheduleOnEvent: true,
+            showEventOnStatusPage: true,
+        },
+        formValues:
+            state.form.newCreateSchedule && state.form.newCreateSchedule.values,
     };
 };
 

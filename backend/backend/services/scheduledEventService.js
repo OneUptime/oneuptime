@@ -1,36 +1,49 @@
 const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
+const MonitorService = require('./monitorService');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
-    create: async function({ projectId, monitorId }, data) {
+    create: async function({ projectId }, data) {
         try {
-            const _this = this;
-            let scheduledEvent = new ScheduledEventModel();
+            let monitorData = [];
+            if (!data.monitors || data.monitors.length === 0) {
+                // select all monitors in a project if no monitor was selected
+                const monitors = await MonitorService.findBy({ projectId });
+                if (monitors.length > 0) {
+                    monitorData = monitors.map(monitor => ({
+                        monitorId: monitor._id,
+                    }));
+                }
+            } else {
+                if (!isArrayUnique(data.monitors)) {
+                    const error = new Error(
+                        'You cannot have multiple selection of a monitor'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
+                monitorData = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            }
+            // reassign data.monitors with the restructured monitor data
+            data.monitors = monitorData;
+            data.projectId = projectId;
 
-            scheduledEvent.projectId = projectId;
-            scheduledEvent.monitorId = monitorId;
-            scheduledEvent.name = data.name;
-            scheduledEvent.createdById = data.createdById;
-            scheduledEvent.startDate = data.startDate;
-            scheduledEvent.endDate = data.endDate;
-            scheduledEvent.description = data.description;
+            let scheduledEvent = await ScheduledEventModel.create({
+                ...data,
+            });
 
-            if (data.showEventOnStatusPage) {
-                scheduledEvent.showEventOnStatusPage =
-                    data.showEventOnStatusPage;
-            }
-            if (data.callScheduleOnEvent) {
-                scheduledEvent.callScheduleOnEvent = data.callScheduleOnEvent;
-            }
-            if (data.monitorDuringEvent) {
-                scheduledEvent.monitorDuringEvent = data.monitorDuringEvent;
-            }
-            if (data.alertSubscriber) {
-                scheduledEvent.alertSubscriber = data.alertSubscriber;
-            }
-            scheduledEvent = await scheduledEvent.save();
-            scheduledEvent = await _this.findOneBy({ _id: scheduledEvent._id });
+            scheduledEvent = await scheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .execPopulate();
+
+            await RealTimeService.addScheduledEvent(scheduledEvent);
+
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.create', error);
@@ -44,25 +57,32 @@ module.exports = {
         }
 
         if (!query.deleted) query.deleted = false;
+
         try {
-            const updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+            let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
-            ).lean();
-            if (updatedScheduledEvent.createdById === 'API') {
-                updatedScheduledEvent.createdById = { name: 'API', _id: null };
-            } else {
-                const user = await UserModel.findOne({
-                    _id: updatedScheduledEvent.createdById,
-                }).lean();
-                updatedScheduledEvent.createdById = {
-                    _id: user._id,
-                    name: user.name,
-                };
+            );
+
+            updatedScheduledEvent = await updatedScheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .execPopulate();
+
+            if (!updatedScheduledEvent) {
+                const error = new Error(
+                    'Scheduled Event not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
             }
+
+            await RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+
             return updatedScheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.updateOneBy', error);
@@ -101,6 +121,17 @@ module.exports = {
                 },
                 { new: true }
             );
+
+            if (!scheduledEvent) {
+                const error = new Error(
+                    'Scheduled Event not found or does not exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            await RealTimeService.deleteScheduledEvent(scheduledEvent);
+
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('scheduledEventService.deleteBy', error);
@@ -115,11 +146,11 @@ module.exports = {
             if (!limit) limit = 0;
 
             if (typeof skip === 'string') {
-                skip = parseInt(skip);
+                skip = Number(skip);
             }
 
             if (typeof limit === 'string') {
-                limit = parseInt(limit);
+                limit = Number(limit);
             }
 
             if (!query) {
@@ -131,29 +162,10 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('monitorId', 'name')
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
                 .lean();
-
-            await Promise.all(
-                scheduledEvents.map(async event => {
-                    if (event.createdById === 'API') {
-                        event.createdById = {
-                            name: 'API',
-                            _id: null,
-                        };
-                        return event;
-                    } else {
-                        const user = await UserModel.findOne({
-                            _id: event.createdById,
-                        }).lean();
-                        event.createdById = {
-                            _id: user._id,
-                            name: user.name,
-                        };
-                        return event;
-                    }
-                })
-            );
 
             return scheduledEvents;
         } catch (error) {
@@ -170,7 +182,9 @@ module.exports = {
 
             query.deleted = false;
             const scheduledEvent = await ScheduledEventModel.findOne(query)
-                .populate('monitorId', 'name')
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
                 .lean();
 
             if (scheduledEvent) {
@@ -221,3 +235,12 @@ module.exports = {
         }
     },
 };
+
+/**
+ * @description checks if an array contains duplicate values
+ * @param {array} myArray the array to be checked
+ * @returns {boolean} true or false
+ */
+function isArrayUnique(myArray) {
+    return myArray.length === new Set(myArray).size;
+}

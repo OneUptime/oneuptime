@@ -397,21 +397,52 @@ module.exports = {
         }
     },
 
+    getIncident: async function(query) {
+        try {
+            const incident = await IncidentService.findOneBy(query);
+
+            return incident;
+        } catch (error) {
+            ErrorService.log('statusPageService.getIncident', error);
+            throw error;
+        }
+    },
+
+    getIncidentNotes: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = Number(skip);
+
+            if (typeof limit === 'string') limit = Number(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const message = await IncidentMessageService.findBy(
+                query,
+                skip,
+                limit
+            );
+
+            const count = await IncidentMessageService.countBy(query);
+
+            return { message, count };
+        } catch (error) {
+            ErrorService.log('statusPageService.getIncidentNotes', error);
+            throw error;
+        }
+    },
+
     getNotesByDate: async function(query, skip, limit) {
         try {
             const incidents = await IncidentService.findBy(query, limit, skip);
 
             const investigationNotes = incidents.map(incident => {
-                return {
-                    investigationNote: incident.investigationNote
-                        ? incident.investigationNote
-                        : '',
-                    incidentType: incident.incidentType,
-                    createdAt: incident.createdAt,
-                    monitorId: incident.monitorId,
-                    resolved: incident.resolved,
-                    _id: incident._id,
-                };
+                // return all the incident object
+                return incident;
             });
             const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
@@ -434,6 +465,8 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
+            query.deleted = false;
+
             const statuspages = await _this.findBy(query, 0, limit);
 
             const withMonitors = statuspages.filter(
@@ -444,26 +477,163 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor)
                 : [];
             if (monitorIds && monitorIds.length) {
-                const events = await ScheduledEventsService.findBy(
-                    {
-                        monitorId: { $in: monitorIds },
-                    },
-                    limit,
-                    skip
+                const currentDate = moment();
+                const eventIds = [];
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $lte: currentDate },
+                                endDate: {
+                                    $gte: currentDate,
+                                },
+                            }
+                        );
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
                 );
-                const count = await ScheduledEventsService.countBy({
-                    monitorId: { $in: monitorIds },
+
+                events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
                 });
+                const count = events.length;
 
                 return { events, count };
             } else {
                 const error = new Error('no monitor to check');
                 error.code = 400;
-                ErrorService.log('statusPage.getEvents', error);
+                ErrorService.log('statusPageService.getEvents', error);
                 throw error;
             }
         } catch (error) {
             ErrorService.log('statusPageService.getEvents', error);
+            throw error;
+        }
+    },
+
+    getFutureEvents: async function(query, skip, limit) {
+        try {
+            const _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const statuspages = await _this.findBy(query, 0, limit);
+
+            const withMonitors = statuspages.filter(
+                statusPage => statusPage.monitors.length
+            );
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage
+                ? statuspage.monitors.map(m => m.monitor)
+                : [];
+            if (monitorIds && monitorIds.length) {
+                const currentDate = moment();
+                const eventIds = [];
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $gt: currentDate },
+                            }
+                        );
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
+                );
+
+                events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
+                });
+
+                // sort in ascending start date
+                events = events.sort((a, b) => a.startDate - b.startDate);
+
+                const count = events.length;
+                return { events: limitEvents(events, limit, skip), count };
+            } else {
+                const error = new Error('no monitor to check');
+                error.code = 400;
+                ErrorService.log('statusPageService.getFutureEvents', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.getFutureEvents', error);
+            throw error;
+        }
+    },
+
+    getEvent: async function(query) {
+        try {
+            const scheduledEvent = await ScheduledEventsService.findOneBy(
+                query
+            );
+            return scheduledEvent;
+        } catch (error) {
+            ErrorService.log('statusPageService.getEvent', error);
+            throw error;
+        }
+    },
+
+    getEventNotes: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = Number(skip);
+
+            if (typeof limit === 'string') limit = Number(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const eventNote = await ScheduledEventNoteService.findBy(
+                query,
+                limit,
+                skip
+            );
+
+            const count = await ScheduledEventNoteService.countBy(query);
+
+            return { notes: eventNote, count };
+        } catch (error) {
+            ErrorService.log('statusPageService.getEventNotes', error);
             throw error;
         }
     },
@@ -704,6 +874,15 @@ module.exports = {
     },
 };
 
+// handle the unique pagination for scheduled events on status page
+function limitEvents(events, limit, skip) {
+    skip = skip * limit;
+    if (skip !== 0) {
+        limit += limit;
+    }
+    return events.slice(skip, limit);
+}
+
 const StatusPageModel = require('../models/statusPage');
 const IncidentService = require('./incidentService');
 const ScheduledEventsService = require('./scheduledEventService');
@@ -714,3 +893,7 @@ const ProjectService = require('./projectService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
+const flattenArray = require('../utils/flattenArray');
+const ScheduledEventNoteService = require('./scheduledEventNoteService');
+const IncidentMessageService = require('./incidentMessageService');
+const moment = require('moment');
