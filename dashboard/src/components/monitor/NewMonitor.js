@@ -1101,11 +1101,23 @@ class NewMonitor extends Component {
                                                                                 .state
                                                                                 .script
                                                                         }
+                                                                        style = {{
+                                                                            backgroundColor: '#fff',
+                                                                            borderRadius: '4px',
+                                                                            boxShadow:
+                                                                                '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                                        }}                                                                    
                                                                         name={`script_${this.props.index}`}
                                                                         id="script"
                                                                         editorProps={{
                                                                             $blockScrolling: true,
                                                                         }}
+                                                                        setOptions={{
+                                                                            enableBasicAutocompletion: true,
+                                                                            enableLiveAutocompletion: true,
+                                                                            enableSnippets: true,
+                                                                            showGutter: false,
+                                                                        }}                                                                
                                                                         height="150px"
                                                                         highlightActiveLine={
                                                                             true
