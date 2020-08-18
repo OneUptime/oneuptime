@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>api</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="description" content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+
+    <% include ./head %>
+
+    <style>
+        body {
+            color: #444444;
+            border-collapse: collapse;
+            font-size: 11pt;
+            font-family: proxima_nova, 'Open Sans', 'Lucida Grande', 'Segoe UI', Arial, Verdana, 'Lucida Sans Unicode', Tahoma, 'Sans Serif';
+            max-width: 454px
+        }
+    </style>
+</head>
+
+<body>
+    <p>Status: <%=status%></p>
+    <p>Message: <%=message%></p>
+    <p>Service Type: <%=serviceType%></p>
+</body>
+
+
+</html>
