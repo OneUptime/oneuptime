@@ -103,22 +103,17 @@ class ResourceTabularList extends Component {
             case 'application security':
             case 'container security':
                 // get application security status
-                if (
-                    componentResource.security &&
-                    componentResource.securityLog.data
-                ) {
-                    appSecurityStatus = threatLevel(
-                        componentResource.securityLog.data.vulnerabilities
-                    );
-                    statusDescription = `${appSecurityStatus} issues`;
-                } else {
-                    statusDescription = 'No Scan Yet';
-                }
                 data =
                     componentResource.securityLog &&
                     componentResource.securityLog.data
                         ? componentResource.securityLog.data
                         : null;
+                if (data) {
+                    appSecurityStatus = threatLevel(data.vulnerabilities);
+                    statusDescription = `${appSecurityStatus} issues`;
+                } else {
+                    statusDescription = 'No Scan Yet';
+                }
                 indicator = (
                     <IssueIndicator
                         status={appSecurityStatus}
