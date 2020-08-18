@@ -250,23 +250,18 @@ describe('Stripe payment API', function() {
         });
         webhookId = webhook.id;
         if (webhook.status === 'enabled') {
-            const addBalanceRequest = await request
+            await request
                 .post(`/stripe/${projectId}/addBalance`)
                 .set('Authorization', authorization)
                 .send({
                     rechargeBalanceAmount: '100',
                 });
-            const confirmedpaymentIntent = await stripe.paymentIntents.confirm(
-                addBalanceRequest.body.id
-            );
-            if (confirmedpaymentIntent) {
-                await sleep(20000);
-                const project = await ProjectService.findOneBy({
-                    _id: projectId,
-                });
-                const { balance } = project;
-                expect(balance).to.be.equal(100);
-            }
+            await sleep(20000);
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            const { balance } = project;
+            expect(balance).to.be.equal(300); // 100 from previous test, 100 from current test, 100 from webhook update
         }
     });
 });
