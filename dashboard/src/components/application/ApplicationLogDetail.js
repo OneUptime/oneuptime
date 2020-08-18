@@ -30,8 +30,6 @@ class ApplicationLogDetail extends Component {
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
             logType: { value: '', label: 'All Logs' },
-            startDate: props.startDate,
-            endDate: props.endDate,
             filter: '',
         };
     }
@@ -88,10 +86,6 @@ class ApplicationLogDetail extends Component {
         if (startDate && endDate) {
             startDate = moment(startDate);
             endDate = moment(endDate);
-            this.setState(() => ({
-                startDate,
-                endDate,
-            }));
             this.props.setStartDate(startDate);
             this.props.setEndDate(endDate);
         }
@@ -138,32 +132,14 @@ class ApplicationLogDetail extends Component {
             deleting,
             deleteModalId,
             openApplicationLogKeyModalId,
-            startDate,
-            endDate,
-            logType,
-            filter,
         } = this.state;
         const {
             applicationLog,
             componentId,
             currentProject,
-            fetchLogs,
             isDetails,
             stats,
         } = this.props;
-        if (applicationLog) {
-            fetchLogs(
-                currentProject._id,
-                componentId,
-                applicationLog._id,
-                0,
-                10,
-                startDate.clone().utc(),
-                endDate.clone().utc(),
-                logType.value,
-                filter
-            );
-        }
 
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';
@@ -306,10 +282,7 @@ ApplicationLogDetail.propTypes = {
     deleteApplicationLog: PropTypes.func,
     setStartDate: PropTypes.func,
     setEndDate: PropTypes.func,
-    fetchLogs: PropTypes.func,
     isDetails: PropTypes.bool,
-    startDate: PropTypes.instanceOf(moment),
-    endDate: PropTypes.instanceOf(moment),
     editApplicationLogSwitch: PropTypes.func,
     fetchStats: PropTypes.func,
     stats: PropTypes.object,

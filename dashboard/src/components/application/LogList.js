@@ -7,14 +7,33 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
 import { ListLoader } from '../basic/Loader';
-import { fetchLogs } from '../../actions/applicationLog';
+import { fetchLogs, getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+import { API_URL } from '../../config';
+import io from 'socket.io-client';
+
+// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class LogList extends Component {
     constructor(props) {
         super(props);
         this.state = { viewJsonModalId: uuid.v4() };
+    }
+
+    componentDidMount() {
+        const start = this.props.startDate.clone().utc();
+        const end = this.props.endDate.clone().utc();
+        const {
+            fetchLogs,
+            projectId,
+            componentId,
+            applicationLogId,
+        } = this.props;
+        fetchLogs(projectId, componentId, applicationLogId, 0, 10, start, end);
     }
     prevClicked = (skip, limit) => {
         const start = this.props.startDate.clone().utc();
@@ -79,6 +98,9 @@ class LogList extends Component {
         });
     };
     render() {
+        socket.on(`createLog-${this.props.applicationLogId}`, data => {
+            this.props.getLogSuccess(data);
+        });
         const { logs } = this.props;
         let skip = logs && logs.skip ? logs.skip : null;
         let limit = logs && logs.limit ? logs.limit : null;
@@ -557,7 +579,10 @@ class LogList extends Component {
 LogList.displayName = 'LogList';
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ openModal, closeModal, fetchLogs }, dispatch);
+    return bindActionCreators(
+        { openModal, closeModal, fetchLogs, getLogSuccess },
+        dispatch
+    );
 };
 LogList.propTypes = {
     projectId: PropTypes.string,
@@ -569,6 +594,7 @@ LogList.propTypes = {
     fetchLogs: PropTypes.func,
     startDate: PropTypes.instanceOf(moment),
     endDate: PropTypes.instanceOf(moment),
+    getLogSuccess: PropTypes.func,
 };
 function mapStateToProps(state, props) {
     const applicationLogId = props.applicationLog._id;
