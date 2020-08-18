@@ -265,6 +265,5 @@ const MonitorLogByDayService = require('../services/monitorLogByDayService');
 const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
 const MonitorService = require('../services/monitorService');
 const RealTimeService = require('./realTimeService');
-const probeService = require('../services/probeService');
 const ErrorService = require('../services/errorService');
 const moment = require('moment');
