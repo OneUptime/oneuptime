@@ -7,6 +7,7 @@
 const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
+const ProjectService = require('../services/projectService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
@@ -67,8 +68,30 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
 router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
+            req.probe.id,
             new Date(new Date().getTime() - 60 * 1000)
         );
+        //Update the lastAlive in the probe servers list located in the status pages.
+        if (monitors.length > 0) {
+            const projectIds = {};
+            for (const monitor of monitors) {
+                const project = await ProjectService.findOneBy({
+                    _id: monitor.projectId,
+                });
+                const projectId = project
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id
+                        : project._id
+                    : monitor.projectId;
+                projectIds[projectId] = true;
+            }
+            for (const projectId of Object.keys(projectIds)) {
+                const probe = await ProbeService.findOneBy({
+                    _id: req.probe.id,
+                });
+                global.io.emit(`updateProbe-${projectId}`, probe);
+            }
+        }
         return sendListResponse(req, res, monitors, monitors.length);
     } catch (error) {
         return sendErrorResponse(req, res, error);
