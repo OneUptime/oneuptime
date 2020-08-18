@@ -303,6 +303,9 @@ class ScheduledEventBox extends Component {
                                                             id={`editCredentialBtn_${index}`}
                                                             title="delete"
                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                            style={{
+                                                                marginLeft: 20,
+                                                            }}
                                                             type="button"
                                                             onClick={() =>
                                                                 openModal({
