@@ -194,7 +194,7 @@ describe('Audit Logs API', function() {
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
-        expect(res.body.data.length).to.be.equal(2);
+        expect(res.body.data.length).to.be.equal(3);
 
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
@@ -209,17 +209,18 @@ describe('Audit Logs API', function() {
             });
     });
 
-    it('should reject search request of NON master-admin user', function(done) {
+    it('should reject search request of NON master-admin user', async function() {
+        await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
 
-        request
-            .post('/audit-logs/search')
-            .set('Authorization', authorization)
-            .send()
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
+        try {
+            await request
+                .post('/audit-logs/search')
+                .set('Authorization', authorization)
+                .send();
+        } catch (err) {
+            expect(err).to.have.status(400);
+        }
     });
 
     it('should send Searched AuditLogs data for master-admin user', async function() {
