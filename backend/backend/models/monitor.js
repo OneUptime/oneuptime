@@ -27,8 +27,7 @@ const monitorSchema = new Schema({
         default: Date.now,
     },
     pollTime: {
-        type: Date,
-        default: Date.now,
+        type: Array,
     },
     lastPingTime: {
         type: Date,
