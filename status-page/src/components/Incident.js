@@ -266,13 +266,36 @@ class Incident extends Component {
                                                                 }
                                                             </span>
                                                         </span>
-                                                        <span
-                                                            style={{
-                                                                color:
-                                                                    'rgba(0, 0, 0, 0.5)',
-                                                            }}
-                                                        >
-                                                            {note.content}
+                                                        <span>
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'rgba(0, 0, 0, 0.5)',
+                                                                    fontSize: 14,
+                                                                    display:
+                                                                        'block',
+                                                                    textAlign:
+                                                                        'justify',
+                                                                }}
+                                                            >
+                                                                {note.content}
+                                                            </span>
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'rgba(0, 0, 0, 0.5)',
+                                                                    fontSize: 12,
+                                                                    display:
+                                                                        'block',
+                                                                    marginTop: 15,
+                                                                }}
+                                                            >
+                                                                {moment(
+                                                                    note.createdAt
+                                                                ).format(
+                                                                    'MMMM Do YYYY, h:mm a'
+                                                                )}
+                                                            </span>
                                                         </span>
                                                     </div>
                                                 </div>
