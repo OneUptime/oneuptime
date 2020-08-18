@@ -517,10 +517,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </fieldset>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -560,10 +557,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -606,10 +600,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -651,10 +642,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
