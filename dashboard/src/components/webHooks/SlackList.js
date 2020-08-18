@@ -112,7 +112,10 @@ class SlackList extends React.Component {
                                 {!monitorId && (
                                     <WebHookTableHeader text="Monitors" />
                                 )}
-                                <WebHookTableHeader text="Action" />
+                                <WebHookTableHeader
+                                    text="Action"
+                                    style={{ textAlign: 'right' }}
+                                />
                             </tr>
                         </thead>
                         <tbody className="Table-body">

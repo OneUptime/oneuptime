@@ -38,6 +38,8 @@ const {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    ScheduledEvent,
+    ScheduledEventDetail,
     Consulting,
 } = pages;
 
@@ -255,7 +257,7 @@ export const groups = [
             {
                 title: 'On-Call Schedules',
                 path: '/dashboard/project/:projectId/on-call',
-                icon: 'connect',
+                icon: 'call',
                 visible: true,
                 shortcut: 'f+o',
                 subRoutes: [
@@ -273,7 +275,7 @@ export const groups = [
                         title: 'Schedule',
                         path:
                             '/dashboard/project/:projectId/sub-project/:subProjectId/schedule/:scheduleId',
-                        icon: 'connect',
+                        icon: 'call',
                         visible: true,
                         subRoutes: [],
                         component: Schedule,
@@ -282,6 +284,27 @@ export const groups = [
                 ],
                 component: OnCall,
                 index: 4,
+            },
+            {
+                title: 'Scheduled Events',
+                path: '/dashboard/project/:projectId/scheduledEvents',
+                icon: 'connect',
+                visible: true,
+                component: ScheduledEvent,
+                exact: true,
+                subRoutes: [
+                    {
+                        title: 'Scheduled Event Detail',
+                        path:
+                            '/dashboard/project/:projectId/scheduledEvents/:scheduledEventId',
+                        icon: 'connect',
+                        visible: true,
+                        component: ScheduledEventDetail,
+                        subRoutes: [],
+                        index: 1,
+                    },
+                ],
+                index: 5,
             },
             {
                 title: 'Reports',

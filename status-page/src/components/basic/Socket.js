@@ -14,6 +14,8 @@ import {
     addscheduledeventbysocket,
     updatescheduledeventbysocket,
     updateprobebysocket,
+    incidentcreatedbysocket,
+    updateincidentbysocket,
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
@@ -46,6 +48,12 @@ class SocketApp extends Component {
                     `updateScheduledEvent-${this.props.project._id}`
                 );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(
+                    `incidentCreated-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateIncident-${this.props.project._id}`
+                );
             }
             return true;
         } else {
@@ -103,6 +111,16 @@ class SocketApp extends Component {
             socket.on(`updateProbe-${this.props.project._id}`, function(data) {
                 thisObj.props.updateprobebysocket(data);
             });
+            socket.on(`incidentCreated-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.incidentcreatedbysocket(data);
+            });
+            socket.on(`updateIncident-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.updateincidentbysocket(data);
+            });
         }
         return null;
     }
@@ -134,6 +152,8 @@ const mapDispatchToProps = dispatch =>
             addscheduledeventbysocket,
             updatescheduledeventbysocket,
             updateprobebysocket,
+            incidentcreatedbysocket,
+            updateincidentbysocket,
         },
         dispatch
     );

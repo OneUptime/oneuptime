@@ -126,7 +126,7 @@ DateTimeSelector.propTypes = {
     style: PropTypes.object,
     meta: PropTypes.object.isRequired,
     classes: PropTypes.object,
-    minDate: PropTypes.object,
+    minDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     id: PropTypes.string,
     label: PropTypes.string,
 };

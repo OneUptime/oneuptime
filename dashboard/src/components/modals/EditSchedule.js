@@ -29,6 +29,7 @@ function validate(values) {
 class UpdateSchedule extends React.Component {
     state = {
         currentDate: moment(),
+        dateError: null,
     };
 
     submitForm = values => {
@@ -50,10 +51,19 @@ class UpdateSchedule extends React.Component {
         postObj.monitorDuringEvent = values.monitorDuringEvent;
         postObj.alertSubscriber = values.alertSubscriber;
 
-        updateScheduledEvent(projectId, scheduledEventId, postObj).then(() => {
-            closeModal({
-                id: updateScheduledEventModalId,
+        if (postObj.startDate > postObj.endDate) {
+            this.setState({
+                dateError: 'Start date should always be less than End date',
             });
+            return;
+        }
+
+        updateScheduledEvent(projectId, scheduledEventId, postObj).then(() => {
+            if (!this.props.scheduledEventError) {
+                closeModal({
+                    id: updateScheduledEventModalId,
+                });
+            }
         });
     };
 
@@ -82,7 +92,7 @@ class UpdateSchedule extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal">
+                    <div className="bs-Modal" style={{ width: 600 }}>
                         <div className="bs-Modal-header">
                             <div
                                 className="bs-Modal-header-copy"
@@ -96,7 +106,10 @@ class UpdateSchedule extends React.Component {
                                 </span>
                             </div>
                         </div>
-                        <form onSubmit={handleSubmit(this.submitForm)}>
+                        <form
+                            id="editScheduledEventForm"
+                            onSubmit={handleSubmit(this.submitForm)}
+                        >
                             <div className="bs-Modal-content">
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="Margin-bottom--16">
@@ -114,7 +127,9 @@ class UpdateSchedule extends React.Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <div
                                                         className="bs-Fieldset-field"
-                                                        style={{ width: '70%' }}
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
                                                     >
                                                         <Field
                                                             component={
@@ -125,7 +140,7 @@ class UpdateSchedule extends React.Component {
                                                             id="name"
                                                             className="bs-TextInput"
                                                             style={{
-                                                                width: 250,
+                                                                width: '100%',
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
@@ -135,7 +150,47 @@ class UpdateSchedule extends React.Component {
                                             </div>
                                         </div>
                                     </fieldset>
-
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="monitorIds"
+                                                >
+                                                    <span>
+                                                        Event Description
+                                                    </span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            className="bs-TextArea"
+                                                            component={
+                                                                RenderTextArea
+                                                            }
+                                                            type="text"
+                                                            name="description"
+                                                            rows="5"
+                                                            id="description"
+                                                            placeholder="Event Description"
+                                                            style={{
+                                                                width: '100%',
+                                                                resize: 'none',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
                                     <fieldset className="Margin-bottom--16">
                                         <div className="bs-Fieldset-rows">
                                             <div
@@ -204,47 +259,6 @@ class UpdateSchedule extends React.Component {
                                                                 this
                                                                     .handleChangeEndDate
                                                             }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                    <fieldset className="Margin-bottom--16">
-                                        <div className="bs-Fieldset-rows">
-                                            <div
-                                                className="bs-Fieldset-row"
-                                                style={{ padding: 0 }}
-                                            >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorIds"
-                                                >
-                                                    <span>
-                                                        Event Description
-                                                    </span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            width: '250px',
-                                                        }}
-                                                    >
-                                                        <Field
-                                                            className="bs-TextArea"
-                                                            component={
-                                                                RenderTextArea
-                                                            }
-                                                            type="text"
-                                                            name="description"
-                                                            rows="5"
-                                                            id="description"
-                                                            placeholder="Event Description"
-                                                            style={{
-                                                                width: '250px',
-                                                                resize: 'none',
-                                                            }}
                                                         />
                                                     </div>
                                                 </div>
@@ -426,7 +440,12 @@ class UpdateSchedule extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
-                                    <ShouldRender if={scheduledEventError}>
+                                    <ShouldRender
+                                        if={
+                                            scheduledEventError ||
+                                            this.state.dateError
+                                        }
+                                    >
                                         <div className="bs-Tail-copy">
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -439,7 +458,9 @@ class UpdateSchedule extends React.Component {
                                                     <span
                                                         style={{ color: 'red' }}
                                                     >
-                                                        {scheduledEventError}
+                                                        {scheduledEventError ||
+                                                            this.state
+                                                                .dateError}
                                                     </span>
                                                 </div>
                                             </div>
@@ -485,9 +506,12 @@ UpdateSchedule.propTypes = {
     updateScheduledEvent: PropTypes.func.isRequired,
     updateScheduledEventModalId: PropTypes.string,
     requesting: PropTypes.bool,
-    scheduledEventError: PropTypes.object,
+    scheduledEventError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
     initialValues: PropTypes.object,
-    startDate: PropTypes.object,
+    startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 
 const NewUpdateSchedule = reduxForm({

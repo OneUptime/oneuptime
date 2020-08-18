@@ -15,7 +15,6 @@ import MonitorViewHeader from '../components/monitor/MonitorViewHeader';
 import MonitorViewIncidentBox from '../components/monitor/MonitorViewIncidentBox';
 import MonitorViewLighthouseLogsBox from '../components/monitor/MonitorViewLighthouseLogsBox';
 import MonitorViewSubscriberBox from '../components/monitor/MonitorViewSubscriberBox';
-import MonitorAddScheduleBox from '../components/monitor/MonitorAddScheduleBox';
 import MonitorViewDeleteBox from '../components/monitor/MonitorViewDeleteBox';
 import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -314,15 +313,6 @@ class MonitorView extends React.Component {
                                                                 </div>
                                                             </ShouldRender>
                                                             <div className="Box-root Margin-bottom--12">
-                                                                <MonitorAddScheduleBox
-                                                                    monitor={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
                                                                 <MonitorViewSubscriberBox
                                                                     monitorId={
                                                                         this
@@ -532,11 +522,9 @@ MonitorView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.shape({
+        name: PropTypes.string,
+    }),
     getProbes: PropTypes.func.isRequired,
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
