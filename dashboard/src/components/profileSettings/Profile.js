@@ -109,7 +109,7 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber,
             code: otp,
         }).then(result => {
-            if (result.data.valid && result.data.status === 'approved') {
+            if (result.data.valid ) {
                 setVerified(true);
             }
         });
