@@ -522,11 +522,9 @@ MonitorView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.shape({
+        name: PropTypes.string,
+    }),
     getProbes: PropTypes.func.isRequired,
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
