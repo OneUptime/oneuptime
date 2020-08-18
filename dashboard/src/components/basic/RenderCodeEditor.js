@@ -3,9 +3,11 @@ import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import 'brace/mode/markdown';
 import 'brace/mode/html';
+import 'brace/mode/css';
 import 'brace/theme/github';
 
 const RenderCodeEditor = ({
+    id,
     input,
     mode,
     placeholder,
@@ -17,8 +19,11 @@ const RenderCodeEditor = ({
     },
     height,
     width,
+    onLoad = () => {},
+    onBlur = () => {},
 }) => (
     <AceEditor
+        id={id}
         mode={mode}
         theme="github"
         value={input.value}
@@ -32,6 +37,8 @@ const RenderCodeEditor = ({
             enableSnippets: true,
             showGutter: false,
         }}
+        onLoad={() => onLoad(input)}
+        onBlur={() => onBlur(input)}
         onChange={input.onChange}
         style={style}
         placeholder={placeholder}
@@ -42,12 +49,15 @@ const RenderCodeEditor = ({
 
 RenderCodeEditor.displayName = 'RenderCodeEditor';
 RenderCodeEditor.propTypes = {
+    id: PropTypes.string,
     input: PropTypes.object.isRequired,
     style: PropTypes.object,
     mode: PropTypes.string.isRequired,
     placeholder: PropTypes.string,
     height: PropTypes.string.isRequired,
     width: PropTypes.string.isRequired,
+    onLoad: PropTypes.func,
+    onBlur: PropTypes.func,
 };
 
 export default RenderCodeEditor;
