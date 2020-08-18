@@ -28,6 +28,7 @@ import {
     FETCH_LOG_STAT_REQUEST,
     FETCH_LOG_STAT_RESET,
     FETCH_LOG_STAT_SUCCESS,
+    GET_LOG_SUCCESS,
 } from '../constants/applicationLog';
 import moment from 'moment';
 
@@ -56,7 +57,13 @@ const INITIAL_STATE = {
     stats: {},
 };
 export default function applicationLog(state = INITIAL_STATE, action) {
-    let applicationLogs, failureLogs, requestLogs, failureStats, requestStats;
+    let applicationLogs,
+        failureLogs,
+        requestLogs,
+        failureStats,
+        requestStats,
+        logCount,
+        typeCount;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {
@@ -417,7 +424,58 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 stats: INITIAL_STATE.stats,
             });
-
+        case GET_LOG_SUCCESS:
+            requestLogs = state.logs[action.payload.applicationLogId._id].logs; // current logs
+            logCount = state.logs[action.payload.applicationLogId._id].count; // current count of all logs
+            typeCount =
+                state.stats[action.payload.applicationLogId._id].stats[
+                    action.payload.type
+                ]; // current count of all logs of that type
+            if (
+                requestLogs.filter(log => log._id === action.payload._id)
+                    .length > 0
+            ) {
+                // If the new log exist maybe the event was emitted twice or more, just replace
+                requestLogs = state.logs[
+                    action.payload.applicationLogId._id
+                ].logs.map(log => {
+                    if (log._id === action.payload._id) {
+                        log = action.payload;
+                    }
+                    return log;
+                });
+            } else {
+                // new log add to beginning of logs
+                requestLogs = [action.payload].concat(
+                    state.logs[action.payload.applicationLogId._id].logs
+                );
+                // update counts
+                logCount += 1;
+                typeCount += 1;
+            }
+            if (requestLogs.length > 10) requestLogs.pop();
+            return Object.assign({}, state, {
+                logs: {
+                    ...state.logs,
+                    [action.payload.applicationLogId._id]: {
+                        ...state.logs[action.payload.applicationLogId._id],
+                        logs: requestLogs,
+                        count: logCount,
+                    },
+                },
+                stats: {
+                    ...state.stats,
+                    [action.payload.applicationLogId._id]: {
+                        ...state.stats[action.payload.applicationLogId._id],
+                        stats: {
+                            ...state.stats[action.payload.applicationLogId._id]
+                                .stats,
+                            all: logCount,
+                            [action.payload.type]: typeCount,
+                        },
+                    },
+                },
+            });
         default:
             return state;
     }

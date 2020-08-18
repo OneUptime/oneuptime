@@ -457,3 +457,9 @@ export function resetFetchStats() {
         type: types.FETCH_LOG_STAT_RESET,
     };
 }
+export function getLogSuccess(log) {
+    return {
+        type: types.GET_LOG_SUCCESS,
+        payload: log,
+    };
+}

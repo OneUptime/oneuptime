@@ -45,3 +45,6 @@ export const FETCH_LOG_STAT_SUCCESS = 'FETCH_LOG_STAT_SUCCESS';
 export const FETCH_LOG_STAT_FAILURE = 'FETCH_LOG_STAT_FAILURE';
 export const FETCH_LOG_STAT_RESET = 'FETCH_LOG_STAT_RESET';
 export const FETCH_LOG_STAT_REQUEST = 'FETCH_LOG_STAT_REQUEST';
+
+// New Log added to an application log
+export const GET_LOG_SUCCESS = 'GET_LOG_SUCCESS';
