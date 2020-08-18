@@ -142,14 +142,17 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
-        const projectId = req.query.projectId;
-        const sendVerifyToken = await verifySMSCode(
-            to,
-            code,
-            userId,
-            projectId
-        );
-        return sendItemResponse(req, res, sendVerifyToken);
+        // const projectId = req.query.projectId;
+        const user = await UserService.findOneBy({
+            _id: userId,
+            tempAlertPhoneNumber: to,
+            alertPhoneVerificationCode: code,
+            alertPhoneVerificationCodeRequestTime: {$gte: new Date(new Date().getTime() - 5*60 * 1000)}
+        })
+        if(!user){
+            throw new Error("Invalid code !")
+        }
+        return sendItemResponse(req, res, {valid:true});
     } catch (error) {
         return sendErrorResponse(req, res, {
             code: 400,
