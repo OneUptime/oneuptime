@@ -32,7 +32,6 @@ function validate(values) {
 class CreateSchedule extends React.Component {
     state = {
         currentDate: moment(),
-        addMonitor: false,
         dateError: null,
         monitorError: null,
     };
@@ -53,6 +52,8 @@ class CreateSchedule extends React.Component {
                 monitorId => typeof monitorId === 'string'
             );
             postObj.monitors = monitors;
+        } else {
+            postObj.monitors = [];
         }
 
         postObj.name = values.name;
@@ -73,6 +74,17 @@ class CreateSchedule extends React.Component {
         if (isDuplicate) {
             this.setState({
                 monitorError: 'Duplicate monitor selection found',
+            });
+            return;
+        }
+
+        if (
+            postObj.monitors &&
+            postObj.monitors.length === 0 &&
+            !values.selectAllMonitors
+        ) {
+            this.setState({
+                monitorError: 'No monitor was selected',
             });
             return;
         }
@@ -810,6 +822,7 @@ CreateSchedule.propTypes = {
     ]),
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     monitors: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 const NewCreateSchedule = reduxForm({
@@ -846,6 +859,7 @@ const mapStateToProps = state => {
             alertSubscriber: true,
             callScheduleOnEvent: true,
             showEventOnStatusPage: true,
+            selectAllMonitors: true,
         },
         formValues:
             state.form.newCreateSchedule && state.form.newCreateSchedule.values,
