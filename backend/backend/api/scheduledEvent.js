@@ -79,13 +79,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        if (typeof data.description !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is not of string type.',
-            });
-        }
-
         const existingScheduledEvent = await ScheduledEventService.findOneBy({
             name: data.name,
             projectId: projectId,
@@ -191,13 +184,6 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Start date should always be less than End date',
-            });
-        }
-
-        if (typeof data.description !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is not of string type.',
             });
         }
 
