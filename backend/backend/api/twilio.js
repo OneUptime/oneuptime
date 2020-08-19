@@ -153,6 +153,15 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
         if(!user){
             throw new Error("Invalid code !")
         }
+        await UserService.updateBy(
+            {_id: userId},
+            {
+                alertPhoneNumber: tempAlertPhoneNumber,
+                tempAlertPhoneNumber: null,
+                alertPhoneVerificationCode: null,
+                alertPhoneVerificationCodeRequestTime: null
+            }
+        )
         return sendItemResponse(req, res, {valid:true});
     } catch (error) {
         return sendErrorResponse(req, res, {
