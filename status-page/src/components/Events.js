@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
+import { capitalize } from '../config';
 
 class Events extends Component {
     handleResources = event => {
@@ -77,11 +78,6 @@ class Events extends Component {
                         <li
                             className="scheduledEvent feed-item clearfix"
                             key={i}
-                            onClick={() =>
-                                history.push(
-                                    `/status-page/${statusPageId}/scheduledEvent/${event._id}`
-                                )
-                            }
                         >
                             <div
                                 className="message"
@@ -141,22 +137,33 @@ class Events extends Component {
                                     alignItems: 'center',
                                 }}
                             >
-                            <span
-                                className="time"
-                                style={{
-                                    marginLeft: 0,
-                                    ...this.props.secondaryTextColor,
-                                    paddingBottom: 10,
-                                }}
-                            >
-                                {moment(event.startDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                {moment(event.endDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                            </span>
+                                <span
+                                    className="time"
+                                    style={{
+                                        marginLeft: 0,
+                                        ...this.props.secondaryTextColor,
+                                        paddingBottom: 10,
+                                    }}
+                                >
+                                    {moment(event.startDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                    &nbsp;&nbsp;-&nbsp;&nbsp;
+                                    {moment(event.endDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                </span>
+                                <button
+                                    onClick={() =>
+                                        history.push(
+                                            `/status-page/${statusPageId}/scheduledEvent/${event._id}`
+                                        )
+                                    }
+                                    className="btn-more"
+                                >
+                                    More
+                                </button>
+                            </div>
                         </li>
                     );
                 })}
@@ -174,6 +181,7 @@ Events.propTypes = {
     noteBackgroundColor: PropTypes.object,
     history: PropTypes.object,
     statusPageId: PropTypes.string,
+    monitorState: PropTypes.array,
 };
 
 export default withRouter(Events);
