@@ -322,38 +322,9 @@ class Home extends Component {
 
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     {ongoingEventList &&
-                                                                    ongoingEventList.length >
-                                                                        0 ? (
-                                                                        ongoingEventList
-                                                                    ) : (
-                                                                        <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                            <div className="db-Trends-header Padding-vertical--48">
-                                                                                <div className="db-Trends-controls">
-                                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                    <span
-                                                                                                        id="component-content-header"
-                                                                                                        className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                    >
-                                                                                                        You
-                                                                                                        currently
-                                                                                                        don&apos;t
-                                                                                                        have
-                                                                                                        any
-                                                                                                        active
-                                                                                                        scheduled
-                                                                                                        event.
-                                                                                                    </span>
-                                                                                                </span>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
+                                                                        ongoingEventList.length >
+                                                                            0 &&
+                                                                        ongoingEventList}
                                                                 </div>
                                                             </>
                                                         ) : (
