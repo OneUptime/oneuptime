@@ -228,4 +228,27 @@ describe('Twilio Settings API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'User should be able to update his alert phone number.',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#goToUserDashboard');
+                await page.click('#goToUserDashboard');
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.type('input[type=tel]', '+19173976235');
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                const errorMessage = await page.$$('#smsVerificationErrors');
+                expect(errorMessage).toEqual([]);
+            });
+        },
+        operationTimeOut
+    );
 });
