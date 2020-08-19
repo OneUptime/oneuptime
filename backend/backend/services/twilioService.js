@@ -524,7 +524,7 @@ const _this = {
                     customTwilioSettings.accountSid,
                     authToken
                 );
-                const verificationRequest = await twilioClient.messages.create(
+                await twilioClient.messages.create(
                     options
                 );
                 await UserService.updateOneBy(
@@ -535,7 +535,7 @@ const _this = {
                         alertPhoneVerificationCodeRequestTime: Date.now(),
                     }
                 );
-                return verificationRequest;
+                return {};
             } else {
                 if (!validationResult.validateResend) {
                     throw new Error(validationResult.problem);
@@ -564,7 +564,7 @@ const _this = {
                         from: creds.phone,
                         to,
                     };
-                    const verificationRequest = await twilioClient.messages.create(
+                    await twilioClient.messages.create(
                         options
                     );
                     await SmsCountService.create(userId, to, projectId);
@@ -576,7 +576,7 @@ const _this = {
                             alertPhoneVerificationCodeRequestTime: Date.now(),
                         }
                     );
-                    return verificationRequest;
+                    return {};
                 } else {
                     const error = new Error(
                         'Alerts limit reached for the day.'
