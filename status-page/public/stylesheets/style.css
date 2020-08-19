@@ -1113,7 +1113,6 @@ margin-left:10px;
 
 .scheduledEvent,
 .incidentlist {
-  cursor: pointer;
   background: rgb(247, 247, 247);
   padding-left: 20px;
   padding-right: 20px;
