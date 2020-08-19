@@ -11,6 +11,7 @@ const IncidentProjectBox = props => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');
+    const [isFiltered, setIsFiltered] = useState(false);
 
     useEffect(() => {
         setIncidents(props.subProjectIncident);
@@ -20,23 +21,26 @@ const IncidentProjectBox = props => {
         const unFilteredIncidents = props.subProjectIncident;
         const filtered = [];
         switch (status) {
-            case 'acknowledged':
+            case 'unacknowledged':
                 unFilteredIncidents.incidents.forEach(incident => {
                     if (!incident.acknowledged) {
                         filtered.push(incident);
                     }
                 });
+                setIsFiltered(true);
                 setFilteredIncidents(filtered);
                 break;
-            case 'resolved':
+            case 'unresolved':
                 unFilteredIncidents.incidents.forEach(incident => {
                     if (!incident.resolved) {
                         filtered.push(incident);
                     }
                 });
+                setIsFiltered(true);
                 setFilteredIncidents(filtered);
                 break;
             default:
+                setIsFiltered(false);
                 setFilteredIncidents([]);
                 break;
         }
@@ -99,7 +103,7 @@ const IncidentProjectBox = props => {
                                                     'Unacknowledged'
                                                 );
                                                 return filterIncidentLogs(
-                                                    'acknowledged'
+                                                    'unacknowledged'
                                                 );
                                             }}
                                         >
@@ -110,7 +114,7 @@ const IncidentProjectBox = props => {
                                             onClick={() => {
                                                 setFilterOption('Unresolved');
                                                 return filterIncidentLogs(
-                                                    'resolved'
+                                                    'unresolved'
                                                 );
                                             }}
                                         >
@@ -159,6 +163,7 @@ const IncidentProjectBox = props => {
                     prevClicked={props.prevClicked}
                     nextClicked={props.nextClicked}
                     filteredIncidents={filteredIncidents}
+                    isFiltered={isFiltered}
                 />
             </div>
         </div>
