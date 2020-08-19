@@ -734,6 +734,7 @@ export class ProfileSetting extends Component {
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
                                                             <button
+                                                                id='sendVerificationSMS'
                                                                 className="bs-Button"
                                                                 disabled={
                                                                     profileSettings &&
