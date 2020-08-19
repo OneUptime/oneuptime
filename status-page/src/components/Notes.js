@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { withRouter } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
+import { capitalize } from '../config';
 
 class Notes extends Component {
     render() {
@@ -100,19 +101,47 @@ class Notes extends Component {
                             >
                                 <span>
                                     <span
-                                className="time"
-                                style={{
-                                    ...this.props.secondaryTextColor,
-                                    marginLeft: 0,
-                                    paddingBottom: 10,
-                                }}
-                            >
-                                {moment(note.createdAt).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                                &nbsp;&nbsp;&nbsp;&nbsp;
-                                {note.resolved ? 'Resolved' : 'Not Resolved'}
-                            </span>
+                                        className="time"
+                                        style={{
+                                            ...this.props.secondaryTextColor,
+                                            marginLeft: 0,
+                                            paddingBottom: 10,
+                                            display: 'inline-block',
+                                        }}
+                                    >
+                                        {moment(note.createdAt).format(
+                                            'MMMM Do YYYY, h:mm a'
+                                        )}
+                                    </span>
+                                    <span
+                                        className={
+                                            note.resolved
+                                                ? 'time resolved__incident'
+                                                : 'time'
+                                        }
+                                        style={{
+                                            ...this.props.secondaryTextColor,
+                                            marginLeft: 10,
+                                            paddingBottom: 10,
+                                            display: 'inline-block',
+                                        }}
+                                    >
+                                        {note.resolved
+                                            ? 'Resolved'
+                                            : 'Identified'}
+                                    </span>
+                                </span>
+                                <button
+                                    onClick={() =>
+                                        history.push(
+                                            `/status-page/${statusPageId}/incident/${note._id}`
+                                        )
+                                    }
+                                    className="btn-more"
+                                >
+                                    More
+                                </button>
+                            </div>
                         </li>
                     );
                 })}
@@ -130,6 +159,9 @@ Notes.propTypes = {
     noteBackgroundColor: PropTypes.object,
     statusPageId: PropTypes.string,
     history: PropTypes.object,
+    degradedColor: PropTypes.object,
+    uptimeColor: PropTypes.object,
+    downtimeColor: PropTypes.object,
 };
 
 export default withRouter(Notes);
