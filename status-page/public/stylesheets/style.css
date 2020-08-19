@@ -1065,6 +1065,15 @@ margin-left:10px;
   background-repeat: no-repeat;
 }
 
+.resolved__incident {
+  background-color: transparent;
+  background-size: 20px 15px;
+  padding-right: 25px;
+  background-image: url('../images/checked.svg');
+  background-repeat: no-repeat;
+  background-position: 100% 35%;
+}
+
 .box__yellow--dark {
   background: #e39f48;
   color: white;
