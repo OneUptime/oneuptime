@@ -118,30 +118,6 @@ class ScheduledEvent extends Component {
             >
                 <div className="innernew" style={{ width: 609 }}>
                     <div
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
-                    >
-                        <div
-                            className="largestatus"
-                            style={{ padding: '30px 36px' }}
-                        >
-                            <div className="title-wrapper">
-                                <span
-                                    className="title"
-                                    style={{
-                                        color: 'rgb(0, 0, 0)',
-                                        padding: 0,
-                                        margin: 0,
-                                        fontSize: 20,
-                                    }}
-                                >
-                                    Scheduled Event
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
                         id="scheduledEvents"
                         className="twitter-feed white box"
                         style={{ overflow: 'visible' }}
@@ -152,7 +128,22 @@ class ScheduledEvent extends Component {
                                 position: 'relative',
                             }}
                         >
-                            <div className="box-inner">
+                            <div
+                                className="box-inner"
+                                style={{ paddingTop: 20, paddingBottom: 20 }}
+                            >
+                                <span
+                                    style={{
+                                        color: 'rgba(76, 76, 76, 0.52)',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '700',
+                                        display: 'inline-block',
+                                        marginBottom: 20,
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    Scheduled Event
+                                </span>
                                 {!fetchingEvent && scheduledEvent.name && (
                                     <div
                                         className="feed-header clearfix"
