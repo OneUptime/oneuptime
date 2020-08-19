@@ -143,10 +143,23 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
-        // const projectId = req.query.projectId;
+        const projectId = req.query.projectId;
+        if(!to){
+            sendErrorResponse(req,res,{
+                statusCode: 400,
+                message: 'to field must be present.'
+            });
+        }
+        if(!code){
+            sendErrorResponse(req,res,{
+                statusCode: 400,
+                message: 'code field must be present.'
+            });
+        }
+        const tempAlertPhoneNumber= to.startsWith('+')?to:`+${to}`;
         const user = await UserService.findOneBy({
             _id: userId,
-            tempAlertPhoneNumber: to,
+            tempAlertPhoneNumber,
             alertPhoneVerificationCode: code,
             alertPhoneVerificationCodeRequestTime: {$gte: new Date(new Date().getTime() - 5*60 * 1000)}
         })
