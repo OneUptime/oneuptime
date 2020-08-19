@@ -146,6 +146,7 @@ class AuditLogs extends React.Component {
                                                                     <Link
                                                                         className="Border-bottom--white Text-fontWeight--bold Text-color--white"
                                                                         to="/admin/settings/audit-logs"
+                                                                        id="auditLogSetting"
                                                                     >
                                                                         here
                                                                     </Link>{' '}
