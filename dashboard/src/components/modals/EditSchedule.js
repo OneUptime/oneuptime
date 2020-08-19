@@ -20,9 +20,6 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Event name is required';
     }
-    if (!values.description) {
-        errors.description = 'Event description is required';
-    }
     return errors;
 }
 
