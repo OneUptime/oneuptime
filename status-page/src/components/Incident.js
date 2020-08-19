@@ -10,7 +10,7 @@ import {
     fetchIncidentNotes,
     moreIncidentNotes,
 } from '../actions/status';
-import { ACCOUNTS_URL } from '../config';
+import { ACCOUNTS_URL, capitalize } from '../config';
 import { ListLoader } from './basic/Loader';
 
 class Incident extends Component {
@@ -214,23 +214,62 @@ class Incident extends Component {
                                 <ShouldRender if={fetchingIncident}>
                                     <ListLoader />
                                 </ShouldRender>
-                                {!fetchingIncident && incident.createdAt && (
-                                    <span
-                                        className="time"
-                                        style={{
-                                            color: 'rgba(0, 0, 0, 0.5)',
-                                            fontSize: 12,
-                                        }}
-                                    >
-                                        {moment(incident.createdAt).format(
-                                            'MMMM Do YYYY, h:mm a'
-                                        )}
-                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                        {incident.resolved
-                                            ? '(Resolved)'
-                                            : '(Not Resolved)'}
-                                    </span>
-                                )}
+                                {!fetchingIncidentNotes &&
+                                    incidentNotes &&
+                                    !fetchingIncident &&
+                                    incident.createdAt && (
+                                        <span style={{ fontSize: 12 }}>
+                                            <span
+                                                className="time"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                    paddingTop: 7,
+                                                }}
+                                            >
+                                                {moment(
+                                                    incident.createdAt
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                            </span>
+                                            <span
+                                                className={
+                                                    incident.resolved
+                                                        ? 'time resolved__incident'
+                                                        : 'time'
+                                                }
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                    marginLeft: 10,
+                                                    paddingBottom: 10,
+                                                    display: 'inline-block',
+                                                    paddingTop: 7,
+                                                }}
+                                            >
+                                                {incident.resolved
+                                                    ? 'Resolved'
+                                                    : 'Identified'}
+                                            </span>
+                                            <span
+                                                className={'time'}
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                    marginLeft: 10,
+                                                    paddingBottom: 10,
+                                                    display: 'inline-block',
+                                                    paddingTop: 7,
+                                                }}
+                                            >
+                                                {incidentNotes[0] &&
+                                                incidentNotes[0].incident_state
+                                                    ? capitalize(
+                                                          incidentNotes[0]
+                                                              .incident_state
+                                                      )
+                                                    : ''}
+                                            </span>
+                                        </span>
+                                    )}
                             </div>
                         </div>
                     </div>
@@ -454,6 +493,7 @@ Incident.propTypes = {
     fetchingIncident: PropTypes.bool,
     incident: PropTypes.object,
     incidentNotes: PropTypes.array,
+    requestingStatus: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
@@ -466,6 +506,7 @@ const mapStateToProps = state => {
         fetchingIncident: state.status.incident.requesting,
         incident: state.status.incident.incident,
         incidentNotes: state.status.incidentNotes.notes,
+        requestingStatus: state.status.requesting,
     };
 };
 
