@@ -102,6 +102,7 @@ class EventsMain extends Component {
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
                     statusPageId={this.props.statusPageId}
+                    monitorState={this.props.monitorState}
                 />
             );
         }
@@ -117,6 +118,7 @@ class EventsMain extends Component {
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
                     statusPageId={this.props.statusPageId}
+                    monitorState={this.props.monitorState}
                 />
             );
         }
@@ -307,6 +309,7 @@ const mapStateToProps = state => {
         statusPage: state.status.statusPage,
         futureEvents: state.status.futureEvents,
         individualEvents: state.status.individualEvents,
+        monitorState: state.status.statusPage.monitorsData,
     };
 };
 
@@ -332,6 +335,7 @@ EventsMain.propTypes = {
     fetchFutureEvents: PropTypes.func,
     futureEvents: PropTypes.object,
     individualEvents: PropTypes.object,
+    monitorState: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EventsMain);
