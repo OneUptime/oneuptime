@@ -325,7 +325,8 @@ class ScheduledEvent extends Component {
                                                             'rgb(76, 76, 76)',
                                                     }}
                                                 >
-                                                    No scheduled event note yet.
+                                                    No schedule event updates
+                                                    yet.
                                                 </span>
                                             </li>
                                         )}
