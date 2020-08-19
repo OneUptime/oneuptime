@@ -947,7 +947,10 @@ export class ProfileSetting extends Component {
                                                                 height: '5px',
                                                             }}
                                                         ></div>
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <div 
+                                                            id='smsVerificationErrors'
+                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                        >
                                                             <label className="Checkbox">
                                                                 <div
                                                                     className="Box-root"
