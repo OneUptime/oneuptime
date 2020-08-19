@@ -493,7 +493,12 @@ const _this = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function(to, userId, projectId, validationResult) {
+    sendVerificationSMS: async function(
+        to,
+        userId,
+        projectId,
+        validationResult
+    ) {
         try {
             const customTwilioSettings = await _this.findByOne({
                 projectId,
@@ -504,8 +509,8 @@ const _this = {
             }
             if (customTwilioSettings) {
                 const alertPhoneVerificationCode = Math.random()
-                .toString(10)
-                .substr(2, 6);
+                    .toString(10)
+                    .substr(2, 6);
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options = {
                     body: template,
@@ -519,7 +524,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     authToken
                 );
-                const verificationRequest = await twilioClient.messages.create(options);
+                const verificationRequest = await twilioClient.messages.create(
+                    options
+                );
                 await UserService.updateOneBy(
                     { _id: userId },
                     {
@@ -529,10 +536,9 @@ const _this = {
                     }
                 );
                 return verificationRequest;
-
             } else {
-                if( !validationResult.validateResend ){
-                    throw new Error(validationResult.problem)
+                if (!validationResult.validateResend) {
+                    throw new Error(validationResult.problem);
                 }
                 const creds = await _this.getSettings();
                 const twilioClient = _this.getClient(
@@ -544,7 +550,6 @@ const _this = {
                     projectId
                 );
                 if (alertLimit) {
-
                     if (!creds['sms-enabled']) {
                         const error = new Error('SMS Not Enabled');
                         error.code = 400;

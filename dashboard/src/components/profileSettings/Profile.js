@@ -109,7 +109,7 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber,
             code: otp,
         }).then(result => {
-            if (result.data.valid ) {
+            if (result.data.valid) {
                 setVerified(true);
             }
         });
@@ -771,6 +771,7 @@ export class ProfileSetting extends Component {
                                                 <ShouldRender
                                                     if={
                                                         !showSendVerification &&
+                                                        // !showError &&
                                                         !sendVerificationSMSRequesting
                                                     }
                                                 >

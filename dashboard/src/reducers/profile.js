@@ -208,13 +208,13 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                 },
-                smsVerificationResult:{
+                smsVerificationResult: {
                     ...state.smsVerificationResult,
                     error: null,
                     requesting: false,
                     success: false,
-                    data:{}
-                }
+                    data: {},
+                },
             });
 
         case types.SEND_VERIFICATION_SMS_SUCCESS:

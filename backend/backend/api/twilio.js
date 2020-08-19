@@ -134,19 +134,19 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
         const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
         const projectId = req.query.projectId;
-        if(!to){
-            sendErrorResponse(req,res,{
+        if (!to) {
+            sendErrorResponse(req, res, {
                 statusCode: 400,
-                message: 'to field must be present.'
+                message: 'to field must be present.',
             });
         }
-        if(!code){
-            sendErrorResponse(req,res,{
+        if (!code) {
+            sendErrorResponse(req, res, {
                 statusCode: 400,
-                message: 'code field must be present.'
+                message: 'code field must be present.',
             });
         }
-        const tempAlertPhoneNumber= to.startsWith('+')?to:`+${to}`;
+        const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
         const user = await UserService.findOneBy({
             _id: userId,
             tempAlertPhoneNumber,
@@ -159,15 +159,15 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
             throw new Error('Invalid code !');
         }
         await UserService.updateBy(
-            {_id: userId},
+            { _id: userId },
             {
                 alertPhoneNumber: tempAlertPhoneNumber,
                 tempAlertPhoneNumber: null,
                 alertPhoneVerificationCode: null,
-                alertPhoneVerificationCodeRequestTime: null
+                alertPhoneVerificationCodeRequestTime: null,
             }
-        )
-        return sendItemResponse(req, res, {valid:true});
+        );
+        return sendItemResponse(req, res, { valid: true });
     } catch (error) {
         return sendErrorResponse(req, res, {
             code: 400,
