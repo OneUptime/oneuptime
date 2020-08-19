@@ -412,10 +412,13 @@ div.block-chart::-webkit-scrollbar {
 }
 
 .incident-status-bubble {
-  top: 40px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  top: 10px;
 }
 
 .uptime-legend {
