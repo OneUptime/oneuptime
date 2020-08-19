@@ -738,7 +738,9 @@ export class IncidentList extends Component {
                                         className="Padding-all--20 Text-align--center"
                                         colSpan="6"
                                     >
-                                        No incidents to display
+                                        <span id="noIncidentsInnerText">
+                                            No incidents to display
+                                        </span>
                                     </td>
                                 </tr>
                             )}
