@@ -135,6 +135,8 @@ class Incident extends Component {
                                     style={{
                                         color: 'rgb(0, 0, 0)',
                                         padding: 0,
+                                        margin: 0,
+                                        fontSize: 20,
                                     }}
                                 >
                                     Incident
