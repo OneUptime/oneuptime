@@ -10,7 +10,6 @@ const UserService = require('../services/userService');
 const {
     sendIncidentCreatedCall,
     sendVerificationSMS,
-    verifySMSCode,
     test,
 } = require('../services/twilioService');
 const { isAuthorized } = require('../middlewares/authorization');
@@ -111,23 +110,14 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
         const { to } = req.body;
         const userId = req.user ? req.user.id : null;
         const projectId = req.query.projectId;
-        const {
-            validateResend,
-            problem,
-        } = await SmsCountService.validateResend(userId);
-        if (validateResend) {
-            const sendVerifyToken = await sendVerificationSMS(
-                to,
-                userId,
-                projectId
-            );
-            return sendItemResponse(req, res, sendVerifyToken);
-        } else {
-            return sendErrorResponse(req, res, {
-                statusCode: 400,
-                message: problem,
-            });
-        }
+        const validationResult = await SmsCountService.validateResend(userId);
+        const sendVerifyToken = await sendVerificationSMS(
+            to,
+            userId,
+            projectId,
+            validationResult
+        );
+        return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(
             req,
@@ -161,10 +151,12 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
             _id: userId,
             tempAlertPhoneNumber,
             alertPhoneVerificationCode: code,
-            alertPhoneVerificationCodeRequestTime: {$gte: new Date(new Date().getTime() - 5*60 * 1000)}
-        })
-        if(!user){
-            throw new Error("Invalid code !")
+            alertPhoneVerificationCodeRequestTime: {
+                $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+            },
+        });
+        if (!user) {
+            throw new Error('Invalid code !');
         }
         await UserService.updateBy(
             {_id: userId},

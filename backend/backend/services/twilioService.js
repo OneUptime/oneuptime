@@ -493,48 +493,92 @@ const _this = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function(to, userId, projectId) {
+    sendVerificationSMS: async function(to, userId, projectId, validationResult) {
         try {
-            const creds = await _this.getSettings();
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-
-            const alertLimit = await AlertService.checkPhoneAlertsLimit(
-                projectId
-            );
-            if (alertLimit) {
-                if (!to.startsWith('+')) {
-                    to = '+' + to;
-                }
-
-                if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
-                    error.code = 400;
-                    throw error;
-                }
-                const alertPhoneVerificationCode = Math.random().toString(10).substr(2, 6);
-                const template = `Your verification code: ${alertPhoneVerificationCode}`
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (!to.startsWith('+')) {
+                to = '+' + to;
+            }
+            if (customTwilioSettings) {
+                const alertPhoneVerificationCode = Math.random()
+                .toString(10)
+                .substr(2, 6);
+                const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options = {
                     body: template,
-                    from: creds.phone,
+                    from: customTwilioSettings.phoneNumber,
                     to,
-                };    
+                };
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    authToken
+                );
                 const verificationRequest = await twilioClient.messages.create(options);
-                await SmsCountService.create(userId, to, projectId);
                 await UserService.updateOneBy(
                     { _id: userId },
-                    { tempAlertPhoneNumber: to,
-                      alertPhoneVerificationCode,
-                      alertPhoneVerificationCodeRequestTime: Date.now(),
+                    {
+                        tempAlertPhoneNumber: to,
+                        alertPhoneVerificationCode,
+                        alertPhoneVerificationCodeRequestTime: Date.now(),
                     }
                 );
                 return verificationRequest;
+
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                throw error;
+                if( !validationResult.validateResend ){
+                    throw new Error(validationResult.problem)
+                }
+                const creds = await _this.getSettings();
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+
+                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+                if (alertLimit) {
+
+                    if (!creds['sms-enabled']) {
+                        const error = new Error('SMS Not Enabled');
+                        error.code = 400;
+                        throw error;
+                    }
+                    const alertPhoneVerificationCode = Math.random()
+                        .toString(10)
+                        .substr(2, 6);
+                    const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                    const options = {
+                        body: template,
+                        from: creds.phone,
+                        to,
+                    };
+                    const verificationRequest = await twilioClient.messages.create(
+                        options
+                    );
+                    await SmsCountService.create(userId, to, projectId);
+                    await UserService.updateOneBy(
+                        { _id: userId },
+                        {
+                            tempAlertPhoneNumber: to,
+                            alertPhoneVerificationCode,
+                            alertPhoneVerificationCodeRequestTime: Date.now(),
+                        }
+                    );
+                    return verificationRequest;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
             }
         } catch (error) {
             ErrorService.log('twillioService.sendVerificationSMS', error);
