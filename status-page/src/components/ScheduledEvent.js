@@ -10,7 +10,7 @@ import {
     fetchEvent,
     moreEventNote,
 } from '../actions/status';
-import { ACCOUNTS_URL } from '../config';
+import { ACCOUNTS_URL, capitalize } from '../config';
 import { ListLoader } from './basic/Loader';
 
 class ScheduledEvent extends Component {
@@ -175,23 +175,48 @@ class ScheduledEvent extends Component {
                                 <ShouldRender if={fetchingEvent}>
                                     <ListLoader />
                                 </ShouldRender>
-                                {!fetchingEvent &&
+                                {!fetchingNotes &&
+                                    eventNotes &&
+                                    !fetchingEvent &&
                                     scheduledEvent.startDate &&
                                     scheduledEvent.endDate && (
-                                        <span
-                                            className="time"
-                                            style={{
-                                                color: 'rgba(0, 0, 0, 0.5)',
-                                                fontSize: 12,
-                                            }}
-                                        >
-                                            {moment(
-                                                scheduledEvent.startDate
-                                            ).format('MMMM Do YYYY, h:mm a')}
-                                            &nbsp;&nbsp;-&nbsp;&nbsp;
-                                            {moment(
-                                                scheduledEvent.endDate
-                                            ).format('MMMM Do YYYY, h:mm a')}
+                                        <span style={{ fontSize: 12 }}>
+                                            <span
+                                                className="time"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {moment(
+                                                    scheduledEvent.startDate
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                                &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                {moment(
+                                                    scheduledEvent.endDate
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                            </span>
+                                            <span
+                                                className={'time'}
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                    marginLeft: 10,
+                                                    paddingBottom: 10,
+                                                    display: 'inline-block',
+                                                    paddingTop: 7,
+                                                }}
+                                            >
+                                                {eventNotes[0] &&
+                                                eventNotes[0].incident_state
+                                                    ? capitalize(
+                                                          eventNotes[0]
+                                                              .incident_state
+                                                      )
+                                                    : ''}
+                                            </span>
                                         </span>
                                     )}
                             </div>
