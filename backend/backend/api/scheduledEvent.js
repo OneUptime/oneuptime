@@ -166,6 +166,13 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
             });
         }
 
+        if (data.monitors && !Array.isArray(data.monitors)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitors is not of type array',
+            });
+        }
+
         if (!data.startDate) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -210,7 +217,7 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
         }
 
         const scheduledEvent = await ScheduledEventService.updateOneBy(
-            { _id: eventId },
+            { _id: eventId, projectId },
             data
         );
 
