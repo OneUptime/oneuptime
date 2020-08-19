@@ -165,7 +165,7 @@ class NotesMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Past Incidents
+                                        Incidents
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.individualnote}>
