@@ -544,16 +544,16 @@ div.feed-header {
     }
 
        /* Swoop */
-      .feed-item div.message::before {
-        /* content: " ";
+      /* .feed-item div.message::before {
+        content: " ";
         position: absolute;
         width: 10px;
         height: 10px;
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background-color: inherit; */
-      }
+        background-color: inherit;
+      } */
 
 
       .feed-item div.message div.text {
