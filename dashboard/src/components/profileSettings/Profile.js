@@ -771,7 +771,6 @@ export class ProfileSetting extends Component {
                                                 <ShouldRender
                                                     if={
                                                         !showSendVerification &&
-                                                        // !showError &&
                                                         !sendVerificationSMSRequesting
                                                     }
                                                 >
