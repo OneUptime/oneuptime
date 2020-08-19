@@ -53,6 +53,10 @@ export class IncidentList extends Component {
             this.props.filteredIncidents &&
             this.props.filteredIncidents.length > 0
                 ? this.props.filteredIncidents
+                : this.props.filteredIncidents &&
+                  this.props.filteredIncidents.length === 0 &&
+                  this.props.isFiltered
+                ? []
                 : this.props.incidents &&
                   this.props.incidents.incidents &&
                   this.props.incidents.incidents.length > 0
@@ -138,7 +142,7 @@ export class IncidentList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            {incidents ? (
+                            {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
                                     return (
                                         <tr
@@ -729,7 +733,14 @@ export class IncidentList extends Component {
                                     );
                                 })
                             ) : (
-                                <tr></tr>
+                                <tr>
+                                    <td
+                                        className="Padding-all--20 Text-align--center"
+                                        colSpan="6"
+                                    >
+                                        No incidents to display
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>
