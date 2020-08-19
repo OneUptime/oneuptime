@@ -113,6 +113,20 @@ class Notes extends Component {
                                             'MMMM Do YYYY, h:mm a'
                                         )}
                                     </span>
+                                    {note.acknowledged && (
+                                        <span
+                                            className={'time'}
+                                            style={{
+                                                ...this.props
+                                                    .secondaryTextColor,
+                                                marginLeft: 10,
+                                                paddingBottom: 10,
+                                                display: 'inline-block',
+                                            }}
+                                        >
+                                            Acknowledged
+                                        </span>
+                                    )}
                                     <span
                                         className={
                                             note.resolved

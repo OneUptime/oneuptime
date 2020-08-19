@@ -232,6 +232,21 @@ class Incident extends Component {
                                                     'MMMM Do YYYY, h:mm a'
                                                 )}
                                             </span>
+                                            {incident.acknowledged && (
+                                                <span
+                                                    className={'time'}
+                                                    style={{
+                                                        marginLeft: 10,
+                                                        paddingBottom: 10,
+                                                        display: 'inline-block',
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.5)',
+                                                        paddingTop: 7,
+                                                    }}
+                                                >
+                                                    Acknowledged
+                                                </span>
+                                            )}
                                             <span
                                                 className={
                                                     incident.resolved
