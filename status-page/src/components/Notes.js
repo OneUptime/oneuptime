@@ -56,10 +56,7 @@ class Notes extends Component {
                                             color: 'rgb(76, 76, 76)',
                                         }}
                                     >
-                                        {note.monitorId.name
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            note.monitorId.name.substr(1)}
+                                        {capitalize(note.title)}
                                     </span>
                                     <span
                                         style={{
@@ -73,7 +70,36 @@ class Notes extends Component {
                                     </span>
                                 </div>
                             </div>
-                            <span
+                            <div
+                                className="ongoing__affectedmonitor"
+                                style={
+                                    note.description
+                                        ? { marginTop: 10 }
+                                        : { marginTop: 0 }
+                                }
+                            >
+                                <span
+                                    className="ongoing__affectedmonitor--title"
+                                    style={{ color: 'rgb(76, 76, 76)' }}
+                                >
+                                    Resource Affected:
+                                </span>{' '}
+                                <span
+                                    className="ongoing__affectedmonitor--content"
+                                    style={{ color: 'rgba(0, 0, 0, 0.5)' }}
+                                >
+                                    {capitalize(note.monitorId.name)}
+                                </span>
+                            </div>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <span>
+                                    <span
                                 className="time"
                                 style={{
                                     ...this.props.secondaryTextColor,
