@@ -233,7 +233,7 @@ class ScheduledEvent extends Component {
                                                 fontWeight: 'bold',
                                             }}
                                         >
-                                            Scheduled Event Notes
+                                            Scheduled Event Updates
                                         </span>
                                     </div>
                                 </ShouldRender>
