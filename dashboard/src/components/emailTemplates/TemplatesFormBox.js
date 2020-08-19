@@ -4,7 +4,6 @@ import { Field, reduxForm } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
 import { RenderField } from '../basic/RenderField';
-import { RenderTextArea } from '../basic/RenderTextArea';
 import {
     emailTemplateTitles,
     emailTemplateDescriptions,
@@ -15,14 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/emailTemplates';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
-
-const style = {
-    backgroundColor: '#fff',
-    borderRadius: '4px',
-    width: '600px',
-    boxShadow:
-        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-};
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 const bulletpoints = {
     display: 'listItem',
@@ -117,13 +109,15 @@ export class TemplatesFormBox extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
                                                         component={
-                                                            RenderTextArea
+                                                            RenderCodeEditor
                                                         }
+                                                        mode="html"
                                                         className="db-FeedbackForm-textarea"
                                                         name="body"
-                                                        style={style}
-                                                        rows={30}
                                                         id="templateTextArea"
+                                                        placeholder="This can be markdown"
+                                                        height="504px"
+                                                        width="600px"
                                                     />
                                                 </div>
                                             </div>
