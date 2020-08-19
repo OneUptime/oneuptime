@@ -30,7 +30,7 @@ class ResourceTabularList extends Component {
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':
-            case 'server-monitor':
+            case 'server monitor':
             case 'script monitor':
                 route = 'monitoring';
                 break;
@@ -62,7 +62,7 @@ class ResourceTabularList extends Component {
             case 'device monitor':
             case 'manual monitor':
             case 'api monitor':
-            case 'server-monitor':
+            case 'server monitor':
             case 'script monitor':
                 // get monitor status
                 monitor = monitors.filter(
@@ -298,20 +298,19 @@ class ResourceTabularList extends Component {
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{ height: '1px' }}
                                                 >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            <div
-                                                                className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <div
+                                                            className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                        >
+                                                            <span
+                                                                id={`resource_type_${componentResource.name}`}
+                                                                className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
                                                             >
-                                                                <span
-                                                                    id={`resource_type_${componentResource.name}`}
-                                                                    className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
-                                                                >
-                                                                    {
-                                                                        componentResource.type
-                                                                    }
-                                                                </span>
-                                                            </div>
+                                                                {componentResource.type ===
+                                                                'api monitor'
+                                                                    ? 'API Monitor'
+                                                                    : componentResource.type}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </td>
