@@ -11129,7 +11129,7 @@ table {
 #tab-slider {
     position: absolute;
     border-bottom: 1px solid #000;
-    transition: transform 0.75s;
+    transition: transform 0.35s;
     width: 25%;
     transition-timing-function: ease-in-out;
 }
