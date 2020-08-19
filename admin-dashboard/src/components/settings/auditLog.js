@@ -128,6 +128,7 @@ class AuditLog extends Component {
                                         changeAuditLogStatus.requesting
                                     }
                                     type="submit"
+                                    id="auditLogSubmit"
                                 >
                                     {changeAuditLogStatus.requesting ? (
                                         <FormLoader />

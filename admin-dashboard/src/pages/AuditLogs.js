@@ -8,7 +8,6 @@ import {
     fetchAuditLogs,
     searchAuditLogs,
     fetchAuditLogStatus,
-    auditLogStatusChange,
 } from '../actions/auditLogs';
 import Dashboard from '../components/Dashboard';
 import { Link } from 'react-router-dom';
@@ -60,13 +59,6 @@ class AuditLogs extends React.Component {
 
         this.setState({ searchBox: value });
         searchAuditLogs(value, 0, 10);
-    };
-    handleCheckChange = checked => {
-        const { auditLogStatus, auditLogStatusChange } = this.props;
-        checked.persist();
-        auditLogStatusChange({
-            status: !auditLogStatus.data.value,
-        });
     };
 
     render() {
@@ -143,7 +135,7 @@ class AuditLogs extends React.Component {
                                                     >
                                                         <AlertPanel
                                                             message={
-                                                                <span>
+                                                                <span id="auditLogDisabled">
                                                                     You are
                                                                     currently
                                                                     not storing
@@ -196,7 +188,6 @@ const mapDispatchToProps = dispatch => {
             fetchAuditLogs,
             searchAuditLogs,
             fetchAuditLogStatus,
-            auditLogStatusChange,
         },
         dispatch
     );
@@ -229,7 +220,6 @@ AuditLogs.propTypes = {
     userId: PropTypes.string,
     fetchAuditLogStatus: PropTypes.func.isRequired,
     auditLogStatus: PropTypes.object,
-    auditLogStatusChange: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogs);

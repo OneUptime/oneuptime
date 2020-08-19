@@ -143,7 +143,7 @@ export const groups = [
                         shortcut: 'f+o',
                     },
                     {
-                        title: 'Audit Logs',
+                        title: 'Audit Log',
                         path: '/admin/settings/audit-logs',
                         icon: 'appLog',
                         component: Settings,
