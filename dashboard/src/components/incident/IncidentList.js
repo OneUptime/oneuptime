@@ -881,6 +881,7 @@ IncidentList.propTypes = {
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
     componentId: PropTypes.string,
+    isFiltered: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
