@@ -79,13 +79,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        if (!data.description || !data.description.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is required.',
-            });
-        }
-
         if (typeof data.description !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
