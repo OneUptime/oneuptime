@@ -211,11 +211,11 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.type('input[type=tel]','+19173976235');
+                await page.type('input[type=tel]', '+19173976235');
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                const errorMessage= await page.$$('#smsVerificationErrors');
-                expect(errorMessage).toEqual([])
+                const errorMessage = await page.$$('#smsVerificationErrors');
+                expect(errorMessage).toEqual([]);
             });
 
             done();

@@ -133,7 +133,6 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
-        const projectId = req.query.projectId;
         if (!to) {
             sendErrorResponse(req, res, {
                 statusCode: 400,

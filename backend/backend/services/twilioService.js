@@ -10,7 +10,6 @@ const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
 const GlobalConfigService = require('./globalConfigService');
-const UserModel = require('../models/user');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
@@ -524,9 +523,7 @@ const _this = {
                     customTwilioSettings.accountSid,
                     authToken
                 );
-                await twilioClient.messages.create(
-                    options
-                );
+                await twilioClient.messages.create(options);
                 await UserService.updateOneBy(
                     { _id: userId },
                     {
@@ -564,9 +561,7 @@ const _this = {
                         from: creds.phone,
                         to,
                     };
-                    await twilioClient.messages.create(
-                        options
-                    );
+                    await twilioClient.messages.create(options);
                     await SmsCountService.create(userId, to, projectId);
                     await UserService.updateOneBy(
                         { _id: userId },

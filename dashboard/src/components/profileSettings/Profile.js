@@ -734,7 +734,7 @@ export class ProfileSetting extends Component {
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
                                                             <button
-                                                                id='sendVerificationSMS'
+                                                                id="sendVerificationSMS"
                                                                 className="bs-Button"
                                                                 disabled={
                                                                     profileSettings &&
@@ -948,8 +948,8 @@ export class ProfileSetting extends Component {
                                                                 height: '5px',
                                                             }}
                                                         ></div>
-                                                        <div 
-                                                            id='smsVerificationErrors'
+                                                        <div
+                                                            id="smsVerificationErrors"
                                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
                                                         >
                                                             <label className="Checkbox">
