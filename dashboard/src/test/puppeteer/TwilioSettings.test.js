@@ -200,4 +200,26 @@ describe('Custom Twilio Settings', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should send a verification SMS before allowing user to update his alert phone number.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.type('input[type=tel]','+19173976235');
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                const errorMessage= await page.$$('#smsVerificationErrors');
+                expect(errorMessage).toEqual([])
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
 });
