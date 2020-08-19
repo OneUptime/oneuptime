@@ -193,6 +193,8 @@ describe('Twilio Settings API', () => {
                 await page.click('#twilio a');
                 await page.waitForSelector('#twilio-form');
 
+                await page.$eval('#sms-enabled', e => e.click());
+
                 await page.click('input[name=account-sid]');
                 await page.type(
                     'input[name=account-sid]',
@@ -203,9 +205,9 @@ describe('Twilio Settings API', () => {
                     'input[name=authentication-token]',
                     process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
                 );
-                await page.click('input[name=phone');
+                await page.click('input[name=phone]');
                 await page.type(
-                    'input[name=phone',
+                    'input[name=phone]',
                     process.env.TEST_TWILIO_PHONE
                 );
 
