@@ -11,7 +11,9 @@ import {
     auditLogStatusChange,
 } from '../actions/auditLogs';
 import Dashboard from '../components/Dashboard';
-import { ListLoader } from '../components/basic/Loader';
+import { Link } from 'react-router-dom';
+import AlertPanel from '../components/basic/AlertPanel';
+import ShouldRender from '../components/basic/ShouldRender';
 class AuditLogs extends React.Component {
     constructor(props) {
         super(props);
@@ -68,7 +70,7 @@ class AuditLogs extends React.Component {
     };
 
     render() {
-        const { auditLogStatus, changeAuditLogStatus } = this.props;
+        const { auditLogStatus } = this.props;
         return (
             <Dashboard ready={this.ready}>
                 <div
@@ -127,69 +129,40 @@ class AuditLogs extends React.Component {
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                                {auditLogStatus.data ? (
-                                                                    <div className="Flex-flex Flex-justifyContent--flexEnd Flex-alignItems--center Margin-vertical--8">
-                                                                        <label
-                                                                            id="toggle-label-title"
-                                                                            className="Margin-right--8"
-                                                                        >
-                                                                            {auditLogStatus
-                                                                                .data
-                                                                                .value
-                                                                                ? `Disable `
-                                                                                : 'Enable '}
-                                                                            Audit
-                                                                            Logs
-                                                                        </label>
-                                                                        <div>
-                                                                            <label className="Toggler-wrap">
-                                                                                <input
-                                                                                    className="btn-toggler"
-                                                                                    type="checkbox"
-                                                                                    onChange={
-                                                                                        this
-                                                                                            .handleCheckChange
-                                                                                    }
-                                                                                    name="auditStatusToggler"
-                                                                                    id="auditStatusToggler"
-                                                                                    checked={
-                                                                                        auditLogStatus
-                                                                                            .data
-                                                                                            .value
-                                                                                    }
-                                                                                    disabled={
-                                                                                        changeAuditLogStatus.requesting
-                                                                                    }
-                                                                                />
-                                                                                <span className="TogglerBtn-slider round"></span>
-                                                                            </label>
-                                                                        </div>
-                                                                    </div>
-                                                                ) : null}
-                                                                {this.props
-                                                                    .changeAuditLogStatus
-                                                                    .requesting ? (
-                                                                    <ListLoader />
-                                                                ) : changeAuditLogStatus.error ? (
-                                                                    <div className="Flex-flex Flex-justifyContent--flexEnd Flex-alignItems--center Margin-vertical--8">
-                                                                        <span
-                                                                            style={{
-                                                                                color:
-                                                                                    'red',
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                changeAuditLogStatus.error
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                    <div></div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column">
+                                                    <ShouldRender
+                                                        if={
+                                                            auditLogStatus.data &&
+                                                            !auditLogStatus.data
+                                                                .value
+                                                        }
+                                                    >
+                                                        <AlertPanel
+                                                            message={
+                                                                <span>
+                                                                    You are
+                                                                    currently
+                                                                    not storing
+                                                                    any audit
+                                                                    logs at the
+                                                                    moment.
+                                                                    Click{' '}
+                                                                    <Link
+                                                                        className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                                        to="/admin/settings/audit-logs"
+                                                                    >
+                                                                        here
+                                                                    </Link>{' '}
+                                                                    to turn it
+                                                                    on.
+                                                                </span>
+                                                            }
+                                                        />
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                             <AuditLogsList
@@ -256,7 +229,6 @@ AuditLogs.propTypes = {
     userId: PropTypes.string,
     fetchAuditLogStatus: PropTypes.func.isRequired,
     auditLogStatus: PropTypes.object,
-    changeAuditLogStatus: PropTypes.object,
     auditLogStatusChange: PropTypes.func,
 };
 
