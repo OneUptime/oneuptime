@@ -6,23 +6,31 @@ import ShouldRender from './ShouldRender';
 
 class Notes extends Component {
     render() {
-        const { history, statusPageId } = this.props;
+        const {
+            history,
+            statusPageId,
+            uptimeColor,
+            downtimeColor,
+            degradedColor,
+        } = this.props;
 
         return (
             <ShouldRender if={this.props.notes}>
                 {this.props.notes.map((note, i) => {
                     if (!note) return <div>No note</div>;
                     return (
-                        <li
-                            className="incidentlist feed-item clearfix"
-                            key={i}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() =>
-                                history.push(
-                                    `/status-page/${statusPageId}/incident/${note._id}`
-                                )
-                            }
-                        >
+                        <li className="incidentlist feed-item clearfix" key={i}>
+                            <div
+                                className="incident-status-bubble"
+                                style={{
+                                    backgroundColor:
+                                        note.incidentType === 'online'
+                                            ? uptimeColor.backgroundColor
+                                            : note.incidentType === 'offline'
+                                            ? downtimeColor.backgroundColor
+                                            : degradedColor.backgroundColor,
+                                }}
+                            ></div>
                             <div
                                 className="message"
                                 style={{
