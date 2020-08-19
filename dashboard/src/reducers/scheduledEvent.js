@@ -32,6 +32,9 @@ import {
     DELETE_SCHEDULED_EVENT_NOTE_REQUEST,
     DELETE_SCHEDULED_EVENT_NOTE_SUCCESS,
     DELETE_SCHEDULED_EVENT_NOTE_FAILURE,
+    FETCH_ONGOING_SCHEDULED_EVENTS_FAILURE,
+    FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST,
+    FETCH_ONGOING_SCHEDULED_EVENTS_SUCCESS,
 } from '../constants/scheduledEvent';
 
 const INITIAL_STATE = {
@@ -101,6 +104,13 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+    },
+    ongoingScheduledEvent: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        count: 0,
     },
 };
 
@@ -188,6 +198,40 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST:
+            return {
+                ...state,
+                ongoingScheduledEvent: {
+                    ...state.ongoingScheduledEvent,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            };
+
+        case FETCH_ONGOING_SCHEDULED_EVENTS_SUCCESS:
+            return {
+                ...state,
+                ongoingScheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                },
+            };
+
+        case FETCH_ONGOING_SCHEDULED_EVENTS_FAILURE:
+            return {
+                ...state,
+                ongoingScheduledEvent: {
+                    ...state.ongoingScheduledEvent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         case FETCH_SCHEDULED_EVENT_SUCCESS:
             return {

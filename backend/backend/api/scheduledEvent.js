@@ -7,6 +7,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
+const moment = require('moment');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -247,6 +248,43 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
         );
 
         return sendItemResponse(req, res, event);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// get ongoing scheduled events
+router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId } = req.params;
+        const currentDate = moment();
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.',
+            });
+        }
+
+        if (typeof projectId !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is not of string type.',
+            });
+        }
+
+        const events = await ScheduledEventService.findBy({
+            projectId,
+            startDate: { $lte: currentDate },
+        });
+        const count = await ScheduledEventService.countBy({
+            projectId,
+            startDate: { $lte: currentDate },
+        });
+        return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

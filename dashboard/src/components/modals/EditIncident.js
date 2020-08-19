@@ -9,36 +9,7 @@ import { updateIncident } from '../../actions/incident';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
-import AceEditor from 'react-ace';
-import 'brace/mode/markdown';
-import 'brace/theme/github';
-
-const MarkdownEditor = ({ input }) => (
-    <AceEditor
-        mode="markdown"
-        theme="github"
-        value={input.value}
-        editorProps={{
-            $blockScrolling: true,
-        }}
-        height="150px"
-        width="100%"
-        highlightActiveLine={true}
-        setOptions={{
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            enableSnippets: true,
-            showGutter: false,
-        }}
-        onChange={input.onChange}
-        placeholder="This can be markdown"
-    />
-);
-
-MarkdownEditor.displayName = 'MarkdownEditor';
-MarkdownEditor.propTypes = {
-    input: PropTypes.object.isRequired,
-};
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class EditIncident extends Component {
     submitForm = values => {
@@ -153,7 +124,11 @@ class EditIncident extends Component {
                                             <div className="bs-Fieldset-fields">
                                                 <Field
                                                     name="description"
-                                                    component={MarkdownEditor}
+                                                    component={RenderCodeEditor}
+                                                    mode="markdown"
+                                                    height="150px"
+                                                    width="100%"
+                                                    placeholder="This can be markdown"
                                                 />
                                             </div>
                                         </div>

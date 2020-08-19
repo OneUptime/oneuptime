@@ -24,8 +24,6 @@ import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-import 'brace/mode/javascript';
-import 'brace/theme/github';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
 import { history } from '../../store';

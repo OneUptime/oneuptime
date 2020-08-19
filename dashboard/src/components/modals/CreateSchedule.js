@@ -32,7 +32,6 @@ function validate(values) {
 class CreateSchedule extends React.Component {
     state = {
         currentDate: moment(),
-        addMonitor: false,
         dateError: null,
         monitorError: null,
     };
@@ -53,6 +52,8 @@ class CreateSchedule extends React.Component {
                 monitorId => typeof monitorId === 'string'
             );
             postObj.monitors = monitors;
+        } else {
+            postObj.monitors = [];
         }
 
         postObj.name = values.name;
@@ -73,6 +74,17 @@ class CreateSchedule extends React.Component {
         if (isDuplicate) {
             this.setState({
                 monitorError: 'Duplicate monitor selection found',
+            });
+            return;
+        }
+
+        if (
+            postObj.monitors &&
+            postObj.monitors.length === 0 &&
+            !values.selectAllMonitors
+        ) {
+            this.setState({
+                monitorError: 'No monitor was selected',
             });
             return;
         }
@@ -106,36 +118,53 @@ class CreateSchedule extends React.Component {
     };
 
     renderMonitors = ({ fields }) => {
-        const { addMonitor, monitorError } = this.state;
+        const { monitorError } = this.state;
+        const { formValues } = this.props;
         return (
             <>
-                {!addMonitor && (
-                    <div className="Checkbox-label Box-root Margin-left--8">
-                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <span>
-                                By default all monitors are selected, you can
-                                add specific monitors if you want
-                            </span>
-                        </span>
-                        <button
-                            id="addMoreMonitor"
-                            className="Button bs-ButtonLegacy ActionIconParent"
-                            style={{
-                                marginTop: 8,
-                            }}
-                            type="button"
-                            onClick={() => {
-                                this.handleAddMoreMonitors();
-                                fields.push();
-                            }}
+                {formValues && formValues.selectAllMonitors && (
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ padding: 0, width: '100%' }}
+                    >
+                        <div
+                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                            style={{ padding: 0 }}
                         >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add Monitor</span>
-                            </span>
-                        </button>
+                            <div
+                                className="Box-root"
+                                style={{
+                                    height: '5px',
+                                }}
+                            ></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                <label
+                                    className="Checkbox"
+                                    htmlFor="selectAllMonitorsBox"
+                                >
+                                    <Field
+                                        component="input"
+                                        type="checkbox"
+                                        name="selectAllMonitors"
+                                        className="Checkbox-source"
+                                        id="selectAllMonitorsBox"
+                                    />
+                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                        <div className="Checkbox-target Box-root">
+                                            <div className="Checkbox-color Box-root"></div>
+                                        </div>
+                                    </div>
+                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>All Monitors Selected</span>
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 )}
-                {addMonitor && (
+                {formValues && !formValues.selectAllMonitors && (
                     <div
                         style={{
                             width: '100%',
@@ -159,6 +188,50 @@ class CreateSchedule extends React.Component {
                                 <span>Add Monitor</span>
                             </span>
                         </button>
+                        {fields.length === 0 && !formValues.selectAllMonitors && (
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0, width: '100%' }}
+                            >
+                                <div
+                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            height: '5px',
+                                        }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="selectAllMonitorsBox"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="selectAllMonitors"
+                                                className="Checkbox-source"
+                                                id="selectAllMonitorsBox"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        No Monitors Selected
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {fields.map((field, index) => {
                             return (
                                 <div
@@ -188,7 +261,7 @@ class CreateSchedule extends React.Component {
                                                 ? this.props.monitors.map(
                                                       monitor => ({
                                                           value: monitor._id,
-                                                          label: monitor.name,
+                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
                                                       })
                                                   )
                                                 : []),
@@ -240,10 +313,6 @@ class CreateSchedule extends React.Component {
                 )}
             </>
         );
-    };
-
-    handleAddMoreMonitors = () => {
-        this.setState({ addMonitor: true });
     };
 
     render() {
@@ -517,10 +586,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </fieldset>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -560,10 +626,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -606,10 +669,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -651,10 +711,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">
-                                        <label
-                                            className="bs-Fieldset-label"
-                                            style={{ flex: '25% 0 0' }}
-                                        >
+                                        <label className="bs-Fieldset-label">
                                             <span></span>
                                         </label>
                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -765,6 +822,7 @@ CreateSchedule.propTypes = {
     ]),
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     monitors: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 const NewCreateSchedule = reduxForm({
@@ -801,6 +859,7 @@ const mapStateToProps = state => {
             alertSubscriber: true,
             callScheduleOnEvent: true,
             showEventOnStatusPage: true,
+            selectAllMonitors: true,
         },
         formValues:
             state.form.newCreateSchedule && state.form.newCreateSchedule.values,

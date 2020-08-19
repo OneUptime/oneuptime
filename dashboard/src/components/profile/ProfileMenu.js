@@ -21,16 +21,16 @@ export class ProfileMenu extends Component {
     }
 
     componentDidMount() {
-        window.addEventListener('keydown', e => this.handleShortcut(e));
+        window.addEventListener('keydown', this.handleShortcut);
     }
 
     componentWillUnmount() {
-        window.removeEventListener('keydown', e => this.handleShortcut(e));
+        window.removeEventListener('keydown', this.handleShortcut);
     }
 
     handleShortcut = event => {
         // Only execute keyboard shortcut when profile menu is open
-        if (event.target.localName === 'button') {
+        if (event.target.localName === 'button' && event.key) {
             if (event.key === 'p' || event.key === 'P') {
                 this.props.hideProfileMenu();
                 this.props.history.push('/dashboard/profile/settings');
@@ -47,7 +47,7 @@ export class ProfileMenu extends Component {
 
     showAboutModal = () => {
         this.props.hideProfileMenu();
-
+        window.removeEventListener('keydown', this.handleShortcut);
         this.props.openModal({
             id: this.state.aboutId,
             onClose: () => '',

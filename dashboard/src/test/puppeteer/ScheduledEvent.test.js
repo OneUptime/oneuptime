@@ -73,6 +73,7 @@ describe('Scheduled event', () => {
                 await page.waitForSelector('#name');
                 await page.click('#name');
                 await page.type('#name', scheduledEventName);
+                await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
                 await init.selectByText('#monitorfield_0', monitorName, page);
@@ -127,6 +128,7 @@ describe('Scheduled event', () => {
                 await page.waitForSelector('#name');
                 await page.click('#name');
                 await page.type('#name', scheduledEventName);
+                await page.click('label[for=selectAllMonitorsBox]');
                 await page.click('#addMoreMonitor');
                 await page.waitForSelector('#monitorfield_0');
                 await init.selectByText('#monitorfield_0', monitorName, page);

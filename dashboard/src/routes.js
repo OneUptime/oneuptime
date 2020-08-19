@@ -305,6 +305,7 @@ export const groups = [
                     },
                 ],
                 index: 5,
+                shortcut: 'f+v',
             },
             {
                 title: 'Reports',
@@ -527,6 +528,7 @@ export const groups = [
                 component: Consulting,
                 subRoutes: [],
                 index: 1,
+                shortcut: 'f+z',
             },
         ],
     },
