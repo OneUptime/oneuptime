@@ -442,6 +442,7 @@ module.exports = {
         await page.click('#name');
         await page.type('#name', scheduledEventName);
         if (monitorName) {
+            await page.click('label[for=selectAllMonitorsBox]');
             await page.click('#addMoreMonitor');
             await page.waitForSelector('#monitorfield_0');
             await this.selectByText('#monitorfield_0', monitorName, page);

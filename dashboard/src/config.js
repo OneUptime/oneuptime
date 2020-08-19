@@ -385,6 +385,13 @@ export const PricingPlan = {
     },
 };
 
+export const capitalize = words => {
+    words = words.split(' ');
+    words = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+
+    return words.join(' ').trim();
+};
+
 export const tutorials = {
     getTutorials() {
         return [
