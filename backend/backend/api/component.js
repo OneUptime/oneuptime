@@ -229,7 +229,7 @@ router.get(
                     name: elem.name,
                     type: `${
                         elem.type === 'server-monitor'
-                            ? 'server-monitor'
+                            ? 'server monitor'
                             : elem.type === 'url'
                             ? 'website monitor'
                             : elem.type + ` monitor`
