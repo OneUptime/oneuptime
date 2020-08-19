@@ -278,7 +278,7 @@ class CreateSchedule extends React.Component {
                                             fields.remove(index);
                                         }}
                                     >
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
                                             <span>Remove Monitor</span>
                                         </span>
                                     </button>
