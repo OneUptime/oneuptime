@@ -235,7 +235,7 @@ class Incident extends Component {
                                                 fontWeight: 'bold',
                                             }}
                                         >
-                                            Scheduled Event Notes
+                                            Incident Updates
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -327,7 +327,7 @@ class Incident extends Component {
                                                             'rgb(76, 76, 76)',
                                                     }}
                                                 >
-                                                    No incident note yet.
+                                                    No incident updates yet.
                                                 </span>
                                             </li>
                                         )}
