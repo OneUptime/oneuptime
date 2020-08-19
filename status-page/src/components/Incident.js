@@ -115,36 +115,30 @@ class Incident extends Component {
             incidentNotes,
         } = this.props;
 
+        let downtimeColor, uptimeColor, degradedColor;
+        if (
+            !this.props.requestingStatus &&
+            this.props.statusData &&
+            this.props.statusData.colors
+        ) {
+            const colors = this.props.statusData.colors;
+            downtimeColor = {
+                backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
+            };
+            uptimeColor = {
+                backgroundColor: `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`,
+            };
+            degradedColor = {
+                backgroundColor: `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b})`,
+            };
+        }
+
         return (
             <div
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
                 <div className="innernew" style={{ width: 609 }}>
-                    <div
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
-                    >
-                        <div
-                            className="largestatus"
-                            style={{ padding: '30px 36px' }}
-                        >
-                            <div className="title-wrapper">
-                                <span
-                                    className="title"
-                                    style={{
-                                        color: 'rgb(0, 0, 0)',
-                                        padding: 0,
-                                        margin: 0,
-                                        fontSize: 20,
-                                    }}
-                                >
-                                    Incident
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
                     <div
                         id="incident"
                         className="twitter-feed white box"
@@ -156,7 +150,39 @@ class Incident extends Component {
                                 position: 'relative',
                             }}
                         >
-                            <div className="box-inner">
+                            <div
+                                className="box-inner"
+                                style={{ paddingTop: 20, paddingBottom: 20 }}
+                            >
+                                {!this.props.requestingStatus &&
+                                    !fetchingIncident &&
+                                    incident.incidentType && (
+                                        <div
+                                            className="incident-status-bubble"
+                                            style={{
+                                                backgroundColor:
+                                                    incident.incidentType ===
+                                                    'online'
+                                                        ? uptimeColor.backgroundColor
+                                                        : incident.incidentType ===
+                                                          'offline'
+                                                        ? downtimeColor.backgroundColor
+                                                        : degradedColor.backgroundColor,
+                                            }}
+                                        ></div>
+                                    )}
+                                <span
+                                    style={{
+                                        color: 'rgba(76, 76, 76, 0.52)',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '700',
+                                        display: 'inline-block',
+                                        marginBottom: 20,
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    Incident
+                                </span>
                                 {!fetchingIncident && incident.title && (
                                     <div
                                         className="feed-header clearfix"
