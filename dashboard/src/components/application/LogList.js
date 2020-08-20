@@ -329,7 +329,7 @@ class LogList extends Component {
                                                                                                                           .applicationLog
                                                                                                                           .name
                                                                                                                     : 'Unknown'
-                                                                                                            } application log`,
+                                                                                                            }`,
                                                                                                             rootName:
                                                                                                                 'content',
                                                                                                         }
