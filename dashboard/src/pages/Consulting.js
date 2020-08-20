@@ -1,11 +1,52 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
+import { PropTypes } from 'prop-types';
+import Slider from 'react-slick';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import { PropTypes } from 'prop-types';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 class Consulting extends Component {
     render() {
+        const settings = {
+            infinite: true,
+            speed: 1000,
+            slidesToShow: 1.5,
+            slidesToScroll: 1,
+            autoplay: true,
+            responsive: [
+                {
+                    breakpoint: 1024,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    },
+                },
+                {
+                    breakpoint: 760,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    },
+                },
+                {
+                    breakpoint: 600,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    },
+                },
+                {
+                    breakpoint: 375,
+                    settings: {
+                        slidesToShow: 1,
+                        slidesToScroll: 1,
+                    },
+                },
+            ],
+        };
+
         const {
             location: { pathname },
         } = this.props;
@@ -21,15 +62,12 @@ class Consulting extends Component {
                             <div className="Box-root Card-shadow--medium Border-radius--4">
                                 <div className="bs-ContentSection-content Box-root Padding-horizontal--32 Padding-vertical--32">
                                     <div className="Flex-direction--row Text-align--center Text-fontSize--32 Text-fontWeight--bold">
-                                        <div
-                                            className="Padding-top--24 Text-fontWeight--bold"
-                                            style={{ fontSize: '50px' }}
-                                        >
+                                        <div className="Padding-top--24 Text-color--inherit Text-display--inline Text-fontSize--48 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                             Who we are
                                         </div>
                                     </div>
-                                    <div className="Flex-direction--row Text-align--center Text-fontSize--20 Padding-bottom--48 Padding-top--12">
-                                        <div>
+                                    <div className="Flex-direction--row Padding-bottom--48 Padding-top--12">
+                                        <div className="Text-display--inline Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             We&#39;ve helped everyone from tiny
                                             startups to enterprises and helped
                                             them build products that are simple,
@@ -37,54 +75,39 @@ class Consulting extends Component {
                                         </div>
                                     </div>
                                     <div className="Flex-flex Flex-direction--row Text-align--center Margin-top--32 Flex-wrap--wrap">
-                                        <div style={{ flex: 1 }}>
+                                        <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/sony.jpg"
-                                                style={{
-                                                    maxHheight: '9vw',
-                                                    maxWidth: '75%',
-                                                }}
+                                                className="Responsive-image"
                                             />
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/bank-of-america.png"
-                                                style={{
-                                                    maxHeight: '9vw',
-                                                    maxWidth: '75%',
-                                                }}
+                                                className="Responsive-image"
                                             />
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/adobe.png"
-                                                style={{
-                                                    maxHheight: '9vw',
-                                                    maxWidth: '75%',
-                                                }}
+                                                className="Responsive-image"
                                             />
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/hershey-logo.png"
-                                                style={{
-                                                    maxHheight: '9vw',
-                                                    maxWidth: '75%',
-                                                }}
+                                                className="Responsive-image"
                                             />
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/cocacola.png"
-                                                style={{
-                                                    maxHheight: '9vw',
-                                                    maxWidth: '75%',
-                                                }}
+                                                className="Responsive-image"
                                             />
                                         </div>
                                     </div>
-                                    <div className="Flex-direction--row Text-align--center Text-fontSize--20 Padding-bottom--48 Padding-top--48">
-                                        <div>
+                                    <div className="Flex-direction--row Text-fontSize--20 Padding-bottom--48 Padding-top--48">
+                                        <div className="Text-display--inline Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             We&#39;re one of the few agencies in
                                             the world that can take a product
                                             idea from end to end. From napkin
@@ -94,18 +117,17 @@ class Consulting extends Component {
                                             team.
                                         </div>
                                     </div>
-                                    <div className="Flex-flex Flex-direction--row Text-align--left Flex-wrap--wrap">
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                    <div className="Flex-flex Flex-direction--row Flex-wrap--wrap bs-Container">
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--demo"></span>
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Demos every week
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -118,17 +140,16 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--update" />
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Updates every day
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -141,19 +162,18 @@ class Consulting extends Component {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="Flex-flex Flex-direction--row Text-align--left Flex-wrap--wrap">
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                    <div className="Flex-flex Flex-direction--row Flex-wrap--wrap bs-Container">
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--engineer"></span>
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Talk directly to
                                                         engineers
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -166,17 +186,16 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--group" />
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Our team is yours
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -189,18 +208,17 @@ class Consulting extends Component {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="Flex-flex Flex-direction--row Text-align--left Flex-wrap--wrap">
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                    <div className="Flex-flex Flex-direction--row Flex-wrap--wrap bs-Container">
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--clock"></span>
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Part time or Full time
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -212,17 +230,16 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--transparency" />
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Transparency in work
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -236,18 +253,17 @@ class Consulting extends Component {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="Flex-flex Flex-direction--row Text-align--left Flex-wrap--wrap">
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                    <div className="Flex-flex Flex-direction--row Flex-wrap--wrap bs-Container">
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--diversity" />
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Any technology
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -259,18 +275,17 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div
-                                            style={{ flex: 1, padding: '20px' }}
-                                        >
+                                        <div className="Flex-flex--1 Padding-all--20">
                                             <div>
                                                 <div>
                                                     <span className="db-ListItem-icon db-SideNav-icon--plant" />
-                                                    <span className="Text-fontWeight--bold">
+                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         Beautiful apps.
                                                         Guaranteed.
                                                     </span>
                                                 </div>
                                                 <div
+                                                    className="Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     style={{
                                                         marginLeft: '26px',
                                                     }}
@@ -280,6 +295,184 @@ class Consulting extends Component {
                                                     simple and easy to use.
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div className="Flex-direction--row Padding-bottom--48 Padding-top--48 Text-fontSize--14 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <Slider {...settings}>
+                                            <div className="Flex-flex Flex-direction--row Padding-all--12">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                    <div
+                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        style={{
+                                                            width: '400px',
+                                                            height: '200px',
+                                                        }}
+                                                    >
+                                                        Fyipe team is one of the
+                                                        most experienced web
+                                                        developers that I have
+                                                        worked with. They
+                                                        handled my small project
+                                                        with extra attention and
+                                                        was very willing to
+                                                        educate me in best web
+                                                        protocols.
+                                                    </div>
+                                                    <div className="ContextualPopover-arrowContainer">
+                                                        <div className="ContextualPopover-arrow--right" />
+                                                    </div>
+                                                    <div className="Flex-flex Flex-direction--row Flex-alignItems--center">
+                                                        <div
+                                                            className="db-ListItem-icon"
+                                                            style={{
+                                                                borderRadius:
+                                                                    '100%',
+                                                                marginLeft:
+                                                                    '10px',
+                                                                marginRight:
+                                                                    '10px',
+                                                                backgroundImage:
+                                                                    'url("/dashboard/assets/img/nikki.jpeg")',
+                                                                backgroundSize:
+                                                                    'cover',
+                                                                flex: 'none',
+                                                            }}
+                                                        />
+                                                        <div className="Flex-flex Flex-direction--row">
+                                                            <div>
+                                                                <div>
+                                                                    Nikki Durkin
+                                                                </div>
+                                                                <div>
+                                                                    CEO,
+                                                                    CodeMakers
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="Flex-flex Flex-direction--row Padding-all--12">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                    <div
+                                                        className="ContextualPopover-contents Padding-all--32 shadow Card-shadow--clear"
+                                                        style={{
+                                                            width: '400px',
+                                                            height: '200px',
+                                                        }}
+                                                    >
+                                                        Fyipe team was very
+                                                        skillful, They were
+                                                        always open to feedback
+                                                        and helped me
+                                                        troubleshoot issues that
+                                                        weren&#39;t necessarily
+                                                        a part of the contract.
+                                                        Delivered on time.
+                                                    </div>
+                                                    <div className="ContextualPopover-arrowContainer">
+                                                        <div className="ContextualPopover-arrow--right" />
+                                                    </div>
+                                                    <div className="Flex-flex Flex-direction--row Flex-alignItems--center">
+                                                        <div
+                                                            className="db-ListItem-icon db-SideNav-icon--engineer border"
+                                                            style={{
+                                                                borderRadius:
+                                                                    '100%',
+                                                                marginLeft:
+                                                                    '10px',
+                                                                marginRight:
+                                                                    '10px',
+                                                                backgroundImage:
+                                                                    'url("/dashboard/assets/img/matt.jpeg")',
+                                                                backgroundSize:
+                                                                    'cover',
+                                                                flex: 'none',
+                                                            }}
+                                                        />
+                                                        <div className="Flex-flex Flex-direction--row">
+                                                            <div>
+                                                                <div>
+                                                                    Matt Wilcox
+                                                                </div>
+                                                                <div>
+                                                                    CTO,
+                                                                    Lunalights
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className=" Flex-flex Flex-direction--row Padding-all--12">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                    <div
+                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        style={{
+                                                            width: '400px',
+                                                            height: '200px',
+                                                        }}
+                                                    >
+                                                        Your tech team often was
+                                                        able to offer expert
+                                                        advice on topics that I
+                                                        had not considered.
+                                                        Nawaz was definitely
+                                                        added value to this
+                                                        project and I look
+                                                        forward to working with
+                                                        him in the future.
+                                                    </div>
+                                                    <div className="ContextualPopover-arrowContainer">
+                                                        <div className="ContextualPopover-arrow--right" />
+                                                    </div>
+                                                    <div className="Flex-flex Flex-direction--row Flex-alignItems--center">
+                                                        <div
+                                                            className="db-ListItem-icon db-SideNav-icon--engineer"
+                                                            style={{
+                                                                borderRadius:
+                                                                    '100%',
+                                                                marginLeft:
+                                                                    '10px',
+                                                                marginRight:
+                                                                    '10px',
+                                                                backgroundImage:
+                                                                    'url("/dashboard/assets/img/pratap.jpeg")',
+                                                                backgroundSize:
+                                                                    'cover',
+                                                                flex: 'none',
+                                                            }}
+                                                        />
+                                                        <div className="Flex-flex Flex-direction--row">
+                                                            <div>
+                                                                <div>
+                                                                    Pratap
+                                                                    Shergill
+                                                                </div>
+                                                                <div>
+                                                                    CEO,
+                                                                    PetCloud
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Slider>
+                                    </div>
+                                    <div className="Flex-direction--row Text-align--center Padding-bottom--48 Padding-top--48">
+                                        <div className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                            Have a project for us?
+                                        </div>
+                                        <div className="Padding-all--20">
+                                            <a
+                                                href="mailto: consulting@fyipe.com"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="bs-Button bs-Button--blue"
+                                            >
+                                                <span>Let&#39;s Chat</span>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>

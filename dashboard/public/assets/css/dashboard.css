@@ -3655,6 +3655,20 @@ figure.bs-Number > figcaption {
     width: auto;
     max-width: 320px;
   }
+  .Flex-direction--row.bs-Container {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+}
+@media only screen and (max-width: 600px) {
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
 }
 .bs-Modal:focus {
   outline: none;
@@ -51222,4 +51236,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 
 .Border-radius--4 {
   border-radius: 4px;
+}
+
+.Responsive-image {
+  max-height: 9vw;
+  max-width: 75%;
 }
