@@ -163,9 +163,9 @@ class ApplicationLogDetail extends Component {
         }
         const logOptions = [
             { value: '', label: 'All Logs' },
+            { value: 'error', label: 'Error' },
             { value: 'warning', label: 'Warning' },
             { value: 'info', label: 'Info' },
-            { value: 'error', label: 'Error' },
         ];
         if (applicationLog) {
             return (
@@ -192,6 +192,8 @@ class ApplicationLogDetail extends Component {
                                     this.resetApplicationLogKey
                                 }
                                 stats={stats}
+                                handleLogTypeChange={this.handleLogTypeChange}
+                                logOptions={logOptions}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
