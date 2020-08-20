@@ -34,6 +34,7 @@ const probeServerRequestHeader = ({ probeName, probeKey, clusterKey }) => ({
     probeKey,
     clusterKey,
 });
+let probeServerName1, probeServerName2;
 
 describe('Probe API', function() {
     this.timeout(20000);
@@ -283,5 +284,105 @@ describe('Probe API', function() {
                         });
                 });
         });
+    });
+
+    it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function() {
+        probeServerName1 = generateRandomString();
+        const res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName1,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        const probe = await ProbeService.findOneBy({
+            probeName: probeServerName1,
+        });
+        expect(probe).to.not.eql(null);
+    });
+
+    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ',async function(){
+        this.timeout(100000);
+        const monitor = await MonitorService.create({
+            projectId,
+            componentId,
+            name:generateRandomString(),
+            type:"server-monitor"
+
+        })
+        //create a second probe server.
+        probeServerName2 = generateRandomString();
+        let res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName2,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(1);
+
+        res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName1,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(0);
+        
+        await sleep(30000);
+        res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName1,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(0);
+
+        res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName2,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(0);
+
+        await sleep(35000);
+        res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName1,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(1);
+
+        res = await request.get('/probe/monitors').set(
+            probeServerRequestHeader({
+                probeName: probeServerName2,
+                probeKey,
+                clusterKey: process.env.CLUSTER_KEY,
+            })
+        );
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.equal(0);
+
+        //Deleting the monitor is necessary for the results of the next tests
+        await MonitorService.hardDeleteBy({_id:monitor._id});
     });
 });
