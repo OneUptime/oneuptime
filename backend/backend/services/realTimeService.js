@@ -39,6 +39,28 @@ module.exports = {
         }
     },
 
+    updateIncident: async incident => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`updateIncident-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateIncident', error);
+            throw error;
+        }
+    },
+
     deleteIncidentNote: async incident => {
         try {
             const project = await ProjectService.findOneBy({
@@ -75,6 +97,24 @@ module.exports = {
         }
     },
 
+    deleteScheduledEvent: async event => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: event.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : event.projectId;
+
+            global.io.emit(`deleteScheduledEvent-${projectId}`, event);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteScheduledEvent', error);
+            throw error;
+        }
+    },
+
     updateScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
@@ -89,6 +129,144 @@ module.exports = {
             global.io.emit(`updateScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realTimeService.updateScheduledEvent', error);
+            throw error;
+        }
+    },
+
+    addScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `addScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.addScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    addScheduledEventInvestigationNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.addScheduledEventInvestigationNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    deleteScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `deleteScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.deleteScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    deleteScheduledEventInvestigationNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.deleteScheduledEventInvestigationNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    updateScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `updateScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.updateScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    updateScheduledEventInvestigationNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.updateScheduledEventInvestigationNote',
+                error
+            );
             throw error;
         }
     },

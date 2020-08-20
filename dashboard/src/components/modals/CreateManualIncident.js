@@ -10,36 +10,7 @@ import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
-import AceEditor from 'react-ace';
-import 'brace/mode/markdown';
-import 'brace/theme/github';
-
-const MarkdownEditor = ({ input }) => (
-    <AceEditor
-        mode="markdown"
-        theme="github"
-        value={input.value}
-        editorProps={{
-            $blockScrolling: true,
-        }}
-        height="150px"
-        width="100%"
-        highlightActiveLine={true}
-        setOptions={{
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
-            enableSnippets: true,
-            showGutter: false,
-        }}
-        onChange={input.onChange}
-        placeholder="This can be markdown"
-    />
-);
-
-MarkdownEditor.displayName = 'MarkdownEditor';
-MarkdownEditor.propTypes = {
-    input: PropTypes.object.isRequired,
-};
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateManualIncident extends Component {
     constructor(props) {
@@ -248,8 +219,12 @@ class CreateManualIncident extends Component {
                                                     <Field
                                                         name="description"
                                                         component={
-                                                            MarkdownEditor
+                                                            RenderCodeEditor
                                                         }
+                                                        mode="markdown"
+                                                        height="150px"
+                                                        width="100%"
+                                                        placeholder="This can be markdown"
                                                     />
                                                 </div>
                                             </div>

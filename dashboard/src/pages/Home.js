@@ -17,6 +17,8 @@ import moment from 'moment-timezone';
 import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
+import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
+import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 
 class Home extends Component {
     componentDidMount() {
@@ -30,6 +32,7 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
+            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
     }
 
@@ -45,6 +48,7 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
+            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
     }
 
@@ -175,6 +179,30 @@ class Home extends Component {
             });
         }
 
+        let ongoingEventList;
+        if (
+            this.props.ongoingScheduledEvent.events &&
+            this.props.ongoingScheduledEvent.events.length > 0
+        ) {
+            ongoingEventList = this.props.ongoingScheduledEvent.events.map(
+                event => {
+                    return (
+                        <RenderIfUserInSubProject
+                            key={event._id}
+                            subProjectId={
+                                event.projectId._id || event.projectId
+                            }
+                        >
+                            <ScheduledEventDescription
+                                scheduledEvent={event}
+                                isOngoing={true}
+                            />
+                        </RenderIfUserInSubProject>
+                    );
+                }
+            );
+        }
+
         return (
             <Dashboard>
                 <Fade>
@@ -291,6 +319,42 @@ class Home extends Component {
                                                                         </div>
                                                                     )}
                                                                 </div>
+
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    {ongoingEventList &&
+                                                                    ongoingEventList.length >
+                                                                        0 ? (
+                                                                        ongoingEventList
+                                                                    ) : (
+                                                                        <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                            <div className="db-Trends-header Padding-vertical--48">
+                                                                                <div className="db-Trends-controls">
+                                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                    <span
+                                                                                                        id="component-content-header"
+                                                                                                        className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                    >
+                                                                                                        You
+                                                                                                        currently
+                                                                                                        don&apos;t
+                                                                                                        have
+                                                                                                        any
+                                                                                                        active
+                                                                                                        scheduled
+                                                                                                        event.
+                                                                                                    </span>
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </>
                                                         ) : (
                                                             ''
@@ -337,6 +401,8 @@ Home.propTypes = {
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
     ]),
+    fetchOngoingScheduledEvents: PropTypes.func,
+    ongoingScheduledEvent: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -348,6 +414,7 @@ const mapStateToProps = (state, props) => {
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
+        ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
     };
 };
 
@@ -357,6 +424,7 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             userScheduleRequest,
             fetchUserSchedule,
+            fetchOngoingScheduledEvents,
         },
         dispatch
     );

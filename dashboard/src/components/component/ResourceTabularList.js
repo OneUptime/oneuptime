@@ -154,6 +154,7 @@ class ResourceTabularList extends Component {
 
         return <div>{indicator}</div>;
     }
+
     render() {
         const { componentResource } = this.props;
         const componentResources =
@@ -320,13 +321,6 @@ class ResourceTabularList extends Component {
                                                         id={`view-resource-${componentResource.name}`}
                                                         className="bs-Button"
                                                         type="button"
-                                                        onClick={() => {
-                                                            history.push(
-                                                                this.generateUrlLink(
-                                                                    componentResource
-                                                                )
-                                                            );
-                                                        }}
                                                     >
                                                         <span>View</span>
                                                     </button>
