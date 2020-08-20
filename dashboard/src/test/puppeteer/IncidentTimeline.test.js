@@ -471,7 +471,7 @@ describe('Incident Timeline API', () => {
                 '#incidentTimeline tr.incidentListItem'
             );
             countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(10);
+            expect(countIncidentTimelines).toEqual(5);
 
             const prevSelector = await page.$('#btnTimelinePrev');
             await prevSelector.click();
