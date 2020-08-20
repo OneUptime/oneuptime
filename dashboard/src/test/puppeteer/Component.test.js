@@ -19,7 +19,7 @@ const applicationLogName = utils.generateRandomString();
 describe('Components', () => {
     const operationTimeOut = 100000;
 
-    let cluster, browser, componentPage;
+    let cluster, browser; /*componentPage*/
 
     beforeAll(async () => {
         jest.setTimeout(200000);
@@ -33,7 +33,7 @@ describe('Components', () => {
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
         });
-        componentPage = await browser.newPage();
+        // componentPage = await browser.newPage();
 
         cluster.on('taskerror', err => {
             throw err;

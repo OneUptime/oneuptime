@@ -126,7 +126,7 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
-                    'tr.incidentListItem'
+                    '#incidentTimeline tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(2);
@@ -189,7 +189,7 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
-                    'tr.incidentListItem'
+                    '#incidentTimeline tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(6);
@@ -456,8 +456,10 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(2000);
             }
 
-            await page.waitForSelector('tr.incidentListItem');
-            let incidentTimelineRows = await page.$$('tr.incidentListItem');
+            await page.waitForSelector('#incidentTimeline tr.incidentListItem');
+            let incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             let countIncidentTimelines = incidentTimelineRows.length;
 
             expect(countIncidentTimelines).toEqual(10);
@@ -465,14 +467,18 @@ describe('Incident Timeline API', () => {
             const nextSelector = await page.$('#btnTimelineNext');
             await nextSelector.click();
             await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(10);
 
             const prevSelector = await page.$('#btnTimelinePrev');
             await prevSelector.click();
             await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(10);
         });
