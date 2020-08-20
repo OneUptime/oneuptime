@@ -19,7 +19,7 @@ const applicationLogName = utils.generateRandomString();
 describe('Components', () => {
     const operationTimeOut = 100000;
 
-    let cluster, browser; /*componentPage*/
+    let cluster, browser, componentPage;
 
     beforeAll(async () => {
         jest.setTimeout(200000);
@@ -33,7 +33,7 @@ describe('Components', () => {
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
         });
-        // componentPage = await browser.newPage();
+        componentPage = await browser.newPage();
 
         cluster.on('taskerror', err => {
             throw err;
@@ -277,11 +277,13 @@ describe('Components', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitFor(5000);
 
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const newComponentSelector = '#component0 table > tbody > tr';
                 await page.waitForSelector(newComponentSelector);
@@ -303,105 +305,104 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    // test(
-    //     'Should create an incident in monitor details and change monitor status in component list',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // launch component page
-    //             await init.loginUser(user, componentPage);
-    //             await componentPage.goto(utils.DASHBOARD_URL, {
-    //                 waitUntil: 'networkidle0',
-    //             });
-    //             await componentPage.waitForSelector('#components');
-    //             await componentPage.click('#components');
-    //             let componentSpanElement = await componentPage.waitForSelector(
-    //                 `#resource_type_${monitorName}`
-    //             );
-    //             componentSpanElement = await componentSpanElement.getProperty(
-    //                 'innerText'
-    //             );
-    //             componentSpanElement = await componentSpanElement.jsonValue();
+    test(
+        'Should create an incident in monitor details and change monitor status in component list',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // launch component page
+                await init.loginUser(user, componentPage);
+                await componentPage.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await componentPage.waitForSelector('#components');
+                await componentPage.click('#components');
+                let componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_type_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
 
-    //             expect(componentSpanElement).toMatch('Website Monitor');
+                expect(componentSpanElement).toMatch('Website Monitor');
 
-    //             // use cluster to launch monitor page
-    //             const monitorPage = page;
-    //             await init.navigateToMonitorDetails(
-    //                 componentName,
-    //                 monitorName,
-    //                 monitorPage
-    //             );
-    //             await monitorPage.bringToFront();
-    //             await monitorPage.waitForSelector(
-    //                 `#createIncident_${monitorName}`
-    //             );
-    //             await monitorPage.click(`#createIncident_${monitorName}`);
-    //             await monitorPage.waitForSelector('#createIncident');
-    //             await init.selectByText(
-    //                 '#incidentType',
-    //                 'Offline',
-    //                 monitorPage
-    //             );
-    //             await monitorPage.type('#title', 'new incident');
-    //             await monitorPage.click('#createIncident');
-    //             await monitorPage.waitFor(2000);
-    //             let monitorSpanElement = await monitorPage.waitForSelector(
-    //                 `#monitor-status-${monitorName}`
-    //             );
-    //             monitorSpanElement = await monitorSpanElement.getProperty(
-    //                 'innerText'
-    //             );
-    //             monitorSpanElement = await monitorSpanElement.jsonValue();
-    //             // check that monitor status on monitor page is offline
-    //             expect(monitorSpanElement).toMatch('Offline');
-    //             await monitorPage.waitFor(2000);
+                // use cluster to launch monitor page
+                const monitorPage = page;
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    monitorPage
+                );
+                await monitorPage.bringToFront();
+                await monitorPage.waitForSelector(
+                    `#createIncident_${monitorName}`
+                );
+                await monitorPage.click(`#createIncident_${monitorName}`);
+                await monitorPage.waitForSelector('#createIncident');
+                await init.selectByText(
+                    '#incidentType',
+                    'Offline',
+                    monitorPage
+                );
+                await monitorPage.type('#title', 'new incident');
+                await monitorPage.click('#createIncident');
+                await monitorPage.waitFor(2000);
+                let monitorSpanElement = await monitorPage.waitForSelector(
+                    `#monitor-status-${monitorName}`
+                );
+                monitorSpanElement = await monitorSpanElement.getProperty(
+                    'innerText'
+                );
+                monitorSpanElement = await monitorSpanElement.jsonValue();
+                // check that monitor status on monitor page is offline
+                expect(monitorSpanElement).toMatch('Offline');
+                await monitorPage.waitFor(2000);
 
-    //             await componentPage.bringToFront();
-    //             // check that the monitor is offline on component page
-    //             componentSpanElement = await componentPage.waitForSelector(
-    //                 `#resource_status_${monitorName}`
-    //             );
-    //             componentSpanElement = await componentSpanElement.getProperty(
-    //                 'innerText'
-    //             );
-    //             componentSpanElement = await componentSpanElement.jsonValue();
+                await componentPage.bringToFront();
+                // check that the monitor is offline on component page
+                componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_status_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
 
-    //             expect(componentSpanElement).toMatch('Offline');
-    //             await componentPage.waitFor(2000);
-    //             // bring monitor window to the front so as to resolve incident
-    //             await monitorPage.bringToFront();
-    //             // open incident details
-    //             await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
-    //             await monitorPage.click(`#incident_${monitorName}_0`);
+                expect(componentSpanElement).toMatch('Offline');
+                await componentPage.waitFor(2000);
+                // bring monitor window to the front so as to resolve incident
+                await monitorPage.bringToFront();
+                // open incident details
+                await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
+                await monitorPage.click(`#incident_${monitorName}_0`);
 
-    //             // click resolve button
-    //             // resolve incident
-    //             await monitorPage.waitForSelector('#btnResolve_0');
-    //             await monitorPage.click('#btnResolve_0');
-    //             await monitorPage.waitForSelector('#ResolveText_0');
-    //             // confirm it is resolved here
-    //             const resolveTextSelector = await monitorPage.$(
-    //                 '#ResolveText_0'
-    //             );
-    //             expect(resolveTextSelector).not.toBeNull();
+                // click resolve button
+                // resolve incident
+                await monitorPage.waitForSelector('#btnResolve_0');
+                await monitorPage.click('#btnResolve_0');
+                await monitorPage.waitForSelector('#ResolveText_0');
+                // confirm it is resolved here
+                const resolveTextSelector = await monitorPage.$(
+                    '#ResolveText_0'
+                );
+                expect(resolveTextSelector).not.toBeNull();
 
-    //             // goto component page
-    //             await componentPage.bringToFront();
-    //             // confirm that the monitor is back online!
-    //             componentSpanElement = await componentPage.waitForSelector(
-    //                 `#resource_status_${monitorName}`
-    //             );
-    //             componentSpanElement = await componentSpanElement.getProperty(
-    //                 'innerText'
-    //             );
-    //             componentSpanElement = await componentSpanElement.jsonValue();
+                // // goto component page
+                // await componentPage.bringToFront();
+                // // confirm that the monitor is back online!
+                // componentSpanElement = await componentPage.waitForSelector(
+                //     `#resource_status_${monitorName}`
+                // );
+                // componentSpanElement = await componentSpanElement.getProperty(
+                //     'innerText'
+                // );
+                // componentSpanElement = await componentSpanElement.jsonValue();
 
-    //             expect(componentSpanElement).toMatch('Online');
-    //             await componentPage.waitFor(2000);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                // expect(componentSpanElement).toMatch('Online');
+            });
+        },
+        operationTimeOut
+    );
 
     test(
         'Should get list of resources and confirm their types match',
@@ -413,6 +414,7 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const componentSelector = '#component1 table > tbody > tr';
                 await page.waitForSelector(componentSelector);
