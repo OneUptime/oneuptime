@@ -92,6 +92,14 @@ describe('Probe API', function() {
         await ApplicationSecurityService.hardDelete({ componentId });
         await DockerCredentialService.hardDeleteBy({ projectId });
         await ContainerSecurityService.hardDelete({ componentId });
+        await ProbeService.hardDeleteBy({
+            probeName: {
+                $in: [
+                    probeServerName1,
+                    probeServerName2,
+                ]
+            }
+        });
     });
 
     it('should add a probe by admin', function(done) {
