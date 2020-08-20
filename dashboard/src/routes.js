@@ -362,6 +362,16 @@ export const groups = [
                         shortcut: 'f+m',
                     },
                     {
+                        title: 'Incident Settings',
+                        path:
+                            '/dashboard/project/:projectId/settings/incidents',
+                        icon: 'incidentSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: IncidentPriorities,
+                        index: 3,
+                    },
+                    {
                         title: 'Integrations',
                         path:
                             '/dashboard/project/:projectId/settings/integrations',
