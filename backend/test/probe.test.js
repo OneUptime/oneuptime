@@ -94,11 +94,8 @@ describe('Probe API', function() {
         await ContainerSecurityService.hardDelete({ componentId });
         await ProbeService.hardDeleteBy({
             probeName: {
-                $in: [
-                    probeServerName1,
-                    probeServerName2,
-                ]
-            }
+                $in: [probeServerName1, probeServerName2],
+            },
         });
     });
 
@@ -314,15 +311,14 @@ describe('Probe API', function() {
         expect(probe).to.not.eql(null);
     });
 
-    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ',async function(){
+    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
             componentId,
-            name:generateRandomString(),
-            type:"server-monitor"
-
-        })
+            name: generateRandomString(),
+            type: 'server-monitor',
+        });
         //create a second probe server.
         probeServerName2 = generateRandomString();
         let res = await request.get('/probe/monitors').set(
@@ -346,7 +342,7 @@ describe('Probe API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.count).to.equal(0);
-        
+
         await sleep(30000);
         res = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
@@ -394,20 +390,20 @@ describe('Probe API', function() {
         expect(res.body.count).to.equal(0);
 
         //Deleting the monitor is necessary for the results of the next tests
-        await MonitorService.hardDeleteBy({_id:monitor._id});
+        await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min',async function(){
+    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
             componentId,
-            name:generateRandomString(),
-            type:"url",
-            data:{
-                url:'https://hackerbay.io',
-            }
-        })
+            name: generateRandomString(),
+            type: 'url',
+            data: {
+                url: 'https://hackerbay.io',
+            },
+        });
 
         let res = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
@@ -430,7 +426,7 @@ describe('Probe API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.count).to.equal(1);
-        
+
         await sleep(30000);
         res = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
@@ -477,6 +473,6 @@ describe('Probe API', function() {
         expect(res.body).to.be.an('object');
         expect(res.body.count).to.equal(1);
 
-        await MonitorService.hardDeleteBy({_id:monitor._id});
+        await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 });
