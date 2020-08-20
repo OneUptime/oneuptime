@@ -171,20 +171,6 @@ class LogList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
-                                    id="placeholder-right"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
                             </tr>
                         </thead>
                         <tbody>
@@ -205,7 +191,8 @@ class LogList extends Component {
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                             style={{
-                                                borderBottom: '#f7f7f7 solid',
+                                                borderBottom:
+                                                    '#f7f7f7 solid 1px',
                                             }}
                                         >
                                             <td
@@ -235,7 +222,7 @@ class LogList extends Component {
                                                     }}
                                                     className="db-ListViewItem-link"
                                                 >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex">
                                                                 <div className="Box-root Flex-flex">
@@ -349,7 +336,7 @@ class LogList extends Component {
                                                 style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
                                                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex Flex-direction--column">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
@@ -427,37 +414,39 @@ class LogList extends Component {
                                                     height: '1px',
                                                 }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <div className="Box-root Flex">
-                                                        <div className="Box-root Flex-flex">
-                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                    <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                        <span>
-                                                                            {moment(
-                                                                                log.createdAt
-                                                                            ).fromNow()}{' '}
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                        <div>
+                                                            <div className="Box-root Flex-flex">
+                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                        <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                            <span>
+                                                                                {moment(
+                                                                                    log.createdAt
+                                                                                ).fromNow()}{' '}
+                                                                            </span>
                                                                         </span>
-                                                                    </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div>
-                                                            <div
-                                                                className="Box-root Flex Padding-horizontal--8"
-                                                                style={{
-                                                                    paddingTop:
-                                                                        '5px',
-                                                                }}
-                                                            >
-                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    (
-                                                                    {moment(
-                                                                        log.createdAt
-                                                                    ).format(
-                                                                        'MMMM Do YYYY, h:mm:ss a'
-                                                                    )}
-                                                                    )
+                                                            <div>
+                                                                <div
+                                                                    className="Box-root Flex Padding-horizontal--8"
+                                                                    style={{
+                                                                        paddingTop:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        (
+                                                                        {moment(
+                                                                            log.createdAt
+                                                                        ).format(
+                                                                            'MMMM Do YYYY, h:mm:ss a'
+                                                                        )}
+                                                                        )
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
