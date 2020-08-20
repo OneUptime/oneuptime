@@ -240,8 +240,6 @@ class LogList extends Component {
                                                                                     style={{
                                                                                         display:
                                                                                             'flex',
-                                                                                        flexDirection:
-                                                                                            'column',
                                                                                         alignItems:
                                                                                             'center',
                                                                                     }}
@@ -259,7 +257,7 @@ class LogList extends Component {
                                                                                                     '#F9F9F9',
                                                                                                 padding:
                                                                                                     '10px',
-                                                                                                marginBottom:
+                                                                                                marginRight:
                                                                                                     '5px',
                                                                                             }}
                                                                                         >
@@ -272,6 +270,7 @@ class LogList extends Component {
                                                                                             </span>
                                                                                         </div>
                                                                                     </ShouldRender>
+
                                                                                     <button
                                                                                         title="viewJson"
                                                                                         id={`application_log_json_${log._id}`}
@@ -281,7 +280,7 @@ class LogList extends Component {
                                                                                                 !logs.requesting
                                                                                             )
                                                                                         }
-                                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                                         type="button"
                                                                                         onClick={() =>
                                                                                             this.props.openModal(
@@ -315,10 +314,17 @@ class LogList extends Component {
                                                                                             )
                                                                                         }
                                                                                     >
-                                                                                        <span>
-                                                                                            View
-                                                                                            JSON
-                                                                                        </span>
+                                                                                        <img
+                                                                                            style={{
+                                                                                                width:
+                                                                                                    '15px',
+                                                                                                height:
+                                                                                                    '15px',
+                                                                                            }}
+                                                                                            src={
+                                                                                                '/dashboard/assets/img/more.svg'
+                                                                                            }
+                                                                                        />
                                                                                     </button>
                                                                                 </div>
                                                                             )}
