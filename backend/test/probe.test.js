@@ -25,6 +25,8 @@ let probeId;
 const GlobalConfig = require('./utils/globalConfig');
 let token, userId, projectId, componentId;
 const probeKey = 'test-key';
+const sleep = waitTimeInMs =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const generateRandomString = require('./utils/string').generateRandomString;
 const probeServerRequestHeader = ({ probeName, probeKey, clusterKey }) => ({
     'Access-Control-Allow-Origin': '*',
