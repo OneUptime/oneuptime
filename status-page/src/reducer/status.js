@@ -18,8 +18,6 @@ import {
     MORE_EVENTS_SUCCESS,
     MORE_EVENTS_FAILURE,
     SCHEDULED_EVENTS_RESET,
-    INDIVIDUAL_EVENTS_ENABLE,
-    INDIVIDUAL_EVENTS_DISABLE,
     SELECT_PROBE,
     FETCH_MONITOR_STATUSES_REQUEST,
     FETCH_MONITOR_STATUSES_SUCCESS,
@@ -27,6 +25,33 @@ import {
     FETCH_MONITOR_LOGS_REQUEST,
     FETCH_MONITOR_LOGS_SUCCESS,
     FETCH_MONITOR_LOGS_FAILURE,
+    FETCH_EVENT_NOTES_FAILURE,
+    FETCH_EVENT_NOTES_REQUEST,
+    FETCH_EVENT_NOTES_SUCCESS,
+    FETCH_EVENT_FAILURE,
+    FETCH_EVENT_REQUEST,
+    FETCH_EVENT_SUCCESS,
+    MORE_EVENT_NOTE_FAILURE,
+    MORE_EVENT_NOTE_REQUEST,
+    MORE_EVENT_NOTE_SUCCESS,
+    FETCH_INCIDENT_NOTES_REQUEST,
+    FETCH_INCIDENT_NOTES_SUCCESS,
+    FETCH_INCIDENT_NOTES_FAILURE,
+    FETCH_INCIDENT_REQUEST,
+    FETCH_INCIDENT_SUCCESS,
+    FETCH_INCIDENT_FAILURE,
+    MORE_INCIDENT_NOTES_FAILURE,
+    MORE_INCIDENT_NOTES_REQUEST,
+    MORE_INCIDENT_NOTES_SUCCESS,
+    FUTURE_EVENTS_FAILURE,
+    FUTURE_EVENTS_REQUEST,
+    FUTURE_EVENTS_SUCCESS,
+    MORE_FUTURE_EVENTS_FAILURE,
+    MORE_FUTURE_EVENTS_REQUEST,
+    MORE_FUTURE_EVENTS_SUCCESS,
+    INDIVIDUAL_EVENTS_FAILURE,
+    INDIVIDUAL_EVENTS_SUCCESS,
+    INDIVIDUAL_EVENTS_REQUEST,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -45,25 +70,73 @@ const INITIAL_STATE = {
         events: [],
         requesting: false,
         skip: 0,
+        count: 0,
+    },
+    futureEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        skip: 0,
+        count: 0,
+    },
+    moreFutureEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    individualEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        count: 0,
+        show: false,
+        monitorName: null,
+        date: null,
     },
     logs: [],
     requestingmore: false,
     requestingmoreevents: false,
     requestingstatuses: false,
     individualnote: null,
-    individualevent: null,
     notesmessage: null,
-    eventsmessage: null,
     activeProbe: 0,
+    eventNoteList: {
+        requesting: false,
+        success: false,
+        error: null,
+        eventNotes: [],
+        skip: 0,
+        count: 0,
+    },
+    requestingMoreNote: false,
+    moreNoteError: null,
+    scheduledEvent: {
+        requesting: false,
+        success: false,
+        error: null,
+        event: {},
+    },
+    incident: {
+        requesting: false,
+        success: false,
+        error: null,
+        incident: {},
+    },
+    incidentNotes: {
+        requesting: false,
+        success: false,
+        error: null,
+        notes: [],
+        skip: 0,
+        count: 0,
+    },
+    moreIncidentNotes: false,
+    moreIncidentNotesError: null,
 };
 
 export default (state = INITIAL_STATE, action) => {
-    let dayStart, dayEnd;
-    if (state.individualevent) {
-        dayStart = moment(state.individualevent.date).startOf('day');
-        dayEnd = moment(state.individualevent.date).endOf('day');
-    }
-
     switch (action.type) {
         case STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
@@ -363,68 +436,123 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'ADD_SCHEDULED_EVENT':
-            return Object.assign({}, state, {
-                events: {
-                    ...state.events,
-
-                    events:
-                        !state.individualevent ||
-                        (state.individualevent &&
-                            moment(action.payload.startDate).isBefore(dayEnd) &&
-                            moment(action.payload.endDate).isAfter(dayStart) &&
-                            state.individualevent._id ===
-                                action.payload.monitorId._id)
-                            ? [action.payload, ...state.events.events]
-                            : state.events.events,
-                },
+        case 'ADD_SCHEDULED_EVENT': {
+            let monitorInStatusPage = false;
+            let addEvent = false;
+            let addFutureEvent = false;
+            state.statusPage.monitors.map(monitorData => {
+                action.payload.monitors.map(monitor => {
+                    if (
+                        String(monitor.monitorId._id) ===
+                        String(monitorData.monitor)
+                    ) {
+                        monitorInStatusPage = true;
+                    }
+                    return monitor;
+                });
+                return monitorData;
             });
 
-        case 'UPDATE_SCHEDULED_EVENT': {
-            const events = Object.assign([], state.events.events);
-            const index = events.findIndex(
-                event => event._id === action.payload._id
-            );
-
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
             if (
-                index < 0 &&
-                action.payload.showEventOnStatusPage &&
-                (!state.individualevent ||
-                    (state.individualevent &&
-                        moment(action.payload.startDate).isBefore(dayEnd) &&
-                        moment(action.payload.endDate).isAfter(dayStart) &&
-                        state.individualevent._id ===
-                            action.payload.monitorId._id))
+                monitorInStatusPage &&
+                startDate <= currentDate &&
+                endDate >= currentDate
             ) {
-                // add event
-                events.unshift(action.payload);
-            } else {
-                if (
-                    index > -1 &&
-                    (!action.payload.showEventOnStatusPage ||
-                        (state.individualevent &&
-                            !(
-                                moment(action.payload.startDate).isBefore(
-                                    dayEnd
-                                ) &&
-                                moment(action.payload.endDate).isAfter(dayStart)
-                            ) &&
-                            state.individualevent._id ===
-                                action.payload.monitorId._id))
-                ) {
-                    // remove event
-                    events.splice(index, 1);
-                } else {
-                    // update event
-                    if (index > -1) events[index] = action.payload;
-                }
+                addEvent = true;
+            }
+
+            if (monitorInStatusPage && startDate > currentDate) {
+                addFutureEvent = true;
             }
 
             return Object.assign({}, state, {
                 events: {
                     ...state.events,
+                    events: addEvent
+                        ? [action.payload, ...state.events.events]
+                        : [...state.events.events],
+                    count: addEvent
+                        ? state.events.count + 1
+                        : state.events.count,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: addFutureEvent
+                        ? [action.payload, ...state.futureEvents.events]
+                        : [...state.futureEvents.events],
+                    count: addFutureEvent
+                        ? state.futureEvents.count + 1
+                        : state.futureEvents.count,
+                },
+            });
+        }
 
-                    events,
+        case 'UPDATE_SCHEDULED_EVENT': {
+            let addEvent = false;
+            let addFutureEvent = false;
+            let futureEventExist = false;
+            let eventExist = false;
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
+
+            const updatedEvents = state.events.events.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    eventExist = true;
+                    event = action.payload;
+                }
+                return event;
+            });
+
+            const updatedFutureEvent = state.futureEvents.events.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    futureEventExist = true;
+                    event = action.payload;
+                }
+                return event;
+            });
+
+            if (!eventExist) {
+                updatedEvents.push(action.payload);
+            }
+
+            if (!futureEventExist) {
+                updatedFutureEvent.push(action.payload);
+            }
+
+            const removeEvent = state.events.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
+            const removeFutureEvent = state.futureEvents.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
+            if (startDate <= currentDate && endDate >= currentDate) {
+                addEvent = true;
+            }
+
+            if (startDate > currentDate) {
+                addFutureEvent = true;
+            }
+
+            return Object.assign({}, state, {
+                events: {
+                    ...state.events,
+                    events: addEvent ? updatedEvents : removeEvent,
+                    count: addEvent ? updatedEvents.length : removeEvent.length,
+                },
+                futureEvents: {
+                    ...state.events,
+                    events: addFutureEvent
+                        ? updatedFutureEvent
+                        : removeFutureEvent,
+                    count: addFutureEvent
+                        ? updatedFutureEvent.length
+                        : removeFutureEvent.length,
                 },
             });
         }
@@ -458,17 +586,87 @@ export default (state = INITIAL_STATE, action) => {
         case MORE_EVENTS_REQUEST:
             return Object.assign({}, state, { requestingmoreevents: true });
 
-        case INDIVIDUAL_EVENTS_ENABLE:
-            return Object.assign({}, state, {
-                individualevent: action.payload.name,
-                eventsmessage: action.payload.message,
-            });
+        case MORE_FUTURE_EVENTS_REQUEST:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
 
-        case INDIVIDUAL_EVENTS_DISABLE:
-            return Object.assign({}, state, {
-                individualevent: null,
-                eventsmessage: null,
-            });
+        case MORE_FUTURE_EVENTS_SUCCESS:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: state.futureEvents.events.concat(
+                        action.payload.data
+                    ),
+                    skip: action.payload.skip,
+                    count: action.payload.count
+                        ? action.payload.count
+                        : state.events.count,
+                },
+            };
+
+        case MORE_FUTURE_EVENTS_FAILURE:
+            return {
+                ...state,
+                moreFutureEvents: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_REQUEST:
+            return {
+                ...state,
+                individualEvents: {
+                    ...state.individualEvents,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                    show: true,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_SUCCESS:
+            return {
+                ...state,
+                individualEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                    monitorName: action.payload.monitorName,
+                    date: action.payload.date,
+                    show: true,
+                },
+            };
+
+        case INDIVIDUAL_EVENTS_FAILURE:
+            return {
+                ...state,
+                individualEvents: {
+                    ...state.individualEvents,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         case SELECT_PROBE:
             return Object.assign({}, state, {
@@ -676,6 +874,266 @@ export default (state = INITIAL_STATE, action) => {
                           }
                 ),
             });
+
+        case FETCH_EVENT_REQUEST:
+            return {
+                ...state,
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_EVENT_SUCCESS:
+            return {
+                ...state,
+                scheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    event: action.payload.data,
+                },
+            };
+
+        case FETCH_EVENT_FAILURE:
+            return {
+                ...state,
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_REQUEST:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    eventNotes: action.payload.data,
+                    count: action.payload.count,
+                },
+            };
+
+        case FETCH_EVENT_NOTES_FAILURE:
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case MORE_EVENT_NOTE_REQUEST:
+            return {
+                ...state,
+                requestingMoreNote: true,
+                moreNoteError: null,
+            };
+
+        case MORE_EVENT_NOTE_SUCCESS: {
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes: [
+                        ...state.eventNoteList.eventNotes,
+                        ...action.payload.data,
+                    ],
+                    skip: action.payload.skip,
+                },
+                requestingMoreNote: false,
+                moreNoteError: null,
+            };
+        }
+
+        case MORE_EVENT_NOTE_FAILURE:
+            return {
+                ...state,
+                requestingMoreNote: false,
+                moreNoteError: action.payload,
+            };
+
+        case FETCH_INCIDENT_REQUEST:
+            return {
+                ...state,
+                incident: {
+                    ...state.incident,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_INCIDENT_SUCCESS:
+            return {
+                ...state,
+                incident: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    incident: action.payload,
+                },
+            };
+
+        case FETCH_INCIDENT_FAILURE:
+            return {
+                ...state,
+                incident: {
+                    ...state.incident,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_REQUEST:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    notes: action.payload.data,
+                    count: action.payload.count,
+                },
+            };
+
+        case FETCH_INCIDENT_NOTES_FAILURE:
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case MORE_INCIDENT_NOTES_REQUEST:
+            return {
+                ...state,
+                moreIncidentNotes: true,
+            };
+
+        case MORE_INCIDENT_NOTES_SUCCESS:
+            return {
+                ...state,
+                moreIncidentNotes: false,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes: [
+                        ...state.incidentNotes.notes,
+                        ...action.payload.data,
+                    ],
+                    skip: action.payload.skip,
+                },
+            };
+
+        case MORE_INCIDENT_NOTES_FAILURE:
+            return {
+                ...state,
+                moreIncidentNotes: false,
+                moreIncidentNotesError: action.payload,
+            };
+
+        case 'INCIDENT_CREATED':
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes: [...state.notes.notes, action.payload],
+                    count: state.notes.count + 1,
+                },
+            };
+
+        case 'INCIDENT_UPDATED': {
+            const notes = state.notes.notes.map(note => {
+                if (String(note._id) === String(action.payload._id)) {
+                    note = action.payload;
+                    return note;
+                }
+                return note;
+            });
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes,
+                },
+            };
+        }
+
+        case FUTURE_EVENTS_REQUEST:
+            return {
+                ...state,
+                futureEvents: {
+                    ...state.futureEvents,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
+
+        case FUTURE_EVENTS_SUCCESS:
+            return {
+                ...state,
+                futureEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                    skip: action.payload.skip || 0,
+                },
+            };
+
+        case FUTURE_EVENTS_FAILURE:
+            return {
+                ...state,
+                futureEvents: {
+                    ...state.futureEvents,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
         default:
             return state;
     }

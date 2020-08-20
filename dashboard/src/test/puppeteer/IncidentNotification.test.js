@@ -189,7 +189,7 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.switchProject(projectName, page);
                 await page.waitFor(5000);
-                let activeIncidents = await page.$('span#activeIncidents', {
+                let activeIncidents = await page.$('span#activeIncidentsText', {
                     visible: true,
                 });
                 activeIncidents = await activeIncidents.getProperty(
@@ -197,6 +197,31 @@ describe('Incident Created test', () => {
                 );
                 activeIncidents = await activeIncidents.jsonValue();
                 expect(activeIncidents).toEqual('2 Incidents Currently Active');
+                await init.logout(page);
+                await init.loginUser(user, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should redirect to home page when active incidents is clicked',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await init.switchProject(projectName, page);
+                await page.waitFor(5000);
+                await page.waitForSelector('#activeIncidents');
+                await page.click('#activeIncidents');
+                let activeIncidents = await page.$('#cbHome', {
+                    visible: true,
+                });
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('Home');
                 await init.logout(page);
                 await init.loginUser(user, page);
             });
@@ -243,6 +268,55 @@ describe('Incident Created test', () => {
     );
 
     test(
+        'Should display a message if there are no incidents to display after filtering',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#incidentLogs');
+                await page.click('#incidentLogs');
+
+                // Acknowledge the second incident
+                await page.waitForSelector(`tr#incident_${monitorName}_1`);
+                await page.click(`tr#incident_${monitorName}_1`);
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.click('#btnAcknowledge_0');
+
+                await page.waitForSelector('#backToDashboard');
+                await page.click('#backToDashboard');
+                await page.waitForSelector('#incidentLogs');
+                await page.click('#incidentLogs');
+
+                // Acknowledge the third incident
+                await page.waitForSelector(`tr#incident_${monitorName}_2`);
+                await page.click(`tr#incident_${monitorName}_2`);
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.click('#btnAcknowledge_0');
+
+                await page.waitForSelector('#backToDashboard');
+                await page.click('#backToDashboard');
+                await page.waitForSelector('#incidentLogs');
+                await page.click('#incidentLogs');
+
+                await page.waitForSelector('button[id=filterToggle]');
+                await page.click('button[id=filterToggle]');
+                await page.waitForSelector('div[title=unacknowledged]');
+                await page.click('div[title=unacknowledged]');
+
+                let filteredIncidents = await page.$(
+                    'span#noIncidentsInnerText'
+                );
+                filteredIncidents = await filteredIncidents.getProperty(
+                    'innerText'
+                );
+                filteredIncidents = await filteredIncidents.jsonValue();
+
+                expect(filteredIncidents).toEqual('No incidents to display');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should filter unresolved incidents',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -271,7 +345,7 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should filter clear filters',
+        'Should clear filters',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);

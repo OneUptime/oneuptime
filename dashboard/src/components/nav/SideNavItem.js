@@ -126,6 +126,10 @@ export class SidebarNavItem extends Component {
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security/
             ) &&
                 route.title === 'Security') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/scheduledEvents/
+            ) &&
+                route.title === 'Scheduled Events') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
                 route.title === 'Consulting & Services');
 
@@ -233,10 +237,8 @@ export class SidebarNavItem extends Component {
                                     {route.shortcut && (
                                         <span className="tooltiptext">
                                             <strong>{routes[0]}</strong>
-                                            <span> + </span>
+                                            <span> then </span>
                                             <strong>{routes[1]}</strong>
-                                            <span> + </span>
-                                            <strong>{routes[2]}</strong>
                                         </span>
                                     )}
                                 </div>
@@ -279,6 +281,7 @@ export class SidebarNavItem extends Component {
                 'Application Detail',
                 'Container Detail',
                 'Team Member Profile',
+                'Scheduled Event Detail',
             ];
 
             if (removedLinks.some(link => link === child.title)) return null;
@@ -307,14 +310,25 @@ export class SidebarNavItem extends Component {
                 )
                     ? active
                     : false;
+                const scheduledEventDetailLink = active.match(
+                    /project\/([0-9]|[a-z])*\/scheduledEvents\/([0-9]|[a-z])*/
+                )
+                    ? active
+                    : false;
 
                 const isSubrouteActive =
                     child.title === 'Application'
                         ? applicationDetailLink === active
                             ? true
                             : false
-                        : child.title === 'Container' &&
-                          (containerDetailLink === active ? true : false);
+                        : child.title === 'Container'
+                        ? containerDetailLink === active
+                            ? true
+                            : false
+                        : child.title === 'Scheduled Event Detail' &&
+                          scheduledEventDetailLink === active
+                        ? true
+                        : false;
 
                 const routes = child.shortcut && child.shortcut.split('+');
 
@@ -348,13 +362,9 @@ export class SidebarNavItem extends Component {
                                                         <strong>
                                                             {routes[0]}
                                                         </strong>
-                                                        <span> + </span>
+                                                        <span> then </span>
                                                         <strong>
                                                             {routes[1]}
-                                                        </strong>
-                                                        <span> + </span>
-                                                        <strong>
-                                                            {routes[2]}
                                                         </strong>
                                                     </span>
                                                 )}

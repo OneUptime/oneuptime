@@ -10,6 +10,8 @@ import DataPathHoC from '../DataPathHoC';
 const IncidentProjectBox = props => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
+    const [filterOption, setFilterOption] = useState('Filter By');
+    const [isFiltered, setIsFiltered] = useState(false);
 
     useEffect(() => {
         setIncidents(props.subProjectIncident);
@@ -19,23 +21,26 @@ const IncidentProjectBox = props => {
         const unFilteredIncidents = props.subProjectIncident;
         const filtered = [];
         switch (status) {
-            case 'acknowledged':
+            case 'unacknowledged':
                 unFilteredIncidents.incidents.forEach(incident => {
                     if (!incident.acknowledged) {
                         filtered.push(incident);
                     }
                 });
+                setIsFiltered(true);
                 setFilteredIncidents(filtered);
                 break;
-            case 'resolved':
+            case 'unresolved':
                 unFilteredIncidents.incidents.forEach(incident => {
                     if (!incident.resolved) {
                         filtered.push(incident);
                     }
                 });
+                setIsFiltered(true);
                 setFilteredIncidents(filtered);
                 break;
             default:
+                setIsFiltered(false);
                 setFilteredIncidents([]);
                 break;
         }
@@ -76,33 +81,42 @@ const IncidentProjectBox = props => {
                                 <Dropdown>
                                     <Dropdown.Toggle
                                         id="filterToggle"
-                                        title="Filter By"
+                                        title={filterOption}
                                         className="bs-Button bs-DeprecatedButton"
                                     />
                                     <Dropdown.Menu>
                                         <MenuItem
                                             title="clear"
-                                            onClick={() =>
-                                                filterIncidentLogs('clear')
-                                            }
+                                            onClick={() => {
+                                                setFilterOption('Filter By');
+                                                return filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                            }}
                                         >
                                             Clear Filters
                                         </MenuItem>
                                         <MenuItem
                                             title="unacknowledged"
-                                            onClick={() =>
-                                                filterIncidentLogs(
-                                                    'acknowledged'
-                                                )
-                                            }
+                                            onClick={() => {
+                                                setFilterOption(
+                                                    'Unacknowledged'
+                                                );
+                                                return filterIncidentLogs(
+                                                    'unacknowledged'
+                                                );
+                                            }}
                                         >
                                             Unacknowledged
                                         </MenuItem>
                                         <MenuItem
                                             title="unresolved"
-                                            onClick={() =>
-                                                filterIncidentLogs('resolved')
-                                            }
+                                            onClick={() => {
+                                                setFilterOption('Unresolved');
+                                                return filterIncidentLogs(
+                                                    'unresolved'
+                                                );
+                                            }}
                                         >
                                             Unresolved
                                         </MenuItem>
@@ -149,6 +163,7 @@ const IncidentProjectBox = props => {
                     prevClicked={props.prevClicked}
                     nextClicked={props.nextClicked}
                     filteredIncidents={filteredIncidents}
+                    isFiltered={isFiltered}
                 />
             </div>
         </div>

@@ -89,7 +89,10 @@ class TwoFactorAuthModal extends Component {
                                         <ShouldRender
                                             if={twoFactorAuthSetting.error}
                                         >
-                                            <p className="bs-Modal-message">
+                                            <p
+                                                className="bs-Modal-message"
+                                                id="modal-message"
+                                            >
                                                 {twoFactorAuthSetting.error}
                                             </p>
                                         </ShouldRender>

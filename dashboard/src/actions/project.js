@@ -31,6 +31,7 @@ import { fetchNotifications, fetchNotificationsReset } from './notification';
 import { fetchAlert, resetAlert } from './alert';
 import { deleteProjectIncidents } from './incident';
 import { getSubProjects, resetSubProjects } from './subProject';
+import { resetFetchComponentResources } from './component';
 import errors from '../errors';
 
 export function showDeleteModal() {
@@ -241,6 +242,7 @@ export function switchProject(dispatch, project) {
     dispatch(resetSubProjectFetchStatusPages());
     dispatch(fetchNotificationsReset());
     dispatch(resetFetchTutorial());
+    dispatch(resetFetchComponentResources());
 
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);

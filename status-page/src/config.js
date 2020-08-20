@@ -256,3 +256,10 @@ export const formatBytes = (a, b, c, d, e) => {
         (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
     );
 };
+
+export const capitalize = words => {
+    words = words.split(' ');
+    words = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+
+    return words.join(' ').trim();
+};

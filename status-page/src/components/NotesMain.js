@@ -115,6 +115,7 @@ class NotesMain extends Component {
                     uptimeColor={uptimeColor}
                     degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
                 />
             );
         }
@@ -130,7 +131,9 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        return (
+        return this.props.noteData &&
+            this.props.noteData.notes &&
+            this.props.noteData.notes.length > 0 ? (
             <div
                 className="twitter-feed white box"
                 style={{ overflow: 'visible', ...contentBackground }}
@@ -139,13 +142,22 @@ class NotesMain extends Component {
                     <ShouldRender
                         if={this.props.noteData && !this.props.noteData.error}
                     >
-                        <div className="box-inner">
+                        <div
+                            className="box-inner"
+                            style={{
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                width: '100%',
+                            }}
+                        >
                             <div
                                 className="feed-header clearfix"
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'row',
                                     flexWrap: 'nowrap',
+                                    paddingLeft: 40,
+                                    paddingRight: 40,
                                 }}
                             >
                                 <ShouldRender if={!this.props.individualnote}>
@@ -325,7 +337,7 @@ class NotesMain extends Component {
                     </ShouldRender>
                 </div>
             </div>
-        );
+        ) : null;
     }
 }
 

@@ -21,15 +21,19 @@ class Consulting extends Component {
                             <div className="Box-root Card-shadow--medium Border-radius--4">
                                 <div className="bs-ContentSection-content Box-root Padding-horizontal--32 Padding-vertical--32">
                                     <div className="Flex-direction--row Text-align--center Text-fontSize--32 Text-fontWeight--bold">
-                                        <div className=" Padding-top--32 Margin-top--16">
-                                            Welcome to Fyipe Advisors!
+                                        <div
+                                            className=" Padding-top--32 Margin-top--16"
+                                            style={{ fontSize: '20px' }}
+                                        >
+                                            DevOps &amp; IT Consuting by Fyipe
                                         </div>
                                     </div>
                                     <div className="Flex-direction--row Text-align--center Text-fontSize--20 Padding-bottom--48 Padding-top--12">
                                         <div>
-                                            Hire an expert to take the stress
-                                            out of DevOps and IT, and Software
-                                            development
+                                            We help the world’s leading
+                                            companies build and manage amazing
+                                            apps and services that are simple,
+                                            beautiful and easy to use.
                                         </div>
                                     </div>
                                     <div className="Flex-flex Flex-direction--row Text-align--left Padding-top--32 Padding-bottom--48">

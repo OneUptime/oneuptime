@@ -13,6 +13,7 @@ import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { history } from '../../store';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -59,10 +60,29 @@ class TopContent extends Component {
         }
     };
 
+    handleActiveIncidentClick = () => {
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : '';
+        history.push(`/dashboard/project/${projectId}`);
+    };
+
     renderActiveIncidents = incidentCounter =>
         incidentCounter > 0 ? (
-            <div className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4">
-                <span id="activeIncidents">
+            <div
+                className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer"
+                onClick={this.handleActiveIncidentClick}
+                id="activeIncidents"
+            >
+                <span
+                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                    style={{
+                        filter: 'brightness(0) invert(1)',
+                        marginTop: '1px',
+                        marginRight: '5px',
+                    }}
+                />
+                <span id="activeIncidentsText">
                     {`${incidentCounter +
                         (incidentCounter === 1
                             ? ' Incident Currently Active'
@@ -240,6 +260,7 @@ const mapStateToProps = state => {
         feedback: state.feedback,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
+        currentProject: state.project.currentProject,
     };
 };
 
@@ -277,6 +298,7 @@ TopContent.propTypes = {
     incidents: PropTypes.shape({ incidents: PropTypes.array }),
     length: PropTypes.number,
     map: PropTypes.func,
+    currentProject: PropTypes.shape({ _id: PropTypes.string }),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

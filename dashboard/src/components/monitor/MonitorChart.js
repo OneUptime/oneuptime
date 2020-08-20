@@ -120,7 +120,7 @@ export function MonitorChart({
         ).getTime()
     ).diff(now, 'days');
     const responseTime = checkLogs ? data[0].responseTime : '0';
-    const monitorStatus = toPascalCase(status);
+    const monitorStatus = toPascalCase(checkLogs ? data[0].status : status);
     const uptime =
         uptimePercent || uptimePercent === 0
             ? uptimePercent.toString().split('.')[0]
@@ -144,7 +144,7 @@ export function MonitorChart({
     }
 
     let statusColor;
-    switch (status) {
+    switch (monitorStatus.toLowerCase()) {
         case 'degraded':
             statusColor = 'yellow';
             break;

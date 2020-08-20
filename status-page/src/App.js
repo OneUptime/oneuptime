@@ -1,6 +1,8 @@
 import React from 'react';
 import './App.css';
 import Main from './components/Main';
+import ScheduledEvent from './components/ScheduledEvent';
+import Incident from './components/Incident';
 import Socket from './components/basic/Socket';
 import {
     BrowserRouter as Router,
@@ -32,6 +34,16 @@ const App = () => (
                     exact
                     path="/status-page/:statusPageId"
                     component={Main}
+                />
+                <Route
+                    exact
+                    path="/status-page/:statusPageId/scheduledEvent/:eventId"
+                    component={ScheduledEvent}
+                />
+                <Route
+                    exact
+                    path="/status-page/:statusPageId/incident/:incidentId"
+                    component={Incident}
                 />
                 <Redirect to="/" />
             </Switch>
