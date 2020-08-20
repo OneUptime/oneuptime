@@ -203,49 +203,19 @@ class ApplicationLogDetail extends Component {
                             />
                         </ShouldRender>
 
-                        <ShouldRender if={!isDetails}>
-                            <ApplicationLogDetailView
-                                logValue={this.state.logType}
-                                filter={this.state.filter}
-                                applicationLog={applicationLog}
-                                logOptions={logOptions}
-                                componentId={componentId}
-                                projectId={currentProject._id}
-                                handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={
-                                    this.handleLogFilterChange
-                                }
-                                handleDateTimeChange={this.handleDateTimeChange}
-                                isDetails={isDetails}
-                            />
-                        </ShouldRender>
+                        <ApplicationLogDetailView
+                            logValue={this.state.logType}
+                            filter={this.state.filter}
+                            applicationLog={applicationLog}
+                            logOptions={logOptions}
+                            componentId={componentId}
+                            projectId={currentProject._id}
+                            handleLogTypeChange={this.handleLogTypeChange}
+                            handleLogFilterChange={this.handleLogFilterChange}
+                            handleDateTimeChange={this.handleDateTimeChange}
+                            isDetails={isDetails}
+                        />
                     </div>
-                    <ShouldRender if={this.props.isDetails}>
-                        <div
-                            className="Box-root Card-shadow--medium"
-                            style={{
-                                marginTop: '10px',
-                                marginBottom: '10px',
-                                paddingBottom: '10px',
-                            }}
-                            tabIndex="0"
-                        >
-                            <ApplicationLogDetailView
-                                logValue={this.state.logType}
-                                filter={this.state.filter}
-                                applicationLog={applicationLog}
-                                logOptions={logOptions}
-                                componentId={componentId}
-                                projectId={currentProject._id}
-                                handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={
-                                    this.handleLogFilterChange
-                                }
-                                handleDateTimeChange={this.handleDateTimeChange}
-                                isDetails={isDetails}
-                            />
-                        </div>
-                    </ShouldRender>
                 </div>
             );
         } else {
