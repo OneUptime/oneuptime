@@ -20,6 +20,8 @@ class ApplicationLogHeader extends Component {
             viewMore,
             resetApplicationLogKey,
             stats,
+            handleLogTypeChange,
+            logOptions,
         } = this.props;
         return (
             <div>
@@ -131,7 +133,10 @@ class ApplicationLogHeader extends Component {
                 </ShouldRender>
                 <ShouldRender if={stats && !stats.requesting}>
                     <div className="db-TrendRow db-ListViewItem-header db-Trends-header">
-                        <div className="db-Trend-colInformation">
+                        <div
+                            onClick={() => handleLogTypeChange(logOptions[0])}
+                            className="db-Trend-colInformation"
+                        >
                             <div className="db-Trend-rowTitle" title="All Logs">
                                 <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
                                     <span className="chart-font">All Logs</span>
@@ -150,7 +155,10 @@ class ApplicationLogHeader extends Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="db-Trend-colInformation">
+                        <div
+                            onClick={() => handleLogTypeChange(logOptions[1])}
+                            className="db-Trend-colInformation"
+                        >
                             <div
                                 className="db-Trend-rowTitle"
                                 title="Error Logs"
@@ -174,7 +182,10 @@ class ApplicationLogHeader extends Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="db-Trend-colInformation">
+                        <div
+                            onClick={() => handleLogTypeChange(logOptions[2])}
+                            className="db-Trend-colInformation"
+                        >
                             <div
                                 className="db-Trend-rowTitle"
                                 title="Warning Logs"
@@ -198,7 +209,10 @@ class ApplicationLogHeader extends Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="db-Trend-colInformation">
+                        <div
+                            onClick={() => handleLogTypeChange(logOptions[3])}
+                            className="db-Trend-colInformation"
+                        >
                             <div
                                 className="db-Trend-rowTitle"
                                 title="Info Logs"
@@ -243,6 +257,8 @@ ApplicationLogHeader.propTypes = {
     viewMore: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
     stats: PropTypes.object,
+    handleLogTypeChange: PropTypes.func,
+    logOptions: PropTypes.array,
 };
 
 export default ApplicationLogHeader;
