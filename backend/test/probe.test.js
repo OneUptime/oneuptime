@@ -26,6 +26,14 @@ const GlobalConfig = require('./utils/globalConfig');
 let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const generateRandomString = require('./utils/string').generateRandomString;
+const probeServerRequestHeader = ({ probeName, probeKey, clusterKey }) => ({
+    'Access-Control-Allow-Origin': '*',
+    Accept: 'application/json',
+    'Content-Type': 'application/json;charset=UTF-8',
+    probeName,
+    probeKey,
+    clusterKey,
+});
 
 describe('Probe API', function() {
     this.timeout(20000);
