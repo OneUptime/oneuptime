@@ -25,19 +25,15 @@ class LogList extends Component {
     }
 
     componentDidMount() {
-        const start = this.props.startDate.clone().utc();
-        const end = this.props.endDate.clone().utc();
         const {
             fetchLogs,
             projectId,
             componentId,
             applicationLogId,
         } = this.props;
-        fetchLogs(projectId, componentId, applicationLogId, 0, 10, start, end);
+        fetchLogs(projectId, componentId, applicationLogId, 0, 10);
     }
     prevClicked = (skip, limit) => {
-        const start = this.props.startDate.clone().utc();
-        const end = this.props.endDate.clone().utc();
         const {
             fetchLogs,
             projectId,
@@ -49,15 +45,11 @@ class LogList extends Component {
             componentId,
             applicationLogId,
             skip ? parseInt(skip, 10) - 10 : 10,
-            limit,
-            start,
-            end
+            limit
         );
     };
 
     nextClicked = (skip, limit) => {
-        const start = this.props.startDate.clone().utc();
-        const end = this.props.endDate.clone().utc();
         const {
             fetchLogs,
             projectId,
@@ -69,9 +61,7 @@ class LogList extends Component {
             componentId,
             applicationLogId,
             skip ? parseInt(skip, 10) + 10 : 10,
-            limit,
-            start,
-            end
+            limit
         );
     };
 

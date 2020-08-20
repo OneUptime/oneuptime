@@ -5,6 +5,8 @@ import PropTypes from 'prop-types';
 import DateTimeRangeSelector from '../basic/DateTimeRangeSelector';
 import SearchBox from '../basic/SearchBox';
 import ShouldRender from '../basic/ShouldRender';
+import DateTimeSelector from '../basic/DateTimeSelector';
+import { Field, reduxForm } from 'redux-form';
 
 class ApplicationLogDetailView extends Component {
     render() {
@@ -46,13 +48,54 @@ class ApplicationLogDetailView extends Component {
                                         </div>
                                         <ShouldRender if={isDetails}>
                                             <div className="db-Trends-controls">
-                                                <div className="db-Trends-timeControls Padding-all--4 Margin-all--2">
-                                                    <DateTimeRangeSelector
-                                                        onChange={
-                                                            handleDateTimeChange
-                                                        }
-                                                    />
-                                                </div>
+                                                <form
+                                                    id="applicationLogDateTimeForm"
+                                                    className="Flex-flex action-bar-holder Padding-all--4"
+                                                >
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            margin: '5px',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            className="bs-TextInput"
+                                                            type="text"
+                                                            name="startDate"
+                                                            component={
+                                                                DateTimeSelector
+                                                            }
+                                                            placeholder="10pm"
+                                                            style={{
+                                                                width: '250px',
+                                                                marginTop:
+                                                                    '0px',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            marginTop: '0px',
+                                                            margin: '5px',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            className="bs-TextInput"
+                                                            type="text"
+                                                            name="endDate"
+                                                            component={
+                                                                DateTimeSelector
+                                                            }
+                                                            placeholder="10pm"
+                                                            style={{
+                                                                width: '250px',
+                                                                marginTop:
+                                                                    '0px',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </form>
                                                 <div className="Flex-flex action-bar-holder Padding-all--4">
                                                     <div
                                                         style={{
@@ -76,8 +119,9 @@ class ApplicationLogDetailView extends Component {
                                                                 )
                                                             }
                                                             style={{
-                                                                height: '28px',
+                                                                height: '33px',
                                                                 padding: '5px',
+                                                                width: '250px',
                                                                 border:
                                                                     '#CCCCCC 1px solid',
                                                                 borderRadius:
@@ -88,7 +132,7 @@ class ApplicationLogDetailView extends Component {
 
                                                     <div
                                                         style={{
-                                                            height: '28px',
+                                                            height: '33px',
                                                             margin: '5px',
                                                         }}
                                                     >
@@ -108,7 +152,7 @@ class ApplicationLogDetailView extends Component {
                                                                 )
                                                             }
                                                             style={{
-                                                                height: '28px',
+                                                                height: '33px',
                                                             }}
                                                             options={logOptions}
                                                         />
@@ -150,4 +194,9 @@ ApplicationLogDetailView.propTypes = {
     handleLogFilterChange: PropTypes.func,
     isDetails: PropTypes.bool,
 };
-export default ApplicationLogDetailView;
+const ApplicationLogDateForm = reduxForm({
+    form: 'applicationLogDateTimeForm',
+    enableReinitialize: true,
+    destroyOnUnmount: true,
+})(ApplicationLogDetailView);
+export default ApplicationLogDateForm;
