@@ -414,7 +414,7 @@ describe('Incident Timeline API', () => {
                 // click confirmation delete button
                 await page.waitForSelector(`#deleteIncidentMessage`);
                 await page.click(`#deleteIncidentMessage`);
-                await page.waitFor(2000);
+                await page.waitFor(5000);
 
                 const incidentMessage = await page.$(
                     `#content_${type}_incident_message_0`

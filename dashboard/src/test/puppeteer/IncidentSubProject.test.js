@@ -403,9 +403,7 @@ describe('Incident API With SubProjects', () => {
                 );
                 await page.waitFor(2000);
 
-                const incidentRows = await page.$$(
-                    '#incidentTimeline tr.incidentListItem'
-                );
+                const incidentRows = await page.$$('tr.incidentListItem');
                 const countIncidents = incidentRows.length;
                 expect(countIncidents).toEqual(2);
                 await init.logout(page);
