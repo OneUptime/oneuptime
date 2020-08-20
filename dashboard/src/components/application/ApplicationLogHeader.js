@@ -132,7 +132,10 @@ class ApplicationLogHeader extends Component {
                     <ListLoader />
                 </ShouldRender>
                 <ShouldRender if={stats && !stats.requesting}>
-                    <div className="db-TrendRow db-ListViewItem-header db-Trends-header">
+                    <div
+                        className="db-TrendRow db-ListViewItem-header db-Trends-header"
+                        style={{ cursor: 'pointer' }}
+                    >
                         <div
                             onClick={() => handleLogTypeChange(logOptions[0])}
                             className="db-Trend-colInformation"
