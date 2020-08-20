@@ -21,6 +21,8 @@ export class MonitorViewIncidentBox extends Component {
         this.state = {
             createIncidentModalId: uuid.v4(),
             filteredIncidents: [],
+            isFiltered: false,
+            filterOption: 'Filter By',
         };
     }
 
@@ -77,30 +79,38 @@ export class MonitorViewIncidentBox extends Component {
         const { monitor } = this.props;
         const filteredIncidents = [];
         switch (status) {
-            case 'acknowledged':
+            case 'unacknowledged':
                 monitor.incidents.forEach(incident => {
                     if (!incident.acknowledged) {
                         filteredIncidents.push(incident);
                     }
                 });
-                this.setState(() => ({ filteredIncidents }));
+                this.setState(() => ({ filteredIncidents, isFiltered: true }));
                 break;
-            case 'resolved':
+            case 'unresolved':
                 monitor.incidents.forEach(incident => {
                     if (!incident.resolved) {
                         filteredIncidents.push(incident);
                     }
                 });
-                this.setState(() => ({ filteredIncidents }));
+                this.setState(() => ({ filteredIncidents, isFiltered: true }));
                 break;
             default:
-                this.setState(() => ({ filteredIncidents: [] }));
+                this.setState(() => ({
+                    filteredIncidents: [],
+                    isFiltered: false,
+                }));
                 break;
         }
     };
 
     render() {
-        const { createIncidentModalId, filteredIncidents } = this.state;
+        const {
+            createIncidentModalId,
+            filteredIncidents,
+            isFiltered,
+            filterOption,
+        } = this.state;
         const creating = this.props.create ? this.props.create : false;
 
         return (
@@ -126,35 +136,47 @@ export class MonitorViewIncidentBox extends Component {
                                 <Dropdown>
                                     <Dropdown.Toggle
                                         id="filterToggle"
-                                        title="Filter By"
+                                        title={filterOption}
                                         className="bs-Button bs-DeprecatedButton"
                                     />
                                     <Dropdown.Menu>
                                         <MenuItem
                                             title="clear"
-                                            onClick={() =>
-                                                this.filterIncidentLogs('clear')
-                                            }
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption: 'Filter By',
+                                                });
+                                                this.filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                            }}
                                         >
                                             Clear Filters
                                         </MenuItem>
                                         <MenuItem
                                             title="unacknowledged"
-                                            onClick={() =>
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption:
+                                                        'Unacknowledged',
+                                                });
                                                 this.filterIncidentLogs(
-                                                    'acknowledged'
-                                                )
-                                            }
+                                                    'unacknowledged'
+                                                );
+                                            }}
                                         >
                                             Unacknowledged
                                         </MenuItem>
                                         <MenuItem
                                             title="unresolved"
-                                            onClick={() =>
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption: 'Unresolved',
+                                                });
                                                 this.filterIncidentLogs(
-                                                    'resolved'
-                                                )
-                                            }
+                                                    'unresolved'
+                                                );
+                                            }}
                                         >
                                             Unresolved
                                         </MenuItem>
@@ -204,6 +226,7 @@ export class MonitorViewIncidentBox extends Component {
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
+                        isFiltered={isFiltered}
                     />
                 </div>
             </div>

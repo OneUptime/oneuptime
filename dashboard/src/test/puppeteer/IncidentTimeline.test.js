@@ -456,10 +456,6 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(2000);
             }
 
-            await page.reload({
-                waitUntil: ['networkidle0', 'domcontentloaded'],
-            });
-
             await page.waitForSelector('tr.incidentListItem');
             let incidentTimelineRows = await page.$$('tr.incidentListItem');
             let countIncidentTimelines = incidentTimelineRows.length;
