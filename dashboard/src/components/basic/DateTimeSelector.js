@@ -69,7 +69,8 @@ const DateTimeSelector = ({
                 style={{
                     //width: '10px',
                     height: '28px',
-                    marginTop: '-15px',
+                    marginTop:
+                        style && style.marginTop ? style.marginTop : '-15px',
                     // zIndex: 1000,
                 }}
             >

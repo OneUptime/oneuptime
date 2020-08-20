@@ -1,5 +1,6 @@
 import React from 'react';
 import Select from 'react-select';
+import PropTypes from 'prop-types';
 
 const ReactSelectFyipe = props => (
     <Select
@@ -10,7 +11,10 @@ const ReactSelectFyipe = props => (
                 border: '1px solid hsl(0,0%,80%) !important',
                 boxShadow: 'unset !important',
                 minHeight: 'unset',
-                height: '30px',
+                height:
+                    props.style && props.style.height
+                        ? props.style.height
+                        : '30px',
             }),
             option: (provided, state) => ({
                 ...provided,
@@ -29,5 +33,7 @@ const ReactSelectFyipe = props => (
 );
 
 ReactSelectFyipe.displayName = 'ReactSelectFyipe';
-
+ReactSelectFyipe.propTypes = {
+    style: PropTypes.object,
+};
 export default ReactSelectFyipe;
