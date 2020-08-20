@@ -16,6 +16,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const request = chai.request.agent(app);
 const ProbeService = require('../backend/services/probeService');
+const MonitorService = require('../backend/services/monitorService');
 const ComponentService = require('../backend/services/componentService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
 const ApplicationSecurityService = require('../backend/services/applicationSecurityService');
