@@ -83,11 +83,28 @@ class ApplicationLogDetail extends Component {
         }
     };
     handleDateTimeChange = (startDate, endDate) => {
+        const {
+            setStartDate,
+            setEndDate,
+            fetchLogs,
+            applicationLog,
+            currentProject,
+            componentId,
+        } = this.props;
         if (startDate && endDate) {
             startDate = moment(startDate);
             endDate = moment(endDate);
-            this.props.setStartDate(startDate);
-            this.props.setEndDate(endDate);
+            setStartDate(startDate);
+            setEndDate(endDate);
+            fetchLogs(
+                currentProject._id,
+                componentId,
+                applicationLog._id,
+                0,
+                10,
+                startDate.clone().utc(),
+                endDate.clone().utc()
+            );
         }
     };
     handleLogTypeChange = logType => {
@@ -286,6 +303,7 @@ ApplicationLogDetail.propTypes = {
     editApplicationLogSwitch: PropTypes.func,
     fetchStats: PropTypes.func,
     stats: PropTypes.object,
+    fetchLogs: PropTypes.func,
 };
 
 export default connect(

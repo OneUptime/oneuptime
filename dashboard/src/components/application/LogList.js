@@ -75,18 +75,6 @@ class LogList extends Component {
         );
     };
 
-    handleDateChange = (startDate, endDate) => {
-        const { applicationLogId } = this.props;
-        const { fetchLogs } = this.props;
-
-        fetchLogs(
-            applicationLogId,
-            0,
-            10,
-            startDate.clone().utc(),
-            endDate.clone().utc()
-        );
-    };
     displayTags = tags => {
         return tags.map(tag => {
             return (
