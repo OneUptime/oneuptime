@@ -427,54 +427,54 @@ describe('Incident Timeline API', () => {
         operationTimeOut
     );
 
-    // test('should get incident timeline and paginate for incident timeline in project', async () => {
-    //     expect.assertions(3);
-    //     const internalNote = utils.generateRandomString();
-    //     const type = 'internal';
-    //     return await cluster.execute(null, async ({ page }) => {
-    //         // Navigate to Component details
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         await page.waitFor(2000);
+    test('should get incident timeline and paginate for incident timeline in project', async () => {
+        expect.assertions(3);
+        const internalNote = utils.generateRandomString();
+        const type = 'internal';
+        return await cluster.execute(null, async ({ page }) => {
+            // Navigate to Component details
+            await init.navigateToComponentDetails(componentName, page);
+            await page.waitFor(2000);
 
-    //         await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-    //         await page.$eval(`#incident_${projectMonitorName}_0`, e =>
-    //             e.click()
-    //         );
-    //         await page.waitFor(2000);
+            await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                e.click()
+            );
+            await page.waitFor(2000);
 
-    //         for (let i = 0; i < 10; i++) {
-    //             // add internal note
-    //             await page.click(`#add-${type}-message`);
-    //             await page.waitForSelector(
-    //                 `#form-new-incident-${type}-message`
-    //             );
-    //             await page.click(`textarea[id=new-${type}]`);
-    //             await page.type(`textarea[id=new-${type}]`, `${internalNote}`);
-    //             await init.selectByText('#incident_state', 'update', page);
+            for (let i = 0; i < 10; i++) {
+                // add internal note
+                await page.click(`#add-${type}-message`);
+                await page.waitForSelector(
+                    `#form-new-incident-${type}-message`
+                );
+                await page.click(`textarea[id=new-${type}]`);
+                await page.type(`textarea[id=new-${type}]`, `${internalNote}`);
+                await init.selectByText('#incident_state', 'update', page);
 
-    //             await page.click(`#${type}-addButton`);
-    //             await page.waitFor(2000);
-    //         }
+                await page.click(`#${type}-addButton`);
+                await page.waitFor(2000);
+            }
 
-    //         await page.waitForSelector('tr.incidentListItem');
-    //         let incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //         let countIncidentTimelines = incidentTimelineRows.length;
+            await page.waitForSelector('tr.incidentListItem');
+            let incidentTimelineRows = await page.$$('tr.incidentListItem');
+            let countIncidentTimelines = incidentTimelineRows.length;
 
-    //         expect(countIncidentTimelines).toEqual(10);
+            expect(countIncidentTimelines).toEqual(10);
 
-    //         const nextSelector = await page.$('#btnTimelineNext');
-    //         await nextSelector.click();
-    //         await page.waitFor(7000);
-    //         incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //         countIncidentTimelines = incidentTimelineRows.length;
-    //         expect(countIncidentTimelines).toEqual(10);
+            const nextSelector = await page.$('#btnTimelineNext');
+            await nextSelector.click();
+            await page.waitFor(7000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(10);
 
-    //         const prevSelector = await page.$('#btnTimelinePrev');
-    //         await prevSelector.click();
-    //         await page.waitFor(7000);
-    //         incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //         countIncidentTimelines = incidentTimelineRows.length;
-    //         expect(countIncidentTimelines).toEqual(10);
-    //     });
-    // }, 300000);
+            const prevSelector = await page.$('#btnTimelinePrev');
+            await prevSelector.click();
+            await page.waitFor(7000);
+            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            countIncidentTimelines = incidentTimelineRows.length;
+            expect(countIncidentTimelines).toEqual(10);
+        });
+    }, 300000);
 });

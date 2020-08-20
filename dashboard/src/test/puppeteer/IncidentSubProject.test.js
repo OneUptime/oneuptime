@@ -311,69 +311,69 @@ describe('Incident API With SubProjects', () => {
     //     operationTimeOut
     // );
 
-    // test(
-    //     'should get incident timeline and paginate for incident timeline in sub-project',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             const internalNote = utils.generateRandomString();
-    //             const type = 'internal';
-    //             await init.loginUser(newUser, page);
-    //             await page.goto(utils.DASHBOARD_URL, {
-    //                 waitUntil: 'networkidle0',
-    //             });
-    //             // switch to invited project for new user
-    //             await init.switchProject(projectName, page);
-    //             // Navigate to details page of component created
-    //             await init.navigateToComponentDetails(componentName, page);
-    //             await page.waitFor(3000);
+    test(
+        'should get incident timeline and paginate for incident timeline in sub-project',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const internalNote = utils.generateRandomString();
+                const type = 'internal';
+                await init.loginUser(newUser, page);
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                // switch to invited project for new user
+                await init.switchProject(projectName, page);
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
+                await page.waitFor(3000);
 
-    //             await page.waitForSelector(
-    //                 `#incident_${projectMonitorName1}_0`
-    //             );
-    //             await page.click(`#incident_${projectMonitorName1}_0`);
-    //             await page.waitFor(2000);
+                await page.waitForSelector(
+                    `#incident_${projectMonitorName1}_0`
+                );
+                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.waitFor(2000);
 
-    //             for (let i = 0; i < 10; i++) {
-    //                 // fill internal message thread form
-    //                 await page.waitForSelector(`#add-${type}-message`);
-    //                 await page.click(`#add-${type}-message`);
-    //                 await page.waitForSelector(
-    //                     `#form-new-incident-${type}-message`
-    //                 );
-    //                 await page.click(`textarea[id=new-${type}]`);
-    //                 await page.type(
-    //                     `textarea[id=new-${type}]`,
-    //                     `${internalNote}`
-    //                 );
-    //                 await init.selectByText('#incident_state', 'update', page);
-    //                 await page.click(`#${type}-addButton`);
-    //                 await page.waitFor(2000);
-    //             }
+                for (let i = 0; i < 10; i++) {
+                    // fill internal message thread form
+                    await page.waitForSelector(`#add-${type}-message`);
+                    await page.click(`#add-${type}-message`);
+                    await page.waitForSelector(
+                        `#form-new-incident-${type}-message`
+                    );
+                    await page.click(`textarea[id=new-${type}]`);
+                    await page.type(
+                        `textarea[id=new-${type}]`,
+                        `${internalNote}`
+                    );
+                    await init.selectByText('#incident_state', 'update', page);
+                    await page.click(`#${type}-addButton`);
+                    await page.waitFor(2000);
+                }
 
-    //             await page.waitForSelector('tr.incidentListItem');
-    //             let incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //             let countIncidentTimelines = incidentTimelineRows.length;
+                await page.waitForSelector('tr.incidentListItem');
+                let incidentTimelineRows = await page.$$('tr.incidentListItem');
+                let countIncidentTimelines = incidentTimelineRows.length;
 
-    //             expect(countIncidentTimelines).toEqual(10);
+                expect(countIncidentTimelines).toEqual(10);
 
-    //             const nextSelector = await page.$('#btnTimelineNext');
-    //             await nextSelector.click();
-    //             await page.waitFor(7000);
-    //             incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //             countIncidentTimelines = incidentTimelineRows.length;
-    //             expect(countIncidentTimelines).toEqual(5);
+                const nextSelector = await page.$('#btnTimelineNext');
+                await nextSelector.click();
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(5);
 
-    //             const prevSelector = await page.$('#btnTimelinePrev');
-    //             await prevSelector.click();
-    //             await page.waitFor(7000);
-    //             incidentTimelineRows = await page.$$('tr.incidentListItem');
-    //             countIncidentTimelines = incidentTimelineRows.length;
-    //             expect(countIncidentTimelines).toEqual(10);
-    //             await init.logout(page);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                const prevSelector = await page.$('#btnTimelinePrev');
+                await prevSelector.click();
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(10);
+                await init.logout(page);
+            });
+        },
+        operationTimeOut
+    );
 
     test(
         'should get list of incidents and paginate for incidents in sub-project',

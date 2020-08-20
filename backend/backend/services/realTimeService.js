@@ -39,6 +39,27 @@ module.exports = {
         }
     },
 
+    updateIncidentTimeline: async ({ incidentTimeline, projectId }) => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            global.io.emit(
+                `updateIncidentTimeline-${projectId}`,
+                incidentTimeline
+            );
+        } catch (error) {
+            ErrorService.log('realTimeService.updateIncidentTimeline', error);
+            throw error;
+        }
+    },
+
     updateIncident: async incident => {
         try {
             if (!global || !global.io) {

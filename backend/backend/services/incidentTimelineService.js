@@ -18,6 +18,15 @@ module.exports = {
                 _id: incidentTimeline._id,
             });
 
+            const incident = await IncidentService.findOneBy({
+                _id: data.incidentId,
+            });
+
+            RealTimeService.updateIncidentTimeline({
+                incidentTimeline,
+                projectId: incident.projectId,
+            });
+
             return incidentTimeline;
         } catch (error) {
             ErrorService.log('incidentTimelineService.create', error);
@@ -128,4 +137,6 @@ module.exports = {
 };
 
 const IncidentTimelineModel = require('../models/incidentTimeline');
+const IncidentService = require('./incidentService');
+const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
