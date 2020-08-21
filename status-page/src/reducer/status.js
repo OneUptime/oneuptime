@@ -550,6 +550,42 @@ export default (state = INITIAL_STATE, action) => {
             });
         }
 
+        case 'DELETE_SCHEDULED_EVENT': {
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            let isFutureEvent = false;
+            let events = [];
+            if (startDate > currentDate) {
+                isFutureEvent = true;
+                events = state.futureEvents.events.filter(
+                    event => String(event._id) !== String(action.payload._id)
+                );
+            } else {
+                events = state.events.events.filter(
+                    event => String(event._id) !== String(action.payload._id)
+                );
+            }
+            return {
+                ...state,
+                events: {
+                    ...state.events,
+                    events: !isFutureEvent ? events : [...state.events.events],
+                    count: !isFutureEvent
+                        ? state.events.count - 1
+                        : state.events.count,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: isFutureEvent
+                        ? events
+                        : [...state.futureEvents.events],
+                    count: isFutureEvent
+                        ? state.futureEvents.count - 1
+                        : state.futureEvents.count,
+                },
+            };
+        }
+
         case 'UPDATE_SCHEDULED_EVENT': {
             let addEvent = false;
             let addFutureEvent = false;
