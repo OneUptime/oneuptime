@@ -4,7 +4,7 @@ import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { ListLoader, FormLoader } from '../basic/Loader';
+import { FormLoader } from '../basic/Loader';
 
 class ApplicationLogHeader extends Component {
     render() {
@@ -19,9 +19,6 @@ class ApplicationLogHeader extends Component {
             deleting,
             viewMore,
             resetApplicationLogKey,
-            stats,
-            handleLogTypeChange,
-            logOptions,
         } = this.props;
         return (
             <div>
@@ -128,119 +125,6 @@ class ApplicationLogHeader extends Component {
                         </div>
                     </div>
                 </div>
-                <ShouldRender if={!stats || stats.requesting}>
-                    <ListLoader />
-                </ShouldRender>
-                <ShouldRender if={stats && !stats.requesting}>
-                    <div
-                        className="db-TrendRow db-ListViewItem-header db-Trends-header"
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[0])}
-                            className="db-Trend-colInformation"
-                        >
-                            <div className="db-Trend-rowTitle" title="All Logs">
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">All Logs</span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.all
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[1])}
-                            className="db-Trend-colInformation"
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Error Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Error Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.error
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[2])}
-                            className="db-Trend-colInformation"
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Warning Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Warning Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.warning
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[3])}
-                            className="db-Trend-colInformation"
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Info Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Info Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.info
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </ShouldRender>
             </div>
         );
     }
@@ -259,9 +143,6 @@ ApplicationLogHeader.propTypes = {
     deleting: PropTypes.bool,
     viewMore: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
-    stats: PropTypes.object,
-    handleLogTypeChange: PropTypes.func,
-    logOptions: PropTypes.array,
 };
 
 export default ApplicationLogHeader;
