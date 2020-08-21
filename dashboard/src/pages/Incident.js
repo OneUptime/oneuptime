@@ -14,7 +14,6 @@ import {
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
-import IncidentDescription from '../components/incident/IncidentDescription';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import IncidentAlert from '../components/incident/IncidentAlert';
 import SubscriberAlert from '../components/subscriber/subscriberAlert';
@@ -233,11 +232,6 @@ class Incident extends React.Component {
         if (this.props.incident) {
             variable = (
                 <div>
-                    <IncidentDescription
-                        incident={this.props.incident}
-                        projectId={this.props.currentProject._id}
-                        componentId={componentId}
-                    />
                     <IncidentStatus incident={this.props.incident} count={0} />
                     <IncidentAlert
                         next={this.nextAlerts}
