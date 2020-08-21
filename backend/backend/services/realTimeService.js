@@ -71,6 +71,12 @@ module.exports = {
 
     updateIncidentNote: async incidentNote => {
         try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: incidentNote.incidentId._id,
+            });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
@@ -80,7 +86,7 @@ module.exports = {
                     : project._id
                 : incident.projectId;
 
-            global.io.emit(`updateIncidentNote-${projectId}`, incident);
+            global.io.emit(`updateIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realTimeService.updateIncidentNote', error);
             throw error;
