@@ -2,28 +2,241 @@ import React, { Component } from 'react';
 import LogList from './LogList';
 import Select from '../../components/basic/react-select-fyipe';
 import PropTypes from 'prop-types';
-import DateTimeRangeSelector from '../basic/DateTimeRangeSelector';
 import SearchBox from '../basic/SearchBox';
 import ShouldRender from '../basic/ShouldRender';
 import DateTimeSelector from '../basic/DateTimeSelector';
-import { Field, reduxForm } from 'redux-form';
+import { Field, reduxForm, formValueSelector } from 'redux-form';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import * as moment from 'moment';
+import { fetchLogs } from '../../actions/applicationLog';
+import { ListLoader } from '../basic/Loader';
 
 class ApplicationLogDetailView extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            filter: '',
+            currentDate: moment(),
+            logType: { value: '', label: 'All Logs' },
+        };
+    }
+
+    handleEndDateTimeChange = val => {
+        const {
+            applicationLog,
+            projectId,
+            componentId,
+            startDate,
+            fetchLogs,
+        } = this.props;
+        const { filter, logType } = this.state;
+        let endDate = '';
+        let i = 0;
+        while (i < 29) {
+            endDate += val[i];
+            i += 1;
+        }
+        endDate = moment(endDate);
+        if (moment(startDate).isBefore(endDate)) {
+            fetchLogs(
+                projectId,
+                componentId,
+                applicationLog._id,
+                0,
+                10,
+                startDate,
+                endDate,
+                logType.value,
+                filter
+            );
+        }
+    };
+    handleLogTypeChange = logType => {
+        this.setState({ logType });
+        const {
+            applicationLog,
+            projectId,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+        } = this.props;
+        const { filter } = this.state;
+        fetchLogs(
+            projectId,
+            componentId,
+            applicationLog._id,
+            0,
+            10,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
+    handleLogFilterChange = filter => {
+        this.setState({ filter });
+        const {
+            applicationLog,
+            projectId,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+        } = this.props;
+        const { logType } = this.state;
+        fetchLogs(
+            projectId,
+            componentId,
+            applicationLog._id,
+            0,
+            10,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
     render() {
         const {
-            logValue,
             applicationLog,
-            logOptions,
             componentId,
             projectId,
-            handleDateTimeChange,
-            handleLogTypeChange,
-            handleLogFilterChange,
             filter,
             isDetails,
+            stats,
         } = this.props;
+        const logOptions = [
+            { value: '', label: 'All Logs' },
+            { value: 'error', label: 'Error' },
+            { value: 'warning', label: 'Warning' },
+            { value: 'info', label: 'Info' },
+        ];
         return (
             <div>
+                <ShouldRender if={!stats || stats.requesting}>
+                    <ListLoader />
+                </ShouldRender>
+                <ShouldRender if={stats && !stats.requesting}>
+                    <div
+                        className="db-TrendRow db-ListViewItem-header db-Trends-header"
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <div
+                            onClick={() =>
+                                this.handleLogTypeChange(logOptions[0])
+                            }
+                            className="db-Trend-colInformation"
+                        >
+                            <div className="db-Trend-rowTitle" title="All Logs">
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                    <span className="chart-font">All Logs</span>
+                                </div>
+                            </div>
+                            <div className="db-Trend-row">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                    <span>
+                                        {' '}
+                                        <span className="chart-font">
+                                            {stats && stats.stats
+                                                ? stats.stats.all
+                                                : 0}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            onClick={() =>
+                                this.handleLogTypeChange(logOptions[1])
+                            }
+                            className="db-Trend-colInformation"
+                        >
+                            <div
+                                className="db-Trend-rowTitle"
+                                title="Error Logs"
+                            >
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                    <span className="chart-font">
+                                        Error Logs
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="db-Trend-row">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                    <span>
+                                        {' '}
+                                        <span className="chart-font">
+                                            {stats && stats.stats
+                                                ? stats.stats.error
+                                                : 0}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            onClick={() =>
+                                this.handleLogTypeChange(logOptions[2])
+                            }
+                            className="db-Trend-colInformation"
+                        >
+                            <div
+                                className="db-Trend-rowTitle"
+                                title="Warning Logs"
+                            >
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                    <span className="chart-font">
+                                        Warning Logs
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="db-Trend-row">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                    <span>
+                                        {' '}
+                                        <span className="chart-font">
+                                            {stats && stats.stats
+                                                ? stats.stats.warning
+                                                : 0}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            onClick={() =>
+                                this.handleLogTypeChange(logOptions[3])
+                            }
+                            className="db-Trend-colInformation"
+                        >
+                            <div
+                                className="db-Trend-rowTitle"
+                                title="Info Logs"
+                            >
+                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
+                                    <span className="chart-font">
+                                        Info Logs
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="db-Trend-row">
+                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
+                                    <span>
+                                        {' '}
+                                        <span className="chart-font">
+                                            {stats && stats.stats
+                                                ? stats.stats.info
+                                                : 0}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ShouldRender>
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="">
@@ -52,49 +265,82 @@ class ApplicationLogDetailView extends Component {
                                                     id="applicationLogDateTimeForm"
                                                     className="Flex-flex action-bar-holder Padding-all--4"
                                                 >
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            margin: '5px',
-                                                        }}
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .currentDateRange
+                                                        }
                                                     >
-                                                        <Field
-                                                            className="bs-TextInput"
-                                                            type="text"
-                                                            name="startDate"
-                                                            component={
-                                                                DateTimeSelector
-                                                            }
-                                                            placeholder="10pm"
+                                                        <div
+                                                            className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '250px',
+                                                                margin: '5px',
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="bs-TextInput"
+                                                                type="text"
+                                                                id="startDate"
+                                                                name="startDate"
+                                                                component={
+                                                                    DateTimeSelector
+                                                                }
+                                                                placeholder="10pm"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                    marginTop:
+                                                                        '0px',
+                                                                }}
+                                                                maxDate={
+                                                                    this.state
+                                                                        .currentDate
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
                                                                 marginTop:
                                                                     '0px',
+                                                                margin: '5px',
                                                             }}
-                                                        />
-                                                    </div>
-                                                    <div
-                                                        className="bs-Fieldset-field"
-                                                        style={{
-                                                            marginTop: '0px',
-                                                            margin: '5px',
-                                                        }}
-                                                    >
-                                                        <Field
-                                                            className="bs-TextInput"
-                                                            type="text"
-                                                            name="endDate"
-                                                            component={
-                                                                DateTimeSelector
-                                                            }
-                                                            placeholder="10pm"
-                                                            style={{
-                                                                width: '250px',
-                                                                marginTop:
-                                                                    '0px',
-                                                            }}
-                                                        />
-                                                    </div>
+                                                        >
+                                                            <Field
+                                                                className="bs-TextInput"
+                                                                type="text"
+                                                                id="endDate"
+                                                                name="endDate"
+                                                                value={
+                                                                    this.props
+                                                                        .currentDateRange
+                                                                        ? this
+                                                                              .props
+                                                                              .currentDateRange
+                                                                              .endDate
+                                                                        : null
+                                                                }
+                                                                component={
+                                                                    DateTimeSelector
+                                                                }
+                                                                placeholder="10pm"
+                                                                style={{
+                                                                    width:
+                                                                        '250px',
+                                                                    marginTop:
+                                                                        '0px',
+                                                                }}
+                                                                onChange={
+                                                                    this
+                                                                        .handleEndDateTimeChange
+                                                                }
+                                                                maxDate={
+                                                                    this.state
+                                                                        .currentDate
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </ShouldRender>
                                                 </form>
                                                 <div className="Flex-flex action-bar-holder Padding-all--4">
                                                     <div
@@ -107,7 +353,8 @@ class ApplicationLogDetailView extends Component {
                                                             name="log_filter"
                                                             value={filter}
                                                             onChange={
-                                                                handleLogFilterChange
+                                                                this
+                                                                    .handleLogFilterChange
                                                             }
                                                             placeholder="Filter logs by ..."
                                                             className="db-select-pr"
@@ -138,9 +385,13 @@ class ApplicationLogDetailView extends Component {
                                                     >
                                                         <Select
                                                             name="probe_selector"
-                                                            value={logValue}
+                                                            value={
+                                                                this.state
+                                                                    .logType
+                                                            }
                                                             onChange={
-                                                                handleLogTypeChange
+                                                                this
+                                                                    .handleLogTypeChange
                                                             }
                                                             placeholder="Log Type"
                                                             className="db-select-pr"
@@ -177,26 +428,45 @@ class ApplicationLogDetailView extends Component {
 }
 ApplicationLogDetailView.displayName = 'ApplicationLogDetailView';
 
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ fetchLogs }, dispatch);
+};
+
+const selector = formValueSelector('applicationLogDateTimeForm');
+
+function mapStateToProps(state, ownProps) {
+    const applicationLogId = ownProps.applicationLog._id;
+    const currentDateRange = state.applicationLog.logs[applicationLogId]
+        ? state.applicationLog.logs[applicationLogId].dateRange
+        : null;
+    const startDate = selector(state, 'startDate');
+    const endDate = selector(state, 'endDate');
+    return {
+        initialValues: currentDateRange,
+        currentDateRange,
+        startDate,
+        endDate,
+    };
+}
+
 ApplicationLogDetailView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     applicationLog: PropTypes.object,
-    logValue: PropTypes.object,
-    logOptions: PropTypes.arrayOf(
-        PropTypes.shape({
-            label: PropTypes.string,
-            value: PropTypes.string,
-        })
-    ),
     filter: PropTypes.object,
-    handleDateTimeChange: PropTypes.func,
-    handleLogTypeChange: PropTypes.func,
-    handleLogFilterChange: PropTypes.func,
     isDetails: PropTypes.bool,
+    currentDateRange: PropTypes.object,
+    fetchLogs: PropTypes.func,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    stats: PropTypes.object,
 };
 const ApplicationLogDateForm = reduxForm({
     form: 'applicationLogDateTimeForm',
     enableReinitialize: true,
     destroyOnUnmount: true,
 })(ApplicationLogDetailView);
-export default ApplicationLogDateForm;
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ApplicationLogDateForm);
