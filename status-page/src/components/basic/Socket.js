@@ -19,6 +19,11 @@ import {
     incidentcreatedbysocket,
     updateincidentbysocket,
     addincidenttimelinebysocket,
+    deleteincidentnotebysocket,
+    deleteincidentbysocket,
+    addeventnotebysocket,
+    deleteeventnotebysocket,
+    updateeventnotebysocket,
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
@@ -56,15 +61,28 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `updateScheduledEvent-${this.props.project._id}`
                 );
+                socket.removeListener(`addEventNote-${this.props.project._id}`);
+                socket.removeListener(
+                    `deleteEventNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateEventNote-${this.props.project._id}`
+                );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
                 socket.removeListener(
                     `incidentCreated-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteIncident-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `updateIncident-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `addIncidentTimeline-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteIncidentNote-${this.props.project._id}`
                 );
             }
             return true;
@@ -131,6 +149,19 @@ class SocketApp extends Component {
                     thisObj.props.updatescheduledeventbysocket(data);
                 }
             );
+            socket.on(`addEventNote-${this.props.project._id}`, function(data) {
+                thisObj.props.addeventnotebysocket(data);
+            });
+            socket.on(`deleteEventNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteeventnotebysocket(data);
+            });
+            socket.on(`updateEventNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.updateeventnotebysocket(data);
+            });
             socket.on(`updateProbe-${this.props.project._id}`, function(data) {
                 thisObj.props.updateprobebysocket(data);
             });
@@ -138,6 +169,11 @@ class SocketApp extends Component {
                 data
             ) {
                 thisObj.props.incidentcreatedbysocket(data);
+            });
+            socket.on(`deleteIncident-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteincidentbysocket(data);
             });
             socket.on(`updateIncident-${this.props.project._id}`, function(
                 data
@@ -148,6 +184,11 @@ class SocketApp extends Component {
                 data
             ) {
                 thisObj.props.addincidenttimelinebysocket(data);
+            });
+            socket.on(`deleteIncidentNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteincidentnotebysocket(data);
             });
         }
         return null;
@@ -185,6 +226,11 @@ const mapDispatchToProps = dispatch =>
             incidentcreatedbysocket,
             updateincidentbysocket,
             addincidenttimelinebysocket,
+            deleteincidentnotebysocket,
+            deleteincidentbysocket,
+            addeventnotebysocket,
+            deleteeventnotebysocket,
+            updateeventnotebysocket,
         },
         dispatch
     );
