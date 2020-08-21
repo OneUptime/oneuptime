@@ -1028,6 +1028,74 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'ADD_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            let increaseCount = false;
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                increaseCount = true;
+                eventNotes = [action.payload, ...eventNotes];
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                    count: increaseCount
+                        ? state.eventNoteList.count + 1
+                        : state.eventNoteList.count,
+                },
+            };
+        }
+
+        case 'DELETE_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            let reduceCount = false;
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                reduceCount = true;
+                eventNotes = state.eventNoteList.eventNotes.filter(
+                    note => String(note._id) !== String(action.payload._id)
+                );
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                    count: reduceCount
+                        ? state.eventNoteList.count - 1
+                        : state.eventNoteList.count,
+                },
+            };
+        }
+
+        case 'UPDATE_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                eventNotes = state.eventNoteList.eventNotes.map(note => {
+                    if (String(note._id) === String(action.payload._id)) {
+                        return action.payload;
+                    }
+                    return note;
+                });
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                },
+            };
+        }
+
         case FETCH_EVENT_NOTES_FAILURE:
             return {
                 ...state,
