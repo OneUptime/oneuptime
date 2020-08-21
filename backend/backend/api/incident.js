@@ -581,27 +581,24 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
+            const { incidentId, incidentMessageId } = req.params;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
-                    _id: req.params.incidentMessageId,
-                    incidentId: req.params.incidentId,
+                    _id: incidentMessageId,
+                    incidentId,
                 },
                 req.user.id
             );
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
-
-                const incident = IncidentService.findOneBy({
-                    _id: incidentMessage.incidentId._id,
-                });
                 // update timeline
                 await IncidentTimelineService.create({
-                    incidentId: incident._id,
+                    incidentId,
                     createdById: req.user.id,
                     status,
                 });
 
-                await RealTimeService.deleteIncidentNote(incident);
+                await RealTimeService.deleteIncidentNote(incidentMessage);
                 return sendItemResponse(req, res, incidentMessage);
             } else {
                 return sendErrorResponse(req, res, {
