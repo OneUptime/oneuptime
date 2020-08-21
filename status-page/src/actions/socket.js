@@ -124,6 +124,15 @@ export function incidentcreatedbysocket(incident) {
     };
 }
 
+export function deleteincidentbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_DELETED',
+            payload: incident,
+        });
+    };
+}
+
 export function updateincidentbysocket(incident) {
     return function(dispatch) {
         dispatch({
