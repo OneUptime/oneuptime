@@ -9,6 +9,7 @@ import {
     fetchIncident,
     fetchIncidentNotes,
     moreIncidentNotes,
+    fetchLastIncidentTimeline,
 } from '../actions/status';
 import { ACCOUNTS_URL, capitalize } from '../config';
 import { ListLoader } from './basic/Loader';
@@ -20,6 +21,7 @@ class Incident extends Component {
             statusData,
             fetchIncident,
             fetchIncidentNotes,
+            fetchLastIncidentTimeline,
         } = this.props;
         const { incidentId } = params;
 
@@ -60,6 +62,7 @@ class Incident extends Component {
         });
 
         if (statusData && statusData._id) {
+            fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
             fetchIncident(statusData.projectId._id, incidentId);
             fetchIncidentNotes(
                 statusData.projectId._id,
@@ -75,10 +78,12 @@ class Incident extends Component {
             statusData,
             fetchIncident,
             fetchIncidentNotes,
+            fetchLastIncidentTimeline,
         } = this.props;
         const { incidentId } = params;
 
         if (prevProps.statusData._id !== statusData._id) {
+            fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
             fetchIncident(statusData.projectId._id, incidentId);
             fetchIncidentNotes(
                 statusData.projectId._id,
@@ -104,6 +109,60 @@ class Incident extends Component {
             skip + 1
         );
     }
+
+    handleIncidentStatus = () => {
+        const {
+            requestingTimeline,
+            lastIncidentTimeline,
+            incident,
+        } = this.props;
+        let timelineStatus = null;
+
+        if (!requestingTimeline) {
+            if (
+                !lastIncidentTimeline.incident_state &&
+                lastIncidentTimeline.status !== 'resolved' &&
+                lastIncidentTimeline.status !== 'acknowledged'
+            ) {
+                timelineStatus = (
+                    <span className="time incident_status">Identified</span>
+                );
+            }
+            if (lastIncidentTimeline.status === 'resolved') {
+                timelineStatus = (
+                    <span
+                        className={
+                            incident.resolved
+                                ? 'time incident_status resolved__incident'
+                                : 'time incident_status'
+                        }
+                    >
+                        Resolved
+                    </span>
+                );
+            }
+            if (lastIncidentTimeline.status === 'acknowledged') {
+                timelineStatus = (
+                    <span className="time incident_status">Acknowledged</span>
+                );
+            }
+            if (lastIncidentTimeline.incident_state) {
+                timelineStatus = (
+                    <span
+                        className={
+                            incident.resolved
+                                ? 'time incident_status resolved__incident'
+                                : 'time incident_status'
+                        }
+                    >
+                        {capitalize(lastIncidentTimeline.incident_state)}
+                    </span>
+                );
+            }
+        }
+
+        return timelineStatus;
+    };
 
     render() {
         const {
@@ -158,7 +217,7 @@ class Incident extends Component {
                                     !fetchingIncident &&
                                     incident.incidentType && (
                                         <div
-                                            className="incident-status-bubble"
+                                            className="incident-bubble"
                                             style={{
                                                 backgroundColor:
                                                     incident.incidentType ===
@@ -179,6 +238,7 @@ class Incident extends Component {
                                         display: 'inline-block',
                                         marginBottom: 20,
                                         fontSize: 14,
+                                        marginLeft: 25,
                                     }}
                                 >
                                     Incident
@@ -232,57 +292,7 @@ class Incident extends Component {
                                                     'MMMM Do YYYY, h:mm a'
                                                 )}
                                             </span>
-                                            {incident.acknowledged && (
-                                                <span
-                                                    className={'time'}
-                                                    style={{
-                                                        marginLeft: 10,
-                                                        paddingBottom: 10,
-                                                        display: 'inline-block',
-                                                        color:
-                                                            'rgba(0, 0, 0, 0.5)',
-                                                        paddingTop: 7,
-                                                    }}
-                                                >
-                                                    Acknowledged
-                                                </span>
-                                            )}
-                                            <span
-                                                className={
-                                                    incident.resolved
-                                                        ? 'time resolved__incident'
-                                                        : 'time'
-                                                }
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                    marginLeft: 10,
-                                                    paddingBottom: 10,
-                                                    display: 'inline-block',
-                                                    paddingTop: 7,
-                                                }}
-                                            >
-                                                {incident.resolved
-                                                    ? 'Resolved'
-                                                    : 'Identified'}
-                                            </span>
-                                            <span
-                                                className={'time'}
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                    marginLeft: 10,
-                                                    paddingBottom: 10,
-                                                    display: 'inline-block',
-                                                    paddingTop: 7,
-                                                }}
-                                            >
-                                                {incidentNotes[0] &&
-                                                incidentNotes[0].incident_state
-                                                    ? capitalize(
-                                                          incidentNotes[0]
-                                                              .incident_state
-                                                      )
-                                                    : ''}
-                                            </span>
+                                            {this.handleIncidentStatus()}
                                         </span>
                                     )}
                             </div>
@@ -341,27 +351,27 @@ class Incident extends Component {
                                                     }}
                                                 >
                                                     <div className="note__wrapper">
-                                                        <span>
-                                                            <span className="note-badge badge badge__color--green">
-                                                                {
-                                                                    note.incident_state
-                                                                }
-                                                            </span>
+                                                        <span
+                                                            style={{
+                                                                color:
+                                                                    'rgba(0, 0, 0, 0.5)',
+                                                                fontSize: 14,
+                                                                display:
+                                                                    'block',
+                                                                textAlign:
+                                                                    'justify',
+                                                            }}
+                                                        >
+                                                            {note.content}
                                                         </span>
-                                                        <span>
-                                                            <span
-                                                                style={{
-                                                                    color:
-                                                                        'rgba(0, 0, 0, 0.5)',
-                                                                    fontSize: 14,
-                                                                    display:
-                                                                        'block',
-                                                                    textAlign:
-                                                                        'justify',
-                                                                }}
-                                                            >
-                                                                {note.content}
-                                                            </span>
+                                                        <span
+                                                            style={{
+                                                                display: 'flex',
+                                                                marginTop: 15,
+                                                                alignItems:
+                                                                    'center',
+                                                            }}
+                                                        >
                                                             <span
                                                                 style={{
                                                                     color:
@@ -369,7 +379,6 @@ class Incident extends Component {
                                                                     fontSize: 12,
                                                                     display:
                                                                         'block',
-                                                                    marginTop: 15,
                                                                 }}
                                                             >
                                                                 {moment(
@@ -377,6 +386,16 @@ class Incident extends Component {
                                                                 ).format(
                                                                     'MMMM Do YYYY, h:mm a'
                                                                 )}
+                                                            </span>
+                                                            <span
+                                                                style={{
+                                                                    marginLeft: 15,
+                                                                }}
+                                                                className="note-badge badge badge__color--green"
+                                                            >
+                                                                {
+                                                                    note.incident_state
+                                                                }
                                                             </span>
                                                         </span>
                                                     </div>
@@ -509,6 +528,9 @@ Incident.propTypes = {
     incident: PropTypes.object,
     incidentNotes: PropTypes.array,
     requestingStatus: PropTypes.bool,
+    fetchLastIncidentTimeline: PropTypes.func,
+    requestingTimeline: PropTypes.bool,
+    lastIncidentTimeline: PropTypes.object,
 };
 
 const mapStateToProps = state => {
@@ -522,12 +544,20 @@ const mapStateToProps = state => {
         incident: state.status.incident.incident,
         incidentNotes: state.status.incidentNotes.notes,
         requestingStatus: state.status.requesting,
+        requestingTimeline: state.status.lastIncidentTimeline.requesting,
+        lastIncidentTimeline: state.status.lastIncidentTimeline.timeline,
     };
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { getStatusPage, fetchIncident, fetchIncidentNotes, moreIncidentNotes },
+        {
+            getStatusPage,
+            fetchIncident,
+            fetchIncidentNotes,
+            moreIncidentNotes,
+            fetchLastIncidentTimeline,
+        },
         dispatch
     );
 
