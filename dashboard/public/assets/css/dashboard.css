@@ -50850,11 +50850,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 /* Date Range Picker */
 
 .DateRangePicker__CalendarSelection {
-
   background-color: #329ae0;
   border: 1px solid #329ae0;
-
-      border-right-width: 1px;
+  border-right-width: 1px;
   bottom: 5px;
   left: 0;
   position: absolute;

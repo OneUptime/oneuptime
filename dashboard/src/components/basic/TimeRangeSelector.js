@@ -10,10 +10,10 @@ import { setStartDate, setEndDate } from '../../actions/dateTime';
 const theme = createMuiTheme({
     palette: {
         primary: {
-            main: '#0080a8',
+            main: '#000000',
         },
         secondary: {
-            main: '#0066ff',
+            main: '#000000',
         },
     },
 });
