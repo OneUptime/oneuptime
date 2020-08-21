@@ -23,10 +23,12 @@ module.exports = {
             });
 
             if (incident) {
-                RealTimeService.updateIncidentTimeline({
-                    incidentTimeline,
-                    projectId: incident.projectId,
-                });
+                const _incidentTimeline = Object.assign(
+                    {},
+                    incidentTimeline._doc,
+                    { projectId: incident.projectId }
+                );
+                RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
 
             return incidentTimeline;

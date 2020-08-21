@@ -39,16 +39,16 @@ module.exports = {
         }
     },
 
-    updateIncidentTimeline: async ({ incidentTimeline, projectId }) => {
+    updateIncidentTimeline: async incidentTimeline => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: projectId,
+                _id: incidentTimeline.projectId,
             });
-            projectId = project
+            const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id
                     : project._id
-                : projectId;
+                : incidentTimeline.projectId;
 
             global.io.emit(
                 `updateIncidentTimeline-${projectId}`,
