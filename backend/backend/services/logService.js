@@ -147,10 +147,10 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             let dateRange = { startDate: '', endDate: '' };
             // if date range is given, it returns it
-            if (query.startDate && query.endDate)
+            if (query.createdAt)
                 dateRange = {
-                    startDate: query.startDate,
-                    endDate: query.endDate,
+                    startDate: query.createdAt.$gte,
+                    endDate: query.createdAt.$lte,
                 };
             else {
                 // first and last log based on the query is fetched
