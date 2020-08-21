@@ -22,10 +22,12 @@ module.exports = {
                 _id: data.incidentId,
             });
 
-            RealTimeService.updateIncidentTimeline({
-                incidentTimeline,
-                projectId: incident.projectId,
-            });
+            if (incident) {
+                RealTimeService.updateIncidentTimeline({
+                    incidentTimeline,
+                    projectId: incident.projectId,
+                });
+            }
 
             return incidentTimeline;
         } catch (error) {

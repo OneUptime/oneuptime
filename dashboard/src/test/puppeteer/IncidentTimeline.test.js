@@ -407,14 +407,16 @@ describe('Incident Timeline API', () => {
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
-                await page.waitForSelector(`#edit_${type}_incident_message_0`);
+                await page.waitForSelector(
+                    `#delete_${type}_incident_message_0`
+                );
                 await page.click(`#delete_${type}_incident_message_0`);
                 await page.waitFor(5000);
 
                 // click confirmation delete button
-                await page.waitForSelector(`#deleteIncidentMessage`);
-                await page.click(`#deleteIncidentMessage`);
-                await page.waitFor(5000);
+                await page.waitForSelector('#deleteIncidentMessage');
+                await page.click('#deleteIncidentMessage');
+                await page.waitFor(50000);
 
                 const incidentMessage = await page.$(
                     `#content_${type}_incident_message_0`

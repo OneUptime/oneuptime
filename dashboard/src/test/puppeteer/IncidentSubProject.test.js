@@ -323,19 +323,19 @@ describe('Incident API With SubProjects', () => {
                 });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
-                // Navigate to details page of component created
+                // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(3000);
+                await page.waitFor(2000);
 
                 await page.waitForSelector(
                     `#incident_${projectMonitorName1}_0`
                 );
-                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
+                    e.click()
+                );
                 await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {
-                    // fill internal message thread form
-                    await page.waitForSelector(`#add-${type}-message`);
                     await page.click(`#add-${type}-message`);
                     await page.waitForSelector(
                         `#form-new-incident-${type}-message`

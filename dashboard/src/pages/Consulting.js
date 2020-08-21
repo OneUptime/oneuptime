@@ -79,30 +79,35 @@ class Consulting extends Component {
                                             <img
                                                 src="/dashboard/assets/img/icons/sony.jpg"
                                                 className="Responsive-image"
+                                                alt="sony"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/bank-of-america.png"
                                                 className="Responsive-image"
+                                                alt="bank-of-america"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/adobe.png"
                                                 className="Responsive-image"
+                                                alt="adobe"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/hershey-logo.png"
                                                 className="Responsive-image"
+                                                alt="hershey-logo"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/cocacola.png"
                                                 className="Responsive-image"
+                                                alt="cocacola"
                                             />
                                         </div>
                                     </div>
