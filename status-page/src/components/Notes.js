@@ -27,17 +27,7 @@ class Notes extends Component {
                 );
             }
             if (incidentTimeline.status === 'resolved') {
-                timelineStatus = (
-                    <span
-                        className={
-                            incident.resolved
-                                ? 'note_status resolved__incident'
-                                : 'note_status'
-                        }
-                    >
-                        Resolved
-                    </span>
-                );
+                timelineStatus = <span className="note_status">Resolved</span>;
             }
             if (incidentTimeline.status === 'acknowledged') {
                 timelineStatus = (
@@ -46,13 +36,7 @@ class Notes extends Component {
             }
             if (incidentTimeline.incident_state) {
                 timelineStatus = (
-                    <span
-                        className={
-                            incident.resolved
-                                ? 'note_status resolved__incident'
-                                : 'note_status'
-                        }
-                    >
+                    <span className="note_status">
                         {capitalize(incidentTimeline.incident_state)}
                     </span>
                 );
@@ -173,6 +157,12 @@ class Notes extends Component {
                                     {this.handleIncidentStatus(
                                         note,
                                         incidentTimelines
+                                    )}
+                                    {note.resolved && (
+                                        <span
+                                            title="Resolved"
+                                            className="resolved__incident"
+                                        ></span>
                                     )}
                                 </span>
                                 <Link
