@@ -61,6 +61,15 @@ export function addscheduledeventbysocket(event) {
     };
 }
 
+export function deletescheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}
+
 export function updatescheduledeventbysocket(event) {
     return function(dispatch) {
         dispatch({
