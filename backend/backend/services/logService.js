@@ -137,6 +137,42 @@ module.exports = {
 
         return { searchedLogs, totalSearchCount };
     },
+    // Introduce this to know the current date range of the query incase it w3asnt given by the user
+    async getDateRange(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let dateRange = { startDate: '', endDate: '' };
+            // if date range is given, it returns it
+            if (query.startDate && query.endDate)
+                dateRange = {
+                    startDate: query.startDate,
+                    endDate: query.endDate,
+                };
+            else {
+                // first and last log based on the query is fetched
+                const start_date = await LogModel.find(query).limit(1);
+                const end_date = await LogModel.find(query)
+                    .sort([['createdAt', -1]])
+                    .limit(1);
+                // if query returns anything, extrate date from both.
+                start_date[0] && end_date[0]
+                    ? (dateRange = {
+                          startDate: start_date[0]['createdAt'],
+                          endDate: end_date[0]['createdAt'],
+                      })
+                    : null;
+            }
+
+            return dateRange;
+        } catch (error) {
+            ErrorService.log('logService.getDateRange', error);
+            throw error;
+        }
+    },
 };
 
 const LogModel = require('../models/log');
