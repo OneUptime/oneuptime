@@ -180,11 +180,21 @@ module.exports = {
         }
     },
 
-    addScheduledEventInvestigationNote: async note => {
+    addScheduledEventInvestigationNote: async (note, projectId) => {
         try {
             if (!global || !global.io) {
                 return;
             }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
             const scheduledEventId =
                 typeof note.scheduledEventId === 'string'
                     ? note.scheduledEventId
@@ -194,6 +204,7 @@ module.exports = {
                 `addScheduledEventInvestigationNote-${scheduledEventId}`,
                 note
             );
+            global.io.emit(`addEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
                 'realTimeService.addScheduledEventInvestigationNote',
@@ -226,11 +237,21 @@ module.exports = {
         }
     },
 
-    deleteScheduledEventInvestigationNote: async note => {
+    deleteScheduledEventInvestigationNote: async (note, projectId) => {
         try {
             if (!global || !global.io) {
                 return;
             }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
             const scheduledEventId =
                 typeof note.scheduledEventId === 'string'
                     ? note.scheduledEventId
@@ -240,6 +261,7 @@ module.exports = {
                 `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
                 note
             );
+            global.io.emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
                 'realTimeService.deleteScheduledEventInvestigationNote',
@@ -272,11 +294,21 @@ module.exports = {
         }
     },
 
-    updateScheduledEventInvestigationNote: async note => {
+    updateScheduledEventInvestigationNote: async (note, projectId) => {
         try {
             if (!global || !global.io) {
                 return;
             }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
             const scheduledEventId =
                 typeof note.scheduledEventId === 'string'
                     ? note.scheduledEventId
@@ -286,6 +318,7 @@ module.exports = {
                 `updateScheduledEventInvestigationNote-${scheduledEventId}`,
                 note
             );
+            global.io.emit(`updateEventNote-${projectId}`, note);
         } catch (error) {
             ErrorService.log(
                 'realTimeService.updateScheduledEventInvestigationNote',

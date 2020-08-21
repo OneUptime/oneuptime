@@ -410,7 +410,7 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
     res
 ) {
     try {
-        const { eventId } = req.params;
+        const { eventId, projectId } = req.params;
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         data.scheduledEventId = eventId;
@@ -481,7 +481,8 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         }
 
         const scheduledEventMessage = await ScheduledEventNoteService.create(
-            data
+            data,
+            projectId
         );
 
         return sendItemResponse(req, res, scheduledEventMessage);
@@ -544,7 +545,7 @@ router.put(
     isAuthorized,
     async function(req, res) {
         try {
-            const { eventId, noteId } = req.params;
+            const { eventId, noteId, projectId } = req.params;
             const data = req.body;
             data.updated = true;
 
@@ -633,7 +634,8 @@ router.put(
                     _id: noteId,
                     scheduledEventId: eventId,
                 },
-                data
+                data,
+                projectId
             );
 
             return sendItemResponse(req, res, scheduledEventMessage);
@@ -650,7 +652,7 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { eventId, noteId } = req.params;
+            const { eventId, noteId, projectId } = req.params;
             const userId = req.user ? req.user.id : null;
 
             const deletedEventMessage = await ScheduledEventNoteService.deleteBy(
@@ -658,7 +660,8 @@ router.delete(
                     _id: noteId,
                     scheduledEventId: eventId,
                 },
-                userId
+                userId,
+                projectId
             );
             return sendItemResponse(req, res, deletedEventMessage);
         } catch (error) {
