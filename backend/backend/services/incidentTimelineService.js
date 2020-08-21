@@ -10,6 +10,9 @@ module.exports = {
             if (data.probeId) {
                 incidentTimeline.probeId = data.probeId;
             }
+            if (data.incident_state) {
+                incidentTimeline.incident_state = data.incident_state;
+            }
             incidentTimeline.createdByZapier = data.createdByZapier || false;
             incidentTimeline.status = data.status;
 
