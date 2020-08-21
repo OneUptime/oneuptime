@@ -47,7 +47,7 @@ export function updateincidentnotebysocket(note) {
     return function(dispatch) {
         dispatch({
             type: 'UPDATE_INCIDENT_NOTE',
-            payload: incident,
+            payload: note,
         });
     };
 }
