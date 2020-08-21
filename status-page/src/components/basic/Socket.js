@@ -16,6 +16,7 @@ import {
     updateprobebysocket,
     incidentcreatedbysocket,
     updateincidentbysocket,
+    addincidenttimelinebysocket,
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
@@ -53,6 +54,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `updateIncident-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addIncidentTimeline-${this.props.project._id}`
                 );
             }
             return true;
@@ -121,6 +125,11 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.updateincidentbysocket(data);
             });
+            socket.on(`addIncidentTimeline-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.addincidenttimelinebysocket(data);
+            });
         }
         return null;
     }
@@ -154,6 +163,7 @@ const mapDispatchToProps = dispatch =>
             updateprobebysocket,
             incidentcreatedbysocket,
             updateincidentbysocket,
+            addincidenttimelinebysocket,
         },
         dispatch
     );

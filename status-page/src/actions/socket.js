@@ -87,3 +87,12 @@ export function updateincidentbysocket(incident) {
         });
     };
 }
+
+export function addincidenttimelinebysocket(timeline) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_TIMELINE_CREATED',
+            payload: timeline,
+        });
+    };
+}
