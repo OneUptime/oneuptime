@@ -111,11 +111,7 @@ class Incident extends Component {
     }
 
     handleIncidentStatus = () => {
-        const {
-            requestingTimeline,
-            lastIncidentTimeline,
-            incident,
-        } = this.props;
+        const { requestingTimeline, lastIncidentTimeline } = this.props;
         let timelineStatus = null;
 
         if (!requestingTimeline) {
@@ -130,15 +126,7 @@ class Incident extends Component {
             }
             if (lastIncidentTimeline.status === 'resolved') {
                 timelineStatus = (
-                    <span
-                        className={
-                            incident.resolved
-                                ? 'time incident_status resolved__incident'
-                                : 'time incident_status'
-                        }
-                    >
-                        Resolved
-                    </span>
+                    <span className="time incident_status">Resolved</span>
                 );
             }
             if (lastIncidentTimeline.status === 'acknowledged') {
@@ -148,13 +136,7 @@ class Incident extends Component {
             }
             if (lastIncidentTimeline.incident_state) {
                 timelineStatus = (
-                    <span
-                        className={
-                            incident.resolved
-                                ? 'time incident_status resolved__incident'
-                                : 'time incident_status'
-                        }
-                    >
+                    <span className="time incident_status">
                         {capitalize(lastIncidentTimeline.incident_state)}
                     </span>
                 );
@@ -293,6 +275,12 @@ class Incident extends Component {
                                                 )}
                                             </span>
                                             {this.handleIncidentStatus()}
+                                            {incident.resolved && (
+                                                <span
+                                                    title="Resolved"
+                                                    className="resolved__incident"
+                                                ></span>
+                                            )}
                                         </span>
                                     )}
                             </div>
