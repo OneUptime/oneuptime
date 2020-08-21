@@ -79,6 +79,33 @@ export function updatescheduledeventbysocket(event) {
     };
 }
 
+export function addeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_EVENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function deleteeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_EVENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function updateeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_EVENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
 export function updateprobebysocket(probe) {
     return function(dispatch) {
         dispatch({
