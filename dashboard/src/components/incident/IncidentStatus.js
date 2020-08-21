@@ -163,35 +163,56 @@ export class IncidentStatus extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Monitor
-                                            </label>
-                                            <div
-                                                className="bs-Fieldset-fields"
-                                                style={{ marginTop: '6px' }}
-                                            >
-                                                <span className="value">
-                                                    <Link
-                                                        to={
-                                                            '/dashboard/project/' +
-                                                            this.props.projectId +
-                                                            '/' +
-                                                            this.props.componentId +
-                                                            '/monitoring/' +
-                                                            this.props.incident
-                                                                .monitorId._id
-                                                        }
-                                                        id="backToMonitorView"
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Incident ID
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <span
+                                                        className="value"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
                                                     >
-                                                        {
-                                                            this.props.incident
-                                                                .monitorId.name
-                                                        }
-                                                    </Link>
-                                                </span>
+                                                        {this.props.incident._id}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Monitor
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ marginTop: '6px' }}
+                                                >
+                                                    <span className="value">
+                                                        <Link
+                                                            to={
+                                                                '/dashboard/project/' +
+                                                                this.props
+                                                                    .projectId +
+                                                                '/' +
+                                                                this.props
+                                                                    .componentId +
+                                                                '/monitoring/' +
+                                                                this.props
+                                                                    .incident
+                                                                    .monitorId
+                                                                    ._id
+                                                            }
+                                                            id="backToMonitorView"
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .incident
+                                                                    .monitorId
+                                                                    .name
+                                                            }
+                                                        </Link>
+                                                    </span>
+                                                </div>
+                                            </div>
                                             {this.props.incident.title && (
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
