@@ -10,6 +10,7 @@ import {
     updatemonitorbysocket,
     deletemonitorbysocket,
     updatemonitorstatusbysocket,
+    addincidentnotebysocket,
     updateincidentnotebysocket,
     addscheduledeventbysocket,
     updatescheduledeventbysocket,
@@ -38,6 +39,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `updateMonitorStatus-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addIncidentNote-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `updateIncidentNote-${this.props.project._id}`
@@ -93,6 +97,11 @@ class SocketApp extends Component {
                     data,
                     thisObj.props.probes
                 );
+            });
+            socket.on(`addIncidentNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.addincidentnotebysocket(data);
             });
             socket.on(`updateIncidentNote-${this.props.project._id}`, function(
                 data
@@ -157,6 +166,7 @@ const mapDispatchToProps = dispatch =>
             updatemonitorbysocket,
             deletemonitorbysocket,
             updatemonitorstatusbysocket,
+            addincidentnotebysocket,
             updateincidentnotebysocket,
             addscheduledeventbysocket,
             updatescheduledeventbysocket,
