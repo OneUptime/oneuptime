@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { withRouter } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
@@ -69,7 +69,7 @@ class Events extends Component {
     };
 
     render() {
-        const { history, statusPageId } = this.props;
+        const { statusPageId } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -153,16 +153,12 @@ class Events extends Component {
                                         'MMMM Do YYYY, h:mm a'
                                     )}
                                 </span>
-                                <button
-                                    onClick={() =>
-                                        history.push(
-                                            `/status-page/${statusPageId}/scheduledEvent/${event._id}`
-                                        )
-                                    }
-                                    className="btn-more"
+                                <Link
+                                    to={`/status-page/${statusPageId}/scheduledEvent/${event._id}`}
+                                    className="more-link"
                                 >
                                     More
-                                </button>
+                                </Link>
                             </div>
                         </li>
                     );
@@ -179,9 +175,8 @@ Events.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
-    history: PropTypes.object,
     statusPageId: PropTypes.string,
     monitorState: PropTypes.array,
 };
 
-export default withRouter(Events);
+export default Events;
