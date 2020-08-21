@@ -45,6 +45,8 @@ describe('Probe API', function() {
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
+        // remove every monitor in DB
+        await MonitorService.hardDeleteBy({});
 
         const user = await UserService.create({
             ...userData.user,
