@@ -192,6 +192,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     ...state.logs,
                     [action.payload.applicationLogId]: {
                         logs: action.payload.logs,
+                        dateRange: action.payload.dateRange,
                         error: null,
                         requesting: false,
                         success: true,

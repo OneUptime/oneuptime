@@ -210,14 +210,15 @@ export function fetchLogs(
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            function(logs) {
+            function(response) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        logs: logs.data.data,
+                        logs: response.data.data.logs,
+                        dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        count: logs.data.count,
+                        count: response.data.count,
                     })
                 );
             },
