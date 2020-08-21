@@ -128,7 +128,39 @@ module.exports = {
             throw error;
         }
     },
+
+    // fetches just the last/latest incident timeline
+    // this timelines will be used in status page
+    getIncidentLastTimelines: async function(incidents) {
+        const _this = this;
+        try {
+            const skip = 0,
+                limit = 1;
+
+            let timelines = await Promise.all(
+                incidents.map(async incident => {
+                    const timeline = await _this.findBy(
+                        { incidentId: incident._id },
+                        skip,
+                        limit
+                    );
+                    return timeline;
+                })
+            );
+
+            timelines = flattenArray(timelines);
+            return timelines;
+        } catch (error) {
+            ErrorService.log(
+                'incidentTimelineService.statusPageTimelines',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 const IncidentTimelineModel = require('../models/incidentTimeline');
 const ErrorService = require('./errorService');
+const flattenArray = require('../utils/flattenArray');
+const RealTimeService = require('./realTimeService');
