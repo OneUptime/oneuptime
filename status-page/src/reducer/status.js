@@ -342,23 +342,65 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'UPDATE_INCIDENT_NOTE':
-            return Object.assign({}, state, {
-                notes: {
-                    ...state.notes,
+        case 'ADD_INCIDENT_NOTE': {
+            let addToIncident = false;
+            let notes = [...state.incidentNotes.notes];
+            if (
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId._id)
+            ) {
+                addToIncident = true;
+                notes = [action.payload, ...notes];
+            }
 
-                    notes:
-                        state.notes.notes && state.notes.notes.length > 0
-                            ? state.notes.notes.map(note => {
-                                  if (note._id === action.payload._id) {
-                                      return action.payload;
-                                  } else {
-                                      return note;
-                                  }
-                              })
-                            : [],
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                    count: addToIncident
+                        ? state.incidentNotes.count + 1
+                        : state.incidentNotes.count,
                 },
-            });
+            };
+        }
+
+        case 'UPDATE_INCIDENT_NOTE': {
+            let notes = [...state.incidentNotes.notes];
+            if (
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId._id)
+            ) {
+                notes = state.incidentNotes.notes.map(note => {
+                    if (String(note._id) === String(action.payload._id)) {
+                        return action.payload;
+                    }
+                    return note;
+                });
+            }
+
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                },
+            };
+        }
+
+        case 'DELETE_INCIDENT_NOTE': {
+            const notes = state.incidentNotes.notes.filter(
+                note => String(note._id) !== String(action.payload._id)
+            );
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                    count: state.incidentNotes.count - 1,
+                },
+            };
+        }
 
         case MORE_NOTES_SUCCESS:
             return Object.assign({}, state, {
