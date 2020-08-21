@@ -1368,7 +1368,8 @@ export default (state = INITIAL_STATE, action) => {
             };
 
         case 'INCIDENT_TIMELINE_CREATED': {
-            const timelines = state.lastIncidentTimelines.timelines.map(
+            const timelineIds = [];
+            let timelines = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
                         String(timeline.incidentId) ===
@@ -1376,9 +1377,22 @@ export default (state = INITIAL_STATE, action) => {
                     ) {
                         timeline = action.payload;
                     }
+                    timelineIds.push(String(timeline.incidentId));
                     return timeline;
                 }
             );
+            if (
+                !timelineIds.includes(String(action.payload.incidentId)) &&
+                String(state.incident.incident._id) ===
+                    String(action.payload.incidentId)
+            ) {
+                timelines = [...timelines, action.payload];
+            }
+            const timeline =
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId)
+                    ? action.payload
+                    : { ...state.lastIncidentTimeline.timeline };
             return {
                 ...state,
                 lastIncidentTimelines: {
@@ -1387,7 +1401,7 @@ export default (state = INITIAL_STATE, action) => {
                 },
                 lastIncidentTimeline: {
                     ...state.lastIncidentTimeline,
-                    timeline: action.payload,
+                    timeline,
                 },
             };
         }
