@@ -1,24 +1,80 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { withRouter } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
 
 class Notes extends Component {
+    handleIncidentStatus = (incident, timelines) => {
+        let incidentTimeline = null,
+            timelineStatus = null;
+        timelines.map(timeline => {
+            if (String(incident._id) === String(timeline.incidentId)) {
+                incidentTimeline = timeline;
+            }
+            return timeline;
+        });
+
+        if (incidentTimeline) {
+            if (
+                !incidentTimeline.incident_state &&
+                incidentTimeline.status !== 'resolved' &&
+                incidentTimeline.status !== 'acknowledged'
+            ) {
+                timelineStatus = (
+                    <span className="note_status">Identified</span>
+                );
+            }
+            if (incidentTimeline.status === 'resolved') {
+                timelineStatus = (
+                    <span
+                        className={
+                            incident.resolved
+                                ? 'note_status resolved__incident'
+                                : 'note_status'
+                        }
+                    >
+                        Resolved
+                    </span>
+                );
+            }
+            if (incidentTimeline.status === 'acknowledged') {
+                timelineStatus = (
+                    <span className="note_status">Acknowledged</span>
+                );
+            }
+            if (incidentTimeline.incident_state) {
+                timelineStatus = (
+                    <span
+                        className={
+                            incident.resolved
+                                ? 'note_status resolved__incident'
+                                : 'note_status'
+                        }
+                    >
+                        {capitalize(incidentTimeline.incident_state)}
+                    </span>
+                );
+            }
+        }
+
+        return timelineStatus;
+    };
     render() {
         const {
-            history,
             statusPageId,
             uptimeColor,
             downtimeColor,
             degradedColor,
+            incidentTimelines,
         } = this.props;
 
         return (
             <ShouldRender if={this.props.notes}>
                 {this.props.notes.map((note, i) => {
                     if (!note) return <div>No note</div>;
+
                     return (
                         <li className="incidentlist feed-item clearfix" key={i}>
                             <div
@@ -55,6 +111,7 @@ class Notes extends Component {
                                             fontWeight: 'Bold',
                                             ...this.props.primaryTextColor,
                                             color: 'rgb(76, 76, 76)',
+                                            marginLeft: 25,
                                         }}
                                     >
                                         {capitalize(note.title)}
@@ -113,48 +170,17 @@ class Notes extends Component {
                                             'MMMM Do YYYY, h:mm a'
                                         )}
                                     </span>
-                                    {note.acknowledged && (
-                                        <span
-                                            className={'time'}
-                                            style={{
-                                                ...this.props
-                                                    .secondaryTextColor,
-                                                marginLeft: 10,
-                                                paddingBottom: 10,
-                                                display: 'inline-block',
-                                            }}
-                                        >
-                                            Acknowledged
-                                        </span>
+                                    {this.handleIncidentStatus(
+                                        note,
+                                        incidentTimelines
                                     )}
-                                    <span
-                                        className={
-                                            note.resolved
-                                                ? 'time resolved__incident'
-                                                : 'time'
-                                        }
-                                        style={{
-                                            ...this.props.secondaryTextColor,
-                                            marginLeft: 10,
-                                            paddingBottom: 10,
-                                            display: 'inline-block',
-                                        }}
-                                    >
-                                        {note.resolved
-                                            ? 'Resolved'
-                                            : 'Identified'}
-                                    </span>
                                 </span>
-                                <button
-                                    onClick={() =>
-                                        history.push(
-                                            `/status-page/${statusPageId}/incident/${note._id}`
-                                        )
-                                    }
-                                    className="btn-more"
+                                <Link
+                                    to={`/status-page/${statusPageId}/incident/${note._id}`}
+                                    className="more-link"
                                 >
                                     More
-                                </button>
+                                </Link>
                             </div>
                         </li>
                     );
@@ -172,10 +198,10 @@ Notes.propTypes = {
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
     statusPageId: PropTypes.string,
-    history: PropTypes.object,
     degradedColor: PropTypes.object,
     uptimeColor: PropTypes.object,
     downtimeColor: PropTypes.object,
+    incidentTimelines: PropTypes.array,
 };
 
-export default withRouter(Notes);
+export default Notes;
