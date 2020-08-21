@@ -17,7 +17,6 @@ import {
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
-import * as moment from 'moment';
 import ApplicationLogHeader from './ApplicationLogHeader';
 import NewApplicationLog from './NewApplicationLog';
 
@@ -29,8 +28,6 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
-            logType: { value: '', label: 'All Logs' },
-            filter: '',
         };
     }
     deleteApplicationLog = () => {
@@ -82,37 +79,6 @@ class ApplicationLogDetail extends Component {
                 return false;
         }
     };
-    handleDateTimeChange = (startDate, endDate) => {
-        const {
-            setStartDate,
-            setEndDate,
-            fetchLogs,
-            applicationLog,
-            currentProject,
-            componentId,
-        } = this.props;
-        if (startDate && endDate) {
-            startDate = moment(startDate);
-            endDate = moment(endDate);
-            setStartDate(startDate);
-            setEndDate(endDate);
-            fetchLogs(
-                currentProject._id,
-                componentId,
-                applicationLog._id,
-                0,
-                10,
-                startDate.clone().utc(),
-                endDate.clone().utc()
-            );
-        }
-    };
-    handleLogTypeChange = logType => {
-        this.setState({ logType });
-    };
-    handleLogFilterChange = filter => {
-        this.setState({ filter });
-    };
     editApplicationLog = () => {
         const { applicationLog } = this.props;
         this.props.editApplicationLogSwitch(applicationLog._id);
@@ -161,12 +127,6 @@ class ApplicationLogDetail extends Component {
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';
         }
-        const logOptions = [
-            { value: '', label: 'All Logs' },
-            { value: 'error', label: 'Error' },
-            { value: 'warning', label: 'Warning' },
-            { value: 'info', label: 'Info' },
-        ];
         if (applicationLog) {
             return (
                 <div>
@@ -191,9 +151,6 @@ class ApplicationLogDetail extends Component {
                                 resetApplicationLogKey={
                                     this.resetApplicationLogKey
                                 }
-                                stats={stats}
-                                handleLogTypeChange={this.handleLogTypeChange}
-                                logOptions={logOptions}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -206,16 +163,11 @@ class ApplicationLogDetail extends Component {
                         </ShouldRender>
 
                         <ApplicationLogDetailView
-                            logValue={this.state.logType}
-                            filter={this.state.filter}
                             applicationLog={applicationLog}
-                            logOptions={logOptions}
                             componentId={componentId}
                             projectId={currentProject._id}
-                            handleLogTypeChange={this.handleLogTypeChange}
-                            handleLogFilterChange={this.handleLogFilterChange}
-                            handleDateTimeChange={this.handleDateTimeChange}
                             isDetails={isDetails}
+                            stats={stats}
                         />
                     </div>
                 </div>
@@ -269,13 +221,10 @@ ApplicationLogDetail.propTypes = {
     closeModal: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
     deleteApplicationLog: PropTypes.func,
-    setStartDate: PropTypes.func,
-    setEndDate: PropTypes.func,
     isDetails: PropTypes.bool,
     editApplicationLogSwitch: PropTypes.func,
     fetchStats: PropTypes.func,
     stats: PropTypes.object,
-    fetchLogs: PropTypes.func,
 };
 
 export default connect(
