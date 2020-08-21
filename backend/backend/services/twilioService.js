@@ -507,9 +507,12 @@ const _this = {
                 to = '+' + to;
             }
             if (customTwilioSettings) {
-                const alertPhoneVerificationCode = Math.random()
-                    .toString(10)
-                    .substr(2, 6);
+                const alertPhoneVerificationCode =
+                    process.env.NODE_ENV === 'test'
+                        ? process.env.TWILIO_SMS_VERIFICATION_CODE
+                        : Math.random()
+                              .toString(10)
+                              .substr(2, 6);
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options = {
                     body: template,
