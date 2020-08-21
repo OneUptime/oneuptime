@@ -145,9 +145,6 @@ export class ApiAdvance extends Component {
                                                     id="bodyType"
                                                     placeholder="Body Type"
                                                     disabled={false}
-                                                    validate={
-                                                        ValidateField.select
-                                                    }
                                                     options={[
                                                         {
                                                             value: '',
