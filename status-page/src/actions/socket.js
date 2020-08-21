@@ -34,7 +34,16 @@ export function updatemonitorstatusbysocket(status, probes) {
     };
 }
 
-export function updateincidentnotebysocket(incident) {
+export function addincidentnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_INCIDENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function updateincidentnotebysocket(note) {
     return function(dispatch) {
         dispatch({
             type: 'UPDATE_INCIDENT_NOTE',
