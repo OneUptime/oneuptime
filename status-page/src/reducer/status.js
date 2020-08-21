@@ -1242,6 +1242,20 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'INCIDENT_DELETED': {
+            const notes = state.notes.notes.filter(
+                note => String(note._id) !== String(action.payload._id)
+            );
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes,
+                    count: state.notes.count - 1,
+                },
+            };
+        }
+
         case 'INCIDENT_UPDATED': {
             const notes = state.notes.notes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {
