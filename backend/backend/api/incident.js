@@ -559,6 +559,7 @@ router.post(
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
                     createdById: req.user.id,
+                    incident_state: data.incident_state,
                     status,
                 });
 
