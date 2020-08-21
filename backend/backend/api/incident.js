@@ -567,7 +567,6 @@ router.post(
                     _id: incidentMessage._id,
                     incidentId: incidentMessage.incidentId,
                 });
-                await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {

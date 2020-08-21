@@ -14,6 +14,7 @@ module.exports = {
                 _id: incidentMessage._id,
             });
 
+            await RealTimeService.addIncidentNote(incidentMessage);
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.create', error);
@@ -39,7 +40,7 @@ module.exports = {
             incidentMessage = await this.findOneBy(query);
 
             //await RealTimeService.applicationLogKeyReset(applicationLog);
-
+            await RealTimeService.updateIncidentNote(incidentMessage);
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.updateOneBy', error);
@@ -134,3 +135,4 @@ module.exports = {
 
 const IncidentMessageModel = require('../models/incidentMessage');
 const ErrorService = require('./errorService');
+const RealTimeService = require('./realTimeService');
