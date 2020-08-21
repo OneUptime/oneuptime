@@ -85,8 +85,14 @@ module.exports = {
         }
     },
 
-    deleteIncidentNote: async incident => {
+    deleteIncidentNote: async incidentNote => {
         try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: incidentNote.incidentId._id,
+            });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
@@ -96,7 +102,7 @@ module.exports = {
                     : project._id
                 : incident.projectId;
 
-            global.io.emit(`deleteIncidentNote-${projectId}`, incident);
+            global.io.emit(`deleteIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realTimeService.deleteIncidentNote', error);
             throw error;
