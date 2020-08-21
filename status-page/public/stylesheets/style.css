@@ -417,8 +417,18 @@ div.block-chart::-webkit-scrollbar {
   border-radius: 50%;
   position: absolute;
   z-index: 1;
-  right: 10px;
-  top: 10px;
+  left: 20px;
+  top: 17px;
+}
+
+.incident-bubble {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 1;
+  left: 35px;
+  top: 21px;
 }
 
 .uptime-legend {
@@ -1027,13 +1037,7 @@ margin-left:10px;
 }
 
 .note__wrapper {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  vertical-align: top;
-}
-
-.note__wrapper > span {
-  padding: 10px;
+  padding: 20px;
 }
 
 .note-badge {
@@ -1069,7 +1073,7 @@ margin-left:10px;
   background-color: transparent;
   background-size: 20px 15px;
   padding-right: 25px;
-  background-image: url('../images/checked.svg');
+  background-image: url('../images/check.svg');
   background-repeat: no-repeat;
   background-position: 100% 35%;
 }
@@ -1122,25 +1126,34 @@ margin-left:10px;
   padding-bottom: 10px;
 }
 
-.btn-more {
-  flex: 0 0 auto;
-  padding: 4px 10px;
-  background-color: transparent;
-  border-radius: 4px;
-  box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.08), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
-  color: rgba(0, 0, 0, 0.8);
-  cursor: pointer;
+.more-link {
+  color: rgba(0, 0, 0, 0.5);
+  text-decoration: underline;
   font-size: 14px;
-  font-weight: 500;
-  line-height: 1.6;
+  text-transform: lowercase;
+}
+
+.more-link:hover {
+  color: rgb(76, 76, 76);
+}
+
+.incident_status {
+  margin-left: 10px;
+  padding-bottom: 10px;
+  display: inline-block;
+  color: rgba(0, 0, 0, 0.5);
+  padding-top: 7px;
+  text-transform: capitalize;
+}
+
+.note_status {
+  color: rgb(76, 76, 76);
+  margin-left: 10px;
+  padding-bottom: 10px;
+  display: inline-block;
+  padding-top: 7px;
   text-align: left;
-  text-decoration: none;
-  vertical-align: middle;
-  white-space: nowrap;
-  word-break: keep-all;
-  transition: box-shadow 0.08s ease-in, color 0.08s ease-in;
-  border: none;
-  outline: transparent;
+  font-size: 11px;
 }
 
 @media screen and (max-width: 500px) {
