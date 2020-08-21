@@ -21,6 +21,8 @@ module.exports = {
                 _id: incidentTimeline._id,
             });
 
+            await RealTimeService.addIncidentTimeline(incidentTimeline);
+
             return incidentTimeline;
         } catch (error) {
             ErrorService.log('incidentTimelineService.create', error);
