@@ -52,6 +52,12 @@ import {
     INDIVIDUAL_EVENTS_FAILURE,
     INDIVIDUAL_EVENTS_SUCCESS,
     INDIVIDUAL_EVENTS_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
+    FETCH_LAST_INCIDENT_TIMELINE_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
+    FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
+    FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -134,6 +140,18 @@ const INITIAL_STATE = {
     },
     moreIncidentNotes: false,
     moreIncidentNotesError: null,
+    lastIncidentTimeline: {
+        requesting: false,
+        success: false,
+        error: null,
+        timeline: {},
+    },
+    lastIncidentTimelines: {
+        requesting: false,
+        success: false,
+        error: null,
+        timelines: [],
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -1130,6 +1148,97 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.futureEvents,
                     requesting: false,
                     success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_REQUEST:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_SUCCESS:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    timeline: action.payload[0],
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_FAILURE:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    success: false,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINES_REQUEST:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINES_SUCCESS:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    timelines: action.payload,
+                },
+            };
+
+        case 'INCIDENT_TIMELINE_CREATED': {
+            const timelines = state.lastIncidentTimelines.timelines.map(
+                timeline => {
+                    if (
+                        String(timeline.incidentId) ===
+                        String(action.payload.incidentId)
+                    ) {
+                        timeline = action.payload;
+                    }
+                    return timeline;
+                }
+            );
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    timelines,
+                },
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    timeline: action.payload,
+                },
+            };
+        }
+
+        case FETCH_LAST_INCIDENT_TIMELINES_FAILURE:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    success: false,
+                    requesting: false,
                     error: action.payload,
                 },
             };
