@@ -1071,11 +1071,11 @@ margin-left:10px;
 
 .resolved__incident {
   background-color: transparent;
-  background-size: 20px 15px;
+  background-size: 15px 12px;
   padding-right: 25px;
   background-image: url('../images/check.svg');
   background-repeat: no-repeat;
-  background-position: 100% 35%;
+  background-position: 100% 50%;
 }
 
 .box__yellow--dark {
