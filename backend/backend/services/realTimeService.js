@@ -21,6 +21,26 @@ module.exports = {
         }
     },
 
+    deleteIncident: async incident => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+            global.io.emit(`deleteIncident-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteIncident', error);
+            throw error;
+        }
+    },
+
     addIncidentTimeline: async timeline => {
         try {
             if (!global || !global.io) {
