@@ -150,3 +150,12 @@ export function addincidenttimelinebysocket(timeline) {
         });
     };
 }
+
+export function deleteincidentnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_INCIDENT_NOTE',
+            payload: note,
+        });
+    };
+}
