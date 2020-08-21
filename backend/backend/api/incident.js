@@ -648,6 +648,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
+            await RealTimeService.deleteIncident(incident);
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {
