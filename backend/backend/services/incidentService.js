@@ -65,7 +65,8 @@ module.exports = {
                 incident.title = data.title;
                 incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
-                incident.idNumber = incidentsCountInProject + deletedIncidentsCountInProject;
+                incident.idNumber =
+                    incidentsCountInProject + deletedIncidentsCountInProject;
 
                 if (data.probeId) {
                     incident.probes = [
