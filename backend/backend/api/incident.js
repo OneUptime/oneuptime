@@ -559,6 +559,7 @@ router.post(
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
                     createdById: req.user.id,
+                    incident_state: data.incident_state,
                     status,
                 });
 
@@ -566,7 +567,6 @@ router.post(
                     _id: incidentMessage._id,
                     incidentId: incidentMessage.incidentId,
                 });
-                await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
@@ -580,27 +580,24 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
+            const { incidentId, incidentMessageId } = req.params;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
-                    _id: req.params.incidentMessageId,
-                    incidentId: req.params.incidentId,
+                    _id: incidentMessageId,
+                    incidentId,
                 },
                 req.user.id
             );
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
-
-                const incident = IncidentService.findOneBy({
-                    _id: incidentMessage.incidentId._id,
-                });
                 // update timeline
                 await IncidentTimelineService.create({
-                    incidentId: incident._id,
+                    incidentId,
                     createdById: req.user.id,
                     status,
                 });
 
-                await RealTimeService.deleteIncidentNote(incident);
+                await RealTimeService.deleteIncidentNote(incidentMessage);
                 return sendItemResponse(req, res, incidentMessage);
             } else {
                 return sendErrorResponse(req, res, {
@@ -651,6 +648,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
+            await RealTimeService.deleteIncident(incident);
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {

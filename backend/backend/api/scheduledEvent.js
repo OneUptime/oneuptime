@@ -79,20 +79,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        if (!data.description || !data.description.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is required.',
-            });
-        }
-
-        if (typeof data.description !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is not of string type.',
-            });
-        }
-
         const existingScheduledEvent = await ScheduledEventService.findOneBy({
             name: data.name,
             projectId: projectId,
@@ -173,6 +159,13 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
             });
         }
 
+        if (data.monitors && !Array.isArray(data.monitors)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitors is not of type array',
+            });
+        }
+
         if (!data.startDate) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -194,20 +187,6 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
             });
         }
 
-        if (!data.description || !data.description.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is required.',
-            });
-        }
-
-        if (typeof data.description !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event description is not of string type.',
-            });
-        }
-
         const existingScheduledEvent = await ScheduledEventService.findOneBy({
             name: data.name,
             projectId,
@@ -224,7 +203,7 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
         }
 
         const scheduledEvent = await ScheduledEventService.updateOneBy(
-            { _id: eventId },
+            { _id: eventId, projectId },
             data
         );
 
@@ -431,7 +410,7 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
     res
 ) {
     try {
-        const { eventId } = req.params;
+        const { eventId, projectId } = req.params;
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         data.scheduledEventId = eventId;
@@ -502,7 +481,8 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         }
 
         const scheduledEventMessage = await ScheduledEventNoteService.create(
-            data
+            data,
+            projectId
         );
 
         return sendItemResponse(req, res, scheduledEventMessage);
@@ -565,7 +545,7 @@ router.put(
     isAuthorized,
     async function(req, res) {
         try {
-            const { eventId, noteId } = req.params;
+            const { eventId, noteId, projectId } = req.params;
             const data = req.body;
             data.updated = true;
 
@@ -654,7 +634,8 @@ router.put(
                     _id: noteId,
                     scheduledEventId: eventId,
                 },
-                data
+                data,
+                projectId
             );
 
             return sendItemResponse(req, res, scheduledEventMessage);
@@ -671,7 +652,7 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { eventId, noteId } = req.params;
+            const { eventId, noteId, projectId } = req.params;
             const userId = req.user ? req.user.id : null;
 
             const deletedEventMessage = await ScheduledEventNoteService.deleteBy(
@@ -679,7 +660,8 @@ router.delete(
                     _id: noteId,
                     scheduledEventId: eventId,
                 },
-                userId
+                userId,
+                projectId
             );
             return sendItemResponse(req, res, deletedEventMessage);
         } catch (error) {

@@ -860,3 +860,89 @@ export function moreIncidentNotes(projectId, incidentId, type, skip) {
         }
     };
 }
+
+export function fetchLastIncidentTimelineRequest() {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINE_REQUEST,
+    };
+}
+
+export function fetchLastIncidentTimelineSuccess(payload) {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchLastIncidentTimelineFailure(error) {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchLastIncidentTimeline(projectId, incidentId) {
+    return async function(dispatch) {
+        try {
+            dispatch(fetchLastIncidentTimelineRequest());
+
+            const response = await getApi(
+                `statusPage/${projectId}/timeline/${incidentId}`
+            );
+            dispatch(fetchLastIncidentTimelineSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchLastIncidentTimelineFailure(errorMsg));
+        }
+    };
+}
+
+export function fetchLastIncidentTimelinesRequest() {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
+    };
+}
+
+export function fetchLastIncidentTimelinesSuccess(payload) {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchLastIncidentTimelinesFailure(error) {
+    return {
+        type: types.FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchLastIncidentTimelines(projectId, statusPageId) {
+    return async function(dispatch) {
+        try {
+            dispatch(fetchLastIncidentTimelinesRequest());
+
+            const response = await getApi(
+                `statusPage/${projectId}/${statusPageId}/timelines`
+            );
+            dispatch(fetchLastIncidentTimelinesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchLastIncidentTimelinesFailure(errorMsg));
+        }
+    };
+}

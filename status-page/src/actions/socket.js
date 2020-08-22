@@ -34,11 +34,20 @@ export function updatemonitorstatusbysocket(status, probes) {
     };
 }
 
-export function updateincidentnotebysocket(incident) {
+export function addincidentnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_INCIDENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function updateincidentnotebysocket(note) {
     return function(dispatch) {
         dispatch({
             type: 'UPDATE_INCIDENT_NOTE',
-            payload: incident,
+            payload: note,
         });
     };
 }
@@ -52,11 +61,47 @@ export function addscheduledeventbysocket(event) {
     };
 }
 
+export function deletescheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}
+
 export function updatescheduledeventbysocket(event) {
     return function(dispatch) {
         dispatch({
             type: 'UPDATE_SCHEDULED_EVENT',
             payload: event,
+        });
+    };
+}
+
+export function addeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_EVENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function deleteeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_EVENT_NOTE',
+            payload: note,
+        });
+    };
+}
+
+export function updateeventnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_EVENT_NOTE',
+            payload: note,
         });
     };
 }
@@ -79,11 +124,38 @@ export function incidentcreatedbysocket(incident) {
     };
 }
 
+export function deleteincidentbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_DELETED',
+            payload: incident,
+        });
+    };
+}
+
 export function updateincidentbysocket(incident) {
     return function(dispatch) {
         dispatch({
             type: 'INCIDENT_UPDATED',
             payload: incident,
+        });
+    };
+}
+
+export function addincidenttimelinebysocket(timeline) {
+    return function(dispatch) {
+        dispatch({
+            type: 'INCIDENT_TIMELINE_CREATED',
+            payload: timeline,
+        });
+    };
+}
+
+export function deleteincidentnotebysocket(note) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_INCIDENT_NOTE',
+            payload: note,
         });
     };
 }

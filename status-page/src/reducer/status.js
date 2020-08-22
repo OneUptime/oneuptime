@@ -52,6 +52,12 @@ import {
     INDIVIDUAL_EVENTS_FAILURE,
     INDIVIDUAL_EVENTS_SUCCESS,
     INDIVIDUAL_EVENTS_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
+    FETCH_LAST_INCIDENT_TIMELINE_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
+    FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
+    FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
+    FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -134,6 +140,18 @@ const INITIAL_STATE = {
     },
     moreIncidentNotes: false,
     moreIncidentNotesError: null,
+    lastIncidentTimeline: {
+        requesting: false,
+        success: false,
+        error: null,
+        timeline: {},
+    },
+    lastIncidentTimelines: {
+        requesting: false,
+        success: false,
+        error: null,
+        timelines: [],
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -324,23 +342,65 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
-        case 'UPDATE_INCIDENT_NOTE':
-            return Object.assign({}, state, {
-                notes: {
-                    ...state.notes,
+        case 'ADD_INCIDENT_NOTE': {
+            let addToIncident = false;
+            let notes = [...state.incidentNotes.notes];
+            if (
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId._id)
+            ) {
+                addToIncident = true;
+                notes = [action.payload, ...notes];
+            }
 
-                    notes:
-                        state.notes.notes && state.notes.notes.length > 0
-                            ? state.notes.notes.map(note => {
-                                  if (note._id === action.payload._id) {
-                                      return action.payload;
-                                  } else {
-                                      return note;
-                                  }
-                              })
-                            : [],
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                    count: addToIncident
+                        ? state.incidentNotes.count + 1
+                        : state.incidentNotes.count,
                 },
-            });
+            };
+        }
+
+        case 'UPDATE_INCIDENT_NOTE': {
+            let notes = [...state.incidentNotes.notes];
+            if (
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId._id)
+            ) {
+                notes = state.incidentNotes.notes.map(note => {
+                    if (String(note._id) === String(action.payload._id)) {
+                        return action.payload;
+                    }
+                    return note;
+                });
+            }
+
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                },
+            };
+        }
+
+        case 'DELETE_INCIDENT_NOTE': {
+            const notes = state.incidentNotes.notes.filter(
+                note => String(note._id) !== String(action.payload._id)
+            );
+            return {
+                ...state,
+                incidentNotes: {
+                    ...state.incidentNotes,
+                    notes,
+                    count: state.incidentNotes.count - 1,
+                },
+            };
+        }
 
         case MORE_NOTES_SUCCESS:
             return Object.assign({}, state, {
@@ -488,6 +548,42 @@ export default (state = INITIAL_STATE, action) => {
                         : state.futureEvents.count,
                 },
             });
+        }
+
+        case 'DELETE_SCHEDULED_EVENT': {
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            let isFutureEvent = false;
+            let events = [];
+            if (startDate > currentDate) {
+                isFutureEvent = true;
+                events = state.futureEvents.events.filter(
+                    event => String(event._id) !== String(action.payload._id)
+                );
+            } else {
+                events = state.events.events.filter(
+                    event => String(event._id) !== String(action.payload._id)
+                );
+            }
+            return {
+                ...state,
+                events: {
+                    ...state.events,
+                    events: !isFutureEvent ? events : [...state.events.events],
+                    count: !isFutureEvent
+                        ? state.events.count - 1
+                        : state.events.count,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    events: isFutureEvent
+                        ? events
+                        : [...state.futureEvents.events],
+                    count: isFutureEvent
+                        ? state.futureEvents.count - 1
+                        : state.futureEvents.count,
+                },
+            };
         }
 
         case 'UPDATE_SCHEDULED_EVENT': {
@@ -932,6 +1028,74 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'ADD_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            let increaseCount = false;
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                increaseCount = true;
+                eventNotes = [action.payload, ...eventNotes];
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                    count: increaseCount
+                        ? state.eventNoteList.count + 1
+                        : state.eventNoteList.count,
+                },
+            };
+        }
+
+        case 'DELETE_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            let reduceCount = false;
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                reduceCount = true;
+                eventNotes = state.eventNoteList.eventNotes.filter(
+                    note => String(note._id) !== String(action.payload._id)
+                );
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                    count: reduceCount
+                        ? state.eventNoteList.count - 1
+                        : state.eventNoteList.count,
+                },
+            };
+        }
+
+        case 'UPDATE_EVENT_NOTE': {
+            let eventNotes = [...state.eventNoteList.eventNotes];
+            if (
+                String(state.scheduledEvent.event._id) ===
+                String(action.payload.scheduledEventId._id)
+            ) {
+                eventNotes = state.eventNoteList.eventNotes.map(note => {
+                    if (String(note._id) === String(action.payload._id)) {
+                        return action.payload;
+                    }
+                    return note;
+                });
+            }
+            return {
+                ...state,
+                eventNoteList: {
+                    ...state.eventNoteList,
+                    eventNotes,
+                },
+            };
+        }
+
         case FETCH_EVENT_NOTES_FAILURE:
             return {
                 ...state,
@@ -1078,6 +1242,20 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'INCIDENT_DELETED': {
+            const notes = state.notes.notes.filter(
+                note => String(note._id) !== String(action.payload._id)
+            );
+            return {
+                ...state,
+                notes: {
+                    ...state.notes,
+                    notes,
+                    count: state.notes.count - 1,
+                },
+            };
+        }
+
         case 'INCIDENT_UPDATED': {
             const notes = state.notes.notes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {
@@ -1130,6 +1308,111 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.futureEvents,
                     requesting: false,
                     success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_REQUEST:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_SUCCESS:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    timeline: action.payload[0],
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINE_FAILURE:
+            return {
+                ...state,
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    success: false,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINES_REQUEST:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_LAST_INCIDENT_TIMELINES_SUCCESS:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    timelines: action.payload,
+                },
+            };
+
+        case 'INCIDENT_TIMELINE_CREATED': {
+            const timelineIds = [];
+            let timelines = state.lastIncidentTimelines.timelines.map(
+                timeline => {
+                    if (
+                        String(timeline.incidentId) ===
+                        String(action.payload.incidentId)
+                    ) {
+                        timeline = action.payload;
+                    }
+                    timelineIds.push(String(timeline.incidentId));
+                    return timeline;
+                }
+            );
+            if (
+                !timelineIds.includes(String(action.payload.incidentId)) &&
+                String(state.incident.incident._id) ===
+                    String(action.payload.incidentId)
+            ) {
+                timelines = [...timelines, action.payload];
+            }
+            const timeline =
+                String(state.incident.incident._id) ===
+                String(action.payload.incidentId)
+                    ? action.payload
+                    : { ...state.lastIncidentTimeline.timeline };
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    timelines,
+                },
+                lastIncidentTimeline: {
+                    ...state.lastIncidentTimeline,
+                    timeline,
+                },
+            };
+        }
+
+        case FETCH_LAST_INCIDENT_TIMELINES_FAILURE:
+            return {
+                ...state,
+                lastIncidentTimelines: {
+                    ...state.lastIncidentTimelines,
+                    success: false,
+                    requesting: false,
                     error: action.payload,
                 },
             };
