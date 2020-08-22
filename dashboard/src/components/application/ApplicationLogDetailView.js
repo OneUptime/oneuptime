@@ -63,7 +63,7 @@ class ApplicationLogDetailView extends Component {
         }
     };
     handleLogTypeChange = logType => {
-        this.setState({ logType });
+        // check if it is the details page before actioning
         const {
             applicationLog,
             projectId,
@@ -71,7 +71,12 @@ class ApplicationLogDetailView extends Component {
             startDate,
             endDate,
             fetchLogs,
+            isDetails,
         } = this.props;
+        if (!isDetails) {
+            return;
+        }
+        this.setState({ logType });
         const { filter } = this.state;
         fetchLogs(
             projectId,
@@ -153,7 +158,7 @@ class ApplicationLogDetailView extends Component {
                 <ShouldRender if={stats && !stats.requesting}>
                     <div
                         className="db-TrendRow db-ListViewItem-header db-Trends-header"
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: isDetails ? 'pointer' : 'none' }}
                     >
                         <div
                             onClick={() =>
