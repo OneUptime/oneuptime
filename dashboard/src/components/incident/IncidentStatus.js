@@ -174,7 +174,7 @@ export class IncidentStatus extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        {this.props.incident._id}
+                                                        {this.props.incident.idNumber}
                                                     </span>
                                                 </div>
                                             </div>
