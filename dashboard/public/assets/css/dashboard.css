@@ -3655,6 +3655,20 @@ figure.bs-Number > figcaption {
     width: auto;
     max-width: 320px;
   }
+  .Flex-direction--row.bs-Container {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+}
+@media only screen and (max-width: 600px) {
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
 }
 .bs-Modal:focus {
   outline: none;
@@ -50836,11 +50850,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 /* Date Range Picker */
 
 .DateRangePicker__CalendarSelection {
-
   background-color: #329ae0;
   border: 1px solid #329ae0;
-
-      border-right-width: 1px;
+  border-right-width: 1px;
   bottom: 5px;
   left: 0;
   position: absolute;
@@ -51222,4 +51234,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 
 .Border-radius--4 {
   border-radius: 4px;
+}
+
+.Responsive-image {
+  max-height: 9vw;
+  max-width: 75%;
 }

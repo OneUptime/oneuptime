@@ -36,7 +36,7 @@ class ChangePasswordPage extends React.Component {
                 <div className="below-box">
                     <p>
                         <Link to="/login">
-                            Know your password? <strong>Sign in</strong>.
+                            Know your password? <strong>Sign in</strong>
                         </Link>
                     </p>
                 </div>

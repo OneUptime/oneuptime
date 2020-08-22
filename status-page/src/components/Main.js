@@ -547,11 +547,29 @@ class Main extends Component {
                                         >
                                             <span
                                                 style={
-                                                    probe.lastAlive &&
-                                                    moment(this.state.now).diff(
-                                                        moment(probe.lastAlive),
-                                                        'seconds'
-                                                    ) >= 300
+                                                    // If the page doesn't include any monitor or includes only manual monitors
+                                                    // The probe servers will be shown online
+                                                    this.props.monitorState
+                                                        .length === 0 ||
+                                                    this.props.monitorState.every(
+                                                        monitor =>
+                                                            monitor.type ===
+                                                            'manual'
+                                                    )
+                                                        ? {
+                                                              ...greenBackground,
+                                                              backgroundColor:
+                                                                  uptimeColor.backgroundColor,
+                                                          }
+                                                        : probe.lastAlive &&
+                                                          moment(
+                                                              this.state.now
+                                                          ).diff(
+                                                              moment(
+                                                                  probe.lastAlive
+                                                              ),
+                                                              'seconds'
+                                                          ) >= 300
                                                         ? greyBackground
                                                         : serviceStatus ===
                                                               'none' ||

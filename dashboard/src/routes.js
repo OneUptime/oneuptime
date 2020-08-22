@@ -305,6 +305,7 @@ export const groups = [
                     },
                 ],
                 index: 5,
+                shortcut: 'f+v',
             },
             {
                 title: 'Reports',
@@ -359,6 +360,16 @@ export const groups = [
                         component: Monitors,
                         index: 2,
                         shortcut: 'f+m',
+                    },
+                    {
+                        title: 'Incident Settings',
+                        path:
+                            '/dashboard/project/:projectId/settings/incidents',
+                        icon: 'incidentSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: IncidentPriorities,
+                        index: 3,
                     },
                     {
                         title: 'Integrations',
@@ -527,6 +538,7 @@ export const groups = [
                 component: Consulting,
                 subRoutes: [],
                 index: 1,
+                shortcut: 'f+z',
             },
         ],
     },

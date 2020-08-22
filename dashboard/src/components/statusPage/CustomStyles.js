@@ -9,10 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm } from 'redux-form';
-import AceEditor from 'react-ace';
-import 'brace/mode/html';
-import 'brace/mode/css';
-import 'brace/theme/github';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 export class CustomStyles extends Component {
     state = {
@@ -178,50 +175,28 @@ export class CustomStyles extends Component {
                                                         <Field
                                                             key={i}
                                                             name={script.name}
-                                                            component={({
-                                                                input,
-                                                            }) => (
-                                                                <AceEditor
-                                                                    mode={
-                                                                        script.mode
-                                                                    }
-                                                                    theme="github"
-                                                                    value={
-                                                                        input.value
-                                                                    }
-                                                                    id={`editor-${i}`}
-                                                                    name={
-                                                                        script.name
-                                                                    }
-                                                                    editorProps={{
-                                                                        $blockScrolling: true,
-                                                                    }}
-                                                                    height="150px"
-                                                                    width="100%"
-                                                                    highlightActiveLine={
-                                                                        true
-                                                                    }
-                                                                    setOptions={{
-                                                                        enableBasicAutocompletion: true,
-                                                                        enableLiveAutocompletion: true,
-                                                                        enableSnippets: true,
-                                                                    }}
-                                                                    onLoad={editor => {
-                                                                        this[
-                                                                            script.name
-                                                                        ] = editor;
-                                                                    }}
-                                                                    onBlur={() =>
-                                                                        this.handleChange(
-                                                                            input.onChange,
-                                                                            script.name
-                                                                        )
-                                                                    }
-                                                                    placeholder={
-                                                                        script.placeholder
-                                                                    }
-                                                                />
-                                                            )}
+                                                            component={
+                                                                RenderCodeEditor
+                                                            }
+                                                            mode={script.mode}
+                                                            theme="github"
+                                                            id={`editor-${i}`}
+                                                            height="150px"
+                                                            width="100%"
+                                                            onLoad={editor => {
+                                                                this[
+                                                                    script.name
+                                                                ] = editor;
+                                                            }}
+                                                            onBlur={input =>
+                                                                this.handleChange(
+                                                                    input.onChange,
+                                                                    script.name
+                                                                )
+                                                            }
+                                                            placeholder={
+                                                                script.placeholder
+                                                            }
                                                         />
                                                         <ShouldRender
                                                             if={
