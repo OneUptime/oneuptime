@@ -19,6 +19,11 @@ class ViewApplicationLogKey extends Component {
             confirmBoxHidden: !state.confirmBoxHidden,
         }));
     };
+    changeAPIKeyVisualState = () => {
+        this.setState(state => ({
+            hidden: !state.hidden,
+        }));
+    };
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -92,13 +97,6 @@ class ViewApplicationLogKey extends Component {
                                                 </label>
                                                 <div
                                                     id={`show_application_log_key_${this.props.data.applicationLog.name}`}
-                                                    onClick={() =>
-                                                        this.setState(
-                                                            state => ({
-                                                                hidden: !state.hidden,
-                                                            })
-                                                        )
-                                                    }
                                                 >
                                                     <ShouldRender if={hidden}>
                                                         <span
@@ -109,31 +107,54 @@ class ViewApplicationLogKey extends Component {
                                                                 cursor:
                                                                     'pointer',
                                                             }}
+                                                            onClick={
+                                                                this
+                                                                    .changeAPIKeyVisualState
+                                                            }
                                                         >
                                                             Click here to reveal
                                                             Application Log key
                                                         </span>
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
-                                                        <span
-                                                            id={`application_log_key_${this.props.data.applicationLog.name}`}
-                                                            className="value"
-                                                            style={{
-                                                                marginTop:
-                                                                    '6px',
-                                                                fontWeight:
-                                                                    'bold',
-                                                            }}
-                                                        >
-                                                            {this.props.data
-                                                                .applicationLog !==
-                                                            null
-                                                                ? this.props
-                                                                      .data
-                                                                      .applicationLog
-                                                                      .key
-                                                                : 'LOADING...'}
-                                                        </span>
+                                                        <div className="Flex-flex">
+                                                            <span
+                                                                id={`application_log_key_${this.props.data.applicationLog.name}`}
+                                                                className="value"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '6px',
+                                                                    fontWeight:
+                                                                        'bold',
+                                                                }}
+                                                            >
+                                                                {this.props.data
+                                                                    .applicationLog !==
+                                                                null
+                                                                    ? this.props
+                                                                          .data
+                                                                          .applicationLog
+                                                                          .key
+                                                                    : 'LOADING...'}
+                                                            </span>
+                                                            <div
+                                                                onClick={
+                                                                    this
+                                                                        .changeAPIKeyVisualState
+                                                                }
+                                                                className="Flex-flex Flex-alignItems--center Padding-left--8"
+                                                            >
+                                                                <img
+                                                                    src="/dashboard/assets/img/hide.svg"
+                                                                    style={{
+                                                                        width:
+                                                                            '15px',
+                                                                        height:
+                                                                            '15px',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </ShouldRender>
                                                 </div>
                                             </div>
