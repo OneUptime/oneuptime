@@ -23,6 +23,15 @@ class ApplicationLogDetailView extends Component {
         };
     }
 
+    componentDidMount() {
+        const {
+            fetchLogs,
+            projectId,
+            componentId,
+            applicationLog,
+        } = this.props;
+        fetchLogs(projectId, componentId, applicationLog._id, 0, 10);
+    }
     handleEndDateTimeChange = val => {
         const {
             applicationLog,
@@ -93,6 +102,28 @@ class ApplicationLogDetailView extends Component {
             applicationLog._id,
             0,
             10,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
+    handleNavigationButtonClick = (skip, limit) => {
+        const {
+            applicationLog,
+            projectId,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+        } = this.props;
+        const { logType, filter } = this.state;
+        fetchLogs(
+            projectId,
+            componentId,
+            applicationLog._id,
+            skip,
+            limit,
             startDate,
             endDate,
             logType.value,
@@ -416,6 +447,9 @@ class ApplicationLogDetailView extends Component {
                                         applicationLog={applicationLog}
                                         componentId={componentId}
                                         projectId={projectId}
+                                        handleNavigationButtonClick={
+                                            this.handleNavigationButtonClick
+                                        }
                                     />
                                 </div>
                             </div>
