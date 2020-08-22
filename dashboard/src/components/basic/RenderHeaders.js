@@ -74,7 +74,7 @@ const RenderHeaders = ({ fields }) => {
                                     component={RenderField}
                                     placeholder="KEY"
                                     style={{ width: '250px' }}
-                                    validate={ValidateField.required}
+                                    validate={ValidateField.text}
                                 />
                             </div>
                         </div>
@@ -97,7 +97,7 @@ const RenderHeaders = ({ fields }) => {
                                     component={RenderField}
                                     placeholder="VALUE"
                                     style={{ width: '250px' }}
-                                    validate={ValidateField.required}
+                                    validate={ValidateField.text}
                                 />
                             </div>
                         </div>
