@@ -212,7 +212,7 @@ class MonitorInfo extends Component {
 
         const uptime =
             uptimePercent || uptimePercent === 0
-                ? uptimePercent.toString().split('.')[0]
+                ? uptimePercent.toString().slice(0, 4)
                 : '100';
         const upDays = timeBlock.length;
 
