@@ -7,7 +7,7 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
 import { ListLoader } from '../basic/Loader';
-import { fetchLogs, getLogSuccess } from '../../actions/applicationLog';
+import { getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { API_URL } from '../../config';
@@ -23,46 +23,14 @@ class LogList extends Component {
         super(props);
         this.state = { viewJsonModalId: uuid.v4() };
     }
-
-    componentDidMount() {
-        const {
-            fetchLogs,
-            projectId,
-            componentId,
-            applicationLogId,
-        } = this.props;
-        fetchLogs(projectId, componentId, applicationLogId, 0, 10);
-    }
     prevClicked = (skip, limit) => {
-        const {
-            fetchLogs,
-            projectId,
-            componentId,
-            applicationLogId,
-        } = this.props;
-        fetchLogs(
-            projectId,
-            componentId,
-            applicationLogId,
-            skip ? parseInt(skip, 10) - 10 : 10,
-            limit
-        );
+        const { handleNavigationButtonClick } = this.props;
+        handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
     nextClicked = (skip, limit) => {
-        const {
-            fetchLogs,
-            projectId,
-            componentId,
-            applicationLogId,
-        } = this.props;
-        fetchLogs(
-            projectId,
-            componentId,
-            applicationLogId,
-            skip ? parseInt(skip, 10) + 10 : 10,
-            limit
-        );
+        const { handleNavigationButtonClick } = this.props;
+        handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
 
     displayTags = tags => {
@@ -553,20 +521,16 @@ LogList.displayName = 'LogList';
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, fetchLogs, getLogSuccess },
+        { openModal, closeModal, getLogSuccess },
         dispatch
     );
 };
 LogList.propTypes = {
-    projectId: PropTypes.string,
-    componentId: PropTypes.string,
     applicationLogId: PropTypes.string,
     applicationLog: PropTypes.object,
     logs: PropTypes.object,
     openModal: PropTypes.func,
-    fetchLogs: PropTypes.func,
-    startDate: PropTypes.instanceOf(moment),
-    endDate: PropTypes.instanceOf(moment),
+    handleNavigationButtonClick: PropTypes.func,
     getLogSuccess: PropTypes.func,
 };
 function mapStateToProps(state, props) {
@@ -575,8 +539,6 @@ function mapStateToProps(state, props) {
     return {
         applicationLogId,
         logs,
-        startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate,
     };
 }
 
