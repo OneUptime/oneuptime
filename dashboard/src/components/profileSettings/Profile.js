@@ -1010,6 +1010,7 @@ export class ProfileSetting extends Component {
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                             <label className="Checkbox">
                                                                 <div
+                                                                    id="successMessage"
                                                                     className="Box-root"
                                                                     style={{
                                                                         paddingLeft:
