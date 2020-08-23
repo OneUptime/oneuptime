@@ -286,7 +286,7 @@ class ApplicationLogDetailView extends Component {
                                                     <span>
                                                         Here&apos;s a list of
                                                         recent logs which belong
-                                                        to this application log.
+                                                        to this log container.
                                                     </span>
                                                 </span>
                                             </div>

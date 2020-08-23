@@ -23,7 +23,7 @@ class ApplicationLog extends Component {
         this.props.loadPage('Logs');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG LIST'
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER LIST'
             );
         }
     }

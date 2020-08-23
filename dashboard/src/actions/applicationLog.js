@@ -2,7 +2,7 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
-//Create new application log
+//Create new log container
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(projectId, componentId, values) {
     return function(dispatch) {

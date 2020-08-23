@@ -95,6 +95,16 @@ class LogList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '100px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Type </span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px', minWidth: '210px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -104,16 +114,6 @@ class LogList extends Component {
                                     </div>
                                 </td>
 
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '100px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Type </span>
-                                        </span>
-                                    </div>
-                                </td>
                                 <td
                                     id="placeholder-right"
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -154,7 +154,7 @@ class LogList extends Component {
                                                           .name
                                                     ? this.props.applicationLog
                                                           .name
-                                                    : 'Unknown Application Log'
+                                                    : 'Unknown Log Container'
                                             }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
@@ -175,6 +175,69 @@ class LogList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root Flex-flex Flex-direction--column">
+                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                    {log &&
+                                                                    log.type &&
+                                                                    log.type ===
+                                                                        'error' ? (
+                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>
+                                                                                    error
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : log &&
+                                                                      log.type &&
+                                                                      log.type ===
+                                                                          'info' ? (
+                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>
+                                                                                    info
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : log &&
+                                                                      log.type &&
+                                                                      log.type ===
+                                                                          'warning' ? (
+                                                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>
+                                                                                    warning
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                <span>
+                                                                                    Unknown
+                                                                                    Type
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="Flex-flex Flex-wrap--wrap Padding-top--8">
+                                                                    {this.displayTags(
+                                                                        log.tags
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td
@@ -305,69 +368,6 @@ class LogList extends Component {
                                                 </div>
                                             </td>
 
-                                            <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Flex-flex Flex-direction--column">
-                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    {log &&
-                                                                    log.type &&
-                                                                    log.type ===
-                                                                        'error' ? (
-                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    error
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : log &&
-                                                                      log.type &&
-                                                                      log.type ===
-                                                                          'info' ? (
-                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    info
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : log &&
-                                                                      log.type &&
-                                                                      log.type ===
-                                                                          'warning' ? (
-                                                                        <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    warning
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    Unknown
-                                                                                    Type
-                                                                                </span>
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="Flex-flex Flex-wrap--wrap Padding-top--8">
-                                                                    {this.displayTags(
-                                                                        log.tags
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
                                             <td
                                                 id="placeholder-right"
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"

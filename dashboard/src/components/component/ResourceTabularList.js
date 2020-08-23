@@ -40,7 +40,7 @@ class ResourceTabularList extends Component {
             case 'container security':
                 route = 'security/container';
                 break;
-            case 'application logs':
+            case 'log container':
                 route = 'application-logs';
                 break;
             default:
@@ -126,8 +126,8 @@ class ResourceTabularList extends Component {
                     />
                 );
                 break;
-            case 'application logs':
-                // get application log status
+            case 'log container':
+                // get log container status
                 if (componentResource.status === 'Collecting Logs')
                     statusColor = 'green';
 

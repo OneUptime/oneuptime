@@ -223,7 +223,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create a new application log in component',
+        'Should create a new log container in component',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -297,7 +297,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
             });
         },
         operationTimeOut
@@ -420,7 +420,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
 
                 let spanElement = await page.waitForSelector(
                     `#resource_type_${monitorName}`
@@ -436,7 +436,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Application Logs');
+                expect(spanElement).toMatch('Log Containers');
 
                 spanElement = await page.waitForSelector(
                     `#resource_status_${applicationLogName}`
@@ -467,7 +467,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
 
                 await page.click(`#view-resource-${applicationLogName}`);
 

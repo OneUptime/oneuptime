@@ -41,7 +41,7 @@ class ApplicationLogDetail extends Component {
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
                 {
                     ProjectId: this.props.currentProject._id,
                     applicationLogId: this.props.index,
@@ -63,7 +63,7 @@ class ApplicationLogDetail extends Component {
                 });
                 if (SHOULD_LOG_ANALYTICS) {
                     logEvent(
-                        'EVENT: DASHBOARD > COMPONENTS > APPLICATION LOG > APPLICATION LOG DETAILS > RESET APPLICATION LOG KEY',
+                        'EVENT: DASHBOARD > COMPONENTS > LOG CONTAINER > LOG CONTAINER DETAILS > RESET LOG CONTAINER KEY',
                         {
                             applicationLogId: this.props.index,
                         }
@@ -85,7 +85,7 @@ class ApplicationLogDetail extends Component {
         // This is crashing
         // if (SHOULD_LOG_ANALYTICS) {
         //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG CLICKED',
+        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > EDIT LOG CONTAINER CLICKED',
         //         {}
         //     );
         // }

@@ -115,7 +115,7 @@ export const groups = [
                 shortcut: 'c+l',
                 subRoutes: [
                     {
-                        title: 'Application Log View',
+                        title: 'Log Container View',
                         path:
                             '/dashboard/project/:projectId/:componentId/application-logs/:applicationLogId',
                         icon: 'radar',

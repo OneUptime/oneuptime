@@ -64,7 +64,7 @@ class ApplicationLogHeader extends Component {
                                                     }
                                                 >
                                                     <span>
-                                                        Application Log Key
+                                                        Log Container Key
                                                     </span>
                                                 </button>
                                                 <button

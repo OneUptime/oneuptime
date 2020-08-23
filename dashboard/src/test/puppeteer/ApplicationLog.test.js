@@ -76,7 +76,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should create new application log',
+        'Should create new log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -102,7 +102,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should not create new application log',
+        'Should not create new log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -128,7 +128,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open details page of created application log',
+        'Should open details page of created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -148,7 +148,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open edit component for created application log',
+        'Should open edit component for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -172,7 +172,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open application key for created application log',
+        'Should open application key for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -184,13 +184,13 @@ describe('Components', () => {
                 await page.click(`#key_${applicationLogName}`);
                 await page.waitFor(1000);
 
-                // get application log key
+                // get log container key
             });
         },
         operationTimeOut
     );
     test(
-        'Should open application key for created application log',
+        'Should open application key for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -211,7 +211,7 @@ describe('Components', () => {
                 );
                 await page.waitFor(2000);
 
-                // get application log key
+                // get log container key
                 let spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -230,7 +230,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should reset application key for created application log',
+        'Should reset application key for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -251,7 +251,7 @@ describe('Components', () => {
                 );
                 await page.waitFor(2000);
 
-                // get application log key
+                // get log container key
                 let spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -288,7 +288,7 @@ describe('Components', () => {
                     `#show_application_log_key_${applicationLogName}`
                 );
 
-                // get application log key
+                // get log container key
                 spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -302,7 +302,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should update name for created application log',
+        'Should update name for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
