@@ -115,8 +115,8 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[name=title]', incidentTitle);
                 await page.click('#createIncident');
                 await page.waitFor(3000);
-                await page.waitForSelector("#closeIncident_0");
-                await page.click("#closeIncident_0");
+                await page.waitForSelector('#closeIncident_0');
+                await page.click('#closeIncident_0');
                 await page.waitForSelector(
                     '#incident_monitor1_0>td:nth-child(2)'
                 );
@@ -216,10 +216,16 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE+"123");
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
+                );
                 await page.click('#verify');
                 await page.waitFor('#smsVerificationErrors');
-                const message = await page.$eval('#smsVerificationErrors',e=>e.textContent)
+                const message = await page.$eval(
+                    '#smsVerificationErrors',
+                    e => e.textContent
+                );
                 expect(message).toEqual('Invalid code !');
             });
 
@@ -246,11 +252,19 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE);
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
                 await page.click('#verify');
                 await page.waitFor('#successMessage');
-                const message = await page.$eval('#successMessage',e=>e.textContent)
-                expect(message).toEqual('Verification successful, this number has been updated.');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
             });
 
             done();
@@ -276,11 +290,19 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE);
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
                 await page.click('#verify');
                 await page.waitFor('#successMessage');
-                const message = await page.$eval('#successMessage',e=>e.textContent)
-                expect(message).toEqual('Verification successful, this number has been updated.');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
             });
 
             done();
