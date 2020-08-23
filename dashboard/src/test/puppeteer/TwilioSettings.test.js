@@ -115,6 +115,8 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[name=title]', incidentTitle);
                 await page.click('#createIncident');
                 await page.waitFor(3000);
+                await page.waitForSelector("#closeIncident_0");
+                await page.click("#closeIncident_0");
                 await page.waitForSelector(
                     '#incident_monitor1_0>td:nth-child(2)'
                 );
