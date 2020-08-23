@@ -506,13 +506,13 @@ const _this = {
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
+            const alertPhoneVerificationCode =
+                process.env.IS_TESTING 
+                    ? process.env.TWILIO_SMS_VERIFICATION_CODE
+                    : Math.random()
+                          .toString(10)
+                          .substr(2, 6);
             if (customTwilioSettings) {
-                const alertPhoneVerificationCode =
-                    process.env.IS_TESTING 
-                        ? process.env.TWILIO_SMS_VERIFICATION_CODE
-                        : Math.random()
-                              .toString(10)
-                              .substr(2, 6);
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options = {
                     body: template,
@@ -555,9 +555,6 @@ const _this = {
                         error.code = 400;
                         throw error;
                     }
-                    const alertPhoneVerificationCode = Math.random()
-                        .toString(10)
-                        .substr(2, 6);
                     const template = `Your verification code: ${alertPhoneVerificationCode}`;
                     const options = {
                         body: template,
