@@ -202,6 +202,31 @@ describe('Custom Twilio Settings', () => {
     );
 
     test(
+        'should render an error message if the user try to update his alert phone number without typing the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.type('input[type=tel]', '+19173976235');
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE+"123");
+                await page.click('#verify');
+                await page.waitFor('#smsVerificationErrors');
+                const message = await page.$eval('#smsVerificationErrors',e=>e.textContent)
+                expect(message).toEqual('Invalid code !');
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
         'should send a verification SMS before allowing user to set his alert phone number.',
         async done => {
             await cluster.execute(null, async ({ page }) => {
