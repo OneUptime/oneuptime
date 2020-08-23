@@ -8,6 +8,7 @@ require('should');
 // user credentials
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
+const phoneNumber = '+19173976235';
 
 describe('Twilio Settings API', () => {
     const operationTimeOut = 100000;
@@ -230,7 +231,7 @@ describe('Twilio Settings API', () => {
     );
 
     test(
-        'User should be able to update his alert phone number.',
+        'should render an error message if the user try to update his alert phone number without typing the right verification code.',
         async () => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
@@ -242,11 +243,14 @@ describe('Twilio Settings API', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.type('input[type=tel]', '+19173976235');
+                await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                const errorMessage = await page.$$('#smsVerificationErrors');
-                expect(errorMessage).toEqual([]);
+                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE+"123");
+                await page.click('#verify');
+                await page.waitFor('#smsVerificationErrors');
+                const message = await page.$eval('#smsVerificationErrors',e=>e.textContent)
+                expect(message).toEqual('Invalid code !');
             });
         },
         operationTimeOut
