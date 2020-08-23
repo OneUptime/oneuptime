@@ -202,7 +202,7 @@ describe('Custom Twilio Settings', () => {
     );
 
     test(
-        'should send a verification SMS before allowing user to update his alert phone number.',
+        'should send a verification SMS before allowing user to set his alert phone number.',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -211,11 +211,19 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
                 await page.type('input[type=tel]', '+19173976235');
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                const errorMessage = await page.$$('#smsVerificationErrors');
-                expect(errorMessage).toEqual([]);
+                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE);
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval('#successMessage',e=>e.textContent)
+                expect(message).toEqual('Verification successful, this number has been updated.');
             });
 
             done();
