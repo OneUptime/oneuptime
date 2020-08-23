@@ -42,7 +42,7 @@ const IncidentTimelineList = props => {
     return (
         <div>
             <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                <table className="Table">
+                <table id="incidentTimeline" className="Table">
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <td

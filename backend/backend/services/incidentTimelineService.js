@@ -21,7 +21,18 @@ module.exports = {
                 _id: incidentTimeline._id,
             });
 
-            await RealTimeService.addIncidentTimeline(incidentTimeline);
+            const incident = await IncidentService.findOneBy({
+                _id: data.incidentId,
+            });
+
+            if (incident) {
+                const _incidentTimeline = Object.assign(
+                    {},
+                    incidentTimeline._doc,
+                    { projectId: incident.projectId }
+                );
+                RealTimeService.updateIncidentTimeline(_incidentTimeline);
+            }
 
             return incidentTimeline;
         } catch (error) {
@@ -163,6 +174,7 @@ module.exports = {
 };
 
 const IncidentTimelineModel = require('../models/incidentTimeline');
+const IncidentService = require('./incidentService');
+const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
 const flattenArray = require('../utils/flattenArray');
-const RealTimeService = require('./realTimeService');
