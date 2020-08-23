@@ -508,7 +508,7 @@ const _this = {
             }
             if (customTwilioSettings) {
                 const alertPhoneVerificationCode =
-                    process.env.NODE_ENV === 'test'
+                    process.env.IS_TESTING 
                         ? process.env.TWILIO_SMS_VERIFICATION_CODE
                         : Math.random()
                               .toString(10)
