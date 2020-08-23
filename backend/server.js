@@ -51,7 +51,9 @@ app.use(function(req, res, next) {
         'Access-Control-Allow-Headers',
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
-
+    if (req.get('host').includes('cluster.local')) {
+        return next();
+    }
     // Add this to global object, and this can be used anywhere where you need backend host.
     global.apiHost = 'https://' + req.hostname + '/api';
     global.accountsHost = 'https://' + req.hostname + '/accounts';
