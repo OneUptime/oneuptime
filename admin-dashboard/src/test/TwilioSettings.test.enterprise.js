@@ -255,4 +255,35 @@ describe('Twilio Settings API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'should set the alert phone number if the user types the right verification code.',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#goToUserDashboard');
+                await page.click('#goToUserDashboard');
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type('#otp',process.env.TWILIO_SMS_VERIFICATION_CODE);
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval('#successMessage',e=>e.textContent)
+                expect(message).toEqual('Verification successful, this number has been updated.');
+            });
+        },
+        operationTimeOut
+    );
 });
