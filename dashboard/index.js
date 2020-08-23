@@ -8,10 +8,13 @@ child_process.execSync('react-env', {
 });
 
 app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
-    global.dashboardHost = 'https://' + req.host + '/dashboard';
-    global.homeHost = 'https://' + req.host;
-    global.accountsHost = 'https://' + req.host + '/accounts';
-    global.backendHost = 'https://' + req.host + '/api';
+    const isClustLocal = req.get('host').includes('cluster.local');
+    if (!isClustLocal) {
+        global.dashboardHost = 'https://' + req.host + '/dashboard';
+        global.homeHost = 'https://' + req.host;
+        global.accountsHost = 'https://' + req.host + '/accounts';
+        global.backendHost = 'https://' + req.host + '/api';
+    }
     if (req.host.includes('localhost')) {
         if (req.get('host').includes('localhost:')) {
             global.dashboardHost =
@@ -19,7 +22,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
             global.accountsHost = 'http://' + req.host + ':' + 3003;
             global.homeHost = 'http://' + req.host + ':' + 1444;
             global.backendHost = 'http://' + req.host + ':' + 3002;
-        } else {
+        } else if (!isClustLocal) {
             global.dashboardHost = 'http://' + req.host + '/dashboard';
             global.accountsHost = 'http://' + req.host + '/accounts';
             global.homeHost = 'http://' + req.host;
@@ -29,9 +32,11 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
 
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
-        REACT_APP_HOST: global.dashboardHost,
-        REACT_APP_ACCOUNTS_HOST: global.accountsHost,
-        REACT_APP_BACKEND_HOST: global.backendHost,
+        ...(!isClustLocal && {
+            REACT_APP_HOST: global.dashboardHost,
+            REACT_APP_ACCOUNTS_HOST: global.accountsHost,
+            REACT_APP_BACKEND_HOST: global.backendHost,
+        }),
         REACT_APP_DOMAIN: req.host,
         REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
