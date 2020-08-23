@@ -178,4 +178,3 @@ const IncidentService = require('./incidentService');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
 const flattenArray = require('../utils/flattenArray');
-const RealTimeService = require('./realTimeService');
