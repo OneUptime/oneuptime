@@ -6,7 +6,7 @@ require('custom-env').env(null, '../backend');
 const puppeteer = require('puppeteer');
 const expect = require('chai').expect;
 const chai = require('chai');
-// const moment = require('moment');
+const moment = require('moment');
 chai.use(require('chai-http'));
 
 const app = 'http://localhost:3002';
@@ -19,7 +19,7 @@ let token,
     projectId,
     monitorCategoryId,
     monitorId,
-    // scheduledEventMonitorId,
+    scheduledEventMonitorId,
     scheduledEventId,
     statusPageId,
     privateStatusPageId,
@@ -37,9 +37,9 @@ const statusPage = testData.statusPage;
 const privateStatusPage = testData.privateStatusPage;
 
 const today = new Date().toISOString();
-// const dateId = moment(today)
-//     .format('LL')
-//     .replace(/, | /g, '');
+const dateId = moment(today)
+    .format('LL')
+    .replace(/, | /g, '');
 
 let browser, page, statusPageURL;
 
@@ -309,43 +309,43 @@ describe('Status page monitors check', function() {
         expect(monitorCategoryName).to.be.equal('UNCATEGORIZED');
     });
 
-    // it('should display scheduled events when enabled on status page', async function() {
-    //     await page.waitForSelector('#scheduledEvents');
+    it('should display scheduled events when enabled on status page', async function() {
+        await page.waitForSelector('#scheduledEvents');
 
-    //     const scheduledEvents = await page.$$('li.scheduledEvent');
-    //     const countScheduledEvents = scheduledEvents.length;
+        const scheduledEvents = await page.$$('li.scheduledEvent');
+        const countScheduledEvents = scheduledEvents.length;
 
-    //     expect(countScheduledEvents).to.be.equal(1);
+        expect(countScheduledEvents).to.be.equal(1);
 
-    //     const scheduledEventName = await page.$eval(
-    //         'li.scheduledEvent > div > div > span:nth-child(2)',
-    //         el => el.textContent
-    //     );
+        const scheduledEventName = await page.$eval(
+            'li.scheduledEvent > div > div > span:nth-child(2)',
+            el => el.textContent
+        );
 
-    //     expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
-    // });
+        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+    });
 
-    // it('should display monitor scheduled events when date is selected', async function() {
-    //     const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
+    it('should display monitor scheduled events when date is selected', async function() {
+        const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
-    //     await page.waitForSelector(monitorDaySelector);
-    //     await page.click(monitorDaySelector);
-    //     await page.waitFor(5000);
+        await page.waitForSelector(monitorDaySelector);
+        await page.click(monitorDaySelector);
+        await page.waitFor(5000);
 
-    //     await page.waitForSelector('#scheduledEvents');
+        await page.waitForSelector('#scheduledEvents');
 
-    //     const scheduledEvents = await page.$$('li.scheduledEvent');
-    //     const countScheduledEvents = scheduledEvents.length;
+        const scheduledEvents = await page.$$('li.scheduledEvent');
+        const countScheduledEvents = scheduledEvents.length;
 
-    //     expect(countScheduledEvents).to.be.equal(1);
+        expect(countScheduledEvents).to.be.equal(1);
 
-    //     const scheduledEventName = await page.$eval(
-    //         'li.scheduledEvent > div > div > span:nth-child(2)',
-    //         el => el.textContent
-    //     );
+        const scheduledEventName = await page.$eval(
+            'li.scheduledEvent > div > div > span:nth-child(2)',
+            el => el.textContent
+        );
 
-    //     expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
-    // });
+        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+    });
 
     it('should not display scheduled events when disabled on status page', async function() {
         await request

@@ -347,31 +347,31 @@ describe('Components', () => {
                 await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
                 await monitorPage.waitFor(2000);
-                // let monitorSpanElement = await monitorPage.waitForSelector(
-                //     `#monitor-status-${monitorName}`
-                // );
-                // monitorSpanElement = await monitorSpanElement.getProperty(
-                //     'innerText'
-                // );
-                // monitorSpanElement = await monitorSpanElement.jsonValue();
-                // // check that monitor status on monitor page is offline
-                // expect(monitorSpanElement).toMatch('Offline');
-                // await monitorPage.waitFor(2000);
+                let monitorSpanElement = await monitorPage.waitForSelector(
+                    `#monitor-status-${monitorName}`
+                );
+                monitorSpanElement = await monitorSpanElement.getProperty(
+                    'innerText'
+                );
+                monitorSpanElement = await monitorSpanElement.jsonValue();
+                // check that monitor status on monitor page is online
+                expect(monitorSpanElement).toMatch('Online');
+                await monitorPage.waitFor(2000);
 
-                // await componentPage.bringToFront();
-                // // check that the monitor is offline on component page
-                // componentSpanElement = await componentPage.waitForSelector(
-                //     `#resource_status_${monitorName}`
-                // );
-                // componentSpanElement = await componentSpanElement.getProperty(
-                //     'innerText'
-                // );
-                // componentSpanElement = await componentSpanElement.jsonValue();
+                await componentPage.bringToFront();
+                // check that the monitor is offline on component page
+                componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_status_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
 
-                // expect(componentSpanElement).toMatch('Offline');
-                // await componentPage.waitFor(2000);
-                // // bring monitor window to the front so as to resolve incident
-                // await monitorPage.bringToFront();
+                expect(componentSpanElement).toMatch('Online');
+                await componentPage.waitFor(2000);
+                // bring monitor window to the front so as to resolve incident
+                await monitorPage.bringToFront();
                 // open incident details
                 await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
                 await monitorPage.click(`#incident_${monitorName}_0`);
@@ -387,18 +387,18 @@ describe('Components', () => {
                 );
                 expect(resolveTextSelector).not.toBeNull();
 
-                // // goto component page
-                // await componentPage.bringToFront();
-                // // confirm that the monitor is back online!
-                // componentSpanElement = await componentPage.waitForSelector(
-                //     `#resource_status_${monitorName}`
-                // );
-                // componentSpanElement = await componentSpanElement.getProperty(
-                //     'innerText'
-                // );
-                // componentSpanElement = await componentSpanElement.jsonValue();
+                // goto component page
+                await componentPage.bringToFront();
+                // confirm that the monitor is back online!
+                componentSpanElement = await componentPage.waitForSelector(
+                    `#resource_status_${monitorName}`
+                );
+                componentSpanElement = await componentSpanElement.getProperty(
+                    'innerText'
+                );
+                componentSpanElement = await componentSpanElement.jsonValue();
 
-                // expect(componentSpanElement).toMatch('Online');
+                expect(componentSpanElement).toMatch('Online');
             });
         },
         operationTimeOut
