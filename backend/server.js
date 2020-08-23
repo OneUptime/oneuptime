@@ -222,14 +222,11 @@ const server = http.listen(app.get('port'), function() {
 });
 
 app.get(['/', '/api'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'fyipe-api',
-        })
-    );
+    res.render('index', {
+        status: 200,
+        message: 'Service Status - OK',
+        serviceType: 'fyipe-api',
+    });
 });
 
 app.use('/*', function(req, res) {
