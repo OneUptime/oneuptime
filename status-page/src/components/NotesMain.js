@@ -10,6 +10,7 @@ import {
     getStatusPageNote,
     getStatusPageIndividualNote,
     getMoreNote,
+    fetchLastIncidentTimelines,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
 
@@ -23,6 +24,10 @@ class NotesMain extends Component {
     }
 
     componentDidMount() {
+        this.props.fetchLastIncidentTimelines(
+            this.props.projectId,
+            this.props.statusPageId
+        );
         this.props.getStatusPageNote(
             this.props.projectId,
             this.props.statusPageId,
@@ -63,6 +68,10 @@ class NotesMain extends Component {
             this.props.projectId,
             this.props.statusPageId,
             this.props.skip + 5
+        );
+        this.props.fetchLastIncidentTimelines(
+            this.props.projectId,
+            this.props.statusPageId
         );
     };
 
@@ -105,7 +114,11 @@ class NotesMain extends Component {
                 background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
             };
         }
-        if (this.props.noteData && this.props.noteData.notes) {
+        if (
+            this.props.noteData &&
+            this.props.noteData.notes &&
+            this.props.lastIncidentTimelines
+        ) {
             note = (
                 <Notes
                     notes={this.props.noteData.notes}
@@ -115,6 +128,8 @@ class NotesMain extends Component {
                     uptimeColor={uptimeColor}
                     degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
+                    incidentTimelines={this.props.lastIncidentTimelines}
                 />
             );
         }
@@ -130,7 +145,9 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        return (
+        return this.props.noteData &&
+            this.props.noteData.notes &&
+            this.props.noteData.notes.length > 0 ? (
             <div
                 className="twitter-feed white box"
                 style={{ overflow: 'visible', ...contentBackground }}
@@ -139,13 +156,22 @@ class NotesMain extends Component {
                     <ShouldRender
                         if={this.props.noteData && !this.props.noteData.error}
                     >
-                        <div className="box-inner">
+                        <div
+                            className="box-inner"
+                            style={{
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                width: '100%',
+                            }}
+                        >
                             <div
                                 className="feed-header clearfix"
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'row',
                                     flexWrap: 'nowrap',
+                                    paddingLeft: 40,
+                                    paddingRight: 40,
                                 }}
                             >
                                 <ShouldRender if={!this.props.individualnote}>
@@ -153,7 +179,7 @@ class NotesMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Past Incidents
+                                        Incidents
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.individualnote}>
@@ -259,7 +285,8 @@ class NotesMain extends Component {
                                 !this.props.noteData.requesting &&
                                 !this.props.requestingmore &&
                                 !this.props.noteData.error &&
-                                !this.props.individualnote
+                                !this.props.individualnote &&
+                                !this.props.fetchingIncidentTimelines
                             }
                         >
                             <button
@@ -325,7 +352,7 @@ class NotesMain extends Component {
                     </ShouldRender>
                 </div>
             </div>
-        );
+        ) : null;
     }
 }
 
@@ -357,6 +384,9 @@ const mapStateToProps = state => {
         count,
         isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         statusPage: state.status.statusPage,
+        lastIncidentTimelines: state.status.lastIncidentTimelines.timelines,
+        fetchingIncidentTimelines:
+            state.status.lastIncidentTimelines.requesting,
     };
 };
 
@@ -367,6 +397,7 @@ const mapDispatchToProps = dispatch =>
             getStatusPageIndividualNote,
             getMoreNote,
             openSubscribeMenu,
+            fetchLastIncidentTimelines,
         },
         dispatch
     );
@@ -387,6 +418,9 @@ NotesMain.propTypes = {
     statusPageId: PropTypes.string,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object,
+    fetchLastIncidentTimelines: PropTypes.func,
+    lastIncidentTimelines: PropTypes.array,
+    fetchingIncidentTimelines: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);

@@ -81,6 +81,8 @@ module.exports = {
                     status: data.incidentType,
                 });
 
+                RealTimeService.sendCreatedIncident(incident);
+
                 return incident;
             } else {
                 const error = new Error('Monitor is not present.');
@@ -175,13 +177,25 @@ module.exports = {
             data.manuallyCreated =
                 data.manuallyCreated || oldIncident.manuallyCreated || false;
 
-            const updatedIncident = await IncidentModel.findOneAndUpdate(
+            let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
             );
+
+            updatedIncident = await updatedIncident
+                .populate('acknowledgedBy', 'name')
+                .populate('monitorId', 'name')
+                .populate('resolvedBy', 'name')
+                .populate('createdById', 'name')
+                .populate('probes.probeId', 'probeName')
+                .populate('incidentPriority', 'name color')
+                .execPopulate();
+
+            RealTimeService.updateIncident(updatedIncident);
+
             return updatedIncident;
         } catch (error) {
             ErrorService.log('incidentService.updateOneBy', error);

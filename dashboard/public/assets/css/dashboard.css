@@ -3643,11 +3643,31 @@ figure.bs-Number > figcaption {
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 15px rgba(84, 96, 103, 0.25);
 }
+@media only screen and (max-width: 650px){
+  .bs-Modal {
+    margin: 0 auto 20px;
+    max-width: 470px;
+  }
+}
 @media only screen and (max-width: 470px) {
   .bs-Modal {
-    margin: 0 10px 20px;
+    margin: 0 auto 20px;
     width: auto;
     max-width: 320px;
+  }
+  .Flex-direction--row.bs-Container {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+}
+@media only screen and (max-width: 600px) {
+  .Flex-direction--row.bs-Carousel {
+    -ms-flex-direction: column;
+    flex-direction: column;
   }
 }
 .bs-Modal:focus {
@@ -50830,11 +50850,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 /* Date Range Picker */
 
 .DateRangePicker__CalendarSelection {
-
   background-color: #329ae0;
   border: 1px solid #329ae0;
-
-      border-right-width: 1px;
+  border-right-width: 1px;
   bottom: 5px;
   left: 0;
   position: absolute;
@@ -51216,4 +51234,9 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 
 .Border-radius--4 {
   border-radius: 4px;
+}
+
+.Responsive-image {
+  max-height: 9vw;
+  max-width: 75%;
 }

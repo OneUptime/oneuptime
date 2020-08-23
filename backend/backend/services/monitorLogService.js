@@ -150,9 +150,6 @@ module.exports = {
 
             await this.sendMonitorLog(savedLog);
 
-            if (data.probeId && data.monitorId)
-                await probeService.sendProbe(data.probeId, data.monitorId);
-
             return savedLog;
         } catch (error) {
             ErrorService.log('monitorLogService.create', error);
@@ -268,6 +265,5 @@ const MonitorLogByDayService = require('../services/monitorLogByDayService');
 const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
 const MonitorService = require('../services/monitorService');
 const RealTimeService = require('./realTimeService');
-const probeService = require('../services/probeService');
 const ErrorService = require('../services/errorService');
 const moment = require('moment');

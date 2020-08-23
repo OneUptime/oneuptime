@@ -1,10 +1,75 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Link } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
+import { capitalize } from '../config';
 
 class Events extends Component {
+    handleResources = event => {
+        const { monitorState } = this.props;
+        const affectedMonitors = [];
+        let monitorCount = 0;
+
+        const eventMonitors = [];
+        // populate the ids of the event monitors in an array
+        event.monitors.map(monitor => {
+            eventMonitors.push(String(monitor.monitorId._id));
+            return monitor;
+        });
+
+        monitorState.map(monitor => {
+            if (eventMonitors.includes(String(monitor._id))) {
+                affectedMonitors.push(monitor);
+                monitorCount += 1;
+            }
+            return monitor;
+        });
+
+        // check if the length of monitors on status page equals the monitor count
+        // if they are equal then all the monitors in status page is in a particular scheduled event
+        if (monitorCount === monitorState.length) {
+            return (
+                <>
+                    <span
+                        className="ongoing__affectedmonitor--title"
+                        style={{ color: 'rgb(76, 76, 76)' }}
+                    >
+                        Resources Affected:{' '}
+                    </span>
+                    <span
+                        className="ongoing__affectedmonitor--content"
+                        style={{ color: 'rgba(0, 0, 0, 0.5)' }}
+                    >
+                        All resources are affected
+                    </span>
+                </>
+            );
+        } else {
+            return (
+                <>
+                    <span
+                        className="ongoing__affectedmonitor--title"
+                        style={{ color: 'rgb(76, 76, 76)' }}
+                    >
+                        Resources Affected:{' '}
+                    </span>
+                    <span
+                        className="ongoing__affectedmonitor--content"
+                        style={{ color: 'rgba(0, 0, 0, 0.5)' }}
+                    >
+                        {affectedMonitors
+                            .map(monitor => capitalize(monitor.name))
+                            .join(', ')
+                            .replace(/, ([^,]*)$/, ' and $1')}
+                    </span>
+                </>
+            );
+        }
+    };
+
     render() {
+        const { statusPageId } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -22,39 +87,79 @@ class Events extends Component {
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
-                                <div className="text">
+                                <div
+                                    className="text"
+                                    style={{
+                                        paddingLeft: 0,
+                                        paddingRight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexWrap: 'nowrap',
+                                    }}
+                                >
                                     <span
+                                        className="feed-title"
                                         style={{
-                                            fontWeight: 'Bold',
-                                            ...this.props.primaryTextColor,
+                                            ...this.props.secondaryTextColor,
+                                            color: 'rgb(76, 76, 76)',
+                                            fontWeight: 'bold',
+                                            fontSize: 14,
                                         }}
                                     >
-                                        {event.monitorId.name
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            event.monitorId.name.substr(1)}
+                                        {event.name}
                                     </span>
-                                    :{' '}
-                                    <span style={this.props.secondaryTextColor}>
-                                        {event.name}.
+                                    <span
+                                        style={{
+                                            ...this.props.primaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                            display: 'block',
+                                            textAlign: 'justify',
+                                        }}
+                                    >
+                                        {event.description}
                                     </span>
                                 </div>
                             </div>
-                            <span
-                                className="time"
+                            <div
+                                className="ongoing__affectedmonitor"
+                                style={
+                                    event.description
+                                        ? { marginTop: 10 }
+                                        : { marginTop: 0 }
+                                }
+                            >
+                                {this.handleResources(event)}
+                            </div>
+                            <div
                                 style={{
-                                    marginLeft: 12,
-                                    ...this.props.secondaryTextColor,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                 }}
                             >
-                                {moment(event.startDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                {moment(event.endDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                            </span>
+                                <span
+                                    className="time"
+                                    style={{
+                                        marginLeft: 0,
+                                        ...this.props.secondaryTextColor,
+                                        paddingBottom: 10,
+                                    }}
+                                >
+                                    {moment(event.startDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                    &nbsp;&nbsp;-&nbsp;&nbsp;
+                                    {moment(event.endDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                </span>
+                                <Link
+                                    to={`/status-page/${statusPageId}/scheduledEvent/${event._id}`}
+                                    className="more-link"
+                                >
+                                    More
+                                </Link>
+                            </div>
                         </li>
                     );
                 })}
@@ -70,6 +175,8 @@ Events.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
+    statusPageId: PropTypes.string,
+    monitorState: PropTypes.array,
 };
 
 export default Events;

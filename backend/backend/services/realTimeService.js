@@ -21,8 +21,34 @@ module.exports = {
         }
     },
 
-    updateIncidentNote: async incident => {
+    deleteIncident: async incident => {
         try {
+            if (!global || !global.io) {
+                return;
+            }
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+            global.io.emit(`deleteIncident-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteIncident', error);
+            throw error;
+        }
+    },
+
+    addIncidentTimeline: async timeline => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: timeline.incidentId,
+            });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
@@ -32,15 +58,67 @@ module.exports = {
                     : project._id
                 : incident.projectId;
 
-            global.io.emit(`updateIncidentNote-${projectId}`, incident);
+            global.io.emit(`addIncidentTimeline-${projectId}`, timeline);
+        } catch (error) {
+            ErrorService.log('realTimeService.addIncidentTimeline', error);
+            throw error;
+        }
+    },
+
+    addIncidentNote: async incidentNote => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: incidentNote.incidentId._id,
+            });
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`addIncidentNote-${projectId}`, incidentNote);
+        } catch (error) {
+            ErrorService.log('realTimeService.addIncidentNote', error);
+            throw error;
+        }
+    },
+
+    updateIncidentNote: async incidentNote => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: incidentNote.incidentId._id,
+            });
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`updateIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realTimeService.updateIncidentNote', error);
             throw error;
         }
     },
 
-    deleteIncidentNote: async incident => {
+    updateIncident: async incident => {
         try {
+            if (!global || !global.io) {
+                return;
+            }
+
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId,
             });
@@ -50,7 +128,31 @@ module.exports = {
                     : project._id
                 : incident.projectId;
 
-            global.io.emit(`deleteIncidentNote-${projectId}`, incident);
+            global.io.emit(`updateIncident-${projectId}`, incident);
+        } catch (error) {
+            ErrorService.log('realTimeService.updateIncident', error);
+            throw error;
+        }
+    },
+
+    deleteIncidentNote: async incidentNote => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const incident = await IncidentService.findOneBy({
+                _id: incidentNote.incidentId._id,
+            });
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`deleteIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realTimeService.deleteIncidentNote', error);
             throw error;
@@ -75,6 +177,24 @@ module.exports = {
         }
     },
 
+    deleteScheduledEvent: async event => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: event.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : event.projectId;
+
+            global.io.emit(`deleteScheduledEvent-${projectId}`, event);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteScheduledEvent', error);
+            throw error;
+        }
+    },
+
     updateScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
@@ -89,6 +209,177 @@ module.exports = {
             global.io.emit(`updateScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realTimeService.updateScheduledEvent', error);
+            throw error;
+        }
+    },
+
+    addScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `addScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.addScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    addScheduledEventInvestigationNote: async (note, projectId) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+            global.io.emit(`addEventNote-${projectId}`, note); // realtime update on status page
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.addScheduledEventInvestigationNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    deleteScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `deleteScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.deleteScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    deleteScheduledEventInvestigationNote: async (note, projectId) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+            global.io.emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.deleteScheduledEventInvestigationNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    updateScheduledEventInternalNote: async note => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `updateScheduledEventInternalNote-${scheduledEventId}`,
+                note
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.updateScheduledEventInternalNote',
+                error
+            );
+            throw error;
+        }
+    },
+
+    updateScheduledEventInvestigationNote: async (note, projectId) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : projectId;
+
+            const scheduledEventId =
+                typeof note.scheduledEventId === 'string'
+                    ? note.scheduledEventId
+                    : note.scheduledEventId._id;
+
+            global.io.emit(
+                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+            global.io.emit(`updateEventNote-${projectId}`, note);
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.updateScheduledEventInvestigationNote',
+                error
+            );
             throw error;
         }
     },
@@ -540,3 +831,4 @@ module.exports = {
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
+const IncidentService = require('./incidentService');
