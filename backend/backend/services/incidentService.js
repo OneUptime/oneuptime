@@ -81,8 +81,6 @@ module.exports = {
                     status: data.incidentType,
                 });
 
-                RealTimeService.sendCreatedIncident(incident);
-
                 return incident;
             } else {
                 const error = new Error('Monitor is not present.');
