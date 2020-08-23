@@ -854,6 +854,7 @@ export class ProfileSetting extends Component {
                                                         </div>
                                                         <div>
                                                             <button
+                                                                id='verify'
                                                                 className="bs-Button"
                                                                 disabled={
                                                                     profileSettings &&
