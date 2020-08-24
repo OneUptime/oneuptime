@@ -227,32 +227,60 @@ class Incident extends Component {
                                     Incident
                                 </span>
                                 {!fetchingIncident && incident.title && (
-                                    <div
-                                        className="feed-header clearfix"
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            flexWrap: 'nowrap',
-                                        }}
-                                    >
-                                        <span
-                                            className="feed-title"
+                                    <>
+                                        <div
+                                            className="feed-header clearfix"
                                             style={{
-                                                color: 'rgb(76, 76, 76)',
-                                                fontWeight: 'bold',
-                                                marginBottom: 10,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                flexWrap: 'nowrap',
+                                                marginBottom: incident.description
+                                                    ? 25
+                                                    : 10,
                                             }}
                                         >
-                                            {incident.title}
-                                        </span>
-                                        <span
-                                            style={{
-                                                color: 'rgba(0, 0, 0, 0.5)',
-                                            }}
+                                            <span
+                                                className="feed-title"
+                                                style={{
+                                                    color: 'rgb(76, 76, 76)',
+                                                    fontWeight: 'bold',
+                                                    marginBottom: 10,
+                                                }}
+                                            >
+                                                {incident.title}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {incident.description}
+                                            </span>
+                                        </div>
+                                        <div
+                                            className="ongoing__affectedmonitor"
+                                            style={{ marginTop: 0 }}
                                         >
-                                            {incident.description}
-                                        </span>
-                                    </div>
+                                            <span
+                                                className="ongoing__affectedmonitor--title"
+                                                style={{
+                                                    color: 'rgb(76, 76, 76)',
+                                                }}
+                                            >
+                                                Resource Affected:
+                                            </span>{' '}
+                                            <span
+                                                className="ongoing__affectedmonitor--content"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {capitalize(
+                                                    incident.monitorId.name
+                                                )}
+                                            </span>
+                                        </div>
+                                    </>
                                 )}
                                 <ShouldRender if={fetchingIncident}>
                                     <ListLoader />
