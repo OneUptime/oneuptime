@@ -31,6 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -84,6 +85,9 @@ class MonitorView extends React.Component {
     ready = () => {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(
+            this.props.currentProject._id
+        );
         const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
@@ -506,6 +510,7 @@ const mapDispatchToProps = dispatch => {
             fetchLighthouseLogs,
             getProbes,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -529,6 +534,7 @@ MonitorView.propTypes = {
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 MonitorView.displayName = 'MonitorView';

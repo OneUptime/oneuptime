@@ -297,6 +297,7 @@ IncidentLog.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 IncidentLog.displayName = 'IncidentLog';

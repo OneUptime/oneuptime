@@ -29,6 +29,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -155,6 +156,9 @@ class Incident extends React.Component {
 
     ready = () => {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(
+            this.props.currentProject._id
+        );
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -379,6 +383,7 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             fetchIncidentMessages,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -410,6 +415,7 @@ Incident.propTypes = {
     componentId: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 Incident.displayName = 'Incident';
