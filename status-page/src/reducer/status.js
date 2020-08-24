@@ -1274,6 +1274,10 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.notes,
                     notes,
                 },
+                incident: {
+                    ...state.incident,
+                    incident: action.payload,
+                },
             };
         }
 
