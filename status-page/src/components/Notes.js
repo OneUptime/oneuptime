@@ -108,7 +108,7 @@ class Notes extends Component {
                                             textAlign: 'justify',
                                         }}
                                     >
-                                        {note.description}.
+                                        {note.description}
                                     </span>
                                 </div>
                             </div>
