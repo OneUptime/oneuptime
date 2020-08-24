@@ -145,6 +145,106 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
+        if (this.props.noteData && this.props.noteData.requesting) {
+            return (
+                <div
+                    className="twitter-feed white box"
+                    style={{ overflow: 'visible', ...contentBackground }}
+                >
+                    <div className="messages" style={{ position: 'relative' }}>
+                        <ShouldRender
+                            if={
+                                this.props.noteData &&
+                                !this.props.noteData.error
+                            }
+                        >
+                            <div
+                                className="box-inner"
+                                style={{
+                                    paddingLeft: 0,
+                                    paddingRight: 0,
+                                    width: '100%',
+                                }}
+                            >
+                                <div
+                                    className="feed-header clearfix"
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'row',
+                                        flexWrap: 'nowrap',
+                                        paddingLeft: 40,
+                                        paddingRight: 40,
+                                    }}
+                                >
+                                    <ShouldRender
+                                        if={!this.props.individualnote}
+                                    >
+                                        <span
+                                            className="feed-title"
+                                            style={subheading}
+                                        >
+                                            Incidents
+                                        </span>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={this.props.individualnote}
+                                    >
+                                        <span
+                                            className="feed-title"
+                                            style={primaryTextColor}
+                                        >
+                                            Incidents for{' '}
+                                            {this.props.individualnote
+                                                ? this.props.individualnote.name
+                                                : ''}{' '}
+                                            on{' '}
+                                            {this.props.individualnote
+                                                ? moment(
+                                                      this.props.individualnote
+                                                          .date
+                                                  ).format('LL')
+                                                : ''}
+                                        </span>
+                                    </ShouldRender>
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        this.props.noteData &&
+                                        this.props.noteData.requesting
+                                    }
+                                >
+                                    <div
+                                        className="ball-beat"
+                                        id="notes-loader"
+                                        style={{ marginBottom: 0 }}
+                                    >
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                    </div>
+                                </ShouldRender>
+                            </div>
+                        </ShouldRender>
+                    </div>
+                </div>
+            );
+        }
+
         return (this.props.noteData &&
             this.props.noteData.notes &&
             this.props.noteData.notes.length > 0) ||
