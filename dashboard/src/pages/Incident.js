@@ -226,9 +226,6 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
-        const componentId = this.props.component
-            ? this.props.component._id
-            : '';
         if (this.props.incident) {
             variable = (
                 <div>

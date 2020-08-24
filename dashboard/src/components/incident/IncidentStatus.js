@@ -174,7 +174,10 @@ export class IncidentStatus extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        {this.props.incident._id}
+                                                        {
+                                                            this.props.incident
+                                                                .idNumber
+                                                        }
                                                     </span>
                                                 </div>
                                             </div>
@@ -779,6 +782,8 @@ IncidentStatus.propTypes = {
     multiple: PropTypes.bool,
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
+    projectId: PropTypes.string.isRequired,
+    componentId: PropTypes.string.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
