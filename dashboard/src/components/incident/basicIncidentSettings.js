@@ -1,7 +1,15 @@
 import React from 'react';
+import { reduxForm, Field } from 'redux-form';
+import PropTypes from 'prop-types';
+import { RenderField } from '../basic/RenderField';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
+import { ValidateField } from '../../config';
 
 class BasicIncidentSettings extends React.Component {
+    submit() {
+    }
     render() {
+        const { handleSubmit } = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="Box-root Margin-bottom--12">
@@ -21,7 +29,51 @@ class BasicIncidentSettings extends React.Component {
                                     </div>
                                 </div>
                             </div>
-                            <form>
+                            <form onSubmit={handleSubmit(this.submit)}>
+                                <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
+                                    <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                        <fieldset className="bs-Fieldset">
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Title
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={
+                                                                RenderField
+                                                            }
+                                                            name="title"
+                                                            validate={
+                                                                ValidateField.text
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Description
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                            component={
+                                                                RenderCodeEditor
+                                                            }
+                                                            name="description"
+                                                            mode="markdown"
+                                                            width="250px"
+                                                            height="150px"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                </div>
                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd">
                                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
@@ -42,7 +94,7 @@ class BasicIncidentSettings extends React.Component {
                                                 <button
                                                     id="saveButton"
                                                     className={`Button bs-ButtonLegacy`}
-                                                    type="button"
+                                                    type="submit"
                                                 >
                                                     <div className="Box-root bs-Button bs-DeprecatedButton bs-Button--blue Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -63,6 +115,14 @@ class BasicIncidentSettings extends React.Component {
     }
 }
 
-BasicIncidentSettings.dispalyName = "BasicIncidentSettings";
+BasicIncidentSettings.displayName = 'BasicIncidentSettings';
+BasicIncidentSettings.PropTypes = {
+  handleSubmit: PropTypes.func.isRequired,
+}
 
-export default BasicIncidentSettings;
+const BasicIncidentSettingsForm = reduxForm({
+    form: 'basicIncidentSettings', // a unique identifier for this form
+    enableReinitialize: true,
+})(BasicIncidentSettings);
+
+export default BasicIncidentSettingsForm;
