@@ -125,8 +125,7 @@ class EventsMain extends Component {
 
         return (!this.props.individualEvents.show &&
             this.props.futureEvents.events.length > 0) ||
-            (this.props.individualEvents.show &&
-                this.props.individualEvents.events.length > 0) ? (
+            this.props.individualEvents.show ? (
             <div
                 id="scheduledEvents"
                 className="twitter-feed white box"
@@ -200,6 +199,38 @@ class EventsMain extends Component {
                                 }
                             >
                                 <ul className="feed-contents plain">{event}</ul>
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.individualEvents.show &&
+                                    this.props.individualEvents.events
+                                        .length === 0
+                                }
+                            >
+                                <ul className="feed-contents plain">
+                                    <li
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                ...secondaryTextColor,
+                                            }}
+                                        >
+                                            No data available for this date.
+                                        </span>
+                                    </li>
+                                </ul>
                             </ShouldRender>
                         </div>
 
