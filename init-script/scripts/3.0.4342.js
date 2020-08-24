@@ -28,7 +28,11 @@ async function run() {
             .sort('createdAt', 1)
             .toArray();
         for (let i = 0; i < incidents.length; i++) {
-            await update(incidentsCollection, { _id: incidents[i]._id }, { idNumber: i });
+            await update(
+                incidentsCollection,
+                { _id: incidents[i]._id },
+                { idNumber: i }
+            );
         }
     }
 }
