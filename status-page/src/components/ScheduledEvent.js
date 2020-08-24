@@ -13,6 +13,7 @@ import {
 } from '../actions/status';
 import { ACCOUNTS_URL, capitalize } from '../config';
 import { ListLoader } from './basic/Loader';
+import AffectedResources from './basic/AffectedResources';
 
 class ScheduledEvent extends Component {
     componentDidMount() {
@@ -110,6 +111,7 @@ class ScheduledEvent extends Component {
             eventNotes,
             count,
             history,
+            monitorState,
         } = this.props;
 
         return (
@@ -146,32 +148,47 @@ class ScheduledEvent extends Component {
                                     Scheduled Event
                                 </span>
                                 {!fetchingEvent && scheduledEvent.name && (
-                                    <div
-                                        className="feed-header clearfix"
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            flexWrap: 'nowrap',
-                                        }}
-                                    >
-                                        <span
-                                            className="feed-title"
+                                    <>
+                                        <div
+                                            className="feed-header clearfix"
                                             style={{
-                                                color: 'rgb(76, 76, 76)',
-                                                fontWeight: 'bold',
-                                                marginBottom: 10,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                flexWrap: 'nowrap',
+                                                marginBottom: scheduledEvent.description
+                                                    ? 25
+                                                    : 10,
                                             }}
                                         >
-                                            {scheduledEvent.name}
-                                        </span>
-                                        <span
-                                            style={{
-                                                color: 'rgba(0, 0, 0, 0.5)',
-                                            }}
+                                            <span
+                                                className="feed-title"
+                                                style={{
+                                                    color: 'rgb(76, 76, 76)',
+                                                    fontWeight: 'bold',
+                                                    marginBottom: 10,
+                                                }}
+                                            >
+                                                {scheduledEvent.name}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {scheduledEvent.description}
+                                            </span>
+                                        </div>
+                                        <div
+                                            className="ongoing__affectedmonitor"
+                                            style={{ marginTop: 0 }}
                                         >
-                                            {scheduledEvent.description}
-                                        </span>
-                                    </div>
+                                            <AffectedResources
+                                                event={scheduledEvent}
+                                                monitorState={monitorState}
+                                                colorStyle="grey"
+                                            />
+                                        </div>
+                                    </>
                                 )}
                                 <ShouldRender if={fetchingEvent}>
                                     <ListLoader />
@@ -459,6 +476,7 @@ ScheduledEvent.propTypes = {
     count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     history: PropTypes.object,
+    monitorState: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -471,6 +489,7 @@ const mapStateToProps = state => {
         eventNotes: state.status.eventNoteList.eventNotes,
         count: state.status.eventNoteList.count,
         skip: state.status.eventNoteList.skip,
+        monitorState: state.status.statusPage.monitorsData,
     };
 };
 
