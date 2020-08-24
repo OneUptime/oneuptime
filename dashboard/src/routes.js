@@ -379,7 +379,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Integrations,
-                        index: 3,
+                        index: 4,
                         shortcut: 'f+i',
                     },
                     {
@@ -389,7 +389,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: EmailTemplates,
-                        index: 4,
+                        index: 5,
                         shortcut: 'f+e',
                     },
                     {
@@ -399,7 +399,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: SmsTemplates,
-                        index: 5,
+                        index: 6,
                         shortcut: 'f+s',
                     },
                     {
@@ -409,7 +409,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Probe,
-                        index: 6,
+                        index: 7,
                         shortcut: 'f+x',
                     },
                     {
@@ -420,7 +420,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: GitCredential,
-                        index: 7,
+                        index: 8,
                         shortcut: 'f+g',
                     },
                     {
@@ -431,7 +431,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: DockerCredential,
-                        index: 8,
+                        index: 9,
                         shortcut: 'f+d',
                     },
                     {
@@ -441,18 +441,8 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: FyipeApi,
-                        index: 9,
-                        shortcut: 'f+w',
-                    },
-                    {
-                        title: 'Incident Settings',
-                        path:
-                            '/dashboard/project/:projectId/settings/incidents',
-                        visible: true,
-                        subRoutes: [],
-                        component: IncidentPriorities,
                         index: 10,
-                        shortcut: 'f+n',
+                        shortcut: 'f+w',
                     },
                 ],
                 component: Settings,
