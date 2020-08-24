@@ -650,6 +650,10 @@ export default (state = INITIAL_STATE, action) => {
                         ? updatedFutureEvent.length
                         : removeFutureEvent.length,
                 },
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    event: action.payload,
+                },
             });
         }
 
