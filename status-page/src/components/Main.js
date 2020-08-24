@@ -12,7 +12,11 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, selectedProbe } from '../actions/status';
+import {
+    getStatusPage,
+    selectedProbe,
+    getScheduledEvent,
+} from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 
@@ -75,6 +79,14 @@ class Main extends Component {
                 .createRange()
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
+        }
+        if (
+            prevProps.statusData.projectId !== this.props.statusData.projectId
+        ) {
+            this.props.getScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData._id
+            );
         }
     }
 
@@ -811,7 +823,10 @@ class Main extends Component {
                     if={
                         this.props.status &&
                         (this.props.status.requesting ||
-                            this.props.status.logs.some(log => log.requesting))
+                            this.props.status.logs.some(
+                                log => log.requesting
+                            )) &&
+                        this.props.requestingEvents
                     }
                 >
                     <div
@@ -867,6 +882,7 @@ const mapStateToProps = state => ({
     monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
     events: state.status.events.events,
+    requestingEvents: state.status.events.requesting,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -875,6 +891,7 @@ const mapDispatchToProps = dispatch =>
             getStatusPage,
             getProbes,
             selectedProbe,
+            getScheduledEvent,
         },
         dispatch
     );
@@ -892,6 +909,8 @@ Main.propTypes = {
     probes: PropTypes.array,
     events: PropTypes.array,
     history: PropTypes.object,
+    getScheduledEvent: PropTypes.func,
+    requestingEvents: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

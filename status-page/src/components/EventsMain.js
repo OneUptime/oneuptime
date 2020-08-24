@@ -5,11 +5,7 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import Events from './Events';
 import ShouldRender from './ShouldRender';
-import {
-    getScheduledEvent,
-    fetchMoreFutureEvents,
-    fetchFutureEvents,
-} from '../actions/status';
+import { fetchMoreFutureEvents, fetchFutureEvents } from '../actions/status';
 
 class EventsMain extends Component {
     constructor(props) {
@@ -20,12 +16,6 @@ class EventsMain extends Component {
     }
 
     componentDidMount() {
-        this.props.getScheduledEvent(
-            this.props.projectId,
-            this.props.statusPageId,
-            0
-        );
-
         this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
@@ -33,29 +23,7 @@ class EventsMain extends Component {
         );
     }
 
-    componentDidUpdate(prevProps) {
-        if (prevProps.statusPage !== this.props.statusPage) {
-            this.props.getScheduledEvent(
-                this.props.projectId,
-                this.props.statusPageId,
-                0
-            );
-
-            this.props.fetchFutureEvents(
-                this.props.projectId,
-                this.props.statusPageId,
-                0
-            );
-        }
-    }
-
     getAll = () => {
-        this.props.getScheduledEvent(
-            this.props.projectId,
-            this.props.statusPageId,
-            0
-        );
-
         this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
@@ -273,8 +241,8 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.futureEvents &&
-                                this.props.futureEvents.requesting
+                                this.props.futureEvents.requesting ||
+                                this.props.requestingmoreevents
                             }
                         >
                             <div className="ball-beat" id="notes-loader">
@@ -286,25 +254,6 @@ class EventsMain extends Component {
                                 ></div>
                                 <div
                                     style={{ height: '12px', width: '12px' }}
-                                ></div>
-                            </div>
-                        </ShouldRender>
-
-                        <ShouldRender
-                            if={
-                                this.props.futureEvents &&
-                                this.props.requestingmoreevents
-                            }
-                        >
-                            <div className="ball-beat" id="more-loader">
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
                                 ></div>
                             </div>
                         </ShouldRender>
@@ -347,7 +296,6 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getScheduledEvent,
             fetchMoreFutureEvents,
             fetchFutureEvents,
         },
@@ -355,7 +303,6 @@ const mapDispatchToProps = dispatch =>
     );
 
 EventsMain.propTypes = {
-    getScheduledEvent: PropTypes.func,
     fetchMoreFutureEvents: PropTypes.func,
     requestingmoreevents: PropTypes.bool,
     projectId: PropTypes.string,
