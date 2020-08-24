@@ -12,6 +12,7 @@ git pull
 git checkout hotfix-master
 git merge master
 git push
+git checkout master
 
 # Deploy to production
 git checkout hotfix-release
