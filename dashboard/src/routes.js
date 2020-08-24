@@ -15,7 +15,7 @@ const {
     AlertLog,
     IncidentLog,
     Incident,
-    IncidentPriorities,
+    IncidentSettings,
     Billing,
     Monitors,
     Schedule,
@@ -368,7 +368,7 @@ export const groups = [
                         icon: 'incidentSettings',
                         visible: true,
                         subRoutes: [],
-                        component: IncidentPriorities,
+                        component: IncidentSettings,
                         index: 3,
                     },
                     {

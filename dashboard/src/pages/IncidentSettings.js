@@ -14,7 +14,7 @@ import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPrior
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import DataPathHoC from '../components/DataPathHoC';
 
-class IncidentPriorities extends React.Component {
+class IncidentSettings extends React.Component {
     handleCreateNewIncidentPriority() {
         const { openModal } = this.props;
         openModal({
@@ -240,8 +240,8 @@ class IncidentPriorities extends React.Component {
     }
 }
 
-IncidentPriorities.displayName = 'IncidentPriorities';
-IncidentPriorities.propTypes = {
+IncidentSettings.displayName = 'IncidentSettings';
+IncidentSettings.propTypes = {
     openModal: PropTypes.func.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
@@ -267,4 +267,4 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentPriorities);
+export default connect(mapStateToProps, mapDispatchToProps)(IncidentSettings);
