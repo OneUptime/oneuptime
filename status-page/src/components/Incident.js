@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import Markdown from 'markdown-to-jsx';
 import ShouldRender from './ShouldRender';
 import {
     getStatusPage,
@@ -350,7 +351,9 @@ class Incident extends Component {
                                                                     'justify',
                                                             }}
                                                         >
-                                                            {note.content}
+                                                            <Markdown>
+                                                                {note.content}
+                                                            </Markdown>
                                                         </span>
                                                         <span
                                                             style={{
