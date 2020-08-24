@@ -11,6 +11,7 @@ import { connect } from 'react-redux';
 import * as moment from 'moment';
 import { fetchLogs } from '../../actions/applicationLog';
 import { ListLoader } from '../basic/Loader';
+import AlertPanel from '../basic/AlertPanel';
 
 class ApplicationLogDetailView extends Component {
     constructor(props) {
@@ -63,7 +64,6 @@ class ApplicationLogDetailView extends Component {
         }
     };
     handleLogTypeChange = logType => {
-        // check if it is the details page before actioning
         const {
             applicationLog,
             projectId,
@@ -73,6 +73,7 @@ class ApplicationLogDetailView extends Component {
             fetchLogs,
             isDetails,
         } = this.props;
+        // check if it is the details page before actioning
         if (!isDetails) {
             return;
         }
@@ -143,6 +144,7 @@ class ApplicationLogDetailView extends Component {
             filter,
             isDetails,
             stats,
+            logs,
         } = this.props;
         const logOptions = [
             { value: '', label: 'All Logs' },
@@ -152,6 +154,30 @@ class ApplicationLogDetailView extends Component {
         ];
         return (
             <div>
+                <ShouldRender if={!(logs && logs.length > 0)}>
+                    <AlertPanel
+                        id={`${applicationLog._id}-no-log-warning`}
+                        message={
+                            <span>
+                                This Log Container is currently not receiving
+                                any logs, Click{' '}
+                                <a
+                                    rel="noopener noreferrer"
+                                    href="https://github.com/Fyipe/feature-docs/blob/master/log.md"
+                                    target="_blank"
+                                    style={{
+                                        color: 'white',
+                                        textDecoration: 'underline',
+                                    }}
+                                >
+                                    {' '}
+                                    here
+                                </a>{' '}
+                                to setup it up and start collecting logs.
+                            </span>
+                        }
+                    />
+                </ShouldRender>
                 <ShouldRender if={!stats || stats.requesting}>
                     <ListLoader />
                 </ShouldRender>
@@ -165,6 +191,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[0])
                             }
                             className="db-Trend-colInformation"
+                            id={`${applicationLog._id}-all`}
                         >
                             <div className="db-Trend-rowTitle" title="All Logs">
                                 <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
@@ -189,6 +216,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[1])
                             }
                             className="db-Trend-colInformation"
+                            id={`${applicationLog._id}-error`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -218,6 +246,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[2])
                             }
                             className="db-Trend-colInformation"
+                            id={`${applicationLog._id}-warning`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -247,6 +276,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[3])
                             }
                             className="db-Trend-colInformation"
+                            id={`${applicationLog._id}-info`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -478,6 +508,9 @@ function mapStateToProps(state, ownProps) {
     const currentDateRange = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
+    const logs = state.applicationLog.logs[applicationLogId]
+        ? state.applicationLog.logs[applicationLogId].logs
+        : null;
     const startDate = selector(state, 'startDate');
     const endDate = selector(state, 'endDate');
     return {
@@ -485,6 +518,7 @@ function mapStateToProps(state, ownProps) {
         currentDateRange,
         startDate,
         endDate,
+        logs,
     };
 }
 
@@ -499,6 +533,7 @@ ApplicationLogDetailView.propTypes = {
     startDate: PropTypes.string,
     endDate: PropTypes.string,
     stats: PropTypes.object,
+    logs: PropTypes.object,
 };
 const ApplicationLogDateForm = reduxForm({
     form: 'applicationLogDateTimeForm',
