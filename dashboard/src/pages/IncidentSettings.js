@@ -12,8 +12,9 @@ import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPrior
 import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
-import BasicIncidentSettings from '../components/incident/basicIncidentSettings';
+import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 
 class IncidentSettings extends React.Component {
     handleCreateNewIncidentPriority() {
@@ -42,6 +43,9 @@ class IncidentSettings extends React.Component {
     }
     async ready() {
         await this.props.fetchIncidentPriorities(this.props.currentProject._id);
+        await this.props.fetchBasicIncidentSettings(
+            this.props.currentProject._id
+        );
     }
 
     prevClicked() {
@@ -84,7 +88,7 @@ class IncidentSettings extends React.Component {
                         name="Project Settings"
                     />
                     <BreadCrumbItem route={pathname} name="Incident Settings" />
-                    <BasicIncidentSettings />
+                    <IncidentBasicSettings />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -250,6 +254,7 @@ IncidentSettings.propTypes = {
     incidentPrioritiesList: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 const mapStateToProps = state => {
     return {
@@ -265,6 +270,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
