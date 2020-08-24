@@ -79,7 +79,7 @@ class SocketApp extends Component {
                     `updateIncident-${this.props.project._id}`
                 );
                 socket.removeListener(
-                    `addIncidentTimeline-${this.props.project._id}`
+                    `updateIncidentTimeline-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `deleteIncidentNote-${this.props.project._id}`
@@ -180,16 +180,18 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.updateincidentbysocket(data);
             });
-            socket.on(`addIncidentTimeline-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.addincidenttimelinebysocket(data);
-            });
-            socket.on(`deleteIncidentNote-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.deleteincidentnotebysocket(data);
-            });
+            socket.on(
+                `updateIncidentTimeline-${this.props.project._id}`,
+                function(data) {
+                    thisObj.props.addincidenttimelinebysocket(data);
+                }
+            );
+            socket.on(
+                `updateIncidentTimeline-${this.props.project._id}`,
+                function(data) {
+                    thisObj.props.deleteincidentnotebysocket(data);
+                }
+            );
         }
         return null;
     }
