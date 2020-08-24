@@ -23,9 +23,6 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Event name is required';
     }
-    if (!values.description) {
-        errors.description = 'Event description is required';
-    }
     return errors;
 }
 
@@ -223,7 +220,7 @@ class CreateSchedule extends React.Component {
                                             <div className="Checkbox-label Box-root Margin-left--8">
                                                 <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <span>
-                                                        No Monitors Selected
+                                                        Select All Monitors
                                                     </span>
                                                 </span>
                                             </div>
@@ -278,7 +275,7 @@ class CreateSchedule extends React.Component {
                                             fields.remove(index);
                                         }}
                                     >
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
                                             <span>Remove Monitor</span>
                                         </span>
                                     </button>

@@ -10,7 +10,7 @@ import {
     fetchEvent,
     moreEventNote,
 } from '../actions/status';
-import { ACCOUNTS_URL } from '../config';
+import { ACCOUNTS_URL, capitalize } from '../config';
 import { ListLoader } from './basic/Loader';
 
 class ScheduledEvent extends Component {
@@ -118,28 +118,6 @@ class ScheduledEvent extends Component {
             >
                 <div className="innernew" style={{ width: 609 }}>
                     <div
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
-                    >
-                        <div
-                            className="largestatus"
-                            style={{ padding: '30px 36px' }}
-                        >
-                            <div className="title-wrapper">
-                                <span
-                                    className="title"
-                                    style={{
-                                        color: 'rgb(0, 0, 0)',
-                                        padding: 0,
-                                    }}
-                                >
-                                    Scheduled Event
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
                         id="scheduledEvents"
                         className="twitter-feed white box"
                         style={{ overflow: 'visible' }}
@@ -150,7 +128,22 @@ class ScheduledEvent extends Component {
                                 position: 'relative',
                             }}
                         >
-                            <div className="box-inner">
+                            <div
+                                className="box-inner"
+                                style={{ paddingTop: 20, paddingBottom: 20 }}
+                            >
+                                <span
+                                    style={{
+                                        color: 'rgba(76, 76, 76, 0.52)',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '700',
+                                        display: 'inline-block',
+                                        marginBottom: 20,
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    Scheduled Event
+                                </span>
                                 {!fetchingEvent && scheduledEvent.name && (
                                     <div
                                         className="feed-header clearfix"
@@ -182,23 +175,51 @@ class ScheduledEvent extends Component {
                                 <ShouldRender if={fetchingEvent}>
                                     <ListLoader />
                                 </ShouldRender>
-                                {!fetchingEvent &&
+                                {!fetchingNotes &&
+                                    eventNotes &&
+                                    !fetchingEvent &&
                                     scheduledEvent.startDate &&
                                     scheduledEvent.endDate && (
-                                        <span
-                                            className="time"
-                                            style={{
-                                                color: 'rgba(0, 0, 0, 0.5)',
-                                                fontSize: 12,
-                                            }}
-                                        >
-                                            {moment(
-                                                scheduledEvent.startDate
-                                            ).format('MMMM Do YYYY, h:mm a')}
-                                            &nbsp;&nbsp;-&nbsp;&nbsp;
-                                            {moment(
-                                                scheduledEvent.endDate
-                                            ).format('MMMM Do YYYY, h:mm a')}
+                                        <span style={{ fontSize: 12 }}>
+                                            <span
+                                                className="time"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {moment(
+                                                    scheduledEvent.startDate
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                                &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                {moment(
+                                                    scheduledEvent.endDate
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
+                                                )}
+                                            </span>
+                                            {eventNotes[0] &&
+                                                eventNotes[0]
+                                                    .incident_state && (
+                                                    <span
+                                                        className={'time'}
+                                                        style={{
+                                                            color:
+                                                                'rgba(0, 0, 0, 0.5)',
+                                                            marginLeft: 10,
+                                                            paddingBottom: 10,
+                                                            display:
+                                                                'inline-block',
+                                                            paddingTop: 7,
+                                                        }}
+                                                    >
+                                                        {capitalize(
+                                                            eventNotes[0]
+                                                                .incident_state
+                                                        )}
+                                                    </span>
+                                                )}
                                         </span>
                                     )}
                             </div>
@@ -231,7 +252,7 @@ class ScheduledEvent extends Component {
                                                 fontWeight: 'bold',
                                             }}
                                         >
-                                            Scheduled Event Notes
+                                            Scheduled Event Updates
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -257,27 +278,27 @@ class ScheduledEvent extends Component {
                                                     }}
                                                 >
                                                     <div className="note__wrapper">
-                                                        <span>
-                                                            <span className="note-badge badge badge__color--green">
-                                                                {
-                                                                    note.incident_state
-                                                                }
-                                                            </span>
+                                                        <span
+                                                            style={{
+                                                                color:
+                                                                    'rgba(0, 0, 0, 0.5)',
+                                                                fontSize: 14,
+                                                                display:
+                                                                    'block',
+                                                                textAlign:
+                                                                    'justify',
+                                                            }}
+                                                        >
+                                                            {note.content}
                                                         </span>
-                                                        <span>
-                                                            <span
-                                                                style={{
-                                                                    color:
-                                                                        'rgba(0, 0, 0, 0.5)',
-                                                                    fontSize: 14,
-                                                                    display:
-                                                                        'block',
-                                                                    textAlign:
-                                                                        'justify',
-                                                                }}
-                                                            >
-                                                                {note.content}
-                                                            </span>
+                                                        <span
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems:
+                                                                    'center',
+                                                                marginTop: 15,
+                                                            }}
+                                                        >
                                                             <span
                                                                 style={{
                                                                     color:
@@ -285,7 +306,6 @@ class ScheduledEvent extends Component {
                                                                     fontSize: 12,
                                                                     display:
                                                                         'block',
-                                                                    marginTop: 15,
                                                                 }}
                                                             >
                                                                 {moment(
@@ -293,6 +313,16 @@ class ScheduledEvent extends Component {
                                                                 ).format(
                                                                     'MMMM Do YYYY, h:mm a'
                                                                 )}
+                                                            </span>
+                                                            <span
+                                                                style={{
+                                                                    marginLeft: 15,
+                                                                }}
+                                                                className="note-badge badge badge__color--green"
+                                                            >
+                                                                {
+                                                                    note.incident_state
+                                                                }
                                                             </span>
                                                         </span>
                                                     </div>
@@ -323,7 +353,8 @@ class ScheduledEvent extends Component {
                                                             'rgb(76, 76, 76)',
                                                     }}
                                                 >
-                                                    No scheduled event note yet.
+                                                    No schedule event updates
+                                                    yet.
                                                 </span>
                                             </li>
                                         )}

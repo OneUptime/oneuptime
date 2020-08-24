@@ -45,11 +45,13 @@ const monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
 };
 
-const today = new Date().toISOString();
+const now = new Date();
+const today = now.toISOString();
+const tomorrow = new Date(now.setDate(now.getDate() + 1)).toISOString();
 const scheduledEvent = {
     name: 'New scheduled Event',
     startDate: today,
-    endDate: today,
+    endDate: tomorrow,
     description: 'New scheduled Event description',
     showEventOnStatusPage: true,
     alertSubscriber: true,
@@ -111,9 +113,12 @@ describe('Status API', function() {
                                                     .end(function(err, res) {
                                                         monitorId =
                                                             res.body._id;
+                                                        scheduledEvent.monitors = [
+                                                            monitorId,
+                                                        ];
                                                         request
                                                             .post(
-                                                                `/scheduledEvent/${projectId}/${monitorId}`
+                                                                `/scheduledEvent/${projectId}`
                                                             )
                                                             .set(
                                                                 'Authorization',

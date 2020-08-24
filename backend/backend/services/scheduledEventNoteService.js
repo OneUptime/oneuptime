@@ -3,7 +3,7 @@ const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 
 module.exports = {
-    create: async function(data) {
+    create: async function(data, projectId) {
         try {
             let scheduledEventMessage = await ScheduledEventNoteModel.create(
                 data
@@ -18,7 +18,8 @@ module.exports = {
                       scheduledEventMessage
                   )
                 : await RealTimeService.addScheduledEventInvestigationNote(
-                      scheduledEventMessage
+                      scheduledEventMessage,
+                      projectId
                   );
 
             return scheduledEventMessage;
@@ -27,7 +28,7 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, projectId) {
         try {
             if (!query) {
                 query = {};
@@ -59,7 +60,8 @@ module.exports = {
                       eventMessage
                   )
                 : await RealTimeService.updateScheduledEventInvestigationNote(
-                      eventMessage
+                      eventMessage,
+                      projectId
                   );
 
             return eventMessage;
@@ -130,7 +132,7 @@ module.exports = {
             throw error;
         }
     },
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query, userId, projectId) {
         try {
             const data = {
                 deleted: true,
@@ -152,7 +154,8 @@ module.exports = {
                       deletedEventMessage
                   )
                 : await RealTimeService.deleteScheduledEventInvestigationNote(
-                      deletedEventMessage
+                      deletedEventMessage,
+                      projectId
                   );
 
             return deletedEventMessage;

@@ -247,12 +247,15 @@ describe('Incident API With SubProjects', () => {
                     `#incident_${projectMonitorName1}_0`,
                     { visible: true }
                 );
-                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(2000);
 
                 let type = 'internal';
                 // fill internal message thread form
                 await page.waitForSelector(`#add-${type}-message`);
-                await page.click(`#add-${type}-message`);
+                await page.$eval(`#add-${type}-message`, e => e.click());
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
@@ -279,7 +282,7 @@ describe('Incident API With SubProjects', () => {
                 type = 'investigation';
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`);
-                await page.click(`#add-${type}-message`);
+                await page.$eval(`#add-${type}-message`, e => e.click());
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
@@ -323,20 +326,20 @@ describe('Incident API With SubProjects', () => {
                 });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
-                // Navigate to details page of component created
+                // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(3000);
+                await page.waitFor(2000);
 
                 await page.waitForSelector(
                     `#incident_${projectMonitorName1}_0`
                 );
-                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
+                    e.click()
+                );
                 await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {
-                    // fill internal message thread form
-                    await page.waitForSelector(`#add-${type}-message`);
-                    await page.click(`#add-${type}-message`);
+                    await page.$eval(`#add-${type}-message`, e => e.click());
                     await page.waitForSelector(
                         `#form-new-incident-${type}-message`
                     );
@@ -350,23 +353,29 @@ describe('Incident API With SubProjects', () => {
                     await page.waitFor(2000);
                 }
 
-                await page.waitForSelector('tr.incidentListItem');
-                let incidentTimelineRows = await page.$$('tr.incidentListItem');
+                await page.waitForSelector(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                let incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 let countIncidentTimelines = incidentTimelineRows.length;
 
                 expect(countIncidentTimelines).toEqual(10);
 
-                const nextSelector = await page.$('#btnTimelineNext');
-                await nextSelector.click();
+                await page.$eval('#btnTimelineNext', e => e.click());
                 await page.waitFor(7000);
-                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(5);
 
-                const prevSelector = await page.$('#btnTimelinePrev');
-                await prevSelector.click();
+                await page.$eval('#btnTimelinePrev', e => e.click());
                 await page.waitFor(7000);
-                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(10);
                 await init.logout(page);

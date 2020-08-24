@@ -24,6 +24,7 @@ const { getSubProjects } = require('../middlewares/subProject');
 const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
 const { isAuthorized } = require('../middlewares/authorization');
+const IncidentTimelineService = require('../services/incidentTimelineService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -842,5 +843,46 @@ router.delete(
         }
     }
 );
+
+router.get('/:projectId/timeline/:incidentId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+        // setting limit to one
+        // since the frontend only need the last content (current content)
+        // of incident timeline
+        const { skip = 0, limit = 1 } = req.query;
+
+        const timeline = await IncidentTimelineService.findBy(
+            { incidentId },
+            skip,
+            limit
+        );
+        return sendItemResponse(req, res, timeline);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/:statusPageId/timelines', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageId } = req.params;
+
+        const incidents = await StatusPageService.getNotes({
+            _id: statusPageId,
+        });
+        const response = await IncidentTimelineService.getIncidentLastTimelines(
+            incidents.notes
+        );
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 module.exports = router;

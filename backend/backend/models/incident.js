@@ -2,6 +2,9 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const monitorSchema = new Schema({
+    idNumber: {
+        type: Schema.Types.Number,
+    },
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',

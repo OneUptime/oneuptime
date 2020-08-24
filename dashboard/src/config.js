@@ -386,8 +386,12 @@ export const PricingPlan = {
 };
 
 export const capitalize = words => {
+    if (!words || !words.trim()) return '';
+
     words = words.split(' ');
-    words = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+    words = words.map(
+        word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
 
     return words.join(' ').trim();
 };

@@ -17,7 +17,7 @@ import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
-import { API_URL } from '../../config';
+import { API_URL, capitalize } from '../../config';
 import io from 'socket.io-client';
 import { fetchMonitors } from '../../actions/monitor';
 import { ListLoader } from '../basic/Loader';
@@ -234,7 +234,9 @@ class ScheduledEventBox extends Component {
                                                         {this.props.name}
                                                     </div>
                                                     <div className="scheduled-event-name Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        {scheduledEvent.name}
+                                                        {capitalize(
+                                                            scheduledEvent.name
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="bs-ObjectList-cell bs-u-v-middle">

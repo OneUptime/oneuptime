@@ -76,6 +76,13 @@ const userSchema = new Schema({
         type: String,
         default: '',
     },
+    alertPhoneVerificationCode: {
+        type: String,
+        default: '',
+    },
+    alertPhoneVerificationCodeRequestTime: {
+        type: Date,
+    },
     tempAlertPhoneNumber: String,
     tutorial: Object,
     createdBy: { type: String, ref: 'User' },

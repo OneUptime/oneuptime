@@ -8,6 +8,7 @@ require('should');
 // user credentials
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
+const phoneNumber = '+19173976235';
 
 describe('Twilio Settings API', () => {
     const operationTimeOut = 100000;
@@ -193,6 +194,8 @@ describe('Twilio Settings API', () => {
                 await page.click('#twilio a');
                 await page.waitForSelector('#twilio-form');
 
+                await page.$eval('#sms-enabled', e => e.click());
+
                 await page.click('input[name=account-sid]');
                 await page.type(
                     'input[name=account-sid]',
@@ -203,9 +206,9 @@ describe('Twilio Settings API', () => {
                     'input[name=authentication-token]',
                     process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
                 );
-                await page.click('input[name=phone');
+                await page.click('input[name=phone]');
                 await page.type(
-                    'input[name=phone',
+                    'input[name=phone]',
                     process.env.TEST_TWILIO_PHONE
                 );
 
@@ -222,6 +225,116 @@ describe('Twilio Settings API', () => {
                 );
 
                 expect(value).toEqual(process.env.TEST_TWILIO_ACCOUNT_SID);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should render an error message if the user try to update his alert phone number without typing the right verification code.',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#goToUserDashboard');
+                await page.click('#goToUserDashboard');
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
+                );
+                await page.click('#verify');
+                await page.waitFor('#smsVerificationErrors');
+                const message = await page.$eval(
+                    '#smsVerificationErrors',
+                    e => e.textContent
+                );
+                expect(message).toEqual('Invalid code !');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should set the alert phone number if the user types the right verification code.',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#goToUserDashboard');
+                await page.click('#goToUserDashboard');
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should update alert phone number if user types the right verification code.',
+        async () => {
+            expect.assertions(1);
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#goToUserDashboard');
+                await page.click('#goToUserDashboard');
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
             });
         },
         operationTimeOut

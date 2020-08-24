@@ -412,10 +412,23 @@ div.block-chart::-webkit-scrollbar {
 }
 
 .incident-status-bubble {
-  top: 40px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 1;
+  left: 20px;
+  top: 17px;
+}
+
+.incident-bubble {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 1;
+  left: 35px;
+  top: 21px;
 }
 
 .uptime-legend {
@@ -541,16 +554,16 @@ div.feed-header {
     }
 
        /* Swoop */
-      .feed-item div.message::before {
-        /* content: " ";
+      /* .feed-item div.message::before {
+        content: " ";
         position: absolute;
         width: 10px;
         height: 10px;
         transform: rotate(45deg);
         left: -5px;
         top: 11px;
-        background-color: inherit; */
-      }
+        background-color: inherit;
+      } */
 
 
       .feed-item div.message div.text {
@@ -1024,13 +1037,7 @@ margin-left:10px;
 }
 
 .note__wrapper {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  vertical-align: top;
-}
-
-.note__wrapper > span {
-  padding: 10px;
+  padding: 20px;
 }
 
 .note-badge {
@@ -1060,6 +1067,15 @@ margin-left:10px;
 .sp__icon--back {
   background-image: url('../images/back-light.svg');
   background-repeat: no-repeat;
+}
+
+.resolved__incident {
+  background-color: transparent;
+  background-size: 15px 12px;
+  padding-right: 25px;
+  background-image: url('../images/check.svg');
+  background-repeat: no-repeat;
+  background-position: 100% 50%;
 }
 
 .box__yellow--dark {
@@ -1101,7 +1117,6 @@ margin-left:10px;
 
 .scheduledEvent,
 .incidentlist {
-  cursor: pointer;
   background: rgb(247, 247, 247);
   padding-left: 20px;
   padding-right: 20px;
@@ -1109,6 +1124,36 @@ margin-left:10px;
   border-radius: 10px;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+
+.more-link {
+  color: rgba(0, 0, 0, 0.5);
+  text-decoration: underline;
+  font-size: 14px;
+  text-transform: lowercase;
+}
+
+.more-link:hover {
+  color: rgb(76, 76, 76);
+}
+
+.incident_status {
+  margin-left: 10px;
+  padding-bottom: 10px;
+  display: inline-block;
+  color: rgba(0, 0, 0, 0.5);
+  padding-top: 7px;
+  text-transform: capitalize;
+}
+
+.note_status {
+  color: rgb(76, 76, 76);
+  margin-left: 10px;
+  padding-bottom: 10px;
+  display: inline-block;
+  padding-top: 7px;
+  text-align: left;
+  font-size: 11px;
 }
 
 @media screen and (max-width: 500px) {

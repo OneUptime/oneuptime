@@ -277,11 +277,13 @@ describe('Components', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitFor(5000);
 
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const newComponentSelector = '#component0 table > tbody > tr';
                 await page.waitForSelector(newComponentSelector);
@@ -352,8 +354,8 @@ describe('Components', () => {
                     'innerText'
                 );
                 monitorSpanElement = await monitorSpanElement.jsonValue();
-                // check that monitor status on monitor page is offline
-                expect(monitorSpanElement).toMatch('Offline');
+                // check that monitor status on monitor page is online
+                expect(monitorSpanElement).toMatch('Online');
                 await monitorPage.waitFor(2000);
 
                 await componentPage.bringToFront();
@@ -366,7 +368,7 @@ describe('Components', () => {
                 );
                 componentSpanElement = await componentSpanElement.jsonValue();
 
-                expect(componentSpanElement).toMatch('Offline');
+                expect(componentSpanElement).toMatch('Online');
                 await componentPage.waitFor(2000);
                 // bring monitor window to the front so as to resolve incident
                 await monitorPage.bringToFront();
@@ -397,7 +399,6 @@ describe('Components', () => {
                 componentSpanElement = await componentSpanElement.jsonValue();
 
                 expect(componentSpanElement).toMatch('Online');
-                await componentPage.waitFor(2000);
             });
         },
         operationTimeOut
@@ -413,6 +414,7 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const componentSelector = '#component1 table > tbody > tr';
                 await page.waitForSelector(componentSelector);

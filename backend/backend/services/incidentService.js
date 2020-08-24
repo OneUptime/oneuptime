@@ -48,6 +48,13 @@ module.exports = {
 
             if (monitorCount > 0) {
                 let incident = new IncidentModel();
+                const incidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                });
+                const deletedIncidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                });
 
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
@@ -58,6 +65,8 @@ module.exports = {
                 incident.title = data.title;
                 incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
+                incident.idNumber =
+                    incidentsCountInProject + deletedIncidentsCountInProject;
 
                 if (data.probeId) {
                     incident.probes = [
@@ -80,8 +89,6 @@ module.exports = {
                     probeId: data.probeId,
                     status: data.incidentType,
                 });
-
-                RealTimeService.sendCreatedIncident(incident);
 
                 return incident;
             } else {

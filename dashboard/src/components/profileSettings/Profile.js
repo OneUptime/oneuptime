@@ -109,7 +109,7 @@ export class ProfileSetting extends Component {
             to: alertPhoneNumber,
             code: otp,
         }).then(result => {
-            if (result.data.valid && result.data.status === 'approved') {
+            if (result.data.valid) {
                 setVerified(true);
             }
         });
@@ -734,6 +734,7 @@ export class ProfileSetting extends Component {
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
                                                             <button
+                                                                id="sendVerificationSMS"
                                                                 className="bs-Button"
                                                                 disabled={
                                                                     profileSettings &&
@@ -771,7 +772,6 @@ export class ProfileSetting extends Component {
                                                 <ShouldRender
                                                     if={
                                                         !showSendVerification &&
-                                                        !showError &&
                                                         !sendVerificationSMSRequesting
                                                     }
                                                 >
@@ -854,6 +854,7 @@ export class ProfileSetting extends Component {
                                                         </div>
                                                         <div>
                                                             <button
+                                                                id="verify"
                                                                 className="bs-Button"
                                                                 disabled={
                                                                     profileSettings &&
@@ -948,7 +949,10 @@ export class ProfileSetting extends Component {
                                                                 height: '5px',
                                                             }}
                                                         ></div>
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <div
+                                                            id="smsVerificationErrors"
+                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                        >
                                                             <label className="Checkbox">
                                                                 <div
                                                                     className="Box-root"
@@ -1007,6 +1011,7 @@ export class ProfileSetting extends Component {
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                             <label className="Checkbox">
                                                                 <div
+                                                                    id="successMessage"
                                                                     className="Box-root"
                                                                     style={{
                                                                         paddingLeft:
