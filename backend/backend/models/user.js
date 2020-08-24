@@ -85,6 +85,7 @@ const userSchema = new Schema({
     },
     tempAlertPhoneNumber: String,
     tutorial: Object,
+    country: Object,
     createdBy: { type: String, ref: 'User' },
 });
 
