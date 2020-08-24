@@ -13,6 +13,7 @@ import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority'
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import DataPathHoC from '../components/DataPathHoC';
+import BasicIncidentSettings from '../components/incident/basicIncidentSettings';
 
 class IncidentSettings extends React.Component {
     handleCreateNewIncidentPriority() {
@@ -83,6 +84,7 @@ class IncidentSettings extends React.Component {
                         name="Project Settings"
                     />
                     <BreadCrumbItem route={pathname} name="Incident Settings" />
+                    <BasicIncidentSettings />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
