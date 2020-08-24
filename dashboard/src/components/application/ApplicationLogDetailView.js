@@ -156,7 +156,7 @@ class ApplicationLogDetailView extends Component {
             <div>
                 <ShouldRender if={!(logs && logs.length > 0)}>
                     <AlertPanel
-                        id={`${applicationLog._id}-no-log-warning`}
+                        id={`${applicationLog.name}-no-log-warning`}
                         message={
                             <span>
                                 This Log Container is currently not receiving
@@ -191,7 +191,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[0])
                             }
                             className="db-Trend-colInformation"
-                            id={`${applicationLog._id}-all`}
+                            id={`${applicationLog.name}-all`}
                         >
                             <div className="db-Trend-rowTitle" title="All Logs">
                                 <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
@@ -216,7 +216,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[1])
                             }
                             className="db-Trend-colInformation"
-                            id={`${applicationLog._id}-error`}
+                            id={`${applicationLog.name}-error`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -246,7 +246,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[2])
                             }
                             className="db-Trend-colInformation"
-                            id={`${applicationLog._id}-warning`}
+                            id={`${applicationLog.name}-warning`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -276,7 +276,7 @@ class ApplicationLogDetailView extends Component {
                                 this.handleLogTypeChange(logOptions[3])
                             }
                             className="db-Trend-colInformation"
-                            id={`${applicationLog._id}-info`}
+                            id={`${applicationLog.name}-info`}
                         >
                             <div
                                 className="db-Trend-rowTitle"
@@ -450,7 +450,7 @@ class ApplicationLogDetailView extends Component {
                                                         }}
                                                     >
                                                         <Select
-                                                            name="probe_selector"
+                                                            name="log_type_selector"
                                                             value={
                                                                 this.state
                                                                     .logType
