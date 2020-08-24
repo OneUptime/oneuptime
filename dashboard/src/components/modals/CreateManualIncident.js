@@ -345,6 +345,7 @@ function mapStateToProps(state) {
         createIncidentModalId: state.modal.modals[0].id,
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
     };
 }
 

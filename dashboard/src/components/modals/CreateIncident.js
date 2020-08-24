@@ -427,6 +427,7 @@ function mapStateToProps(state) {
         newIncident: state.incident.newIncident,
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
     };
 }
 
