@@ -1013,8 +1013,11 @@
     0 15px 35px 0 rgba(50, 50, 93, 0.1), 0 5px 15px 0 rgba(0, 0, 0, 0.07);
 }
 .Card-shadow--clear {
-  box-shadow: 0 0 0 1px rgba(136, 152, 170, 0.1), 0 0 0 0 rgba(49, 49, 93, 0.1), 
-    0 0 15px 0 rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(136, 152, 170, 0.1),
+    0 0 0 0 rgba(49, 49, 93, 0.1), 0 0 15px 0 rgba(0, 0, 0, 0.08);
 }
 .CurrencyInput-input {
   -webkit-box-flex: 1;
