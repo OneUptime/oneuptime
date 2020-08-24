@@ -145,9 +145,10 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        return this.props.noteData &&
+        return (this.props.noteData &&
             this.props.noteData.notes &&
-            this.props.noteData.notes.length > 0 ? (
+            this.props.noteData.notes.length > 0) ||
+            this.props.individualnote ? (
             <div
                 className="twitter-feed white box"
                 style={{ overflow: 'visible', ...contentBackground }}
