@@ -369,6 +369,7 @@ class Incident extends Component {
                                                                         'block',
                                                                 }}
                                                             >
+                                                                Posted on{' '}
                                                                 {moment(
                                                                     note.createdAt
                                                                 ).format(
