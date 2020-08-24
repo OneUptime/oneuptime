@@ -1058,9 +1058,9 @@ margin-left:10px;
 
 .sp__icon {
   background-color: transparent;
-  background-size: 15px 15px;
-  height: 15px;
-  width: 15px;
+  background-size: contain;
+  height: 20px;
+  width: 20px;
   margin-top: -3px;
   padding-left: 25px;
 }
@@ -1068,6 +1068,15 @@ margin-left:10px;
 .sp__icon--back {
   background-image: url('../images/back-light.svg');
   background-repeat: no-repeat;
+}
+
+.sp__icon--forward {
+  background-image: url('../images/right-arrow.svg');
+  background-repeat: no-repeat;
+}
+
+.sp__icon--forward:hover {
+  background-image: url('../images/right-arrow-alt.svg');
 }
 
 .resolved__incident {
@@ -1125,17 +1134,7 @@ margin-left:10px;
   border-radius: 10px;
   padding-top: 10px;
   padding-bottom: 10px;
-}
-
-.more-link {
-  color: rgba(0, 0, 0, 0.5);
-  text-decoration: underline;
-  font-size: 14px;
-  text-transform: lowercase;
-}
-
-.more-link:hover {
-  color: rgb(76, 76, 76);
+  cursor: pointer;
 }
 
 .incident_status {

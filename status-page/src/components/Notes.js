@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Link } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
 
@@ -45,6 +45,12 @@ class Notes extends Component {
 
         return timelineStatus;
     };
+    handleNavigation = (statusPageId, noteId) => {
+        const { history } = this.props;
+
+        history.push(`/status-page/${statusPageId}/incident/${noteId}`);
+    };
+
     render() {
         const {
             statusPageId,
@@ -60,7 +66,13 @@ class Notes extends Component {
                     if (!note) return <div>No note</div>;
 
                     return (
-                        <li className="incidentlist feed-item clearfix" key={i}>
+                        <li
+                            className="incidentlist feed-item clearfix"
+                            key={i}
+                            onClick={() =>
+                                this.handleNavigation(statusPageId, note._id)
+                            }
+                        >
                             <div
                                 className="incident-status-bubble"
                                 style={{
@@ -165,12 +177,7 @@ class Notes extends Component {
                                         ></span>
                                     )}
                                 </span>
-                                <Link
-                                    to={`/status-page/${statusPageId}/incident/${note._id}`}
-                                    className="more-link"
-                                >
-                                    More
-                                </Link>
+                                <span className="sp__icon sp__icon--forward"></span>
                             </div>
                         </li>
                     );
@@ -192,6 +199,7 @@ Notes.propTypes = {
     uptimeColor: PropTypes.object,
     downtimeColor: PropTypes.object,
     incidentTimelines: PropTypes.array,
+    history: PropTypes.object,
 };
 
-export default Notes;
+export default withRouter(Notes);

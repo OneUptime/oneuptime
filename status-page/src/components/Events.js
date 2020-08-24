@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
@@ -68,6 +68,12 @@ class Events extends Component {
         }
     };
 
+    handleNavigation = (statusPageId, eventId) => {
+        const { history } = this.props;
+
+        history.push(`/status-page/${statusPageId}/scheduledEvent/${eventId}`);
+    };
+
     render() {
         const { statusPageId } = this.props;
         return (
@@ -78,6 +84,9 @@ class Events extends Component {
                         <li
                             className="scheduledEvent feed-item clearfix"
                             key={i}
+                            onClick={() =>
+                                this.handleNavigation(statusPageId, event._id)
+                            }
                         >
                             <div
                                 className="message"
@@ -153,12 +162,7 @@ class Events extends Component {
                                         'MMMM Do YYYY, h:mm a'
                                     )}
                                 </span>
-                                <Link
-                                    to={`/status-page/${statusPageId}/scheduledEvent/${event._id}`}
-                                    className="more-link"
-                                >
-                                    More
-                                </Link>
+                                <span className="sp__icon sp__icon--forward"></span>
                             </div>
                         </li>
                     );
@@ -177,6 +181,7 @@ Events.propTypes = {
     noteBackgroundColor: PropTypes.object,
     statusPageId: PropTypes.string,
     monitorState: PropTypes.array,
+    history: PropTypes.object,
 };
 
-export default Events;
+export default withRouter(Events);
