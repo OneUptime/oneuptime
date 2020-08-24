@@ -513,6 +513,13 @@ export function setAlertPhoneNumber(number) {
     };
 }
 
+export function setAlertCountry(country) {
+    return {
+        type: types.SET_ALERT_COUNTRY,
+        payload: country,
+    };
+}
+
 export function setTwoFactorAuth(enabled) {
     return {
         type: types.SET_TWO_FACTOR_AUTH,

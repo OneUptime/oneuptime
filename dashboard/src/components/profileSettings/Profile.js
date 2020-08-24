@@ -24,6 +24,7 @@ import {
     setInitAlertEmail,
     setTwoFactorAuth,
     updateTwoFactorAuthToken,
+    setAlertCountry,
 } from '../../actions/profile';
 import { getProjects } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
@@ -84,8 +85,9 @@ function validate(values) {
 }
 
 export class ProfileSetting extends Component {
-    handleOnChange = value => {
+    handleOnChange = (value, country) => {
         this.props.setAlertPhoneNumber(value);
+        this.props.setAlertCountry(country);
     };
 
     tick = () => {
@@ -103,11 +105,15 @@ export class ProfileSetting extends Component {
 
     handleVerifySMSCode = () => {
         const { projectId, verifySMSCode, otp, setVerified } = this.props;
-        const { alertPhoneNumber } = this.props.profileSettingState;
+        const {
+            alertPhoneNumber,
+            alertCountry,
+        } = this.props.profileSettingState;
 
         verifySMSCode(projectId, {
             to: alertPhoneNumber,
             code: otp,
+            country: alertCountry,
         }).then(result => {
             if (result.data.valid) {
                 setVerified(true);
@@ -403,6 +409,15 @@ export class ProfileSetting extends Component {
             (verifySMSCodeError || sendVerificationSMSError) &&
             profileSettingState.alertPhoneNumber ===
                 profileSettingState.initPhoneVerificationNumber;
+        const alertPhoneNumber = profileSettings.data.country
+            ? profileSettingState.alertPhoneNumber.slice(
+                  profileSettings.data.country.dialCode.length
+              )
+            : profileSettingState.alertPhoneNumber.slice(1);
+        const country = profileSettings.data.country
+            ? profileSettings.data.country.countryCode
+            : 'us';
+
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -611,8 +626,10 @@ export class ProfileSetting extends Component {
                                                 >
                                                     <ReactPhoneInput
                                                         defaultCountry={'us'}
+                                                        // country={country}
                                                         value={
-                                                            profileSettingState.alertPhoneNumber
+                                                            profileSettings.data
+                                                                .rawPhoneNumber
                                                         }
                                                         onChange={
                                                             this.handleOnChange
@@ -1326,6 +1343,7 @@ const mapDispatchToProps = dispatch => {
             updateTwoFactorAuthToken,
             openModal,
             getProjects,
+            setAlertCountry,
         },
         dispatch
     );
@@ -1453,6 +1471,7 @@ ProfileSetting.propTypes = {
     ]),
     verifySMSCodeRequesting: PropTypes.bool,
     getProjects: PropTypes.func,
+    setAlertCountry: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileSettingForm);
