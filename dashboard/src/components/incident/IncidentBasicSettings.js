@@ -1,15 +1,27 @@
 import React from 'react';
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
+import { updateBasicIncidentSettings } from '../../actions/incidentBasicsSettings';
+import { FormLoader } from '../basic/Loader';
+import ShouldRender from '../basic/ShouldRender';
 
-class BasicIncidentSettings extends React.Component {
-    submit() {
-    }
+class IncidentBasicSettings extends React.Component {
+    submit = async values => {
+        const projectId = this.props.currentProject._id;
+        const { title, description } = values;
+        await this.props.updateBasicIncidentSettings(
+            projectId,
+            title,
+            description
+        );
+    };
     render() {
-        const { handleSubmit } = this.props;
+        const { handleSubmit, reset } = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="Box-root Margin-bottom--12">
@@ -74,14 +86,56 @@ class BasicIncidentSettings extends React.Component {
                                         </fieldset>
                                     </div>
                                 </div>
-                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd">
+                                <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                    <span className="db-SettingsForm-footerMessage">
+                                        <ShouldRender
+                                            if={
+                                                this.props
+                                                    .updateIncidentBasicSettings
+                                                    .error
+                                            }
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                            id="errorInfo"
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .error
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                    </span>
                                     <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                             <div className="Box-root Margin-right--8">
                                                 <button
-                                                    id="saveButton"
+                                                    id="resetButton"
                                                     className={`Button bs-ButtonLegacy`}
                                                     type="button"
+                                                    disabled={
+                                                        this.props
+                                                            .updateIncidentBasicSettings
+                                                            .requesting
+                                                    }
+                                                    onClick={reset}
                                                 >
                                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -95,10 +149,23 @@ class BasicIncidentSettings extends React.Component {
                                                     id="saveButton"
                                                     className={`Button bs-ButtonLegacy`}
                                                     type="submit"
+                                                    disabled={
+                                                        this.props
+                                                            .updateIncidentBasicSettings
+                                                            .requesting
+                                                    }
                                                 >
                                                     <div className="Box-root bs-Button bs-DeprecatedButton bs-Button--blue Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                         <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                            <span>Save</span>
+                                                            {this.props
+                                                                .updateIncidentBasicSettings
+                                                                .requesting ? (
+                                                                <FormLoader />
+                                                            ) : (
+                                                                <span>
+                                                                    Save
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     </div>
                                                 </button>
@@ -115,14 +182,37 @@ class BasicIncidentSettings extends React.Component {
     }
 }
 
-BasicIncidentSettings.displayName = 'BasicIncidentSettings';
-BasicIncidentSettings.PropTypes = {
-  handleSubmit: PropTypes.func.isRequired,
-}
+IncidentBasicSettings.displayName = 'IncidentBasicSettings';
+IncidentBasicSettings.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+    currentProject: PropTypes.object.isRequired,
+    reset: PropTypes.func.isRequired,
+    updateIncidentBasicSettings: PropTypes.object.isRequired,
+    updateBasicIncidentSettings: PropTypes.func.isRequired,
+};
 
-const BasicIncidentSettingsForm = reduxForm({
-    form: 'basicIncidentSettings', // a unique identifier for this form
+const IncidentBasicSettingsForm = reduxForm({
+    form: 'incidentBasicSettings', // a unique identifier for this form
     enableReinitialize: true,
-})(BasicIncidentSettings);
+})(IncidentBasicSettings);
 
-export default BasicIncidentSettingsForm;
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
+        updateIncidentBasicSettings:
+            state.incidentBasicSettings.updateIncidentBasicSettings,
+    };
+};
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            updateBasicIncidentSettings,
+        },
+        dispatch
+    );
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(IncidentBasicSettingsForm);
