@@ -94,9 +94,7 @@ class ViewApplicationLogKey extends Component {
                                                 <label className="bs-Fieldset-label">
                                                     Log Container Key
                                                 </label>
-                                                <div
-                                                    id={`show_application_log_key_${this.props.data.applicationLog.name}`}
-                                                >
+                                                <div>
                                                     <ShouldRender if={hidden}>
                                                         <span
                                                             className="value"
@@ -110,6 +108,7 @@ class ViewApplicationLogKey extends Component {
                                                                 this
                                                                     .changeAPIKeyVisualState
                                                             }
+                                                            id={`show_application_log_key_${this.props.data.applicationLog.name}`}
                                                         >
                                                             Click here to reveal
                                                             Log Container key
@@ -141,6 +140,7 @@ class ViewApplicationLogKey extends Component {
                                                                     this
                                                                         .changeAPIKeyVisualState
                                                                 }
+                                                                id={`hide_application_log_key_${this.props.data.applicationLog.name}`}
                                                                 className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                             >
                                                                 <img
