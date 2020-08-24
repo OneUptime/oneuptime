@@ -12,7 +12,7 @@ const { twilioCredentials } = { ...utils };
 const projectName = 'project';
 const componentName = 'component1';
 const monitorName = 'monitor1';
-const phoneNumber = '9173976235';
+const phoneNumber = '+19173976235';
 const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
@@ -115,6 +115,8 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[name=title]', incidentTitle);
                 await page.click('#createIncident');
                 await page.waitFor(3000);
+                await page.waitForSelector('#closeIncident_0');
+                await page.click('#closeIncident_0');
                 await page.waitForSelector(
                     '#incident_monitor1_0>td:nth-child(2)'
                 );
@@ -194,6 +196,113 @@ describe('Custom Twilio Settings', () => {
                     await page.$$('#subscriberAlertTable>tbody>tr')
                 ).length;
                 expect(rowsCount).toEqual(3);
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should render an error message if the user try to update his alert phone number without typing the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
+                );
+                await page.click('#verify');
+                await page.waitFor('#smsVerificationErrors');
+                const message = await page.$eval(
+                    '#smsVerificationErrors',
+                    e => e.textContent
+                );
+                expect(message).toEqual('Invalid code !');
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should set the alert phone number if the user types the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should update alert phone number if user types the right verification code.',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#profile-menu');
+                await page.click('#profile-menu');
+                await page.waitForSelector('#userProfile');
+                await page.click('#userProfile');
+                await page.waitForSelector('input[type=tel]');
+                await page.click('input[type=tel]');
+                await page.keyboard.down('Control');
+                await page.keyboard.press('A');
+                await page.keyboard.up('Control');
+                await page.keyboard.press('Backspace');
+                await page.type('input[type=tel]', phoneNumber);
+                await page.click('#sendVerificationSMS');
+                await page.waitForSelector('#otp');
+                await page.type(
+                    '#otp',
+                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                );
+                await page.click('#verify');
+                await page.waitFor('#successMessage');
+                const message = await page.$eval(
+                    '#successMessage',
+                    e => e.textContent
+                );
+                expect(message).toEqual(
+                    'Verification successful, this number has been updated.'
+                );
             });
 
             done();
