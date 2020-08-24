@@ -186,12 +186,11 @@ class SocketApp extends Component {
                     thisObj.props.addincidenttimelinebysocket(data);
                 }
             );
-            socket.on(
-                `updateIncidentTimeline-${this.props.project._id}`,
-                function(data) {
-                    thisObj.props.deleteincidentnotebysocket(data);
-                }
-            );
+            socket.on(`deleteIncidentNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteincidentnotebysocket(data);
+            });
         }
         return null;
     }
