@@ -25,6 +25,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -42,6 +43,9 @@ class IncidentLog extends React.Component {
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(
+            this.props.currentProject._id
+        );
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -264,6 +268,7 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
