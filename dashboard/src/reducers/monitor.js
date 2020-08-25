@@ -1153,6 +1153,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             });
 
         case DELETE_MONITOR_SUCCESS:
+        case 'DELETE_MONITOR':
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
