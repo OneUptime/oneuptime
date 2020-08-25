@@ -227,7 +227,10 @@ export class IncidentStatus extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        <span id="title" className="value">
+                                                        <span
+                                                            id="title"
+                                                            className="value"
+                                                        >
                                                             {
                                                                 this.props
                                                                     .incident
