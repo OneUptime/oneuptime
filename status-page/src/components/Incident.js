@@ -151,7 +151,7 @@ class Incident extends Component {
                     <span style={styles}>
                         <span style={incidentStatus}>Incident Status:</span>
                         <span className="time__wrapper">
-                            This incident was acknowledged at{' '}
+                            This incident was acknowledged on{' '}
                             {moment(incident.acknowledgedAt).format(
                                 'MMMM Do YYYY, h:mm a'
                             )}
@@ -171,7 +171,7 @@ class Incident extends Component {
                     <span style={styles}>
                         <span style={incidentStatus}>Incident Status:</span>
                         <span className="time__wrapper">
-                            This incident was resolved at{' '}
+                            This incident was resolved on{' '}
                             {moment(incident.resolvedAt).format(
                                 'MMMM Do YYYY, h:mm a'
                             )}
