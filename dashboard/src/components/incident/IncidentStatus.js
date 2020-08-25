@@ -107,6 +107,9 @@ export class IncidentStatus extends Component {
         const componentId = this.props.incident
             ? this.props.incident.monitorId.componentId._id
             : '';
+        const homeRoute = this.props.currentProject
+            ? '/dashboard/project/' + this.props.currentProject._id
+            : '';
 
         return (
             <div
@@ -148,23 +151,36 @@ export class IncidentStatus extends Component {
                                 >
                                     <span>View Incident</span>
                                 </button>
-                                <button
-                                    className="bs-Button bs-Button--icon bs-Button--settings"
-                                    id={`${monitorName}_EditIncidentDetails`}
-                                    type="button"
-                                    onClick={() => {
-                                        this.props.openModal({
-                                            id: this.state.editIncidentModalId,
-                                            content: DataPathHoC(EditIncident, {
-                                                incident: this.props.incident,
-                                                incidentId: this.props.incident
-                                                    ._id,
-                                            }),
-                                        });
-                                    }}
+                                <ShouldRender
+                                    if={
+                                        !this.props.route ||
+                                        (this.props.route &&
+                                            !(this.props.route === homeRoute))
+                                    }
                                 >
-                                    <span>Edit Incident</span>
-                                </button>
+                                    <button
+                                        className="bs-Button bs-Button--icon bs-Button--settings"
+                                        id={`${monitorName}_EditIncidentDetails`}
+                                        type="button"
+                                        onClick={() => {
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .editIncidentModalId,
+                                                content: DataPathHoC(
+                                                    EditIncident,
+                                                    {
+                                                        incident: this.props
+                                                            .incident,
+                                                        incidentId: this.props
+                                                            .incident._id,
+                                                    }
+                                                ),
+                                            });
+                                        }}
+                                    >
+                                        <span>Edit Incident</span>
+                                    </button>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         this.props.multiple &&
@@ -807,6 +823,7 @@ IncidentStatus.propTypes = {
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string.isRequired,
     componentId: PropTypes.string.isRequired,
+    route: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
