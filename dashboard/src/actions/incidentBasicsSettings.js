@@ -90,3 +90,46 @@ export const updateBasicIncidentSettings = (projectId, title, description) => {
         );
     };
 };
+
+const fetchBasicIncidentSettingsVariablesRequest = ()=>({
+    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
+});
+
+const fetchBasicIncidentSettingsVariablesSuccess = (payload)=>({
+    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
+    payload,
+});
+
+const fetchBasicIncidentSettingsVariablesFailure = (payload)=>({
+    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
+    payload,
+});
+
+export const fetchBasicIncidentSettingsVariables = ()=>{
+    return function(dispatch) {
+        const promise = getApi(`incidentSettings/variables`);
+        dispatch(fetchBasicIncidentSettingsVariablesRequest());
+        promise.then(
+            function(incidentBasicSettings) {
+                dispatch(
+                    fetchBasicIncidentSettingsVariablesSuccess(
+                        incidentBasicSettings.data
+                    )
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchBasicIncidentSettingsVariablesFailure(errors(error)));
+            }
+        );
+    };
+};
