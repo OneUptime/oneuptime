@@ -107,6 +107,8 @@ describe('Monitor Detail API', () => {
                 );
                 await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
+                await page.waitForSelector('#closeIncident_0');
+                await page.click('#closeIncident_0');
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
@@ -138,17 +140,17 @@ describe('Monitor Detail API', () => {
                     'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
                 await page.waitForSelector(selector);
                 await page.click(selector);
-                await page.waitForSelector(
-                    `#${monitorName}_EditIncidentDetails`
-                );
                 await page.waitFor(3000);
                 const incidentTitleSelector =
-                    '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
+                    '#incident_0 .bs-Fieldset-row:nth-of-type(3) span';
                 let currentTitle = await page.$eval(
                     incidentTitleSelector,
                     e => e.textContent
                 );
                 expect(currentTitle).toEqual(incidentTitle);
+                await page.waitForSelector(
+                    `#${monitorName}_EditIncidentDetails`
+                );
                 await page.click(`#${monitorName}_EditIncidentDetails`);
                 await page.waitForSelector('#saveIncident');
                 await page.click('#title', { clickCount: 3 });
