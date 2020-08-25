@@ -41,30 +41,6 @@ module.exports = {
         }
     },
 
-    addIncidentTimeline: async timeline => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-            const incident = await IncidentService.findOneBy({
-                _id: timeline.incidentId,
-            });
-            const project = await ProjectService.findOneBy({
-                _id: incident.projectId,
-            });
-            const projectId = project
-                ? project.parentProjectId
-                    ? project.parentProjectId._id
-                    : project._id
-                : incident.projectId;
-
-            global.io.emit(`addIncidentTimeline-${projectId}`, timeline);
-        } catch (error) {
-            ErrorService.log('realTimeService.addIncidentTimeline', error);
-            throw error;
-        }
-    },
-
     addIncidentNote: async incidentNote => {
         try {
             if (!global || !global.io) {
@@ -115,6 +91,9 @@ module.exports = {
 
     updateIncidentTimeline: async incidentTimeline => {
         try {
+            if (!global || !global.io) {
+                return;
+            }
             const project = await ProjectService.findOneBy({
                 _id: incidentTimeline.projectId,
             });

@@ -305,9 +305,9 @@ class Consulting extends Component {
                                     <div className="Flex-direction--row Padding-bottom--48 Padding-top--48 Text-fontSize--14 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <Slider {...settings}>
                                             <div className="Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',
@@ -358,9 +358,9 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                             <div className="Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 shadow Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',
@@ -410,9 +410,9 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                             <div className=" Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',

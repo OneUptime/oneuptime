@@ -271,22 +271,22 @@ describe('Incident API', function() {
                                 expect(res.body).to.have.property('data');
                                 expect(res.body.data).to.be.an('array');
                                 expect(res.body.data.length).to.be.equal(6);
-                                expect(res.body.data[0].status).to.be.equal(
+                                expect(res.body.data[5].status).to.be.equal(
                                     'offline'
                                 );
-                                expect(res.body.data[1].status).to.be.equal(
+                                expect(res.body.data[4].status).to.be.equal(
                                     'offline'
-                                );
-                                expect(res.body.data[2].status).to.be.equal(
-                                    'online'
                                 );
                                 expect(res.body.data[3].status).to.be.equal(
                                     'online'
                                 );
-                                expect(res.body.data[4].status).to.be.equal(
+                                expect(res.body.data[2].status).to.be.equal(
+                                    'online'
+                                );
+                                expect(res.body.data[1].status).to.be.equal(
                                     'acknowledged'
                                 );
-                                expect(res.body.data[5].status).to.be.equal(
+                                expect(res.body.data[0].status).to.be.equal(
                                     'resolved'
                                 );
                                 done();
