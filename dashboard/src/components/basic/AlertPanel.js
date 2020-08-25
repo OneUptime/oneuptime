@@ -5,8 +5,16 @@ class AlertPanel extends Component {
     render() {
         return (
             <div id={this.props.id} className="Box-root">
-                <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                    <div className="Box-root Box-background--red4">
+                <div
+                    className={`db-Trends Card-shadow--small ${
+                        this.props.className ? this.props.className : ''
+                    }`}
+                >
+                    <div
+                        className={`Box-root Box-background--red4 ${
+                            this.props.borderClass ? this.props.borderClass : ''
+                        }`}
+                    >
                         <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                 <span>{this.props.message}</span>
