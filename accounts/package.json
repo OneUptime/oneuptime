@@ -62,6 +62,9 @@
         "terser": "^3.14.1",
         "workbox-build": "^4.3.1"
     },
+    "resolutions": {
+        "terser": "3.14.1"
+    },
     "jest": {
         "collectCoverageFrom": [
             "src/**/*.js",
