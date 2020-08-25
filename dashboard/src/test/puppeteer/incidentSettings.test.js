@@ -108,4 +108,23 @@ describe('Incident Priority API', () => {
       operationTimeOut
   );
 
+  test(
+    'Should fill title/description fields on the incident creation form with the default values',
+    async () => {
+      return await cluster.execute(null, async ({ page }) => {
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
+        await page.waitForSelector(`#createIncident_${monitorName}`);
+        await page.click(`#createIncident_${monitorName}`);
+        await page.waitForSelector('#title');
+        await page.waitFor(3000);
+        const titleFieldValue = await page.$eval('#title', e => e.value);
+        expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
+        const descriptionFieldValue = await page.$eval('.ace_layer.ace_text-layer', e => e.textContent);
+        expect(descriptionFieldValue).toEqual(newDefaultIncidentDescription);
+        await init.selectByText('#incidentType', 'offline', page);
+        await page.click('#createIncident');
+      })
+    },
+    operationTimeOut
+  );
 });
