@@ -147,3 +147,12 @@ export function addIncidentNote(data) {
         });
     };
 }
+
+export function createMonitor(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'CREATE_MONITOR',
+            payload: data,
+        });
+    };
+}

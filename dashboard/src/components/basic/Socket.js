@@ -24,6 +24,7 @@ import {
     teamMemberCreate,
     teamMemberDelete,
     addIncidentNote,
+    createMonitor,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
@@ -78,6 +79,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `addIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `createMonitor-${this.props.project._id}`
                 );
             }
             return true;
@@ -503,6 +507,11 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.addIncidentNote(data);
             });
+            socket.on(`createMonitor-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.createMonitor(data);
+            });
         }
         return null;
     }
@@ -547,6 +556,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             addIncidentNote,
+            createMonitor,
         },
         dispatch
     );
