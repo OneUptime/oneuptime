@@ -28,6 +28,7 @@
         "js-uuid": "0.0.6",
         "loadable-components": "^2.2.3",
         "lodash": "^4.17.19",
+        "markdown-to-jsx": "^6.11.4",
         "moment": "^2.24.0",
         "moment-range": "^4.0.1",
         "moment-timezone": "^0.5.27",
