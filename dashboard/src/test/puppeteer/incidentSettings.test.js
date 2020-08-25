@@ -13,6 +13,9 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const newDefaultIncidentTitle = 'TEST: {{monitorName}}';
 const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
+const incidentType = 'offline';
+const inctidentTitleAfterSubstitution = `TEST: ${monitorName}`
+const inctidentDescriptionAfterSubstitution = `TEST: ${incidentType}`
 
 describe('Incident Priority API', () => {
     const operationTimeOut = 500000;
@@ -121,10 +124,30 @@ describe('Incident Priority API', () => {
         expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
         const descriptionFieldValue = await page.$eval('.ace_layer.ace_text-layer', e => e.textContent);
         expect(descriptionFieldValue).toEqual(newDefaultIncidentDescription);
-        await init.selectByText('#incidentType', 'offline', page);
+        await init.selectByText('#incidentType', incidentType, page);
         await page.click('#createIncident');
+        await page.waitForSelector('#closeIncident_0');
+        await page.click('#closeIncident_0');
       })
     },
     operationTimeOut
   );
+
+  test(
+    'Should substitute variables in title/description when an incident is created',
+    async () => {
+      return await cluster.execute(null, async ({ page }) => {
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
+        await page.waitForSelector('tr.incidentListItem:first-of-type > td:nth-of-type(3)');
+        await page.click('tr.incidentListItem:first-of-type > td:nth-of-type(3)');
+        await page.waitForSelector('#title');
+        const title = await page.$eval('#title', e => e.textContent);
+        const description = await page.$eval('#description', e => e.textContent);
+        expect(title).toEqual(inctidentTitleAfterSubstitution);
+        expect(description).toEqual(inctidentDescriptionAfterSubstitution);
+      })
+    },
+    operationTimeOut
+  );
+
 });

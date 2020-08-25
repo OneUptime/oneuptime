@@ -227,7 +227,7 @@ export class IncidentStatus extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        <span className="value">
+                                                        <span id="title" className="value">
                                                             {
                                                                 this.props
                                                                     .incident
@@ -244,6 +244,7 @@ export class IncidentStatus extends Component {
                                                         Description :
                                                     </label>
                                                     <div
+                                                        id="description"
                                                         className="bs-Fieldset-fields"
                                                         style={{
                                                             marginTop: '6px',
