@@ -79,6 +79,7 @@ class IncidentBasicSettings extends React.Component {
                                                             mode="markdown"
                                                             width="250px"
                                                             height="150px"
+                                                            wrapEnabled={true}
                                                         />
                                                     </div>
                                                 </div>
