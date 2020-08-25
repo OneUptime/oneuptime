@@ -35,10 +35,10 @@ class IncidentBasicSettings extends React.Component {
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                <span>Basic Settings</span>
+                                                <span>Default Incident Templates</span>
                                             </span>
                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span>DESCRIPTION.</span>
+                                                <span>These are the default templates which will be used when a new incident is created for this project.</span>
                                             </span>
                                         </div>
                                     </div>
@@ -56,7 +56,7 @@ class IncidentBasicSettings extends React.Component {
                                                             flex: '0 0 10%',
                                                         }}
                                                     >
-                                                        Title
+                                                        Default Incident Title
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
@@ -83,7 +83,7 @@ class IncidentBasicSettings extends React.Component {
                                                             flex: '0 0 10%',
                                                         }}
                                                     >
-                                                        Description
+                                                        Default Incident Description
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field

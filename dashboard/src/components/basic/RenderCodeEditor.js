@@ -31,7 +31,7 @@ const RenderCodeEditor = ({
         editorProps={{
             $blockScrolling: true,
         }}
-        highlightActiveLine={true}
+        highlightActiveLine={false}
         setOptions={{
             enableBasicAutocompletion: true,
             enableLiveAutocompletion: true,
