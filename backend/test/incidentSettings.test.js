@@ -107,4 +107,15 @@ describe('Incident Settings API', function() {
     expect(res.body).to.be.an('array');
   });
 
+  it("should return the default settings if no custom settings are defined", async()=>{
+    const authorization = `Basic ${token}`;
+    const res = await request
+      .get(`/incidentSettings/${projectId}`)
+      .set('Authorization', authorization);
+    expect(res).to.have.status(200);
+    expect(res.body).to.be.an('object');
+    expect(res.body).to.have.property('title');
+    expect(res.body).to.have.property('description');
+  });
+
 });
