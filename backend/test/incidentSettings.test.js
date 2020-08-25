@@ -147,4 +147,21 @@ describe('Incident Settings API', function() {
     expect(res.body.title).to.eql(incidentSettings.title);
     expect(res.body.description).to.eql(incidentSettings.description);
   });
+
+    it('should substitute variables with their values when an incident is created.', async () => {
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        const incidentId = res.body._id;
+        const incident = await IncidentService.findOneBy({ _id: incidentId });
+        expect(incident.title).to.eql(incidentSettingsAfterSubstitution.title);
+        expect(incident.description).to.eql(
+            incidentSettingsAfterSubstitution.description
+        );
+    });
 });
