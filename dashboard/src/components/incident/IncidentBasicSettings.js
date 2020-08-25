@@ -6,7 +6,10 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
-import { updateBasicIncidentSettings } from '../../actions/incidentBasicsSettings';
+import { 
+    updateBasicIncidentSettings,
+    setRevealIncidentSettingsVariables,
+} from '../../actions/incidentBasicsSettings';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -84,6 +87,43 @@ class IncidentBasicSettings extends React.Component {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <ShouldRender
+                                                if={!this.props.revealVariables}
+                                            >
+                                                <div
+                                                    className="template-variable-1"
+                                                    style={{display: "block", marginLeft: "120px"}}
+                                                >
+                                                    <button
+                                                        onClick={()=>this.props.setRevealIncidentSettingsVariables(true)}
+                                                        className="button-as-anchor"
+                                                        type="button"
+                                                    >
+                                                        Click here to reveal available variables.
+                                                    </button>
+                                                </div>
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={this.props.revealVariables}
+                                            >
+                                                <ul 
+                                                    className="template-variable-1"
+                                                    style={{display: "block", marginLeft: "120px"}}
+                                                >
+                                                    {
+                                                        this.props.settingsVariables.map(
+                                                            (variable,index)=>
+                                                            <li 
+                                                                key={index}
+                                                                className="template-variables"
+                                                                style={{listStyleType: "disc", listStylePosition: "inside"}}
+                                                            > 
+                                                                {`{{${variable.name}}} : ${variable.definition}`}
+                                                            </li>
+                                                        )
+                                                    }
+                                                </ul>
+                                            </ShouldRender>
                                         </fieldset>
                                     </div>
                                 </div>
@@ -190,6 +230,7 @@ IncidentBasicSettings.propTypes = {
     reset: PropTypes.func.isRequired,
     updateIncidentBasicSettings: PropTypes.object.isRequired,
     updateBasicIncidentSettings: PropTypes.func.isRequired,
+    setRevealIncidentSettingsVariables: PropTypes.func.isRequired,
 };
 
 const IncidentBasicSettingsForm = reduxForm({
@@ -203,12 +244,17 @@ const mapStateToProps = state => {
         initialValues: state.incidentBasicSettings.incidentBasicSettings,
         updateIncidentBasicSettings:
             state.incidentBasicSettings.updateIncidentBasicSettings,
+        revealVariables: state.incidentBasicSettings.revealVariables,
+        settingsVariables: state.incidentBasicSettings
+            .incidentBasicSettingsVariables
+            .incidentBasicSettingsVariables
     };
 };
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             updateBasicIncidentSettings,
+            setRevealIncidentSettingsVariables,
         },
         dispatch
     );
