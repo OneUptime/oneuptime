@@ -291,6 +291,7 @@ class CreateIncident extends Component {
                                                                 height="150px"
                                                                 width="100%"
                                                                 placeholder="This can be markdown"
+                                                                wrapEnabled={true}
                                                             />
                                                         </div>
                                                     </div>
