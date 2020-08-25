@@ -86,7 +86,7 @@
         "test": "jest --detectOpenHandles --forceExit --testSequencer ./src/test/puppeteer/CustomSequencer.js ./src/test/puppeteer/*.test.js",
         "enterprise-test": "jest --detectOpenHandles --forceExit --runInBand ./src/test/puppeteer/*.test.enterprise.js",
         "start": "node index.js",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env'",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='eslint,babel-*,browserslist,loadable-components,@beam-australia/react-env,terser'",
         "audit": "npm-audit-ci-wrapper --threshold=high",
         "fix-lint": "eslint . --fix"
     },
@@ -102,6 +102,7 @@
         "redux-logger": "^3.0.6",
         "redux-mock-store": "^1.5.3",
         "should": "^13.2.3",
+        "terser": "^3.14.1",
         "workbox-build": "^4.3.1"
     },
     "jest": {
