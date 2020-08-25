@@ -46,4 +46,4 @@ module.exports = {
 
 const ErrorService = require('./errorService');
 const incidentSettingsModel = require('../models/incidentSettings');
-const incidentDefaultSettings = require('../config/incidentDefaultSettings');
+const {incidentDefaultSettings} = require('../config/incidentDefaultSettings');
