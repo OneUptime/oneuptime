@@ -12,7 +12,7 @@ import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPrior
 import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchBasicIncidentSettings,fetchBasicIncidentSettingsVariables } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
 import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 
@@ -46,6 +46,7 @@ class IncidentSettings extends React.Component {
         await this.props.fetchBasicIncidentSettings(
             this.props.currentProject._id
         );
+        await this.props.fetchBasicIncidentSettingsVariables();
     }
 
     prevClicked() {
@@ -271,6 +272,7 @@ const mapDispatchToProps = dispatch =>
             closeModal,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            fetchBasicIncidentSettingsVariables,
         },
         dispatch
     );
