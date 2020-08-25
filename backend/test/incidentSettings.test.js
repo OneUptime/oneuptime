@@ -23,6 +23,7 @@ const NotificationService = require('../backend/services/notificationService');
 const IntegrationService = require('../backend/services/integrationService');
 const AirtableService = require('../backend/services/airtableService');
 const Config = require('./utils/config');
+const {incidentDefaultSettings} = require('../backend/config/incidentDefaultSettings')
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
 const GlobalConfig = require('./utils/globalConfig');
@@ -37,11 +38,16 @@ let token,
     monitorId,
     componentId;
 
-    const monitor = {
+const monitor = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
+
+const incidentSettings = {
+  title: `TEST: {{monitorName}}`,
+  description: `TEST: {{incidentType}}`
+}
 
 describe('Incident Settings API', function() {
     this.timeout(500000);
@@ -124,4 +130,21 @@ describe('Incident Settings API', function() {
     expect(res.body.description).to.eql(incidentDefaultSettings.description);
   });
 
+  it("should update the default incident settings.", async ()=>{
+    const authorization = `Basic ${token}`;
+    let res = await request
+      .put(`/incidentSettings/${projectId}`)
+      .set('Authorization', authorization)
+      .send(incidentSettings);
+    expect(res).to.have.status(200);
+    res = await request
+      .get(`/incidentSettings/${projectId}`)
+      .set('Authorization', authorization);
+    expect(res).to.have.status(200);
+    expect(res.body).to.be.an('object');
+    expect(res.body).to.have.property('title');
+    expect(res.body).to.have.property('description');
+    expect(res.body.title).to.eql(incidentSettings.title);
+    expect(res.body.description).to.eql(incidentSettings.description);
+  });
 });
