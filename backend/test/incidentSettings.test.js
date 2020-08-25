@@ -105,6 +105,10 @@ describe('Incident Settings API', function() {
       .set('Authorization', authorization);
     expect(res).to.have.status(200);
     expect(res.body).to.be.an('array');
+    expect(res.body.length).to.be.greaterThan(0);
+    expect(res.body[0]).to.be.an("object");
+    expect(res.body[0]).to.have.property("name");
+    expect(res.body[0]).to.have.property("definition");
   });
 
   it("should return the default settings if no custom settings are defined", async()=>{
