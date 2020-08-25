@@ -49,7 +49,7 @@
         "enterprise-test": "jest  --detectOpenHandles --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env,terser'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "devDependencies": {
         "babel-core": "^6.26.3",
@@ -61,8 +61,7 @@
         "jest-localstorage-mock": "^2.2.0",
         "npm-audit-ci-wrapper": "^2.5.1",
         "redux-logger": "^3.0.6",
-        "should": "^13.2.3",
-        "terser": "^3.14.1"
+        "should": "^13.2.3"
     },
     "jest": {
         "collectCoverageFrom": [
