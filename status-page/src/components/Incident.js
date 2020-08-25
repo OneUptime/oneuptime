@@ -112,8 +112,23 @@ class Incident extends Component {
     }
 
     handleIncidentStatus = () => {
-        const { requestingTimeline, lastIncidentTimeline } = this.props;
+        const {
+            requestingTimeline,
+            lastIncidentTimeline,
+            incident,
+        } = this.props;
         let timelineStatus = null;
+        const styles = {
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: 14,
+            color: 'rgba(0, 0, 0, 0.5)',
+            paddingTop: 7,
+        };
+        const incidentStatus = {
+            color: 'rgba(76, 76, 76, 0.8)',
+            fontWeight: 600,
+        };
 
         if (!requestingTimeline) {
             if (
@@ -122,23 +137,95 @@ class Incident extends Component {
                 lastIncidentTimeline.status !== 'acknowledged'
             ) {
                 timelineStatus = (
-                    <span className="time incident_status">Identified</span>
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={{ marginLeft: 5 }}>Identified</span>
+                    </span>
                 );
             }
-            if (lastIncidentTimeline.status === 'resolved') {
+            if (
+                incident.acknowledged &&
+                lastIncidentTimeline.status === 'acknowledged'
+            ) {
                 timelineStatus = (
-                    <span className="time incident_status">Resolved</span>
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status:</span>
+                        <span className="time__wrapper">
+                            This incident was acknowledged at{' '}
+                            {moment(incident.acknowledgedAt).format(
+                                'MMMM Do YYYY, h:mm a'
+                            )}
+                            <span
+                                title="Acknowledged"
+                                className="acknowledged__incident"
+                            ></span>
+                        </span>
+                    </span>
                 );
             }
-            if (lastIncidentTimeline.status === 'acknowledged') {
+            if (
+                incident.resolved &&
+                lastIncidentTimeline.status === 'resolved'
+            ) {
                 timelineStatus = (
-                    <span className="time incident_status">Acknowledged</span>
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status:</span>
+                        <span className="time__wrapper">
+                            This incident was resolved at{' '}
+                            {moment(incident.resolvedAt).format(
+                                'MMMM Do YYYY, h:mm a'
+                            )}
+                            <span
+                                title="Resolved"
+                                className="resolved__incident"
+                            ></span>
+                        </span>
+                    </span>
                 );
             }
             if (lastIncidentTimeline.incident_state) {
                 timelineStatus = (
-                    <span className="time incident_status">
-                        {capitalize(lastIncidentTimeline.incident_state)}
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={{ marginLeft: 5 }}>
+                            {capitalize(lastIncidentTimeline.incident_state)}
+                        </span>
+                    </span>
+                );
+            }
+            if (lastIncidentTimeline.incident_state && incident.acknowledged) {
+                timelineStatus = (
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status:</span>
+                        <span className="time__wrapper">
+                            <span>
+                                {capitalize(
+                                    lastIncidentTimeline.incident_state
+                                )}
+                            </span>
+                            <span
+                                title="Acknowledged"
+                                className="acknowledged__incident"
+                            ></span>
+                        </span>
+                    </span>
+                );
+            }
+            if (lastIncidentTimeline.incident_state && incident.resolved) {
+                timelineStatus = (
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status:</span>
+                        <span className="time__wrapper">
+                            <span>
+                                {capitalize(
+                                    lastIncidentTimeline.incident_state
+                                )}
+                            </span>
+                            <span
+                                title="Resolved"
+                                className="resolved__incident"
+                            ></span>
+                        </span>
                     </span>
                 );
             }
@@ -155,6 +242,7 @@ class Incident extends Component {
             fetchingIncident,
             incident,
             incidentNotes,
+            lastIncidentTimeline,
         } = this.props;
 
         let downtimeColor, uptimeColor, degradedColor;
@@ -242,7 +330,8 @@ class Incident extends Component {
                                             <span
                                                 className="feed-title"
                                                 style={{
-                                                    color: 'rgb(76, 76, 76)',
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
                                                     fontWeight: 'bold',
                                                     marginBottom: 10,
                                                 }}
@@ -264,7 +353,8 @@ class Incident extends Component {
                                             <span
                                                 className="ongoing__affectedmonitor--title"
                                                 style={{
-                                                    color: 'rgb(76, 76, 76)',
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
                                                 }}
                                             >
                                                 Resource Affected:
@@ -282,34 +372,33 @@ class Incident extends Component {
                                         </div>
                                     </>
                                 )}
+                                {!fetchingIncident &&
+                                    lastIncidentTimeline.status &&
+                                    this.handleIncidentStatus()}
                                 <ShouldRender if={fetchingIncident}>
                                     <ListLoader />
                                 </ShouldRender>
                                 {!fetchingIncidentNotes &&
-                                    incidentNotes &&
                                     !fetchingIncident &&
                                     incident.createdAt && (
-                                        <span style={{ fontSize: 12 }}>
-                                            <span
-                                                className="time"
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                    paddingTop: 7,
-                                                }}
-                                            >
+                                        <span
+                                            style={{
+                                                fontSize: 14,
+                                                color: 'rgba(0, 0, 0, 0.5)',
+                                                paddingTop: 7,
+                                                display: 'block',
+                                            }}
+                                        >
+                                            <span>
+                                                This incident was created at
+                                            </span>{' '}
+                                            <span className="time">
                                                 {moment(
                                                     incident.createdAt
                                                 ).format(
                                                     'MMMM Do YYYY, h:mm a'
                                                 )}
                                             </span>
-                                            {this.handleIncidentStatus()}
-                                            {incident.resolved && (
-                                                <span
-                                                    title="Resolved"
-                                                    className="resolved__incident"
-                                                ></span>
-                                            )}
                                         </span>
                                     )}
                             </div>
@@ -338,7 +427,7 @@ class Incident extends Component {
                                         <span
                                             className="feed-title"
                                             style={{
-                                                color: 'rgb(76, 76, 76)',
+                                                color: 'rgba(76, 76, 76, 0.8)',
                                                 fontWeight: 'bold',
                                             }}
                                         >

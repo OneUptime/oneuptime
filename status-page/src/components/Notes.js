@@ -106,7 +106,7 @@ class Notes extends Component {
                                         style={{
                                             fontWeight: 'Bold',
                                             ...this.props.primaryTextColor,
-                                            color: 'rgb(76, 76, 76)',
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                             marginLeft: 25,
                                         }}
                                     >
@@ -134,7 +134,7 @@ class Notes extends Component {
                             >
                                 <span
                                     className="ongoing__affectedmonitor--title"
-                                    style={{ color: 'rgb(76, 76, 76)' }}
+                                    style={{ color: 'rgba(76, 76, 76, 0.8)' }}
                                 >
                                     Resource Affected:
                                 </span>{' '}
@@ -150,16 +150,24 @@ class Notes extends Component {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
+                                    marginTop: 5,
+                                    marginBottom: 5,
                                 }}
                             >
-                                <span>
+                                <span
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                    }}
+                                >
                                     <span
                                         className="time"
                                         style={{
                                             ...this.props.secondaryTextColor,
                                             marginLeft: 0,
-                                            paddingBottom: 10,
                                             display: 'inline-block',
+                                            padding: 0,
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                         }}
                                     >
                                         {moment(note.createdAt).format(
@@ -174,6 +182,12 @@ class Notes extends Component {
                                         <span
                                             title="Resolved"
                                             className="resolved__incident"
+                                        ></span>
+                                    )}
+                                    {!note.resolved && note.acknowledged && (
+                                        <span
+                                            title="Resolved"
+                                            className="acknowledged__incident"
                                         ></span>
                                     )}
                                 </span>

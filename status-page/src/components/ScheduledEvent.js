@@ -163,7 +163,8 @@ class ScheduledEvent extends Component {
                                             <span
                                                 className="feed-title"
                                                 style={{
-                                                    color: 'rgb(76, 76, 76)',
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
                                                     fontWeight: 'bold',
                                                     marginBottom: 10,
                                                 }}
@@ -266,7 +267,7 @@ class ScheduledEvent extends Component {
                                         <span
                                             className="feed-title"
                                             style={{
-                                                color: 'rgb(76, 76, 76)',
+                                                color: 'rgba(76, 76, 76, 0.8)',
                                                 fontWeight: 'bold',
                                             }}
                                         >

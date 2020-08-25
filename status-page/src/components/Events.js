@@ -48,7 +48,7 @@ class Events extends Component {
                                         className="feed-title"
                                         style={{
                                             ...this.props.secondaryTextColor,
-                                            color: 'rgb(76, 76, 76)',
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                             fontWeight: 'bold',
                                             fontSize: 14,
                                         }}
@@ -94,6 +94,7 @@ class Events extends Component {
                                         marginLeft: 0,
                                         ...this.props.secondaryTextColor,
                                         paddingBottom: 10,
+                                        color: 'rgba(76, 76, 76, 0.8)',
                                     }}
                                 >
                                     {moment(event.startDate).format(

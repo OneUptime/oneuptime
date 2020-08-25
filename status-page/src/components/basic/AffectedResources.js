@@ -30,7 +30,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                     className="ongoing__affectedmonitor--title"
                     style={
                         colorStyle !== 'white'
-                            ? { color: 'rgb(76, 76, 76)' }
+                            ? { color: 'rgba(76, 76, 76, 0.8)' }
                             : {}
                     }
                 >
@@ -55,7 +55,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                     className="ongoing__affectedmonitor--title"
                     style={
                         colorStyle !== 'white'
-                            ? { color: 'rgb(76, 76, 76)' }
+                            ? { color: 'rgba(76, 76, 76, 0.8)' }
                             : {}
                     }
                 >
