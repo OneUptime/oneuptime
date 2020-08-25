@@ -19,7 +19,12 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
-
+import DataPathHoC from '../components/DataPathHoC';
+import InviteTeamMemberModal from '../components/modals/inviteTeamMember.js';
+import { openModal } from '../actions/modal';
+import AlertPanel from '../components/basic/AlertPanel';
+import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
+import { subProjectTeamLoading } from '../actions/team';
 class Home extends Component {
     componentDidMount() {
         this.props.loadPage('Home');
@@ -33,6 +38,9 @@ class Home extends Component {
                 this.props.user.id
             );
             this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
+        }
+        if (this.props.currentProjectId) {
+            this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
 
@@ -209,6 +217,57 @@ class Home extends Component {
                     <BreadCrumbItem route={pathname} name="Home" />
                     <AlertDisabledWarning page="Home" />
                     <div className="Box-root">
+                        <ShouldRender
+                            if={
+                                this.props.projectTeamMembers &&
+                                this.props.projectTeamMembers.length === 1
+                            }
+                        >
+                            <RenderIfOwnerOrAdmin
+                                currentProject={this.props.currentProject}
+                            >
+                                <div className="Margin-bottom--12">
+                                    <AlertPanel
+                                        className="bs-ContentSection Card-root"
+                                        borderClass="Border-radius--4"
+                                        message={
+                                            <span>
+                                                You currently do not have any
+                                                other member on this project,
+                                                Please click{' '}
+                                                <span
+                                                    className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                    id={`btn_${this.props.currentProject?.name}`}
+                                                    onClick={() =>
+                                                        this.props.openModal({
+                                                            id: 'abc',
+                                                            content: DataPathHoC(
+                                                                InviteTeamMemberModal,
+                                                                {
+                                                                    subProjectId: this
+                                                                        .props
+                                                                        .currentProject
+                                                                        ?._id,
+                                                                    subProjectName: this
+                                                                        .props
+                                                                        .currentProject
+                                                                        ?.name,
+                                                                }
+                                                            ),
+                                                        })
+                                                    }
+                                                >
+                                                    here
+                                                </span>{' '}
+                                                to invite a new member to your
+                                                project
+                                            </span>
+                                        }
+                                    />
+                                </div>
+                            </RenderIfOwnerOrAdmin>
+                        </ShouldRender>
+
                         <div>
                             <div>
                                 <div className="db-BackboneViewContainer">
@@ -374,11 +433,18 @@ Home.propTypes = {
     ]),
     fetchOngoingScheduledEvents: PropTypes.func,
     ongoingScheduledEvent: PropTypes.object,
+    currentProject: PropTypes.object,
+    projectTeamMembers: PropTypes.object,
+    subProjectTeamLoading: PropTypes.func,
+    openModal: PropTypes.func,
 };
 
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
-
+    let projectTeamMembers = state.team.subProjectTeamMembers.find(
+        subProjectTeamMember => subProjectTeamMember._id === projectId
+    );
+    projectTeamMembers = projectTeamMembers?.teamMembers;
     return {
         currentProjectId: projectId,
         user: state.profileSettings.profileSetting.data,
@@ -386,6 +452,8 @@ const mapStateToProps = (state, props) => {
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
         ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
+        currentProject: state.project.currentProject,
+        projectTeamMembers,
     };
 };
 
@@ -396,6 +464,8 @@ const mapDispatchToProps = dispatch => {
             userScheduleRequest,
             fetchUserSchedule,
             fetchOngoingScheduledEvents,
+            openModal,
+            subProjectTeamLoading,
         },
         dispatch
     );
