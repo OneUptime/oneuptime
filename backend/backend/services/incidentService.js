@@ -67,20 +67,24 @@ module.exports = {
                     incidentsCountInProject + deletedIncidentsCountInProject;
 
                 const incidentSettings = await IncidentSettingsService.findOne({
-                    projectId:data.projectId
+                    projectId: data.projectId,
                 });
-                const templatesInput={
-                    incidentType:data.incidentType,
+                const templatesInput = {
+                    incidentType: data.incidentType,
                     monitorName: monitor.name,
-                    projectName:project.name,
-                    time:Moment().format('h:mm:ss a'),
-                    date:Moment().format('MMM Do YYYY'),
-                }
-                const titleTemplate = Handlebars.compile(incidentSettings.title);
-                const descriptionTemplate = Handlebars.compile(incidentSettings.description);
+                    projectName: project.name,
+                    time: Moment().format('h:mm:ss a'),
+                    date: Moment().format('MMM Do YYYY'),
+                };
+                const titleTemplate = Handlebars.compile(
+                    incidentSettings.title
+                );
+                const descriptionTemplate = Handlebars.compile(
+                    incidentSettings.description
+                );
                 incident.title = titleTemplate(templatesInput);
                 incident.description = descriptionTemplate(templatesInput);
-    
+
                 if (data.probeId) {
                     incident.probes = [
                         {

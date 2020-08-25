@@ -91,21 +91,21 @@ export const updateBasicIncidentSettings = (projectId, title, description) => {
     };
 };
 
-const fetchBasicIncidentSettingsVariablesRequest = ()=>({
-    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
+const fetchBasicIncidentSettingsVariablesRequest = () => ({
+    type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
 });
 
-const fetchBasicIncidentSettingsVariablesSuccess = (payload)=>({
-    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
+const fetchBasicIncidentSettingsVariablesSuccess = payload => ({
+    type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
     payload,
 });
 
-const fetchBasicIncidentSettingsVariablesFailure = (payload)=>({
-    type:types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
+const fetchBasicIncidentSettingsVariablesFailure = payload => ({
+    type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
     payload,
 });
 
-export const fetchBasicIncidentSettingsVariables = ()=>{
+export const fetchBasicIncidentSettingsVariables = () => {
     return function(dispatch) {
         const promise = getApi(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
@@ -128,15 +128,17 @@ export const fetchBasicIncidentSettingsVariables = ()=>{
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchBasicIncidentSettingsVariablesFailure(errors(error)));
+                dispatch(
+                    fetchBasicIncidentSettingsVariablesFailure(errors(error))
+                );
             }
         );
     };
 };
 
-export const setRevealIncidentSettingsVariables = (payload)=> dispatch =>{
+export const setRevealIncidentSettingsVariables = payload => dispatch => {
     dispatch({
         type: types.SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
-        payload
-    })
-}
+        payload,
+    });
+};

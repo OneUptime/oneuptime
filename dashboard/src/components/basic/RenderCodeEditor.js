@@ -17,7 +17,7 @@ const RenderCodeEditor = ({
         boxShadow:
             '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
     },
-    wrapEnabled=false,
+    wrapEnabled = false,
     height,
     width,
     onLoad = () => {},

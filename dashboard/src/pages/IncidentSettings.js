@@ -12,7 +12,10 @@ import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPrior
 import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
-import { fetchBasicIncidentSettings,fetchBasicIncidentSettingsVariables } from '../actions/incidentBasicsSettings';
+import {
+    fetchBasicIncidentSettings,
+    fetchBasicIncidentSettingsVariables,
+} from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
 import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 

@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
-import { 
+import {
     updateBasicIncidentSettings,
     setRevealIncidentSettingsVariables,
 } from '../../actions/incidentBasicsSettings';
@@ -51,8 +51,10 @@ class IncidentBasicSettings extends React.Component {
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
                                                     <label
-                                                        className="bs-Fieldset-label" 
-                                                        style={{flex: "0 0 10%"}}
+                                                        className="bs-Fieldset-label"
+                                                        style={{
+                                                            flex: '0 0 10%',
+                                                        }}
                                                     >
                                                         Title
                                                     </label>
@@ -66,7 +68,9 @@ class IncidentBasicSettings extends React.Component {
                                                             validate={
                                                                 ValidateField.text
                                                             }
-                                                            style={{width:"600px"}}
+                                                            style={{
+                                                                width: '600px',
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>
@@ -75,7 +79,9 @@ class IncidentBasicSettings extends React.Component {
                                                 <div className="bs-Fieldset-row">
                                                     <label
                                                         className="bs-Fieldset-label"
-                                                        style={{flex: "0 0 10%"}}
+                                                        style={{
+                                                            flex: '0 0 10%',
+                                                        }}
                                                     >
                                                         Description
                                                     </label>
@@ -99,36 +105,51 @@ class IncidentBasicSettings extends React.Component {
                                             >
                                                 <div
                                                     className="template-variable-1"
-                                                    style={{display: "block", marginLeft: "120px"}}
+                                                    style={{
+                                                        display: 'block',
+                                                        marginLeft: '120px',
+                                                    }}
                                                 >
                                                     <button
-                                                        onClick={()=>this.props.setRevealIncidentSettingsVariables(true)}
+                                                        onClick={() =>
+                                                            this.props.setRevealIncidentSettingsVariables(
+                                                                true
+                                                            )
+                                                        }
                                                         className="button-as-anchor"
                                                         type="button"
                                                     >
-                                                        Click here to reveal available variables.
+                                                        Click here to reveal
+                                                        available variables.
                                                     </button>
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={this.props.revealVariables}
                                             >
-                                                <ul 
+                                                <ul
                                                     className="template-variable-1"
-                                                    style={{display: "block", marginLeft: "120px"}}
+                                                    style={{
+                                                        display: 'block',
+                                                        marginLeft: '120px',
+                                                    }}
                                                 >
-                                                    {
-                                                        this.props.settingsVariables.map(
-                                                            (variable,index)=>
-                                                            <li 
+                                                    {this.props.settingsVariables.map(
+                                                        (variable, index) => (
+                                                            <li
                                                                 key={index}
                                                                 className="template-variables"
-                                                                style={{listStyleType: "disc", listStylePosition: "inside"}}
-                                                            > 
+                                                                style={{
+                                                                    listStyleType:
+                                                                        'disc',
+                                                                    listStylePosition:
+                                                                        'inside',
+                                                                }}
+                                                            >
                                                                 {`{{${variable.name}}} : ${variable.definition}`}
                                                             </li>
                                                         )
-                                                    }
+                                                    )}
                                                 </ul>
                                             </ShouldRender>
                                         </fieldset>
@@ -252,9 +273,9 @@ const mapStateToProps = state => {
         updateIncidentBasicSettings:
             state.incidentBasicSettings.updateIncidentBasicSettings,
         revealVariables: state.incidentBasicSettings.revealVariables,
-        settingsVariables: state.incidentBasicSettings
-            .incidentBasicSettingsVariables
-            .incidentBasicSettingsVariables
+        settingsVariables:
+            state.incidentBasicSettings.incidentBasicSettingsVariables
+                .incidentBasicSettingsVariables,
     };
 };
 const mapDispatchToProps = dispatch =>

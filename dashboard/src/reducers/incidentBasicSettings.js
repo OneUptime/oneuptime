@@ -26,8 +26,8 @@ const INITIAL_STATE = {
         error: null,
         success: null,
     },
-    incidentBasicSettingsVariables:{
-        incidentBasicSettingsVariables:[],
+    incidentBasicSettingsVariables: {
+        incidentBasicSettingsVariables: [],
         requesting: false,
         error: null,
         success: null,
@@ -94,37 +94,37 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
         case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST:
-            return Object.assign({},state, {
-                incidentBasicSettingsVariables:{
+            return Object.assign({}, state, {
+                incidentBasicSettingsVariables: {
                     ...state.incidentBasicSettingsVariables,
-                    requesting:true,
+                    requesting: true,
                     error: null,
                     success: null,
-                }
+                },
             });
         case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS:
-            return Object.assign({},state, {
-                incidentBasicSettingsVariables:{
+            return Object.assign({}, state, {
+                incidentBasicSettingsVariables: {
                     ...state.incidentBasicSettingsVariables,
-                    requesting:false,
+                    requesting: false,
                     error: null,
                     success: true,
-                    incidentBasicSettingsVariables: action.payload
-                }
+                    incidentBasicSettingsVariables: action.payload,
+                },
             });
         case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE:
-            return Object.assign({},state, {
-                incidentBasicSettingsVariables:{
+            return Object.assign({}, state, {
+                incidentBasicSettingsVariables: {
                     ...state.incidentBasicSettingsVariables,
-                    requesting:false,
+                    requesting: false,
                     error: action.payload,
                     success: false,
-                }
+                },
             });
         case SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS:
-            return Object.assign({},state,{
-                revealVariables: action.payload
-            })
+            return Object.assign({}, state, {
+                revealVariables: action.payload,
+            });
         default:
             return state;
     }

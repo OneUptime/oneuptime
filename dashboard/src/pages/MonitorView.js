@@ -85,9 +85,7 @@ class MonitorView extends React.Component {
     ready = () => {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(
-            this.props.currentProject._id
-        );
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {

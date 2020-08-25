@@ -156,9 +156,7 @@ class Incident extends React.Component {
 
     ready = () => {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(
-            this.props.currentProject._id
-        );
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
