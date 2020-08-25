@@ -17,6 +17,8 @@ module.exports = {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
             const incidentSettings = await incidentSettingsModel.findOne(query);
+            if( !incidentSettings)
+                return incidentDefaultSettings;
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.findOne', error);
@@ -44,3 +46,4 @@ module.exports = {
 
 const ErrorService = require('./errorService');
 const incidentSettingsModel = require('../models/incidentSettings');
+const incidentDefaultSettings = require('../config/incidentDefaultSettings');

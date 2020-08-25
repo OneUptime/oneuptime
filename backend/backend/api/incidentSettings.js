@@ -17,13 +17,6 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         let incidentSettings = await IncidentSettingsService.findOne({
             projectId,
         });
-        if (!incidentSettings) {
-            incidentSettings = await IncidentSettingsService.create({
-                projectId,
-                title: '',
-                description: '',
-            });
-        }
         return sendItemResponse(req, res, incidentSettings);
     } catch (error) {
         return sendErrorResponse(req, res, error);
