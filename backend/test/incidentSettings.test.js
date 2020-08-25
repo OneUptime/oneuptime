@@ -120,6 +120,8 @@ describe('Incident Settings API', function() {
     expect(res.body).to.be.an('object');
     expect(res.body).to.have.property('title');
     expect(res.body).to.have.property('description');
+    expect(res.body.title).to.eql(incidentDefaultSettings.title);
+    expect(res.body.description).to.eql(incidentDefaultSettings.description);
   });
 
 });
