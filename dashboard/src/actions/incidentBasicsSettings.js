@@ -133,3 +133,10 @@ export const fetchBasicIncidentSettingsVariables = ()=>{
         );
     };
 };
+
+export const setRevealIncidentSettingsVariables = (payload)=> dispatch =>{
+    dispatch({
+        type: types.SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
+        payload
+    })
+}
