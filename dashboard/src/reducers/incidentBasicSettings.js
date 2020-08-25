@@ -5,6 +5,9 @@ import {
     UPDATE_INCIDENT_BASIC_SETTINGS_REQUEST,
     UPDATE_INCIDENT_BASIC_SETTINGS_SUCCESS,
     UPDATE_INCIDENT_BASIC_SETTINGS_FAILURE,
+    FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
+    FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
+    FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
 } from '../constants/incidentBasicSettings';
 
 const INITIAL_STATE = {
@@ -22,6 +25,12 @@ const INITIAL_STATE = {
         error: null,
         success: null,
     },
+    incidentBasicSettingsVariables:{
+        incidentBasicSettingsVariables:[],
+        requesting: false,
+        error: null,
+        success: null,
+    }
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -81,6 +90,34 @@ export default (state = INITIAL_STATE, action) => {
                     error: action.payload,
                     success: false,
                 },
+            });
+        case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST:
+            return Object.assign({},state, {
+                incidentBasicSettingsVariables:{
+                    ...state.incidentBasicSettingsVariables,
+                    requesting:true,
+                    error: null,
+                    success: null,
+                }
+            });
+        case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS:
+            return Object.assign({},state, {
+                incidentBasicSettingsVariables:{
+                    ...state.incidentBasicSettingsVariables,
+                    requesting:false,
+                    error: null,
+                    success: true,
+                    incidentBasicSettingsVariables: action.payload
+                }
+            });
+        case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE:
+            return Object.assign({},state, {
+                incidentBasicSettingsVariables:{
+                    ...state.incidentBasicSettingsVariables,
+                    requesting:false,
+                    error: action.payload,
+                    success: false,
+                }
             });
         default:
             return state;
