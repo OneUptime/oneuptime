@@ -453,6 +453,7 @@ router.delete(
                 req.user.id
             );
             if (monitor) {
+                await RealTimeService.deleteMonitor(monitor);
                 return sendItemResponse(req, res, monitor);
             } else {
                 return sendErrorResponse(req, res, {
