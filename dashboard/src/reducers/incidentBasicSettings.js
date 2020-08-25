@@ -8,6 +8,7 @@ import {
     FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
     FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
     FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
+    SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
 } from '../constants/incidentBasicSettings';
 
 const INITIAL_STATE = {
@@ -30,7 +31,8 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
         success: null,
-    }
+    },
+    revealVariables: false,
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -119,6 +121,10 @@ export default (state = INITIAL_STATE, action) => {
                     success: false,
                 }
             });
+        case SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS:
+            return Object.assign({},state,{
+                revealVariables: action.payload
+            })
         default:
             return state;
     }
