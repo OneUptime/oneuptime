@@ -1,42 +1,23 @@
 /* eslint-disable no-undef */
 
 process.env.PORT = 3020;
-const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
 const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 const app = require('../server');
-
 const request = chai.request.agent(app);
-const testServer = chai.request(HTTP_TEST_SERVER_URL);
 const { createUser } = require('./utils/userSignUp');
-
 const incidentData = require('./data/incident');
-const UserService = require('../backend/services/userService');
-const UserModel = require('../backend/models/user');
-const ProjectService = require('../backend/services/projectService');
-const ProjectModel = require('../backend/models/project');
 const IncidentService = require('../backend/services/incidentService');
-const MonitorService = require('../backend/services/monitorService');
-const NotificationService = require('../backend/services/notificationService');
-const IntegrationService = require('../backend/services/integrationService');
-const AirtableService = require('../backend/services/airtableService');
-const Config = require('./utils/config');
-const {incidentDefaultSettings} = require('../backend/config/incidentDefaultSettings')
+const {
+    incidentDefaultSettings,
+} = require('../backend/config/incidentDefaultSettings');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-const AlertModel = require('../backend/models/alert');
 const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
-const sleep = waitTimeInMs =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let token,
-    userId,
-    airtableId,
-    projectId,
-    monitorId,
-    componentId;
+let token, userId, projectId, monitorId, componentId;
 
 const monitor = {
     name: 'New Monitor',
@@ -45,9 +26,13 @@ const monitor = {
 };
 
 const incidentSettings = {
-  title: `TEST: {{monitorName}}`,
-  description: `TEST: {{incidentType}}`
-}
+    title: `TEST: {{monitorName}}`,
+    description: `TEST: {{incidentType}}`,
+};
+const incidentSettingsAfterSubstitution = {
+    title: `TEST: ${monitor.name}`,
+    description: `TEST: ${incidentData.incidentType}`,
+};
 
 describe('Incident Settings API', function() {
     this.timeout(500000);
@@ -101,52 +86,53 @@ describe('Incident Settings API', function() {
         });
     });
 
-  after(async function() {
-  });
+    after(async function() {});
 
-  it("should return the list of the available variables", async ()=>{
-    const authorization = `Basic ${token}`;
-    const res = await request
-      .get(`/incidentSettings/variables`)
-      .set('Authorization', authorization);
-    expect(res).to.have.status(200);
-    expect(res.body).to.be.an('array');
-    expect(res.body.length).to.be.greaterThan(0);
-    expect(res.body[0]).to.be.an("object");
-    expect(res.body[0]).to.have.property("name");
-    expect(res.body[0]).to.have.property("definition");
-  });
+    it('should return the list of the available variables', async () => {
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/incidentSettings/variables`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body.length).to.be.greaterThan(0);
+        expect(res.body[0]).to.be.an('object');
+        expect(res.body[0]).to.have.property('name');
+        expect(res.body[0]).to.have.property('definition');
+    });
 
-  it("should return the default settings if no custom settings are defined", async()=>{
-    const authorization = `Basic ${token}`;
-    const res = await request
-      .get(`/incidentSettings/${projectId}`)
-      .set('Authorization', authorization);
-    expect(res).to.have.status(200);
-    expect(res.body).to.be.an('object');
-    expect(res.body).to.have.property('title');
-    expect(res.body).to.have.property('description');
-    expect(res.body.title).to.eql(incidentDefaultSettings.title);
-    expect(res.body.description).to.eql(incidentDefaultSettings.description);
-  });
+    it('should return the default settings if no custom settings are defined', async () => {
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/incidentSettings/${projectId}`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('title');
+        expect(res.body).to.have.property('description');
+        expect(res.body.title).to.eql(incidentDefaultSettings.title);
+        expect(res.body.description).to.eql(
+            incidentDefaultSettings.description
+        );
+    });
 
-  it("should update the default incident settings.", async ()=>{
-    const authorization = `Basic ${token}`;
-    let res = await request
-      .put(`/incidentSettings/${projectId}`)
-      .set('Authorization', authorization)
-      .send(incidentSettings);
-    expect(res).to.have.status(200);
-    res = await request
-      .get(`/incidentSettings/${projectId}`)
-      .set('Authorization', authorization);
-    expect(res).to.have.status(200);
-    expect(res.body).to.be.an('object');
-    expect(res.body).to.have.property('title');
-    expect(res.body).to.have.property('description');
-    expect(res.body.title).to.eql(incidentSettings.title);
-    expect(res.body.description).to.eql(incidentSettings.description);
-  });
+    it('should update the default incident settings.', async () => {
+        const authorization = `Basic ${token}`;
+        let res = await request
+            .put(`/incidentSettings/${projectId}`)
+            .set('Authorization', authorization)
+            .send(incidentSettings);
+        expect(res).to.have.status(200);
+        res = await request
+            .get(`/incidentSettings/${projectId}`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('title');
+        expect(res.body).to.have.property('description');
+        expect(res.body.title).to.eql(incidentSettings.title);
+        expect(res.body.description).to.eql(incidentSettings.description);
+    });
 
     it('should substitute variables with their values when an incident is created.', async () => {
         const authorization = `Basic ${token}`;

@@ -34,7 +34,7 @@ module.exports = {
                     $set: data,
                 },
                 {
-                    upsert: true
+                    upsert: true,
                 }
             );
             return incidentSettings;

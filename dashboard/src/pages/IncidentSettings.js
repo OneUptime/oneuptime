@@ -259,6 +259,7 @@ IncidentSettings.propTypes = {
     location: PropTypes.object.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
 };
 const mapStateToProps = state => {
     return {

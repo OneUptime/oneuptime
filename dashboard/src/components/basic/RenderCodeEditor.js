@@ -60,6 +60,7 @@ RenderCodeEditor.propTypes = {
     width: PropTypes.string.isRequired,
     onLoad: PropTypes.func,
     onBlur: PropTypes.func,
+    wrapEnabled: PropTypes.bool,
 };
 
 export default RenderCodeEditor;
