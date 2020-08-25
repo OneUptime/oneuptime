@@ -124,6 +124,7 @@ export class DashboardApp extends Component {
                                             }
                                         >
                                             <AlertPanel
+                                                className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
                                                         SMTP Settings are not
@@ -149,6 +150,7 @@ export class DashboardApp extends Component {
                                             }
                                         >
                                             <AlertPanel
+                                                className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
                                                         Twilio Settings are not
