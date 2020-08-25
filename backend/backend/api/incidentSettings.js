@@ -5,6 +5,15 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const IncidentSettingsService = require('../services/incidentSettingsService');
+const {variables} = require ('../config/incidentDefaultSettings');
+
+router.get('/variables', async function(req,res){
+    try{
+        return sendItemResponse(req, res, variables);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     const { projectId } = req.params;
