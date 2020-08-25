@@ -50,7 +50,10 @@ class IncidentBasicSettings extends React.Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
+                                                    <label
+                                                        className="bs-Fieldset-label" 
+                                                        style={{flex: "0 0 10%"}}
+                                                    >
                                                         Title
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -63,13 +66,17 @@ class IncidentBasicSettings extends React.Component {
                                                             validate={
                                                                 ValidateField.text
                                                             }
+                                                            style={{width:"600px"}}
                                                         />
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
+                                                    <label
+                                                        className="bs-Fieldset-label"
+                                                        style={{flex: "0 0 10%"}}
+                                                    >
                                                         Description
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -80,7 +87,7 @@ class IncidentBasicSettings extends React.Component {
                                                             }
                                                             name="description"
                                                             mode="markdown"
-                                                            width="250px"
+                                                            width="600px"
                                                             height="150px"
                                                             wrapEnabled={true}
                                                         />
