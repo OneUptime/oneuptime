@@ -138,3 +138,12 @@ export function teamMemberDelete(data) {
         dispatch(teamDeleteSuccess(data));
     };
 }
+
+export function addIncidentNote(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_INCIDENT_NOTE',
+            payload: data,
+        });
+    };
+}
