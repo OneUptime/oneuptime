@@ -398,7 +398,7 @@ router.put(
                     _id: incident._id,
                     projectId: incident.projectId,
                 });
-                await RealTimeService.updateIncidentNote(incident);
+                await RealTimeService.updateIncident(incident);
             }
             return sendItemResponse(req, res, incident);
         } catch (error) {
