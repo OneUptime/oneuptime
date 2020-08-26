@@ -346,6 +346,14 @@ describe('Status page monitors check', function() {
         expect(scheduledEventName).to.be.equal(`${futureScheduledEvent.name}`);
     });
 
+    it('should display ongoing scheduled event on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.ongoing__schedulebox');
+        const ongoingEvents = await page.$$('.ongoing__schedulebox');
+
+        expect(ongoingEvents.length).to.be.equal(1);
+    });
+
     it('should navigate to scheduled event page on status page', async function() {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('#scheduledEvents');
