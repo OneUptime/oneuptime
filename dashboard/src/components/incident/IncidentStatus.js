@@ -19,6 +19,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import EditIncident from '../modals/EditIncident';
+import { history } from '../../store';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -92,6 +93,24 @@ export class IncidentStatus extends Component {
             isUserInSubProject = subProject.users.some(
                 user => user.userId === loggedInUser
             );
+        const monitorName =
+            (this.props.multiple &&
+                this.props.incident &&
+                this.props.incident.monitorId) ||
+            (this.props.incident && this.props.incident.monitorId)
+                ? this.props.incident.monitorId.name
+                : '';
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : '';
+        const incidentId = this.props.incident ? this.props.incident._id : '';
+        const componentId = this.props.incident
+            ? this.props.incident.monitorId.componentId._id
+            : '';
+        const homeRoute = this.props.currentProject
+            ? '/dashboard/project/' + this.props.currentProject._id
+            : '';
+
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -105,11 +124,8 @@ export class IncidentStatus extends Component {
                                     <span
                                         id={`incident_span_${this.props.count}`}
                                     >
-                                        {this.props.multiple &&
-                                        this.props.incident &&
-                                        this.props.incident.monitorId
-                                            ? this.props.incident.monitorId
-                                                  .name + "'s Incident Status"
+                                        {monitorName
+                                            ? monitorName + "'s Incident Status"
                                             : 'Incident Status'}
                                     </span>
                                 </span>
@@ -124,24 +140,47 @@ export class IncidentStatus extends Component {
                                 style={{ marginTop: '-20px' }}
                             >
                                 <button
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    id="EditIncidentDetails"
+                                    className="bs-Button bs-Button--icon bs-Button--more"
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
-                                        this.props.openModal({
-                                            id: this.state.editIncidentModalId,
-                                            content: DataPathHoC(EditIncident, {
-                                                incident: this.props.incident,
-                                                incidentId: this.props.incident
-                                                    ._id,
-                                            }),
-                                        });
+                                        history.push(
+                                            `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                        );
                                     }}
                                 >
-                                    <span className="bs-Button bs-Button--icon">
-                                        <span>Edit Incident</span>
-                                    </span>
+                                    <span>View Incident</span>
                                 </button>
+                                <ShouldRender
+                                    if={
+                                        !this.props.route ||
+                                        (this.props.route &&
+                                            !(this.props.route === homeRoute))
+                                    }
+                                >
+                                    <button
+                                        className="bs-Button bs-Button--icon bs-Button--settings"
+                                        id={`${monitorName}_EditIncidentDetails`}
+                                        type="button"
+                                        onClick={() => {
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .editIncidentModalId,
+                                                content: DataPathHoC(
+                                                    EditIncident,
+                                                    {
+                                                        incident: this.props
+                                                            .incident,
+                                                        incidentId: this.props
+                                                            .incident._id,
+                                                    }
+                                                ),
+                                            });
+                                        }}
+                                    >
+                                        <span>Edit Incident</span>
+                                    </button>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         this.props.multiple &&
@@ -784,6 +823,7 @@ IncidentStatus.propTypes = {
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string.isRequired,
     componentId: PropTypes.string.isRequired,
+    route: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
