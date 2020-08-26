@@ -25,6 +25,7 @@ then
   sudo snap remove microk8s || 'microk8s cannot be removed.'
 fi
 
+
 if [[ $(which docker) ]]
 then
   # Stop all docker containers
