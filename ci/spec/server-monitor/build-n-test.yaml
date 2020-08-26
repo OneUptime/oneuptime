@@ -19,6 +19,7 @@ build_n_test_server-monitor:
         - npm ci
         - npm run test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_server-monitor server-monitor backend
     except:

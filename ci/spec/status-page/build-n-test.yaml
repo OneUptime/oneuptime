@@ -34,6 +34,7 @@ build_n_test_statuspage:
         - npm run build
         - npm run test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_statuspage status-page backend accounts
     except:

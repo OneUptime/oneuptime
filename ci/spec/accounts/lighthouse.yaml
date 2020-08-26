@@ -27,6 +27,7 @@ mobile_lighthouse_accounts:
         - npm run build
         - npm run light-house-mobile
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh mobile_lighthouse_accounts dashboard backend accounts
     except:
@@ -62,6 +63,7 @@ desktop_lighthouse_accounts:
         - npm run build
         - npm run light-house
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh desktop_lighthouse_accounts dashboard backend accounts
     except:

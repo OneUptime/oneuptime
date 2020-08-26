@@ -34,6 +34,7 @@ build_n_test_dashboard:
         - npm run build
         - TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm run test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_dashboard dashboard backend probe accounts status-page init-script http-test-server
     except:
@@ -72,6 +73,7 @@ build_n_test_enterprise_dashboard:
         - npm run build
         - npm run enterprise-test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_dashboard dashboard backend accounts status-page admin-dashboard
     except:

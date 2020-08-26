@@ -10,6 +10,7 @@ build_n_test_licensing:
         - sudo docker build -t fyipeproject/licensing:3.0.$CI_PIPELINE_IID ./licensing
         - sudo docker ps
         - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_licensing licensing
     except:

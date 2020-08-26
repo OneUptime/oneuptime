@@ -25,6 +25,7 @@ build_n_test_log-java:
         - cd log-java
         - mvn clean test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_log-java log-java backend
     except:

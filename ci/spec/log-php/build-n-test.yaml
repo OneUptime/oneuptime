@@ -22,6 +22,7 @@ build_n_test_log-php:
         - composer install
         - composer test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_log-php log-php backend
     except:

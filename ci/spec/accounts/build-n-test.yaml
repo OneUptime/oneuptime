@@ -25,6 +25,7 @@ build_n_test_accounts:
         - npm run build
         - npm run test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_accounts dashboard backend accounts
     except:
@@ -62,6 +63,7 @@ build_n_test_enterprise_accounts:
         - npm run build
         - npm run enterprise-test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_accounts dashboard backend accounts admin-dashboard
     except:

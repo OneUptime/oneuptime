@@ -11,6 +11,7 @@ build_n_test_admin-dashboard:
         - npm run build
         - echo "No test implemented"
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_admin-dashboard admin-dashboard
     except:
@@ -49,6 +50,7 @@ build_n_test_enterprise_admin-dashboard:
         - npm run build
         - npm run enterprise-test
         - cd ..
+        - sudo docker system prune -a --volumes --force
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
     except:
