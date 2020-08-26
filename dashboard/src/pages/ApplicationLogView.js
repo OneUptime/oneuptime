@@ -18,7 +18,7 @@ class ApplicationLogView extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOGS > APPLICATION LOG DETAIL PAGE'
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINERS > LOG CONTAINER DETAIL PAGE'
             );
         }
     }

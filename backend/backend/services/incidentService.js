@@ -23,6 +23,11 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
                 .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -156,7 +161,12 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('incidentPriority', 'name color')
-                .populate('probes.probeId', 'probeName');
+                .populate('probes.probeId', 'probeName')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                });
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -199,6 +209,11 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
                 .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);

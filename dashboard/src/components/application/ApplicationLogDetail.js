@@ -17,7 +17,6 @@ import {
 } from '../../actions/applicationLog';
 import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
-import * as moment from 'moment';
 import ApplicationLogHeader from './ApplicationLogHeader';
 import NewApplicationLog from './NewApplicationLog';
 
@@ -29,10 +28,6 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
-            logType: { value: '', label: 'All Logs' },
-            startDate: props.startDate,
-            endDate: props.endDate,
-            filter: '',
         };
     }
     deleteApplicationLog = () => {
@@ -46,7 +41,7 @@ class ApplicationLogDetail extends Component {
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
                 {
                     ProjectId: this.props.currentProject._id,
                     applicationLogId: this.props.index,
@@ -68,7 +63,7 @@ class ApplicationLogDetail extends Component {
                 });
                 if (SHOULD_LOG_ANALYTICS) {
                     logEvent(
-                        'EVENT: DASHBOARD > COMPONENTS > APPLICATION LOG > APPLICATION LOG DETAILS > RESET APPLICATION LOG KEY',
+                        'EVENT: DASHBOARD > COMPONENTS > LOG CONTAINER > LOG CONTAINER DETAILS > RESET LOG CONTAINER KEY',
                         {
                             applicationLogId: this.props.index,
                         }
@@ -84,31 +79,13 @@ class ApplicationLogDetail extends Component {
                 return false;
         }
     };
-    handleDateTimeChange = (startDate, endDate) => {
-        if (startDate && endDate) {
-            startDate = moment(startDate);
-            endDate = moment(endDate);
-            this.setState(() => ({
-                startDate,
-                endDate,
-            }));
-            this.props.setStartDate(startDate);
-            this.props.setEndDate(endDate);
-        }
-    };
-    handleLogTypeChange = logType => {
-        this.setState({ logType });
-    };
-    handleLogFilterChange = filter => {
-        this.setState({ filter });
-    };
     editApplicationLog = () => {
         const { applicationLog } = this.props;
         this.props.editApplicationLogSwitch(applicationLog._id);
         // This is crashing
         // if (SHOULD_LOG_ANALYTICS) {
         //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG CLICKED',
+        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > EDIT LOG CONTAINER CLICKED',
         //         {}
         //     );
         // }
@@ -138,42 +115,18 @@ class ApplicationLogDetail extends Component {
             deleting,
             deleteModalId,
             openApplicationLogKeyModalId,
-            startDate,
-            endDate,
-            logType,
-            filter,
         } = this.state;
         const {
             applicationLog,
             componentId,
             currentProject,
-            fetchLogs,
             isDetails,
             stats,
         } = this.props;
-        if (applicationLog) {
-            fetchLogs(
-                currentProject._id,
-                componentId,
-                applicationLog._id,
-                0,
-                10,
-                startDate.clone().utc(),
-                endDate.clone().utc(),
-                logType.value,
-                filter
-            );
-        }
 
         if (currentProject) {
             document.title = currentProject.name + ' Dashboard';
         }
-        const logOptions = [
-            { value: '', label: 'All Logs' },
-            { value: 'warning', label: 'Warning' },
-            { value: 'info', label: 'Info' },
-            { value: 'error', label: 'Error' },
-        ];
         if (applicationLog) {
             return (
                 <div>
@@ -198,7 +151,6 @@ class ApplicationLogDetail extends Component {
                                 resetApplicationLogKey={
                                     this.resetApplicationLogKey
                                 }
-                                stats={stats}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -210,49 +162,14 @@ class ApplicationLogDetail extends Component {
                             />
                         </ShouldRender>
 
-                        <ShouldRender if={!isDetails}>
-                            <ApplicationLogDetailView
-                                logValue={this.state.logType}
-                                filter={this.state.filter}
-                                applicationLog={applicationLog}
-                                logOptions={logOptions}
-                                componentId={componentId}
-                                projectId={currentProject._id}
-                                handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={
-                                    this.handleLogFilterChange
-                                }
-                                handleDateTimeChange={this.handleDateTimeChange}
-                                isDetails={isDetails}
-                            />
-                        </ShouldRender>
+                        <ApplicationLogDetailView
+                            applicationLog={applicationLog}
+                            componentId={componentId}
+                            projectId={currentProject._id}
+                            isDetails={isDetails}
+                            stats={stats}
+                        />
                     </div>
-                    <ShouldRender if={this.props.isDetails}>
-                        <div
-                            className="Box-root Card-shadow--medium"
-                            style={{
-                                marginTop: '10px',
-                                marginBottom: '10px',
-                                paddingBottom: '10px',
-                            }}
-                            tabIndex="0"
-                        >
-                            <ApplicationLogDetailView
-                                logValue={this.state.logType}
-                                filter={this.state.filter}
-                                applicationLog={applicationLog}
-                                logOptions={logOptions}
-                                componentId={componentId}
-                                projectId={currentProject._id}
-                                handleLogTypeChange={this.handleLogTypeChange}
-                                handleLogFilterChange={
-                                    this.handleLogFilterChange
-                                }
-                                handleDateTimeChange={this.handleDateTimeChange}
-                                isDetails={isDetails}
-                            />
-                        </div>
-                    </ShouldRender>
                 </div>
             );
         } else {
@@ -304,12 +221,7 @@ ApplicationLogDetail.propTypes = {
     closeModal: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
     deleteApplicationLog: PropTypes.func,
-    setStartDate: PropTypes.func,
-    setEndDate: PropTypes.func,
-    fetchLogs: PropTypes.func,
     isDetails: PropTypes.bool,
-    startDate: PropTypes.instanceOf(moment),
-    endDate: PropTypes.instanceOf(moment),
     editApplicationLogSwitch: PropTypes.func,
     fetchStats: PropTypes.func,
     stats: PropTypes.object,

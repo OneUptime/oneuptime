@@ -276,7 +276,7 @@ export class SidebarNavItem extends Component {
                 'Monitor View',
                 'Website Issues',
                 'Component View',
-                'Application Log View',
+                'Log Container View',
                 'Status Page',
                 'Application Detail',
                 'Container Detail',

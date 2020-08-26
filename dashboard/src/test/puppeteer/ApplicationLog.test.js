@@ -14,7 +14,7 @@ const componentName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
-describe('Components', () => {
+describe('Log Containers', () => {
     const operationTimeOut = 50000;
 
     let cluster;
@@ -76,7 +76,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should create new application log',
+        'Should create new log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -102,7 +102,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should not create new application log',
+        'Should not create new log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -128,7 +128,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open details page of created application log',
+        'Should open details page of created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -148,7 +148,106 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open edit component for created application log',
+        'Should display warning for empty log container',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // goto thee details page
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    applicationLogName,
+                    page
+                );
+
+                // get the error element, Expect it to be defined
+                const errorElement = await page.waitForSelector(
+                    `#${applicationLogName}-no-log-warning`
+                );
+                expect(errorElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should filter log container by selected log type',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // goto thee details page
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    applicationLogName,
+                    page
+                );
+
+                // select the drop down and confirm the current value as all
+                let logTypeElement = await page.waitForSelector(
+                    'input[name=log_type_selector]'
+                );
+                logTypeElement = await logTypeElement.getProperty('value');
+
+                logTypeElement = await logTypeElement.jsonValue();
+                logTypeElement.should.be.exactly('');
+
+                // click on the warning tab
+                await page.waitForSelector(`#${applicationLogName}-warning`);
+                await page.click(`#${applicationLogName}-warning`);
+
+                await page.waitFor(1000);
+                // confim that thee drop down current value is warning
+                logTypeElement = await page.waitForSelector(
+                    'input[name=log_type_selector]'
+                );
+                logTypeElement = await logTypeElement.getProperty('value');
+
+                logTypeElement = await logTypeElement.jsonValue();
+                logTypeElement.should.be.exactly('warning');
+
+                // click on the info tab
+                await page.waitForSelector(`#${applicationLogName}-info`);
+                await page.click(`#${applicationLogName}-info`);
+
+                await page.waitFor(1000);
+                // confim that thee drop down current value is info
+                logTypeElement = await page.waitForSelector(
+                    'input[name=log_type_selector]'
+                );
+                logTypeElement = await logTypeElement.getProperty('value');
+
+                logTypeElement = await logTypeElement.jsonValue();
+                logTypeElement.should.be.exactly('info');
+
+                // click on the error tab
+                await page.waitForSelector(`#${applicationLogName}-error`);
+                await page.click(`#${applicationLogName}-error`);
+
+                await page.waitFor(1000);
+                // confim that thee drop down current value is error
+                logTypeElement = await page.waitForSelector(
+                    'input[name=log_type_selector]'
+                );
+                logTypeElement = await logTypeElement.getProperty('value');
+
+                logTypeElement = await logTypeElement.jsonValue();
+                logTypeElement.should.be.exactly('error');
+
+                // click on the all tab
+                await page.waitForSelector(`#${applicationLogName}-all`);
+                await page.click(`#${applicationLogName}-all`);
+
+                await page.waitFor(1000);
+                // confim that thee drop down current value is all
+                logTypeElement = await page.waitForSelector(
+                    'input[name=log_type_selector]'
+                );
+                logTypeElement = await logTypeElement.getProperty('value');
+
+                logTypeElement = await logTypeElement.jsonValue();
+                logTypeElement.should.be.exactly('');
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should open edit component for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -172,25 +271,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should open application key for created application log',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await init.navigateToApplicationLogDetails(
-                    componentName,
-                    applicationLogName,
-                    page
-                );
-                await page.waitForSelector(`#key_${applicationLogName}`);
-                await page.click(`#key_${applicationLogName}`);
-                await page.waitFor(1000);
-
-                // get application log key
-            });
-        },
-        operationTimeOut
-    );
-    test(
-        'Should open application key for created application log',
+        'Should open application key for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -211,7 +292,7 @@ describe('Components', () => {
                 );
                 await page.waitFor(2000);
 
-                // get application log key
+                // get log container key
                 let spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -230,7 +311,50 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should reset application key for created application log',
+        'Should open application key for created log container and hide it back',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    applicationLogName,
+                    page
+                );
+                await page.waitForSelector(`#key_${applicationLogName}`);
+                await page.click(`#key_${applicationLogName}`);
+                await page.waitFor(1000);
+
+                // click show applicaion log key
+                await page.waitForSelector(
+                    `#show_application_log_key_${applicationLogName}`
+                );
+                await page.click(
+                    `#show_application_log_key_${applicationLogName}`
+                );
+                await page.waitFor(2000);
+
+                // find the eye icon to hide log container key
+                await page.waitForSelector(
+                    `#hide_application_log_key_${applicationLogName}`
+                );
+                await page.click(
+                    `#hide_application_log_key_${applicationLogName}`
+                );
+
+                let spanElement = await page.waitForSelector(
+                    `#show_application_log_key_${applicationLogName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+
+                expect(spanElement).toEqual(
+                    'Click here to reveal Log Container key'
+                );
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should reset application key for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
@@ -251,7 +375,7 @@ describe('Components', () => {
                 );
                 await page.waitFor(2000);
 
-                // get application log key
+                // get log container key
                 let spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -288,7 +412,7 @@ describe('Components', () => {
                     `#show_application_log_key_${applicationLogName}`
                 );
 
-                // get application log key
+                // get log container key
                 spanElement = await page.waitForSelector(
                     `#application_log_key_${applicationLogName}`
                 );
@@ -302,7 +426,7 @@ describe('Components', () => {
         operationTimeOut
     );
     test(
-        'Should update name for created application log',
+        'Should update name for created log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToApplicationLogDetails(
