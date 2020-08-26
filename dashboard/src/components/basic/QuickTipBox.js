@@ -15,13 +15,19 @@ function QuickTipBox({
 
     return (
         <ShouldRender if={display}>
-            <div tabIndex="0" className="Box-root Margin-vertical--12">
+            <div
+                tabIndex="0"
+                id={`info-${title}`}
+                className="Box-root Margin-vertical--12"
+            >
                 <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
-                                    <span>{header || 'Quick Tip'}</span>
+                                    <span id="box-header">
+                                        {header || 'Quick Tip'}
+                                    </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
                             </div>
@@ -78,9 +84,12 @@ function QuickTipBox({
 QuickTipBox.displayName = 'QuickTipBox';
 
 QuickTipBox.propTypes = {
-    type: PropTypes.string,
-    closeTutorial: PropTypes.func,
-    currentProject: PropTypes.object.isRequired,
+    title: PropTypes.string,
+    header: PropTypes.string,
+    content: PropTypes.object,
+    icon: PropTypes.string,
+    callToActionLink: PropTypes.string,
+    callToAction: PropTypes.string,
 };
 
 export default QuickTipBox;
