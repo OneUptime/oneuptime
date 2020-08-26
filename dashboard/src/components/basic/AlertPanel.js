@@ -5,14 +5,12 @@ class AlertPanel extends Component {
     render() {
         return (
             <div id={this.props.id} className="Box-root">
-                <div
-                    className={`db-Trends Card-shadow--small ${
-                        this.props.className ? this.props.className : ''
-                    }`}
-                >
+                <div className="db-Trends Card-shadow--small bs-ContentSection Card-root">
                     <div
-                        className={`Box-root Box-background--red4 ${
-                            this.props.borderClass ? this.props.borderClass : ''
+                        className={`Box-root ${this.props.customClass} ${
+                            this.props.backgroundClass
+                                ? this.props.backgroundClass
+                                : 'Box-background--red4'
                         }`}
                     >
                         <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
@@ -32,6 +30,8 @@ AlertPanel.displayName = 'AlertPanel';
 AlertPanel.propTypes = {
     message: PropTypes.object.isRequired,
     id: PropTypes.string,
+    customClass: PropTypes.string,
+    backgroundClass: PropTypes.string,
 };
 
 export default AlertPanel;
