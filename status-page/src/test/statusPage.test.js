@@ -33,10 +33,16 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 const monitor = testData.monitor;
 const monitorCategory = testData.monitorCategory;
 const scheduledEvent = testData.scheduledEvent;
+const futureScheduledEvent = testData.futureScheduledEvent;
 const statusPage = testData.statusPage;
 const privateStatusPage = testData.privateStatusPage;
+const degradeIncident = testData.degradeIncident;
 
-const today = new Date().toISOString();
+let today = new Date().toISOString();
+today = moment(today).format();
+const tomorrow = moment(today)
+    .add(2, 'days')
+    .format();
 const dateId = moment(today)
     .format('LL')
     .replace(/, | /g, '');
@@ -102,13 +108,24 @@ describe('Status page monitors check', function() {
         scheduledEventMonitorId = monitorId;
 
         scheduledEvent.startDate = today;
-        scheduledEvent.endDate = today;
+        scheduledEvent.endDate = tomorrow;
+        scheduledEvent.monitors = [monitorId];
 
         const scheduledEventRequest = await request
-            .post(`/scheduledEvent/${projectId}/${monitorId}`)
+            .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send(scheduledEvent);
         scheduledEventId = scheduledEventRequest.body._id;
+
+        // scheduled event to happen in the future
+        futureScheduledEvent.startDate = tomorrow;
+        futureScheduledEvent.endDate = tomorrow;
+        futureScheduledEvent.monitors = [monitorId];
+
+        await request
+            .post(`/scheduledEvent/${projectId}`)
+            .set('Authorization', authorization)
+            .send(futureScheduledEvent);
 
         statusPage.projectId = projectId;
         statusPage.monitors = [
@@ -141,7 +158,7 @@ describe('Status page monitors check', function() {
 
         statusPageURL = `http://${statusPageId}.localhost:3006/`;
 
-        browser = await puppeteer.launch({ headless: true });
+        browser = await puppeteer.launch({ headless: false });
         page = await browser.newPage();
         await page.goto(statusPageURL, {
             waitUntil: 'networkidle0',
@@ -310,22 +327,28 @@ describe('Status page monitors check', function() {
     });
 
     it('should display scheduled events when enabled on status page', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
         await page.waitForSelector('#scheduledEvents');
 
+        await page.waitForSelector('li.scheduledEvent');
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        expect(countScheduledEvents).to.be.equal(1);
-
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent > div > div > span:nth-child(2)',
+            'li.scheduledEvent .feed-title',
             el => el.textContent
         );
 
-        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+        expect(countScheduledEvents).to.be.equal(1);
+        expect(scheduledEventName).to.be.equal(`${futureScheduledEvent.name}`);
     });
 
     it('should display monitor scheduled events when date is selected', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
         const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
         await page.waitForSelector(monitorDaySelector);
@@ -334,17 +357,17 @@ describe('Status page monitors check', function() {
 
         await page.waitForSelector('#scheduledEvents');
 
+        await page.waitForSelector('li.scheduledEvent');
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        expect(countScheduledEvents).to.be.equal(1);
-
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent > div > div > span:nth-child(2)',
+            'li.scheduledEvent .feed-title',
             el => el.textContent
         );
 
-        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+        expect(countScheduledEvents).to.be.equal(1);
+        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}`);
     });
 
     it('should not display scheduled events when disabled on status page', async function() {
@@ -366,26 +389,18 @@ describe('Status page monitors check', function() {
     });
 
     it('should display Some services are degraded', async function() {
-        await chai
-            .request('http://localhost:3010/')
-            .post('api/settings')
-            .send({
-                responseTime: 6000,
-                statusCode: 200,
-                responseType: 'json',
-                header: {},
-                body: { status: 'ok' },
-            });
+        // add a degraded incident
+        await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(degradeIncident);
 
-        page.waitForSelector('.largestatus > .status-up');
-        //wait for 2 min approximatively
-        await page.waitFor(125000);
         await page.reload({
             waitUntil: 'networkidle0',
         });
+        await page.waitForSelector('.largestatus > .status-paused');
         const textHeader = await page.$eval('.title', e => e.textContent);
         expect(textHeader).to.be.eql('Some services are degraded');
-        await page.waitForSelector('.largestatus > .status-paused');
     });
 });
 

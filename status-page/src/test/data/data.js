@@ -42,6 +42,14 @@ module.exports = {
         callScheduleOnEvent: true,
         monitorDuringEvent: false,
     },
+    futureScheduledEvent: {
+        name: 'Future Scheduled Event',
+        description: 'This scheduled event will happen in the future',
+        showEventOnStatusPage: true,
+        alertSubscriber: true,
+        callScheduleOnEvent: true,
+        monitorDuringEvent: false,
+    },
     statusPage: {
         name: 'Status Page',
         showScheduledEvents: true,
@@ -57,5 +65,10 @@ module.exports = {
         title: 'Status title',
         description: 'status description',
         copyright: 'status copyright',
+    },
+    degradeIncident: {
+        incidentType: 'degraded',
+        title: 'Degraded Incident',
+        description: 'This is a degraded incident',
     },
 };
