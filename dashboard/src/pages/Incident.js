@@ -214,6 +214,10 @@ class Incident extends React.Component {
 
     render() {
         let variable = null;
+        const {
+            component,
+            location: { pathname },
+        } = this.props;
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -301,10 +305,6 @@ class Incident extends React.Component {
                 </div>
             );
         }
-        const {
-            component,
-            location: { pathname },
-        } = this.props;
         const componentName = component ? component.name : '';
 
         return (
