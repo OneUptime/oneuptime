@@ -22,6 +22,7 @@ deploy_staging_log-java:
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - mvn clean deploy
+        - git init
         - git add .
         - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
@@ -32,6 +33,7 @@ deploy_staging_log-java:
         refs:
             - master
             - hotfix-master
+            - feature-log-java
     environment:
         name: staging
 
@@ -58,6 +60,7 @@ deploy_poduction_log-java:
         - git checkout -f master
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
         - mvn clean deploy -P release
+        - git init
         - git add .
         - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git master --force
