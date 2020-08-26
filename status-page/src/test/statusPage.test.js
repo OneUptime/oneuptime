@@ -423,6 +423,20 @@ describe('Status page monitors check', function() {
         expect(incidentTitle).to.be.equal(onlineIncident.title);
     });
 
+    it('should navigate to incident page on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.incidentlist');
+        const incidents = await page.$$('.incidentlist');
+        await incidents[0].click();
+
+        await page.waitForSelector('#incident');
+        const backnavigation = await page.$eval(
+            '#footer .sp__icon--back',
+            elem => elem.textContent
+        );
+        expect(backnavigation).to.be.equal('Back to status page');
+    });
+
     it('should display Some services are degraded', async function() {
         // add a degraded incident
         await request
@@ -430,6 +444,9 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(degradeIncident);
 
+        await page.goto(statusPageURL, {
+            waitUntil: 'networkidle0',
+        });
         await page.reload({
             waitUntil: 'networkidle0',
         });
