@@ -24,7 +24,8 @@ let token,
     statusPageId,
     privateStatusPageId,
     userId,
-    futureEventId;
+    futureEventId,
+    incidentId;
 const testData = require('./data/data');
 const VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
 const UserService = require('../../../backend/backend/services/userService');
@@ -40,6 +41,7 @@ const privateStatusPage = testData.privateStatusPage;
 const degradeIncident = testData.degradeIncident;
 const onlineIncident = testData.onlineIncident;
 const scheduledEventNote = testData.scheduledEventNote;
+const incidentNote = testData.incidentNote;
 
 let today = new Date().toISOString();
 today = moment(today).format();
@@ -432,10 +434,11 @@ describe('Status page monitors check', function() {
 
     it('should display incident on status page', async function() {
         // add an online incident
-        await request
+        const incident = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
             .send(onlineIncident);
+        incidentId = incident._id;
 
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.incidentlist');
@@ -458,6 +461,18 @@ describe('Status page monitors check', function() {
             elem => elem.textContent
         );
         expect(backnavigation).to.be.equal('Back to status page');
+    });
+
+    it('should show incident notes on incident page', async function() {
+        await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(incidentNote);
+
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#incidentNotes li.feed-item');
+        const notes = await page.$$('#incidentNotes li.feed-item');
+        expect(notes.length).to.be.equal(1);
     });
 
     it('should display Some services are degraded', async function() {

@@ -81,4 +81,9 @@ module.exports = {
         type: 'investigation',
         incident_state: 'update',
     },
+    incidentNote: {
+        content: 'Another random note for incident',
+        type: 'investigation',
+        incident_state: 'investigating',
+    },
 };
