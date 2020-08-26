@@ -134,6 +134,7 @@ class AuditLogs extends React.Component {
                                                         }
                                                     >
                                                         <AlertPanel
+                                                            className=""
                                                             message={
                                                                 <span id="auditLogDisabled">
                                                                     You are

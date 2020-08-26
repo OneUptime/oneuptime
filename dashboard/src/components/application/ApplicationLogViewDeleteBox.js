@@ -33,7 +33,7 @@ class ApplicationLogViewDeleteBox extends Component {
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
+                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
                 {
                     ProjectId: this.props.currentProject._id,
                     applicationLogId: this.props.applicationLog._id,
@@ -73,12 +73,12 @@ class ApplicationLogViewDeleteBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Delete Application Log</span>
+                                    <span>Delete Log Container</span>
                                 </span>
                                 <p>
                                     <span>
                                         Click the button to permanantly delete
-                                        this application log.
+                                        this log container.
                                     </span>
                                 </p>
                             </div>

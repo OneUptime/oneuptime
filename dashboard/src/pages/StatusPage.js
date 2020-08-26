@@ -64,10 +64,8 @@ class StatusPage extends Component {
         }
     }
     tabSelected = index => {
-        const tabWidth = document.getElementById('react-tabs-0').offsetWidth;
-        document.getElementById(
-            'tab-slider'
-        ).style.transform = `translate(calc(${tabWidth}px*${index}), 0px)`;
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
 
     render() {

@@ -195,7 +195,8 @@ router.post(
 
             const logs = await LogService.findBy(query, limit || 10, skip || 0);
             const count = await LogService.countBy(query);
-            return sendListResponse(req, res, logs, count);
+            const dateRange = await LogService.getDateRange(query);
+            return sendListResponse(req, res, { logs, dateRange }, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

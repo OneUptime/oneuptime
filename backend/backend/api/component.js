@@ -318,7 +318,7 @@ router.get(
                     const newElement = {
                         _id: elem._id,
                         name: elem.name,
-                        type: 'application logs',
+                        type: 'log container',
                         createdAt: elem.createdAt,
                         icon: 'appLog',
                         status: logStatus,

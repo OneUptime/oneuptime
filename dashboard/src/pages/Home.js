@@ -173,6 +173,7 @@ class Home extends Component {
                             count={i}
                             incident={incident}
                             multiple={true}
+                            route={pathname}
                         />
                     </RenderIfUserInSubProject>
                 );
