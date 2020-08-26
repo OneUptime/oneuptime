@@ -345,7 +345,25 @@ describe('Status page monitors check', function() {
         expect(scheduledEventName).to.be.equal(`${futureScheduledEvent.name}`);
     });
 
+    it('should navigate to scheduled event page on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#scheduledEvents');
+        await page.waitForSelector('li.scheduledEvent');
+        const events = await page.$$('li.scheduledEvent');
+        await events[0].click();
+
+        await page.waitForSelector('#scheduledEventPage');
+        const backnavigation = await page.$eval(
+            '#scheduledEventPage .sp__icon--back',
+            elem => elem.textContent
+        );
+        expect(backnavigation).to.be.equal('Back to status page');
+    });
+
     it('should display monitor scheduled events when date is selected', async function() {
+        await page.goto(statusPageURL, {
+            waitUntil: 'networkidle0',
+        });
         await page.reload({
             waitUntil: 'networkidle0',
         });

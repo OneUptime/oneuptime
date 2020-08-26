@@ -119,7 +119,11 @@ class ScheduledEvent extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                <div className="innernew" style={{ width: 609 }}>
+                <div
+                    className="innernew"
+                    style={{ width: 609 }}
+                    id="scheduledEventPage"
+                >
                     <div
                         id="scheduledEvents"
                         className="twitter-feed white box"
