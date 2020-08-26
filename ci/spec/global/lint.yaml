@@ -9,7 +9,6 @@ lint-projects:
         - sudo apt-get install -y nodejs
         - npm ci
         - npm run lint
-        - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:
