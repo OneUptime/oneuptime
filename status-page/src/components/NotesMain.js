@@ -45,12 +45,6 @@ class NotesMain extends Component {
                     this.props.individualnote.name,
                     true
                 );
-            } else {
-                this.props.getStatusPageNote(
-                    this.props.projectId,
-                    this.props.statusPageId,
-                    0
-                );
             }
         }
     }
