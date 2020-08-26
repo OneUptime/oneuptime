@@ -390,7 +390,7 @@ class Incident extends Component {
                                             }}
                                         >
                                             <span>
-                                                This incident was created at
+                                                This incident was created on
                                             </span>{' '}
                                             <span className="time">
                                                 {moment(
