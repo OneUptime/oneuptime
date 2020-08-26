@@ -3,10 +3,19 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
+import { openModal, closeModal } from '../../actions/modal';
+import ProbeDetail from '../modals/ProbeDetail';
+import DataPathHoC from '../DataPathHoC';
 
 export class ProbeList extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { ProbeDetailModalId: uuid.v4() };
+    }
+
     render() {
         if (
             this.props.probesList &&
@@ -124,6 +133,24 @@ export class ProbeList extends Component {
                                     <tr
                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                         key={probesData._id}
+                                        onClick={() =>
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .ProbeDetailModalId,
+                                                onClose: () => '',
+                                                content: DataPathHoC(
+                                                    ProbeDetail,
+                                                    {
+                                                        ProbeDetailModalId: this
+                                                            .state
+                                                            .ProbeDetailModalId,
+                                                        closeModal: this.props
+                                                            .closeModal,
+                                                        probesData,
+                                                    }
+                                                ),
+                                            })
+                                        }
                                     >
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -313,7 +340,7 @@ export class ProbeList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -334,6 +361,8 @@ ProbeList.propTypes = {
     error: PropTypes.object,
     prevClicked: PropTypes.func,
     nextClicked: PropTypes.func,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);
