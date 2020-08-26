@@ -76,4 +76,9 @@ module.exports = {
         title: 'Online Incident',
         description: 'This is an online incident',
     },
+    scheduledEventNote: {
+        content: 'This is just a random note for a scheduled event',
+        type: 'investigation',
+        incident_state: 'update',
+    },
 };

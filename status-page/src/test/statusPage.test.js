@@ -23,7 +23,8 @@ let token,
     scheduledEventId,
     statusPageId,
     privateStatusPageId,
-    userId;
+    userId,
+    futureEventId;
 const testData = require('./data/data');
 const VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
 const UserService = require('../../../backend/backend/services/userService');
@@ -38,6 +39,7 @@ const statusPage = testData.statusPage;
 const privateStatusPage = testData.privateStatusPage;
 const degradeIncident = testData.degradeIncident;
 const onlineIncident = testData.onlineIncident;
+const scheduledEventNote = testData.scheduledEventNote;
 
 let today = new Date().toISOString();
 today = moment(today).format();
@@ -123,10 +125,11 @@ describe('Status page monitors check', function() {
         futureScheduledEvent.endDate = tomorrow;
         futureScheduledEvent.monitors = [monitorId];
 
-        await request
+        const futureEvent = await request
             .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send(futureScheduledEvent);
+        futureEventId = futureEvent._id;
 
         statusPage.projectId = projectId;
         statusPage.monitors = [
@@ -367,6 +370,18 @@ describe('Status page monitors check', function() {
             elem => elem.textContent
         );
         expect(backnavigation).to.be.equal('Back to status page');
+    });
+
+    it('should show scheduled event notes on scheduled event page', async function() {
+        await request
+            .post(`/scheduledEvent/${projectId}/${futureEventId}/notes`)
+            .set('Authorization', authorization)
+            .send(scheduledEventNote);
+
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.messages li.feed-item');
+        const notes = await page.$$('.messages li.feed-item');
+        expect(notes.length).to.be.equal(1);
     });
 
     it('should display monitor scheduled events when date is selected', async function() {
