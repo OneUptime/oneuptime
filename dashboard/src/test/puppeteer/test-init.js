@@ -158,10 +158,10 @@ module.exports = {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
-        // then goto list of application logs
+        // then goto list of log containers
         await page.click('#logs');
 
-        // Navigate to details page of application log assumed created
+        // Navigate to details page of log container assumed created
         await page.waitForSelector(`#more-details-${applicationLog}`);
         await page.click(`#more-details-${applicationLog}`);
         await page.waitForSelector(`#application-log-title-${applicationLog}`);

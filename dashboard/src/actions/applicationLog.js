@@ -2,7 +2,7 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
-//Create new application log
+//Create new log container
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(projectId, componentId, values) {
     return function(dispatch) {
@@ -210,14 +210,15 @@ export function fetchLogs(
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            function(logs) {
+            function(response) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        logs: logs.data.data,
+                        logs: response.data.data.logs,
+                        dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        count: logs.data.count,
+                        count: response.data.count,
                     })
                 );
             },
@@ -455,5 +456,11 @@ export function fetchStatsFailure(error) {
 export function resetFetchStats() {
     return {
         type: types.FETCH_LOG_STAT_RESET,
+    };
+}
+export function getLogSuccess(log) {
+    return {
+        type: types.GET_LOG_SUCCESS,
+        payload: log,
     };
 }

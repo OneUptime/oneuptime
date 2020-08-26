@@ -19,6 +19,11 @@ class ViewApplicationLogKey extends Component {
             confirmBoxHidden: !state.confirmBoxHidden,
         }));
     };
+    changeAPIKeyVisualState = () => {
+        this.setState(state => ({
+            hidden: !state.hidden,
+        }));
+    };
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -46,7 +51,7 @@ class ViewApplicationLogKey extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Application Log Credentials</span>
+                                        <span>Log Container Credentials</span>
                                     </span>
                                 </div>
                             </div>
@@ -54,10 +59,9 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--8 Padding-vertical--4">
                                     <p>
                                         <span>
-                                            Use your Application Log ID and
-                                            Application Log Key to log requests
-                                            from your apps to your Fyipe
-                                            Dashboard
+                                            Use your Log Container ID and Log
+                                            Container Key to log requests from
+                                            your apps to your Fyipe Dashboard
                                         </span>
                                     </p>
                                 </div>
@@ -66,7 +70,7 @@ class ViewApplicationLogKey extends Component {
                                         <div className="bs-Fieldset-rows">
                                             <div className="bs-Fieldset-row Flex-flex Flex-direction--column">
                                                 <label className="bs-Fieldset-label">
-                                                    Application Log ID
+                                                    Log Container ID
                                                 </label>
                                                 <div>
                                                     <span
@@ -88,18 +92,9 @@ class ViewApplicationLogKey extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row Flex-flex Flex-direction--column">
                                                 <label className="bs-Fieldset-label">
-                                                    Application Log Key
+                                                    Log Container Key
                                                 </label>
-                                                <div
-                                                    id={`show_application_log_key_${this.props.data.applicationLog.name}`}
-                                                    onClick={() =>
-                                                        this.setState(
-                                                            state => ({
-                                                                hidden: !state.hidden,
-                                                            })
-                                                        )
-                                                    }
-                                                >
+                                                <div>
                                                     <ShouldRender if={hidden}>
                                                         <span
                                                             className="value"
@@ -109,31 +104,56 @@ class ViewApplicationLogKey extends Component {
                                                                 cursor:
                                                                     'pointer',
                                                             }}
+                                                            onClick={
+                                                                this
+                                                                    .changeAPIKeyVisualState
+                                                            }
+                                                            id={`show_application_log_key_${this.props.data.applicationLog.name}`}
                                                         >
                                                             Click here to reveal
-                                                            Application Log key
+                                                            Log Container key
                                                         </span>
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
-                                                        <span
-                                                            id={`application_log_key_${this.props.data.applicationLog.name}`}
-                                                            className="value"
-                                                            style={{
-                                                                marginTop:
-                                                                    '6px',
-                                                                fontWeight:
-                                                                    'bold',
-                                                            }}
-                                                        >
-                                                            {this.props.data
-                                                                .applicationLog !==
-                                                            null
-                                                                ? this.props
-                                                                      .data
-                                                                      .applicationLog
-                                                                      .key
-                                                                : 'LOADING...'}
-                                                        </span>
+                                                        <div className="Flex-flex">
+                                                            <span
+                                                                id={`application_log_key_${this.props.data.applicationLog.name}`}
+                                                                className="value"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '6px',
+                                                                    fontWeight:
+                                                                        'bold',
+                                                                }}
+                                                            >
+                                                                {this.props.data
+                                                                    .applicationLog !==
+                                                                null
+                                                                    ? this.props
+                                                                          .data
+                                                                          .applicationLog
+                                                                          .key
+                                                                    : 'LOADING...'}
+                                                            </span>
+                                                            <div
+                                                                onClick={
+                                                                    this
+                                                                        .changeAPIKeyVisualState
+                                                                }
+                                                                id={`hide_application_log_key_${this.props.data.applicationLog.name}`}
+                                                                className="Flex-flex Flex-alignItems--center Padding-left--8"
+                                                            >
+                                                                <img
+                                                                    src="/dashboard/assets/img/hide.svg"
+                                                                    style={{
+                                                                        width:
+                                                                            '15px',
+                                                                        height:
+                                                                            '15px',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </ShouldRender>
                                                 </div>
                                             </div>
@@ -149,12 +169,11 @@ class ViewApplicationLogKey extends Component {
                                             <div className="bs-Fieldset-row">
                                                 <p>
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Resetting the
-                                                        Application Log Key will
-                                                        break all your existing
+                                                        Resetting the Log
+                                                        Container Key will break
+                                                        all your existing
                                                         integrations with the
-                                                        Fyipe Application Logger
-                                                        Library
+                                                        Fyipe Logger Library
                                                     </span>
                                                 </p>
                                             </div>
@@ -199,8 +218,7 @@ class ViewApplicationLogKey extends Component {
                                                     }
                                                 >
                                                     <span>
-                                                        Reset Application Log
-                                                        Key
+                                                        Reset Log Container Key
                                                     </span>
                                                 </ShouldRender>
                                                 <ShouldRender

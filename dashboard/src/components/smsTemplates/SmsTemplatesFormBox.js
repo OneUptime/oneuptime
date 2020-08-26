@@ -48,26 +48,6 @@ export class SmsTemplatesFormBox extends Component {
             openSmsTemplateResetModalId: uuid.v4(),
         };
     }
-    // deleteApplicationLog = () => {
-    //     const promise = this.props.deleteApplicationLog(
-    //         this.props.currentProject._id,
-    //         this.props.componentId,
-    //         this.props.index
-    //     );
-    //     history.push(
-    //         `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
-    //     );
-    //     if (SHOULD_LOG_ANALYTICS) {
-    //         logEvent(
-    //             'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > APPLICATION LOG DELETED',
-    //             {
-    //                 ProjectId: this.props.currentProject._id,
-    //                 applicationLogId: this.props.index,
-    //             }
-    //         );
-    //     }
-    //     return promise;
-    // };
     resetTemplate = id => {
         const promise = this.props.resetTemplate(id);
         this.props.closeModal({
