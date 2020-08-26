@@ -71,4 +71,9 @@ module.exports = {
         title: 'Degraded Incident',
         description: 'This is a degraded incident',
     },
+    onlineIncident: {
+        incidentType: 'online',
+        title: 'Online Incident',
+        description: 'This is an online incident',
+    },
 };

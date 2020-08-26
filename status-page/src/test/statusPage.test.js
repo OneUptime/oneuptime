@@ -37,6 +37,7 @@ const futureScheduledEvent = testData.futureScheduledEvent;
 const statusPage = testData.statusPage;
 const privateStatusPage = testData.privateStatusPage;
 const degradeIncident = testData.degradeIncident;
+const onlineIncident = testData.onlineIncident;
 
 let today = new Date().toISOString();
 today = moment(today).format();
@@ -404,6 +405,22 @@ describe('Status page monitors check', function() {
         const scheduledEvents = await page.$('#scheduledEvents');
 
         expect(scheduledEvents).to.be.equal(null);
+    });
+
+    it('should display incident on status page', async function() {
+        // add an online incident
+        await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(onlineIncident);
+
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.incidentlist');
+        const incidentTitle = await page.$eval(
+            '.incidentlist .message > .text > span:nth-child(1)',
+            elem => elem.textContent
+        );
+        expect(incidentTitle).to.be.equal(onlineIncident.title);
     });
 
     it('should display Some services are degraded', async function() {
