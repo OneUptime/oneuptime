@@ -19,12 +19,9 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
-import DataPathHoC from '../components/DataPathHoC';
-import InviteTeamMemberModal from '../components/modals/inviteTeamMember.js';
-import { openModal } from '../actions/modal';
-import AlertPanel from '../components/basic/AlertPanel';
 import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
 import { subProjectTeamLoading } from '../actions/team';
+import QuickTipBox from '../components/basic/QuickTipBox';
 class Home extends Component {
     componentDidMount() {
         this.props.loadPage('Home');
@@ -217,56 +214,30 @@ class Home extends Component {
                     <BreadCrumbItem route={pathname} name="Home" />
                     <AlertDisabledWarning page="Home" />
                     <div className="Box-root">
-                        <ShouldRender
-                            if={
-                                this.props.projectTeamMembers &&
-                                this.props.projectTeamMembers.length === 1
-                            }
+                        <RenderIfOwnerOrAdmin
+                            currentProject={this.props.currentProject}
                         >
-                            <RenderIfOwnerOrAdmin
-                                currentProject={this.props.currentProject}
+                            <ShouldRender
+                                if={
+                                    this.props.projectTeamMembers &&
+                                    this.props.projectTeamMembers.length === 1
+                                }
                             >
-                                <div className="Margin-bottom--12">
-                                    <AlertPanel
-                                        className="bs-ContentSection Card-root"
-                                        borderClass="Border-radius--4"
-                                        message={
-                                            <span>
-                                                You currently do not have any
-                                                other member on this project,
-                                                Please click{' '}
-                                                <span
-                                                    className="Border-bottom--white Text-fontWeight--bold Text-color--white"
-                                                    id={`btn_${this.props.currentProject?.name}`}
-                                                    onClick={() =>
-                                                        this.props.openModal({
-                                                            id: 'abc',
-                                                            content: DataPathHoC(
-                                                                InviteTeamMemberModal,
-                                                                {
-                                                                    subProjectId: this
-                                                                        .props
-                                                                        .currentProject
-                                                                        ?._id,
-                                                                    subProjectName: this
-                                                                        .props
-                                                                        .currentProject
-                                                                        ?.name,
-                                                                }
-                                                            ),
-                                                        })
-                                                    }
-                                                >
-                                                    here
-                                                </span>{' '}
-                                                to invite a new member to your
-                                                project
-                                            </span>
-                                        }
-                                    />
-                                </div>
-                            </RenderIfOwnerOrAdmin>
-                        </ShouldRender>
+                                <QuickTipBox
+                                    header="Invite your Team"
+                                    title="Team Members"
+                                    icon="idea"
+                                    content={
+                                        <div>
+                                            You currently do not have any other
+                                            member on this project.
+                                        </div>
+                                    }
+                                    callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/team`}
+                                    callToAction="Invite Team Member"
+                                />
+                            </ShouldRender>
+                        </RenderIfOwnerOrAdmin>
 
                         <div>
                             <div>
@@ -345,31 +316,101 @@ class Home extends Component {
                                                                 </ShouldRender>
 
                                                                 <div className="Box-root Margin-bottom--12">
-                                                                    {incidentslist &&
-                                                                    incidentslist.length >
-                                                                        0 ? (
+                                                                    {this.props
+                                                                        .components &&
+                                                                    this.props
+                                                                        .components
+                                                                        .length <
+                                                                        1 ? (
+                                                                        <div>
+                                                                            {/* No Component Notifier */}
+                                                                            <QuickTipBox
+                                                                                header="Create your first Component"
+                                                                                title="Components"
+                                                                                icon="idea"
+                                                                                content={
+                                                                                    <div>
+                                                                                        Components
+                                                                                        are
+                                                                                        needed
+                                                                                        before
+                                                                                        you
+                                                                                        can
+                                                                                        create
+                                                                                        Monitors.
+                                                                                    </div>
+                                                                                }
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
+                                                                                callToAction="Create Component"
+                                                                            />
+                                                                        </div>
+                                                                    ) : this
+                                                                          .props
+                                                                          .monitors &&
+                                                                      this.props
+                                                                          .monitors
+                                                                          .length <
+                                                                          1 ? (
+                                                                        <div>
+                                                                            {/* No Monitor Notifier */}
+                                                                            <QuickTipBox
+                                                                                header="Create a Monitor"
+                                                                                title="Monitors"
+                                                                                icon="idea"
+                                                                                content={
+                                                                                    <div>
+                                                                                        Monitors
+                                                                                        are
+                                                                                        needed
+                                                                                        before
+                                                                                        Incidents
+                                                                                        can
+                                                                                        be
+                                                                                        created.
+                                                                                        You
+                                                                                        can
+                                                                                        create
+                                                                                        a
+                                                                                        monitor
+                                                                                        for
+                                                                                        any
+                                                                                        of
+                                                                                        your
+                                                                                        existing
+                                                                                        components
+                                                                                    </div>
+                                                                                }
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
+                                                                                callToAction="Create Monitor"
+                                                                            />
+                                                                        </div>
+                                                                    ) : incidentslist &&
+                                                                      incidentslist.length >
+                                                                          0 ? (
                                                                         incidentslist
                                                                     ) : (
-                                                                        <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                            <div className="db-Trends-header Padding-vertical--48">
-                                                                                <div className="db-Trends-controls">
-                                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                    <span
-                                                                                                        id="component-content-header"
-                                                                                                        className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                    >
-                                                                                                        You
-                                                                                                        currently
-                                                                                                        don&apos;t
-                                                                                                        have
-                                                                                                        any
-                                                                                                        active
-                                                                                                        incidents.
+                                                                        <div>
+                                                                            <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                                <div className="db-Trends-header Padding-vertical--48">
+                                                                                    <div className="db-Trends-controls">
+                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                    <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                        <span
+                                                                                                            id="component-content-header"
+                                                                                                            className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                        >
+                                                                                                            You
+                                                                                                            currently
+                                                                                                            don&apos;t
+                                                                                                            have
+                                                                                                            any
+                                                                                                            active
+                                                                                                            incidents.
+                                                                                                        </span>
                                                                                                     </span>
-                                                                                                </span>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
@@ -436,11 +477,22 @@ Home.propTypes = {
     currentProject: PropTypes.object,
     projectTeamMembers: PropTypes.object,
     subProjectTeamLoading: PropTypes.func,
-    openModal: PropTypes.func,
+    monitors: PropTypes.array,
+    components: PropTypes.array,
 };
 
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
+    let monitors = [],
+        components = [];
+    state.monitor.monitorsList.monitors.map(monitor => {
+        monitors = monitors.concat(...monitor.monitors);
+        return monitor;
+    });
+    state.component.componentList.components.map(component => {
+        components = components.concat(...component.components);
+        return component;
+    });
     let projectTeamMembers = state.team.subProjectTeamMembers.find(
         subProjectTeamMember => subProjectTeamMember._id === projectId
     );
@@ -454,6 +506,8 @@ const mapStateToProps = (state, props) => {
         ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
         currentProject: state.project.currentProject,
         projectTeamMembers,
+        components,
+        monitors,
     };
 };
 
@@ -464,7 +518,6 @@ const mapDispatchToProps = dispatch => {
             userScheduleRequest,
             fetchUserSchedule,
             fetchOngoingScheduledEvents,
-            openModal,
             subProjectTeamLoading,
         },
         dispatch
