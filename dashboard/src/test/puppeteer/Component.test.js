@@ -53,6 +53,37 @@ describe('Components', () => {
     });
 
     test(
+        'Should show indicator on how to create a component since no component exist, then goto component creation ',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                const componentBoxElement = await page.waitForSelector(
+                    '#info-Components'
+                );
+                expect(componentBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(`span#box-header`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create your first Component');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage');
+                await page.click('#gotoPage');
+
+                const componentFormElement = await page.waitForSelector(
+                    '#form-new-component'
+                );
+                expect(componentFormElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
         'Should create new component',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -79,6 +110,40 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should show indicator on how to create a monitor since a component exist, then goto monitor creation',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                const monitorBoxElement = await page.waitForSelector(
+                    '#info-Monitors'
+                );
+                expect(monitorBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(`span#box-header`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create a Monitor');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage');
+                await page.click('#gotoPage');
+
+                // Navigate to Component details
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.$eval(`#more-details-${componentName}`, e =>
+                    e.click()
+                );
+                await page.waitForSelector('#form-new-monitor');
             });
         },
         operationTimeOut
