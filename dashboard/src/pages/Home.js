@@ -212,7 +212,14 @@ class Home extends Component {
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Home" />
-                    <AlertDisabledWarning page="Home" />
+                    <ShouldRender
+                        if={
+                            this.props.monitors &&
+                            this.props.monitors.length > 0
+                        }
+                    >
+                        <AlertDisabledWarning page="Home" />
+                    </ShouldRender>
                     <div className="Box-root">
                         <RenderIfOwnerOrAdmin
                             currentProject={this.props.currentProject}
