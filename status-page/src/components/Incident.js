@@ -144,6 +144,31 @@ class Incident extends Component {
                 );
             }
             if (
+                !lastIncidentTimeline.incident_state &&
+                lastIncidentTimeline.status === 'investigation notes deleted'
+            ) {
+                timelineStatus = (
+                    <span style={styles}>
+                        <span style={incidentStatus}>Incident Status: </span>
+                        <span className="time__wrapper">
+                            <span>Deleted a note</span>
+                            {incident.acknowledged && incident.resolved && (
+                                <span
+                                    title="Resolved"
+                                    className="resolved__incident"
+                                ></span>
+                            )}
+                            {incident.acknowledged && !incident.resolved && (
+                                <span
+                                    title="Acknowledged"
+                                    className="acknowledged__incident"
+                                ></span>
+                            )}
+                        </span>
+                    </span>
+                );
+            }
+            if (
                 incident.acknowledged &&
                 lastIncidentTimeline.status === 'acknowledged'
             ) {

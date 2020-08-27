@@ -1236,15 +1236,28 @@ export default (state = INITIAL_STATE, action) => {
                 moreIncidentNotesError: action.payload,
             };
 
-        case 'INCIDENT_CREATED':
+        case 'INCIDENT_CREATED': {
+            let incidentFound = false;
+            let notes = state.notes.notes.map(note => {
+                if (String(note._id) === String(action.payload._id)) {
+                    incidentFound = true;
+                }
+                return note;
+            });
+            if (!incidentFound) {
+                notes = [action.payload, ...notes];
+            }
             return {
                 ...state,
                 notes: {
                     ...state.notes,
-                    notes: [...state.notes.notes, action.payload],
-                    count: state.notes.count + 1,
+                    notes,
+                    count: incidentFound
+                        ? state.notes.count
+                        : state.notes.count + 1,
                 },
             };
+        }
 
         case 'INCIDENT_DELETED': {
             const notes = state.notes.notes.filter(
@@ -1377,12 +1390,14 @@ export default (state = INITIAL_STATE, action) => {
 
         case 'INCIDENT_TIMELINE_CREATED': {
             const timelineIds = [];
+            let singleTimeline = false;
             let timelines = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
                         String(timeline.incidentId) ===
                         String(action.payload.incidentId)
                     ) {
+                        singleTimeline = true;
                         timeline = action.payload;
                     }
                     timelineIds.push(String(timeline.incidentId));
@@ -1394,6 +1409,10 @@ export default (state = INITIAL_STATE, action) => {
                 String(state.incident.incident._id) ===
                     String(action.payload.incidentId)
             ) {
+                singleTimeline = true;
+                timelines = [...timelines, action.payload];
+            }
+            if (!timelineIds.includes(String(action.payload.incidentId))) {
                 timelines = [...timelines, action.payload];
             }
             const timeline =
@@ -1407,10 +1426,12 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.lastIncidentTimelines,
                     timelines,
                 },
-                lastIncidentTimeline: {
-                    ...state.lastIncidentTimeline,
-                    timeline,
-                },
+                lastIncidentTimeline: singleTimeline
+                    ? {
+                          ...state.lastIncidentTimeline,
+                          timeline,
+                      }
+                    : { ...state.lastIncidentTimeline },
             };
         }
 
