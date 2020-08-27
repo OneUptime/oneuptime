@@ -650,6 +650,10 @@ export default (state = INITIAL_STATE, action) => {
                         ? updatedFutureEvent.length
                         : removeFutureEvent.length,
                 },
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    event: action.payload,
+                },
             });
         }
 
@@ -1269,6 +1273,10 @@ export default (state = INITIAL_STATE, action) => {
                 notes: {
                     ...state.notes,
                     notes,
+                },
+                incident: {
+                    ...state.incident,
+                    incident: action.payload,
                 },
             };
         }

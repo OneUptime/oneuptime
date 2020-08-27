@@ -824,7 +824,7 @@ CreateSchedule.propTypes = {
 
 const NewCreateSchedule = reduxForm({
     form: 'newCreateSchedule',
-    enableReinitialize: true,
+    enableReinitialize: false,
     validate,
     destroyOnUnmount: true,
 })(CreateSchedule);
@@ -843,6 +843,7 @@ const selector = formValueSelector('newCreateSchedule');
 
 const mapStateToProps = state => {
     const minStartDate = selector(state, 'startDate');
+    const currentDate = moment().format();
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
@@ -857,6 +858,8 @@ const mapStateToProps = state => {
             callScheduleOnEvent: true,
             showEventOnStatusPage: true,
             selectAllMonitors: true,
+            startDate: currentDate,
+            endDate: currentDate,
         },
         formValues:
             state.form.newCreateSchedule && state.form.newCreateSchedule.values,

@@ -227,6 +227,14 @@ class ScheduledEventBox extends Component {
                                                 className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                                 style={{
                                                     backgroundColor: 'white',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    this.handleScheduledEventDetail(
+                                                        scheduledEvent._id
+                                                    );
                                                 }}
                                             >
                                                 <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
@@ -293,11 +301,13 @@ class ScheduledEventBox extends Component {
                                                             title="view"
                                                             className="bs-Button bs-DeprecatedButton"
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 this.handleScheduledEventDetail(
                                                                     scheduledEvent._id
-                                                                )
-                                                            }
+                                                                );
+                                                            }}
                                                         >
                                                             <span>View</span>
                                                         </button>
@@ -309,13 +319,15 @@ class ScheduledEventBox extends Component {
                                                                 marginLeft: 20,
                                                             }}
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 openModal({
                                                                     id: createScheduledEventModalId,
                                                                     content: EditSchedule,
                                                                     event: scheduledEvent,
-                                                                })
-                                                            }
+                                                                });
+                                                            }}
                                                         >
                                                             <span>Edit</span>
                                                         </button>
@@ -327,7 +339,9 @@ class ScheduledEventBox extends Component {
                                                                 marginLeft: 20,
                                                             }}
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 openModal({
                                                                     id:
                                                                         scheduledEvent._id,
@@ -339,8 +353,8 @@ class ScheduledEventBox extends Component {
                                                                                 scheduledEvent._id,
                                                                         }
                                                                     ),
-                                                                })
-                                                            }
+                                                                });
+                                                            }}
                                                         >
                                                             <span>Delete</span>
                                                         </button>

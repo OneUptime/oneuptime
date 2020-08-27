@@ -367,6 +367,16 @@ module.exports = {
                         acknowledgedByZapier: zapier,
                     }
                 );
+
+                // automatically create acknowledgement incident note
+                await IncidentMessageService.create({
+                    content: 'This incident has been acknowledged',
+                    incidentId,
+                    createdById: userId,
+                    type: 'investigation',
+                    incident_state: 'Acknowledged',
+                });
+
                 const downtime =
                     (new Date().getTime() -
                         new Date(incident.createdAt).getTime()) /
@@ -513,6 +523,15 @@ module.exports = {
                     status: 'online',
                 });
             }
+
+            // automatically create resolved incident note
+            await IncidentMessageService.create({
+                content: 'This incident has been resolved',
+                incidentId,
+                createdById: userId,
+                type: 'investigation',
+                incident_state: 'Resolved',
+            });
 
             await IncidentTimelineService.create({
                 incidentId: incidentId,
@@ -776,3 +795,4 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
 const ComponentService = require('./componentService');
+const IncidentMessageService = require('./incidentMessageService');

@@ -699,12 +699,14 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     res
 ) {
     let date = req.query.date;
-    date = new Date(date);
+    date = moment(date)
+        .endOf('day')
+        .format();
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
 
-    const currentDate = moment();
+    const currentDate = moment().format();
     const query = {
         'monitors.monitorId': req.params.monitorId,
         showEventOnStatusPage: true,
