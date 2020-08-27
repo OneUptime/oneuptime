@@ -24,6 +24,7 @@ const RenderCodeEditor = ({
 }) => (
     <AceEditor
         id={id}
+        name={id}
         mode={mode}
         theme="github"
         value={input.value}
