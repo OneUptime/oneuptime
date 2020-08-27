@@ -19,7 +19,13 @@ deploy_staging_log-java:
         - cd log-java
         - git status
         - git checkout -f staging
-        # - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+        - sudo apt-get install -y maven
+        - sudo update-alternatives --config java
+        - sudo apt install -y default-jdk
+        - sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+        - sudo update-ca-certificates -f
+        - sudo apt install ca-certificates-java --reinstall
+        - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - mvn clean deploy
         - git init
