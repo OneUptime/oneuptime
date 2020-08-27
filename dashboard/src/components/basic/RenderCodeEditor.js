@@ -17,6 +17,7 @@ const RenderCodeEditor = ({
         boxShadow:
             '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
     },
+    wrapEnabled = false,
     height,
     width,
     onLoad = () => {},
@@ -30,13 +31,14 @@ const RenderCodeEditor = ({
         editorProps={{
             $blockScrolling: true,
         }}
-        highlightActiveLine={true}
+        highlightActiveLine={false}
         setOptions={{
             enableBasicAutocompletion: true,
             enableLiveAutocompletion: true,
             enableSnippets: true,
             showGutter: false,
         }}
+        wrapEnabled={wrapEnabled}
         onLoad={() => onLoad(input)}
         onBlur={() => onBlur(input)}
         onChange={input.onChange}
@@ -58,6 +60,7 @@ RenderCodeEditor.propTypes = {
     width: PropTypes.string.isRequired,
     onLoad: PropTypes.func,
     onBlur: PropTypes.func,
+    wrapEnabled: PropTypes.bool,
 };
 
 export default RenderCodeEditor;

@@ -22,7 +22,6 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-
             query.deleted = false;
             const incidentPriorities = await incidentPriorityModel.findOne(
                 query

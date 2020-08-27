@@ -3,7 +3,7 @@ import Home from './Home';
 import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
-import IncidentPriorities from './IncidentPriorities';
+import IncidentSettings from './IncidentSettings';
 
 import StatusPage from './StatusPage';
 import StatusPages from './StatusPages';
@@ -65,7 +65,7 @@ export default {
     AlertLog,
     IncidentLog,
     Incident,
-    IncidentPriorities,
+    IncidentSettings,
     Billing,
     Monitors,
     Schedule,

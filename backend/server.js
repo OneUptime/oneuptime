@@ -128,6 +128,10 @@ app.use(
     ['/incidentPriorities', '/api/incidentPriorities'],
     require('./backend/api/incidentPriorities')
 );
+app.use(
+    ['/incidentSettings', '/api/incidentSettings'],
+    require('./backend/api/incidentSettings')
+);
 app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
