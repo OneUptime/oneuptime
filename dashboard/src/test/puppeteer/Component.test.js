@@ -354,8 +354,8 @@ describe('Components', () => {
                     'innerText'
                 );
                 monitorSpanElement = await monitorSpanElement.jsonValue();
-                // check that monitor status on monitor page is online
-                expect(monitorSpanElement).toMatch('Online');
+                // check that monitor status on monitor page is offline
+                expect(monitorSpanElement).toMatch('Offline');
                 await monitorPage.waitFor(2000);
 
                 await componentPage.bringToFront();
@@ -368,7 +368,7 @@ describe('Components', () => {
                 );
                 componentSpanElement = await componentSpanElement.jsonValue();
 
-                expect(componentSpanElement).toMatch('Online');
+                expect(componentSpanElement).toMatch('Offline');
                 await componentPage.waitFor(2000);
                 // bring monitor window to the front so as to resolve incident
                 await monitorPage.bringToFront();

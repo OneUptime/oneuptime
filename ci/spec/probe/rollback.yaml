@@ -12,6 +12,8 @@ staging_rollback_probe:
         - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-probe1
         # Additionally rollback probe1 deployment
         - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-probe2
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
@@ -31,6 +33,8 @@ production_rollback_probe:
         - if [[ $smoke_test_production_status == \"success\" ]]; then exit 0; fi
         - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-probe1
         - sudo kubectl --kubeconfig=/root/.kube/config rollout undo deployment/fi-probe2
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - release
