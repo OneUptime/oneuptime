@@ -162,7 +162,7 @@ export class APISettings extends Component {
                                                                 className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                             >
                                                                 <img
-                                                                    alt=''
+                                                                    alt=""
                                                                     src="/dashboard/assets/img/hide.svg"
                                                                     style={{
                                                                         width:
