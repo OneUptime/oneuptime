@@ -99,6 +99,7 @@ class IncidentBasicSettings extends React.Component {
                                                             component={
                                                                 RenderCodeEditor
                                                             }
+                                                            id="description"
                                                             name="description"
                                                             mode="markdown"
                                                             width="600px"
