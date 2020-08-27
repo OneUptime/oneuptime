@@ -97,68 +97,8 @@ const INITIAL_STATE = {
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
-    let monitors, isExistingMonitor, monitorType, initialValue;
+    let monitors, monitorType, initialValue;
     switch (action.type) {
-        case CREATE_MONITOR_SUCCESS:
-            isExistingMonitor = state.monitorsList.monitors.find(
-                monitor => monitor._id === action.payload.projectId._id
-            );
-            return Object.assign({}, state, {
-                ...state,
-
-                newMonitor: {
-                    requesting: false,
-                    error: null,
-                    success: false,
-                    monitor: null,
-                },
-                monitorsList: {
-                    ...state.monitorsList,
-
-                    monitors: isExistingMonitor
-                        ? state.monitorsList.monitors.length > 0
-                            ? state.monitorsList.monitors.map(
-                                  subProjectMonitors => {
-                                      return subProjectMonitors._id ===
-                                          action.payload.projectId._id
-                                          ? {
-                                                _id:
-                                                    action.payload.projectId
-                                                        ._id,
-                                                monitors: [
-                                                    action.payload,
-                                                    ...subProjectMonitors.monitors,
-                                                ],
-                                                count:
-                                                    subProjectMonitors.count +
-                                                    1,
-                                                skip: subProjectMonitors.skip,
-                                                limit: subProjectMonitors.limit,
-                                            }
-                                          : subProjectMonitors;
-                                  }
-                              )
-                            : [
-                                  {
-                                      _id: action.payload.projectId,
-                                      monitors: [action.payload],
-                                      count: 1,
-                                      skip: 0,
-                                      limit: 0,
-                                  },
-                              ]
-                        : [
-                              {
-                                  _id: action.payload.projectId,
-                                  monitors: [action.payload],
-                                  count: 1,
-                                  skip: 0,
-                                  limit: 0,
-                              },
-                          ].concat(state.monitorsList.monitors),
-                },
-            });
-
         case CREATE_MONITOR_FAILURE:
             return Object.assign({}, state, {
                 newMonitor: {
@@ -182,9 +122,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
+        case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
             let monitorFound = false;
-
             const monitors = state.monitorsList.monitors.map(monitorData => {
                 let output = {
                     ...monitorData,
@@ -198,7 +138,6 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return monitor;
                     }),
                 };
-
                 if (!monitorFound) {
                     output = {
                         ...output,
@@ -215,6 +154,12 @@ export default function monitor(state = INITIAL_STATE, action) {
                 monitorsList: {
                     ...state.monitorsList,
                     monitors,
+                },
+                newMonitor: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    monitor: null,
                 },
             };
         }
