@@ -790,7 +790,7 @@ export class Setting extends Component {
                                         >
                                             <span>
                                                 Changes to these settings will
-                                                take 72 hours to propogate.
+                                                take 72 hours to propagate.
                                             </span>
                                         </ShouldRender>
                                     </div>
