@@ -74,14 +74,14 @@ module.exports = {
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
 
+                await RealTimeService.sendCreatedIncident(incident);
+
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
                     createdById: data.createdById,
                     probeId: data.probeId,
                     status: data.incidentType,
                 });
-
-                RealTimeService.sendCreatedIncident(incident);
 
                 return incident;
             } else {
