@@ -12,7 +12,8 @@ const { twilioCredentials } = { ...utils };
 const projectName = 'project';
 const componentName = 'component1';
 const monitorName = 'monitor1';
-const phoneNumber = '+19173976235';
+const countryCode = '+1';
+const phoneNumber = '9173976235';
 const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
@@ -104,7 +105,7 @@ describe('Custom Twilio Settings', () => {
                 await page.click('#addSubscriberButton');
                 await init.selectByText('#alertViaId', 'SMS', page);
                 await page.waitForSelector('#countryCodeId');
-                await init.selectByText('#countryCodeId', '+1', page);
+                await init.selectByText('#countryCodeId', countryCode, page);
                 await page.type('#contactPhoneId', phoneNumber);
                 await page.click('#createSubscriber');
 
