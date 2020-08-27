@@ -147,3 +147,30 @@ export function teamMemberDelete(data) {
         dispatch(teamDeleteSuccess(data));
     };
 }
+
+export function addIncidentNote(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_INCIDENT_NOTE',
+            payload: data,
+        });
+    };
+}
+
+export function createMonitor(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'CREATE_MONITOR',
+            payload: data,
+        });
+    };
+}
+
+export function deleteMonitor(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_MONITOR',
+            payload: data,
+        });
+    };
+}

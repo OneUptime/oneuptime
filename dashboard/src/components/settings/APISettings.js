@@ -162,6 +162,7 @@ export class APISettings extends Component {
                                                                 className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                             >
                                                                 <img
+                                                                    alt=""
                                                                     src="/dashboard/assets/img/hide.svg"
                                                                     style={{
                                                                         width:
@@ -169,6 +170,7 @@ export class APISettings extends Component {
                                                                         height:
                                                                             '15px',
                                                                     }}
+                                                                    alt="hide_api_key"
                                                                 />
                                                             </div>
                                                         </div>

@@ -182,6 +182,43 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
+        case 'CREATE_MONITOR': {
+            let monitorFound = false;
+
+            const monitors = state.monitorsList.monitors.map(monitorData => {
+                let output = {
+                    ...monitorData,
+                    monitors: monitorData.monitors.map(monitor => {
+                        if (
+                            String(monitor._id) === String(action.payload._id)
+                        ) {
+                            monitorFound = true;
+                            return action.payload;
+                        }
+                        return monitor;
+                    }),
+                };
+
+                if (!monitorFound) {
+                    output = {
+                        ...output,
+                        monitors: [action.payload, ...output.monitors],
+                        count: output.count + 1,
+                    };
+                }
+
+                return output;
+            });
+
+            return {
+                ...state,
+                monitorsList: {
+                    ...state.monitorsList,
+                    monitors,
+                },
+            };
+        }
+
         case FETCH_MONITORS_SUCCESS:
             return Object.assign({}, state, {
                 monitorsList: {
@@ -1116,6 +1153,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             });
 
         case DELETE_MONITOR_SUCCESS:
+        case 'DELETE_MONITOR':
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,

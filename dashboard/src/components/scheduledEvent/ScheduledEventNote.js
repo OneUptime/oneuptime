@@ -4,10 +4,10 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
+import Markdown from 'markdown-to-jsx';
 import ShouldRender from '../basic/ShouldRender';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import DataPathHoC from '../DataPathHoC';
-import ReactMarkdown from 'react-markdown';
 import { openModal } from '../../actions/modal';
 import DeleteNoteModal from './DeleteNoteModal';
 import AddNoteModal from './AddNoteModal';
@@ -251,11 +251,9 @@ export class ScheduledEventNote extends Component {
                                                         <span
                                                             id={`content_${type}_incident_message_${i}`}
                                                         >
-                                                            <ReactMarkdown
-                                                                source={
-                                                                    note.content
-                                                                }
-                                                            />
+                                                            <Markdown>
+                                                                {note.content}
+                                                            </Markdown>
                                                             <ShouldRender
                                                                 if={
                                                                     note.updated

@@ -144,6 +144,7 @@ class ViewApplicationLogKey extends Component {
                                                                 className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                             >
                                                                 <img
+                                                                    alt=""
                                                                     src="/dashboard/assets/img/hide.svg"
                                                                     style={{
                                                                         width:
@@ -151,6 +152,7 @@ class ViewApplicationLogKey extends Component {
                                                                         height:
                                                                             '15px',
                                                                     }}
+                                                                    alt="hide_application_log_key"
                                                                 />
                                                             </div>
                                                         </div>

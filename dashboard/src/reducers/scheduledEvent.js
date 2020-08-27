@@ -318,7 +318,26 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_SCHEDULED_EVENT_SUCCESS:
+        case UPDATE_SCHEDULED_EVENT_SUCCESS: {
+            const scheduledEvents = state.scheduledEventList.scheduledEvents.map(
+                scheduledEvent => {
+                    if (
+                        String(action.payload._id) ===
+                        String(scheduledEvent._id)
+                    ) {
+                        return action.payload;
+                    }
+                    return scheduledEvent;
+                }
+            );
+
+            const events = state.ongoingScheduledEvent.events.map(event => {
+                if (String(action.payload._id) === String(event._id)) {
+                    return action.payload;
+                }
+                return event;
+            });
+
             return Object.assign({}, state, {
                 updatedScheduledEvent: {
                     requesting: false,
@@ -326,21 +345,22 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     scheduledEvent: action.payload,
                 },
+                newScheduledEvent: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    scheduledEvent: action.payload,
+                },
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.map(
-                        scheduledEvent => {
-                            if (
-                                String(action.payload._id) ===
-                                String(scheduledEvent._id)
-                            ) {
-                                return action.payload;
-                            }
-                            return scheduledEvent;
-                        }
-                    ),
+                    scheduledEvents,
+                },
+                ongoingScheduledEvent: {
+                    ...state.ongoingScheduledEvent,
+                    events,
                 },
             });
+        }
 
         case UPDATE_SCHEDULED_EVENT_FAILURE:
             return Object.assign({}, state, {

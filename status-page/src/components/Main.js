@@ -7,14 +7,19 @@ import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
 import EventsMain from './EventsMain';
-import { API_URL, ACCOUNTS_URL, getServiceStatus, capitalize } from '../config';
+import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, selectedProbe } from '../actions/status';
+import {
+    getStatusPage,
+    selectedProbe,
+    getScheduledEvent,
+} from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
+import AffectedResources from './basic/AffectedResources';
 
 const greenBackground = {
     display: 'inline-block',
@@ -75,6 +80,14 @@ class Main extends Component {
                 .createRange()
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
+        }
+        if (
+            prevProps.statusData.projectId !== this.props.statusData.projectId
+        ) {
+            this.props.getScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData._id
+            );
         }
     }
 
@@ -262,56 +275,6 @@ class Main extends Component {
         }
     }
 
-    handleResources = event => {
-        const { monitorState } = this.props;
-        const affectedMonitors = [];
-        let monitorCount = 0;
-
-        const eventMonitors = [];
-        // populate the ids of the event monitors in an array
-        event.monitors.map(monitor => {
-            eventMonitors.push(String(monitor.monitorId._id));
-            return monitor;
-        });
-
-        monitorState.map(monitor => {
-            if (eventMonitors.includes(String(monitor._id))) {
-                affectedMonitors.push(monitor);
-                monitorCount += 1;
-            }
-            return monitor;
-        });
-
-        // check if the length of monitors on status page equals the monitor count
-        // if they are equal then all the monitors in status page is in a particular scheduled event
-        if (monitorCount === monitorState.length) {
-            return (
-                <>
-                    <span className="ongoing__affectedmonitor--title">
-                        Resources Affected:{' '}
-                    </span>
-                    <span className="ongoing__affectedmonitor--content">
-                        All resources are affected
-                    </span>
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="ongoing__affectedmonitor--title">
-                        Resources Affected:{' '}
-                    </span>
-                    <span className="ongoing__affectedmonitor--content">
-                        {affectedMonitors
-                            .map(monitor => capitalize(monitor.name))
-                            .join(', ')
-                            .replace(/, ([^,]*)$/, ' and $1')}
-                    </span>
-                </>
-            );
-        }
-    };
-
     render() {
         const { headerHTML, footerHTML, customCSS } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
@@ -474,7 +437,12 @@ class Main extends Component {
                                             <span>{event.description}</span>
                                         </div>
                                         <div className="ongoing__affectedmonitor">
-                                            {this.handleResources(event)}
+                                            <AffectedResources
+                                                event={event}
+                                                monitorState={
+                                                    this.props.monitorState
+                                                }
+                                            />
                                         </div>
 
                                         <span
@@ -811,7 +779,10 @@ class Main extends Component {
                     if={
                         this.props.status &&
                         (this.props.status.requesting ||
-                            this.props.status.logs.some(log => log.requesting))
+                            this.props.status.logs.some(
+                                log => log.requesting
+                            )) &&
+                        this.props.requestingEvents
                     }
                 >
                     <div
@@ -867,6 +838,7 @@ const mapStateToProps = state => ({
     monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
     events: state.status.events.events,
+    requestingEvents: state.status.events.requesting,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -875,6 +847,7 @@ const mapDispatchToProps = dispatch =>
             getStatusPage,
             getProbes,
             selectedProbe,
+            getScheduledEvent,
         },
         dispatch
     );
@@ -892,6 +865,8 @@ Main.propTypes = {
     probes: PropTypes.array,
     events: PropTypes.array,
     history: PropTypes.object,
+    getScheduledEvent: PropTypes.func,
+    requestingEvents: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

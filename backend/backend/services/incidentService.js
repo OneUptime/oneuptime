@@ -47,11 +47,11 @@ module.exports = {
                 project && project.users && project.users.length
                     ? project.users.map(({ userId }) => userId)
                     : [];
-            const monitorCount = await MonitorService.countBy({
+            const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
 
-            if (monitorCount > 0) {
+            if (monitor) {
                 let incident = new IncidentModel();
                 const incidentsCountInProject = await _this.countBy({
                     projectId: data.projectId,
@@ -67,11 +67,28 @@ module.exports = {
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
                 incident.incidentPriority = data.incidentPriority;
-                incident.title = data.title;
-                incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
                     incidentsCountInProject + deletedIncidentsCountInProject;
+
+                const incidentSettings = await IncidentSettingsService.findOne({
+                    projectId: data.projectId,
+                });
+                const templatesInput = {
+                    incidentType: data.incidentType,
+                    monitorName: monitor.name,
+                    projectName: project.name,
+                    time: Moment().format('h:mm:ss a'),
+                    date: Moment().format('MMM Do YYYY'),
+                };
+                const titleTemplate = Handlebars.compile(
+                    incidentSettings.title
+                );
+                const descriptionTemplate = Handlebars.compile(
+                    incidentSettings.description
+                );
+                incident.title = titleTemplate(templatesInput);
+                incident.description = descriptionTemplate(templatesInput);
 
                 if (data.probeId) {
                     incident.probes = [
@@ -367,6 +384,16 @@ module.exports = {
                         acknowledgedByZapier: zapier,
                     }
                 );
+
+                // automatically create acknowledgement incident note
+                await IncidentMessageService.create({
+                    content: 'This incident has been acknowledged',
+                    incidentId,
+                    createdById: userId,
+                    type: 'investigation',
+                    incident_state: 'Acknowledged',
+                });
+
                 const downtime =
                     (new Date().getTime() -
                         new Date(incident.createdAt).getTime()) /
@@ -513,6 +540,15 @@ module.exports = {
                     status: 'online',
                 });
             }
+
+            // automatically create resolved incident note
+            await IncidentMessageService.create({
+                content: 'This incident has been resolved',
+                incidentId,
+                createdById: userId,
+                type: 'investigation',
+                incident_state: 'Resolved',
+            });
 
             await IncidentTimelineService.create({
                 incidentId: incidentId,
@@ -776,3 +812,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
 const ComponentService = require('./componentService');
+const IncidentSettingsService = require('./incidentSettingsService');
+const Handlebars = require('handlebars');
+const Moment = require('moment');
+const IncidentMessageService = require('./incidentMessageService');

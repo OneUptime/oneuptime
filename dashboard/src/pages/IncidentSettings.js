@@ -12,9 +12,14 @@ import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPrior
 import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import {
+    fetchBasicIncidentSettings,
+    fetchBasicIncidentSettingsVariables,
+} from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
+import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 
-class IncidentPriorities extends React.Component {
+class IncidentSettings extends React.Component {
     handleCreateNewIncidentPriority() {
         const { openModal } = this.props;
         openModal({
@@ -41,6 +46,10 @@ class IncidentPriorities extends React.Component {
     }
     async ready() {
         await this.props.fetchIncidentPriorities(this.props.currentProject._id);
+        await this.props.fetchBasicIncidentSettings(
+            this.props.currentProject._id
+        );
+        await this.props.fetchBasicIncidentSettingsVariables();
     }
 
     prevClicked() {
@@ -83,6 +92,7 @@ class IncidentPriorities extends React.Component {
                         name="Project Settings"
                     />
                     <BreadCrumbItem route={pathname} name="Incident Settings" />
+                    <IncidentBasicSettings />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -240,14 +250,16 @@ class IncidentPriorities extends React.Component {
     }
 }
 
-IncidentPriorities.displayName = 'IncidentPriorities';
-IncidentPriorities.propTypes = {
+IncidentSettings.displayName = 'IncidentSettings';
+IncidentSettings.propTypes = {
     openModal: PropTypes.func.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     incidentPrioritiesList: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
 };
 const mapStateToProps = state => {
     return {
@@ -263,8 +275,10 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
+            fetchBasicIncidentSettingsVariables,
         },
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentPriorities);
+export default connect(mapStateToProps, mapDispatchToProps)(IncidentSettings);

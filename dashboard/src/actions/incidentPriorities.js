@@ -71,7 +71,7 @@ export function createIncidentPriority(projectId, data) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createIncidentPriorityFailure(error));
+                dispatch(createIncidentPriorityFailure(errors(error)));
             }
         );
         return promise;
@@ -117,7 +117,7 @@ export function updateIncidentPriority(projectId, data) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateIncidentPriorityFailure(error));
+                dispatch(updateIncidentPriorityFailure(errors(error)));
             }
         );
         return promise;
@@ -163,7 +163,7 @@ export function deleteIncidentPriority(projectId, data) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteIncidentPriorityFailure(error));
+                dispatch(deleteIncidentPriorityFailure(errors(error)));
             }
         );
         return promise;

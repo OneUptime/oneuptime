@@ -27,7 +27,7 @@ const VerifyDomainModal = ({
                 style={{ marginTop: 40 }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--medium">
+                    <div className="bs-Modal bs-Modal--large">
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -37,7 +37,16 @@ const VerifyDomainModal = ({
                             <div className="bs-Modal-header-copy Margin-top--8">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     Add this record to your domain by visiting
-                                    your DNS provider or registrar.
+                                    your DNS provider or registrar. For help on
+                                    how you can add txt records, follow this{' '}
+                                    <a
+                                        href="https://github.com/Fyipe/feature-docs/blob/master/txt-records.md"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="Text-fontWeight--medium"
+                                    >
+                                        link
+                                    </a>
                                 </span>
                             </div>
                         </div>
@@ -161,7 +170,7 @@ const VerifyDomainModal = ({
                             </div>
                         </div>
                         <div className="bs-Modal-footer">
-                            <div className="Flex-flex Flex-direction--column Flex-justifyContent--center Table-cell--width--maximized">
+                            <div className="Flex-flex Flex-direction--row">
                                 <ShouldRender
                                     if={
                                         !domainField.requesting &&
@@ -170,7 +179,7 @@ const VerifyDomainModal = ({
                                 >
                                     <div
                                         id="verifyDomainError"
-                                        className="bs-Tail-copy"
+                                        className="bs-Tail-copy Flex-flex--1"
                                     >
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -180,7 +189,7 @@ const VerifyDomainModal = ({
                                                 <div
                                                     className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
                                                     style={{ marginTop: '2px' }}
-                                                ></div>
+                                                />
                                             </div>
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
@@ -190,7 +199,7 @@ const VerifyDomainModal = ({
                                         </div>
                                     </div>
                                 </ShouldRender>
-                                <div className="Margin-top--8 bs-u-self--end">
+                                <div className="Margin-top--8 bs-u-self--end Flex-flex--2 Text-align--right">
                                     <button
                                         id="cancelVerifyDomain"
                                         className={`bs-Button ${domainField.requesting &&
