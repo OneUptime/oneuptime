@@ -166,13 +166,13 @@ export class CustomStyles extends Component {
                                                     <div className="bs-Fieldset-fields script-editor-wrapper">
                                                         <Field
                                                             key={i}
+                                                            id={script.name}
                                                             name={script.name}
                                                             component={
                                                                 RenderCodeEditor
                                                             }
                                                             mode={script.mode}
                                                             theme="github"
-                                                            id={`editor-${i}`}
                                                             height="150px"
                                                             width="100%"
                                                             onLoad={editor => {
