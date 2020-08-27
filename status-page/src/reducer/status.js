@@ -1236,15 +1236,28 @@ export default (state = INITIAL_STATE, action) => {
                 moreIncidentNotesError: action.payload,
             };
 
-        case 'INCIDENT_CREATED':
+        case 'INCIDENT_CREATED': {
+            let incidentFound = false;
+            let notes = state.notes.notes.map(note => {
+                if (String(note._id) === String(action.payload._id)) {
+                    incidentFound = true;
+                }
+                return note;
+            });
+            if (!incidentFound) {
+                notes = [action.payload, ...notes];
+            }
             return {
                 ...state,
                 notes: {
                     ...state.notes,
-                    notes: [...state.notes.notes, action.payload],
-                    count: state.notes.count + 1,
+                    notes,
+                    count: incidentFound
+                        ? state.notes.count
+                        : state.notes.count + 1,
                 },
             };
+        }
 
         case 'INCIDENT_DELETED': {
             const notes = state.notes.notes.filter(
