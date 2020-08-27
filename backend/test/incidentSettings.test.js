@@ -94,13 +94,13 @@ describe('Incident Settings API', function() {
 
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        await IncidentService.hardDeleteBy({_id: incidentId});
-        await IncidentSettings.hardDeleteBy({projectId: projectId});
-        await UserService.hardDeleteBy({_id: userId });
-        await MonitorService.hardDeleteBy({_id: monitorId});
-        await ComponentService.hardDeleteBy({_id: componentId});
-        await NotificationService.hardDeleteBy({projectId:projectId})
-        await ProjectService.hardDeleteBy({_id: projectId});
+        await IncidentService.hardDeleteBy({ _id: incidentId });
+        await IncidentSettings.hardDeleteBy({ projectId: projectId });
+        await UserService.hardDeleteBy({ _id: userId });
+        await MonitorService.hardDeleteBy({ _id: monitorId });
+        await ComponentService.hardDeleteBy({ _id: componentId });
+        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await ProjectService.hardDeleteBy({ _id: projectId });
     });
 
     it('should return the list of the available variables', async () => {
