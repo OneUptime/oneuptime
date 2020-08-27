@@ -43,6 +43,15 @@ module.exports = {
             throw error;
         }
     },
+    hardDeleteBy: async function(query) {
+        try {
+            await incidentSettingsModel.deleteMany(query);
+            return 'Incident setting(s) removed successfully!';
+        } catch (error) {
+            ErrorService.log('IncidentSettingsService.hardDeleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
