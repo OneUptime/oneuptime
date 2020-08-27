@@ -170,6 +170,7 @@ export class APISettings extends Component {
                                                                         height:
                                                                             '15px',
                                                                     }}
+                                                                    alt="hide_api_key"
                                                                 />
                                                             </div>
                                                         </div>

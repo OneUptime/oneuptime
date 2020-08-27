@@ -152,6 +152,7 @@ class ViewApplicationLogKey extends Component {
                                                                         height:
                                                                             '15px',
                                                                     }}
+                                                                    alt="hide_application_log_key"
                                                                 />
                                                             </div>
                                                         </div>

@@ -512,7 +512,15 @@ export class Setting extends Component {
                                                                             .domainVerificationToken
                                                                             .verified ? (
                                                                             <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                <span
+                                                                                    className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer"
+                                                                                    onClick={e => {
+                                                                                        this.handleVerifyDomain(
+                                                                                            e,
+                                                                                            domain
+                                                                                        );
+                                                                                    }}
+                                                                                >
                                                                                     Not
                                                                                     verified
                                                                                 </span>
@@ -782,7 +790,7 @@ export class Setting extends Component {
                                         >
                                             <span>
                                                 Changes to these settings will
-                                                take 72 hours to propogate.
+                                                take 72 hours to propagate.
                                             </span>
                                         </ShouldRender>
                                     </div>

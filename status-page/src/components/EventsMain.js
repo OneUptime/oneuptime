@@ -5,11 +5,7 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import Events from './Events';
 import ShouldRender from './ShouldRender';
-import {
-    getScheduledEvent,
-    fetchMoreFutureEvents,
-    fetchFutureEvents,
-} from '../actions/status';
+import { fetchMoreFutureEvents, fetchFutureEvents } from '../actions/status';
 
 class EventsMain extends Component {
     constructor(props) {
@@ -20,12 +16,6 @@ class EventsMain extends Component {
     }
 
     componentDidMount() {
-        this.props.getScheduledEvent(
-            this.props.projectId,
-            this.props.statusPageId,
-            0
-        );
-
         this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
@@ -33,29 +23,7 @@ class EventsMain extends Component {
         );
     }
 
-    componentDidUpdate(prevProps) {
-        if (prevProps.statusPage !== this.props.statusPage) {
-            this.props.getScheduledEvent(
-                this.props.projectId,
-                this.props.statusPageId,
-                0
-            );
-
-            this.props.fetchFutureEvents(
-                this.props.projectId,
-                this.props.statusPageId,
-                0
-            );
-        }
-    }
-
     getAll = () => {
-        this.props.getScheduledEvent(
-            this.props.projectId,
-            this.props.statusPageId,
-            0
-        );
-
         this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
@@ -125,8 +93,7 @@ class EventsMain extends Component {
 
         return (!this.props.individualEvents.show &&
             this.props.futureEvents.events.length > 0) ||
-            (this.props.individualEvents.show &&
-                this.props.individualEvents.events.length > 0) ? (
+            this.props.individualEvents.show ? (
             <div
                 id="scheduledEvents"
                 className="twitter-feed white box"
@@ -201,6 +168,38 @@ class EventsMain extends Component {
                             >
                                 <ul className="feed-contents plain">{event}</ul>
                             </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.individualEvents.show &&
+                                    this.props.individualEvents.events
+                                        .length === 0
+                                }
+                            >
+                                <ul className="feed-contents plain">
+                                    <li
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                ...secondaryTextColor,
+                                            }}
+                                        >
+                                            No data available for this date.
+                                        </span>
+                                    </li>
+                                </ul>
+                            </ShouldRender>
                         </div>
 
                         <ShouldRender
@@ -242,8 +241,8 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.futureEvents &&
-                                this.props.futureEvents.requesting
+                                this.props.futureEvents.requesting ||
+                                this.props.requestingmoreevents
                             }
                         >
                             <div className="ball-beat" id="notes-loader">
@@ -255,25 +254,6 @@ class EventsMain extends Component {
                                 ></div>
                                 <div
                                     style={{ height: '12px', width: '12px' }}
-                                ></div>
-                            </div>
-                        </ShouldRender>
-
-                        <ShouldRender
-                            if={
-                                this.props.futureEvents &&
-                                this.props.requestingmoreevents
-                            }
-                        >
-                            <div className="ball-beat" id="more-loader">
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
                                 ></div>
                             </div>
                         </ShouldRender>
@@ -316,7 +296,6 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getScheduledEvent,
             fetchMoreFutureEvents,
             fetchFutureEvents,
         },
@@ -324,7 +303,6 @@ const mapDispatchToProps = dispatch =>
     );
 
 EventsMain.propTypes = {
-    getScheduledEvent: PropTypes.func,
     fetchMoreFutureEvents: PropTypes.func,
     requestingmoreevents: PropTypes.bool,
     projectId: PropTypes.string,

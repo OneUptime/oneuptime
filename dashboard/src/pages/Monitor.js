@@ -27,6 +27,7 @@ import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -89,6 +90,7 @@ class DashboardView extends Component {
             ? this.props.currentProject._id
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.monitor.monitorsList.monitors.forEach(subProject => {
             if (subProject.monitors.length > 0) {
                 subProject.monitors.forEach(monitor => {
@@ -414,6 +416,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
             fetchLighthouseLogs,
+            fetchIncidentPriorities,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -503,6 +506,7 @@ DashboardView.propTypes = {
             name: PropTypes.string,
         })
     ),
+    fetchIncidentPriorities: PropTypes.func.isRequired,
 };
 
 DashboardView.displayName = 'DashboardView';

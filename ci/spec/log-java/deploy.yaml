@@ -28,6 +28,8 @@ deploy_staging_log-java:
         # - mvn versions:set -DnewVersion=1.0.0
         # - mvn clean deploy -P release
         - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
@@ -62,6 +64,8 @@ deploy_poduction_log-java:
         - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git master --force
         - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - release

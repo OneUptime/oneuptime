@@ -12,6 +12,8 @@ build_n_test_licensing:
         - sudo docker run --env-file ./licensing/.env --net=host fyipeproject/licensing:3.0.$CI_PIPELINE_IID npm test
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_licensing licensing
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

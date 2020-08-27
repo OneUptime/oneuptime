@@ -99,6 +99,7 @@ class BlockChart extends Component {
                 bar = 'bar';
                 title = moment(this.props.time.date).format('LL');
                 title1 = 'No downtime';
+                need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
