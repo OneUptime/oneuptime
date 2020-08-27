@@ -190,6 +190,7 @@ class MonitorInfo extends Component {
             activeProbe,
             colors,
             selectedCharts,
+            monitorCategory,
         } = this.props;
         const now = Date.now();
         const range = 90;
@@ -212,7 +213,7 @@ class MonitorInfo extends Component {
 
         const uptime =
             uptimePercent || uptimePercent === 0
-                ? uptimePercent.toString().slice(0, 4)
+                ? uptimePercent.toString().split('.')[0]
                 : '100';
         const upDays = timeBlock.length;
 
@@ -236,6 +237,14 @@ class MonitorInfo extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
+        };
+        const monitorCategoryStyle = {
+            display: 'inline-block',
+            marginBottom: 10,
+            fontSize: 10,
+            color: '#8898aa',
+            fontWeight: 'Bold',
+            textTransform: 'uppercase',
         };
 
         const subheading = {};
@@ -265,29 +274,45 @@ class MonitorInfo extends Component {
                         justifyContent: 'space-between',
                     }}
                 >
-                    <div style={{ display: 'flex' }}>
-                        <div>
-                            <span style={status}></span>
-                        </div>
-                        <div>
-                            <span
-                                className="uptime-stat-name"
-                                style={subheading}
-                            >
-                                {monitor.name}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div
+                            id={`monitorCategory_${
+                                monitorCategory
+                                    ? monitorCategory.name
+                                    : 'uncategorized'
+                            }`}
+                            style={monitorCategoryStyle}
+                        >
+                            <span>
+                                {monitorCategory
+                                    ? monitorCategory.name
+                                    : 'Uncategorized'}
                             </span>
-                            <br />
-                            <div
-                                style={{
-                                    color: '#8898aa',
-                                    textDecoration: 'none',
-                                    paddingLeft: '0px',
-                                    fontSize: '12px',
-                                    width: '300px',
-                                    wordWrap: 'break-word',
-                                }}
-                            >
-                                {selectedCharts.description}
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                            <div>
+                                <span style={status}></span>
+                            </div>
+                            <div>
+                                <span
+                                    className="uptime-stat-name"
+                                    style={subheading}
+                                >
+                                    {monitor.name}
+                                </span>
+                                <br />
+                                <div
+                                    style={{
+                                        color: '#8898aa',
+                                        textDecoration: 'none',
+                                        paddingLeft: '0px',
+                                        fontSize: '12px',
+                                        width: '300px',
+                                        wordWrap: 'break-word',
+                                    }}
+                                >
+                                    {selectedCharts.description}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -346,6 +371,10 @@ MonitorInfo.propTypes = {
     monitorState: PropTypes.array,
     probes: PropTypes.array,
     selectedCharts: PropTypes.object,
+    monitorCategory: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
