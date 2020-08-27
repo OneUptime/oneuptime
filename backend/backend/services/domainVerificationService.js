@@ -102,7 +102,8 @@ module.exports = {
 
             if (error.code === 'ENOTFOUND') {
                 throw {
-                    message: 'TXT record not found.',
+                    message:
+                        "TXT record not found. If you've just made a change, it might take more than 48 hours for your DNS to reflect changes.",
                     code: 400,
                 };
             }

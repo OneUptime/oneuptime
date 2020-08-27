@@ -27,7 +27,7 @@ const VerifyDomainModal = ({
                 style={{ marginTop: 40 }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--medium">
+                    <div className="bs-Modal bs-Modal--large">
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
