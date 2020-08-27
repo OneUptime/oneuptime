@@ -346,6 +346,7 @@ class LogList extends Component {
                                                                                         }
                                                                                     >
                                                                                         <img
+                                                                                            alt=""
                                                                                             style={{
                                                                                                 width:
                                                                                                     '15px',
