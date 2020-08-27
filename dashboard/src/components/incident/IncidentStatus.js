@@ -11,7 +11,7 @@ import {
     resolveIncident,
     closeIncident,
 } from '../../actions/incident';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
@@ -266,10 +266,7 @@ export class IncidentStatus extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        <span
-                                                            id="title"
-                                                            className="value"
-                                                        >
+                                                        <span className="value">
                                                             {
                                                                 this.props
                                                                     .incident
@@ -286,7 +283,6 @@ export class IncidentStatus extends Component {
                                                         Description :
                                                     </label>
                                                     <div
-                                                        id="description"
                                                         className="bs-Fieldset-fields"
                                                         style={{
                                                             marginTop: '6px',
@@ -546,10 +542,35 @@ export class IncidentStatus extends Component {
                                                                             .acknowledge
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Acknowledge
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Acknowledge
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -701,10 +722,35 @@ export class IncidentStatus extends Component {
                                                                             .resolve
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Resolve
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Resolve
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -803,6 +849,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
+        incidentRequest: state.incident.incident,
     };
 };
 
