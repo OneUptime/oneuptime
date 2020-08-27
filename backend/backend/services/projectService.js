@@ -73,9 +73,9 @@ module.exports = {
                     projectId: project._id,
                     name: 'Low',
                     color: {
-                        r: 255,
-                        g: 222,
-                        b: 36,
+                        r: 228,
+                        g: 205,
+                        b: 5,
                         a: 1,
                     },
                 },
