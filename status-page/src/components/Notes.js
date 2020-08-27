@@ -26,6 +26,14 @@ class Notes extends Component {
                     <span className="note_status">Identified</span>
                 );
             }
+            if (
+                !incidentTimeline.incident_state &&
+                incidentTimeline.status === 'investigation notes deleted'
+            ) {
+                timelineStatus = (
+                    <span className="note_status">Deleted a note</span>
+                );
+            }
             if (incidentTimeline.status === 'resolved') {
                 timelineStatus = <span className="note_status">Resolved</span>;
             }
