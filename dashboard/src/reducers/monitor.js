@@ -1098,7 +1098,7 @@ export default function monitor(state = INITIAL_STATE, action) {
             });
 
         case DELETE_MONITOR_SUCCESS:
-        case 'DELETE_MONITOR':
+        case 'DELETE_MONITOR': {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
@@ -1108,14 +1108,18 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }) => _id !== action.payload
+                                ({ _id }) =>
+                                    String(_id) !== String(action.payload)
                             );
+                            subProjectMonitor.count =
+                                subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
                     ),
                 },
                 deleteMonitor: false,
             });
+        }
 
         case DELETE_MONITOR_FAILURE:
             return Object.assign({}, state, {
