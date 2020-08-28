@@ -153,7 +153,8 @@ export class IncidentMessageThread extends Component {
                                                                 }}
                                                             />
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {incidentMessage
+                                                                {incidentMessage.createdById &&
+                                                                incidentMessage
                                                                     .createdById
                                                                     .name
                                                                     ? incidentMessage
@@ -261,9 +262,11 @@ export class IncidentMessageThread extends Component {
                                                 >
                                                     <ShouldRender
                                                         if={
+                                                            incidentMessage.createdById &&
                                                             User.getUserId() ===
-                                                            incidentMessage
-                                                                .createdById._id
+                                                                incidentMessage
+                                                                    .createdById
+                                                                    ._id
                                                         }
                                                     >
                                                         <div className="db-ListViewItem-link">
