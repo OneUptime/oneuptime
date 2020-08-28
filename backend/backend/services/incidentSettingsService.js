@@ -60,9 +60,27 @@ module.exports = {
             throw error;
         }
     },
+    updateBy: async (query, data) => {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let updatedData = await incidentSettingsModel.updateMany(query, {
+                $set: data,
+            });
+            updatedData = await this.findBy(query);
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('IncidentSettingsService.updateBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
+const IncidentPrioritiesService = require('./incidentPrioritiesService');
 const incidentSettingsModel = require('../models/incidentSettings');
 const {
     incidentDefaultSettings,
