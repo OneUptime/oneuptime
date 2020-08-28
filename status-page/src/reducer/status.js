@@ -1238,13 +1238,21 @@ export default (state = INITIAL_STATE, action) => {
 
         case 'INCIDENT_CREATED': {
             let incidentFound = false;
+            const statusPageMonitorIds = state.statusPage.monitors.map(
+                monitorData => String(monitorData.monitor)
+            );
             let notes = state.notes.notes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {
                     incidentFound = true;
                 }
                 return note;
             });
-            if (!incidentFound) {
+            if (
+                !incidentFound &&
+                statusPageMonitorIds.includes(
+                    String(action.payload.monitorId._id)
+                )
+            ) {
                 notes = [action.payload, ...notes];
             }
             return {
