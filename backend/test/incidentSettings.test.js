@@ -109,6 +109,7 @@ describe('Incident Settings API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('title');
+        expect(res.body).to.have.property('incidentPriority');
         expect(res.body).to.have.property('description');
         expect(res.body.title).to.eql(incidentDefaultSettings.title);
         expect(res.body.description).to.eql(
@@ -129,6 +130,7 @@ describe('Incident Settings API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('title');
+        expect(res.body).to.have.property('incidentPriority');
         expect(res.body).to.have.property('description');
         expect(res.body.title).to.eql(incidentSettings.title);
         expect(res.body.description).to.eql(incidentSettings.description);
