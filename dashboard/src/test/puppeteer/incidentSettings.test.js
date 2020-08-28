@@ -216,4 +216,47 @@ describe('Incident Settings API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should remove incident priority on incident, if the default priority is removed',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#incidentSettings');
+                await page.click('#incidentSettings');
+                await page.waitForSelector('#incidentPrioritiesList');
+                await page.waitFor(3000);
+                const lowPriorityDeleteButton= '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
+                await page.click(lowPriorityDeleteButton)
+                await page.waitForSelector('#RemoveIncidentPriority');
+                await page.click('#RemoveIncidentPriority');
+                //check in the monitor's incident list if the priority has been removed.
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                await page.waitForSelector(
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
+                );
+                await page.click(
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
+                );
+                const incidentTitleSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentStatusBoxSelector= '#incident_0'
+                await page.waitForSelector(incidentTitleSelector);
+                const incidentStatusBoxContent = await page.$eval(
+                    incidentStatusBoxSelector,
+                    e => e.textContent
+                );
+                expect(incidentStatusBoxContent).not.toContain('Priority');
+                expect(incidentStatusBoxContent).not.toContain('Low');
+            })
+        },
+        operationTimeOut
+    );
 });
