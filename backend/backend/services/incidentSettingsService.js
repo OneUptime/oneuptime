@@ -40,11 +40,11 @@ module.exports = {
             throw error;
         }
     },
-    UpdateOne: async function(query, data) {
+    updateOne: async function (query, data) {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
-            const incidentSettings = await incidentSettingsModel.findOneAndUpdate(
+            await incidentSettingsModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -53,6 +53,7 @@ module.exports = {
                     upsert: true,
                 }
             );
+            const incidentSettings = this.findOne(query);
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.updateOne', error);
