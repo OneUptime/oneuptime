@@ -1,11 +1,12 @@
 module.exports = {
-    create: async function(data) {
+    create: async (data) => {
         try {
             const incidentSettings = new incidentSettingsModel();
-            const { projectId, title, description } = data;
+            const { projectId, title, description, IncidentPriority } = data;
             incidentSettings.projectId = projectId;
             incidentSettings.title = title;
             incidentSettings.description = description;
+            incidentSettings.IncidentPriority = IncidentPriority;
             return await incidentSettings.save();
         } catch (error) {
             ErrorService.log('IncidentSettingsService.create', error);
