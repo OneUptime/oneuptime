@@ -22,7 +22,7 @@ class EditIncident extends Component {
                 values.incidentType,
                 values.title,
                 values.description,
-                values.incidentPriority
+                (values.incidentPriority=== '')? null : values.incidentPriority
             )
             .then(() => this.props.closeThisDialog());
     };
@@ -70,8 +70,8 @@ class EditIncident extends Component {
                                                     <Field
                                                         className="db-select-nw"
                                                         component={RenderSelect}
+                                                        id="incidentPriority"
                                                         name="incidentPriority"
-                                                        placeholder="Incident Priority"
                                                         disabled={
                                                             this.props
                                                                 .editIncident
@@ -81,7 +81,7 @@ class EditIncident extends Component {
                                                             {
                                                                 value: '',
                                                                 label:
-                                                                    'Select type',
+                                                                    'Incident Priority',
                                                             },
                                                             ...incidentPriorities.map(
                                                                 incidentPriority => ({
