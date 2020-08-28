@@ -1,7 +1,7 @@
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
-const IncidentPriority = new Schema({
+const IncidentSettings = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -12,6 +12,10 @@ const IncidentPriority = new Schema({
     },
     description: {
         type: Schema.Types.String,
+    },
+    incidentPriority:{
+        type: Schema.Types.ObjectId,
+        ref: 'IncidentPriority',
     },
     createdAt: {
         type: Date,
@@ -24,4 +28,4 @@ const IncidentPriority = new Schema({
     deletedById: { type: String, ref: 'User' },
 });
 
-module.exports = mongoose.model('IncidentSettings', IncidentPriority);
+module.exports = mongoose.model('IncidentSettings', IncidentSettings);
