@@ -22,7 +22,7 @@ class IncidentBasicSettings extends React.Component {
             projectId,
             title,
             description,
-            incidentPriority === ""? null : incidentPriority,
+            incidentPriority === '' ? null : incidentPriority
         );
     };
     render() {
@@ -65,7 +65,8 @@ class IncidentBasicSettings extends React.Component {
                                                             flex: '0 0 10%',
                                                         }}
                                                     >
-                                                        Default Incident Priority
+                                                        Default Incident
+                                                        Priority
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
@@ -79,21 +80,24 @@ class IncidentBasicSettings extends React.Component {
                                                             }}
                                                             options={[
                                                                 {
-                                                                    value:'',
-                                                                    label:'Incident Priority'
+                                                                    value: '',
+                                                                    label:
+                                                                        'Incident Priority',
                                                                 },
-                                                                ...this
-                                                                    .props
-                                                                    .incidentPriorities.map(
-                                                                        incidentPriority => ({
-                                                                            value:
-                                                                                incidentPriority._id,
-                                                                            label:
-                                                                                incidentPriority.name,
-                                                                        })
-                                                                    )
+                                                                ...this.props.incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
                                                             ]}
-                                                            disabled={this.props.updateIncidentBasicSettings.requesting}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -119,7 +123,11 @@ class IncidentBasicSettings extends React.Component {
                                                             style={{
                                                                 width: '600px',
                                                             }}
-                                                            disabled={this.props.updateIncidentBasicSettings.requesting}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -146,7 +154,11 @@ class IncidentBasicSettings extends React.Component {
                                                             width="600px"
                                                             height="150px"
                                                             wrapEnabled={true}
-                                                            disabled={this.props.updateIncidentBasicSettings.requesting}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -330,7 +342,8 @@ const mapStateToProps = state => {
         settingsVariables:
             state.incidentBasicSettings.incidentBasicSettingsVariables
                 .incidentBasicSettingsVariables,
-        incidentPriorities: state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 };
 const mapDispatchToProps = dispatch =>

@@ -59,7 +59,12 @@ const updateBasicIncidentSettingsFailure = payload => ({
     payload,
 });
 
-export const updateBasicIncidentSettings = (projectId, title, description, incidentPriority) => {
+export const updateBasicIncidentSettings = (
+    projectId,
+    title,
+    description,
+    incidentPriority
+) => {
     return function(dispatch) {
         const promise = putApi(`incidentSettings/${projectId}`, {
             title,

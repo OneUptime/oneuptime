@@ -13,7 +13,7 @@ const IncidentSettings = new Schema({
     description: {
         type: Schema.Types.String,
     },
-    incidentPriority:{
+    incidentPriority: {
         type: Schema.Types.ObjectId,
         ref: 'IncidentPriority',
     },

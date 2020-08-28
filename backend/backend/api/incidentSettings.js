@@ -54,7 +54,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             {
                 title,
                 description,
-                incidentPriority
+                incidentPriority,
             }
         );
         return sendItemResponse(req, res, incidentSettings);

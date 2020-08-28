@@ -35,7 +35,7 @@ class CreateManualIncident extends Component {
             values.incidentType,
             values.title,
             values.description,
-            (values.incidentPriority ==='')?null :values.incidentPriority
+            values.incidentPriority === '' ? null : values.incidentPriority
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -164,7 +164,7 @@ class CreateManualIncident extends Component {
                                                             }
                                                             name="incidentPriority"
                                                             id="incidentPriority"
-                                                            placeholder='Incident Priority'
+                                                            placeholder="Incident Priority"
                                                             disabled={
                                                                 this.props
                                                                     .newIncident

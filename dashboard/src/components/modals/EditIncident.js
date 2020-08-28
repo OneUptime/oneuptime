@@ -22,7 +22,7 @@ class EditIncident extends Component {
                 values.incidentType,
                 values.title,
                 values.description,
-                (values.incidentPriority=== '')? null : values.incidentPriority
+                values.incidentPriority === '' ? null : values.incidentPriority
             )
             .then(() => this.props.closeThisDialog());
     };

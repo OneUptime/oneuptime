@@ -1,5 +1,5 @@
 module.exports = {
-    create: async (data) => {
+    create: async data => {
         try {
             const incidentSettings = new incidentSettingsModel();
             const { projectId, title, description, IncidentPriority } = data;
@@ -13,22 +13,22 @@ module.exports = {
             throw error;
         }
     },
-    findOne: async (query) => {
+    findOne: async query => {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
             const incidentSettings = await incidentSettingsModel.findOne(query);
             if (!incidentSettings) {
-                const {projectId} = query;
-                if(!projectId)
-                    return incidentDefaultSettings;
-                const incidentPriority = await IncidentPrioritiesService.findOne({
-                    deleted:false,
-                    projectId,
-                    name:'High'
-                });
-                if(!incidentPriority)
-                    return incidentDefaultSettings;
+                const { projectId } = query;
+                if (!projectId) return incidentDefaultSettings;
+                const incidentPriority = await IncidentPrioritiesService.findOne(
+                    {
+                        deleted: false,
+                        projectId,
+                        name: 'High',
+                    }
+                );
+                if (!incidentPriority) return incidentDefaultSettings;
                 return {
                     ...incidentDefaultSettings,
                     incidentPriority: incidentPriority._id,
@@ -40,7 +40,7 @@ module.exports = {
             throw error;
         }
     },
-    updateOne: async function (query, data) {
+    updateOne: async function(query, data) {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;

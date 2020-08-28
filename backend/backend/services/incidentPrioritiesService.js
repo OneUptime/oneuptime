@@ -95,25 +95,24 @@ module.exports = {
                     },
                 }
             );
-            if(incidentPriority===null)
-                return incidentPriority;
+            if (incidentPriority === null) return incidentPriority;
             //update existing incidents along with default incident settings
             await IncidentService.updateBy(
                 {
-                    incidentPriority: incidentPriority._id
+                    incidentPriority: incidentPriority._id,
                 },
                 {
-                    incidentPriority: null
+                    incidentPriority: null,
                 }
             );
             await IncidentSettingsService.updateOne(
                 {
-                    incidentPriority: incidentPriority._id
+                    incidentPriority: incidentPriority._id,
                 },
                 {
-                    incidentPriority: null
+                    incidentPriority: null,
                 }
-            )
+            );
             return incidentPriority;
         } catch (error) {
             ErrorService.log(

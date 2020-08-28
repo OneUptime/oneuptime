@@ -42,7 +42,7 @@ class CreateIncident extends Component {
             incidentType,
             title,
             description,
-            (incidentPriority ==='')?null :incidentPriority
+            incidentPriority === '' ? null : incidentPriority
         ).then(
             function() {
                 closeThisDialog();
