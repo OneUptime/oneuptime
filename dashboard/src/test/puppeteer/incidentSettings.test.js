@@ -69,9 +69,9 @@ describe('Incident Settings API', () => {
                 await page.waitFor(3000);
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
-                    e => e.textContent,
+                    e => e.textContent
                 );
-                expect(priorityFieldValue).toEqual('High')
+                expect(priorityFieldValue).toEqual('High');
                 const titleFieldValue = await page.$eval(
                     'input[name=title]',
                     e => e.value
@@ -102,7 +102,7 @@ describe('Incident Settings API', () => {
                 await page.click('#incidentSettings');
                 await page.waitForSelector('input[name=title]');
                 await page.waitFor(3000);
-                await init.selectByText('#incidentPriority','low',page);
+                await init.selectByText('#incidentPriority', 'low', page);
                 await page.click('input[name=title]', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 await page.type('input[name=title]', newDefaultIncidentTitle);
@@ -120,7 +120,7 @@ describe('Incident Settings API', () => {
                 await page.waitForSelector('input[name=title]');
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
-                    e => e.textContent,
+                    e => e.textContent
                 );
                 expect(priorityFieldValue).toEqual('Low');
                 const titleFieldValue = await page.$eval(
@@ -155,9 +155,9 @@ describe('Incident Settings API', () => {
                 await page.waitFor(3000);
                 const priorityFieldValue = await page.$eval(
                     '#incidentPriority',
-                    e => e.textContent,
+                    e => e.textContent
                 );
-                expect(priorityFieldValue).toEqual('Low')
+                expect(priorityFieldValue).toEqual('Low');
                 const titleFieldValue = await page.$eval(
                     '#title',
                     e => e.value
@@ -194,11 +194,17 @@ describe('Incident Settings API', () => {
                 await page.click(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
-                const incidentTitleSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
-                const incidentDescriptionSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
-                const incidentPrioritySelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(5) div'
+                const incidentTitleSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentDescriptionSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
+                const incidentPrioritySelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(5) div';
                 await page.waitForSelector(incidentTitleSelector);
-                const title = await page.$eval(incidentTitleSelector, e => e.textContent);
+                const title = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
                 const description = await page.$eval(
                     incidentDescriptionSelector,
                     e => e.textContent
@@ -230,8 +236,9 @@ describe('Incident Settings API', () => {
                 await page.click('#incidentSettings');
                 await page.waitForSelector('#incidentPrioritiesList');
                 await page.waitFor(3000);
-                const lowPriorityDeleteButton= '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
-                await page.click(lowPriorityDeleteButton)
+                const lowPriorityDeleteButton =
+                    '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
+                await page.click(lowPriorityDeleteButton);
                 await page.waitForSelector('#RemoveIncidentPriority');
                 await page.click('#RemoveIncidentPriority');
                 //check in the monitor's incident list if the priority has been removed.
@@ -246,8 +253,9 @@ describe('Incident Settings API', () => {
                 await page.click(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
-                const incidentTitleSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
-                const incidentStatusBoxSelector= '#incident_0'
+                const incidentTitleSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentStatusBoxSelector = '#incident_0';
                 await page.waitForSelector(incidentTitleSelector);
                 const incidentStatusBoxContent = await page.$eval(
                     incidentStatusBoxSelector,
@@ -255,7 +263,7 @@ describe('Incident Settings API', () => {
                 );
                 expect(incidentStatusBoxContent).not.toContain('Priority');
                 expect(incidentStatusBoxContent).not.toContain('Low');
-            })
+            });
         },
         operationTimeOut
     );
