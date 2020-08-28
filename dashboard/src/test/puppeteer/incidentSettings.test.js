@@ -178,10 +178,12 @@ describe('Incident Priority API', () => {
                 await page.click(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
-                await page.waitForSelector('#title');
-                const title = await page.$eval('#title', e => e.textContent);
+                const incidentTitleSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentDescriptionSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
+                await page.waitForSelector(incidentTitleSelector);
+                const title = await page.$eval(incidentTitleSelector, e => e.textContent);
                 const description = await page.$eval(
-                    '#description',
+                    incidentDescriptionSelector,
                     e => e.textContent
                 );
                 expect(title).toEqual(inctidentTitleAfterSubstitution);
