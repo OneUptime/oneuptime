@@ -270,6 +270,7 @@ module.exports = {
                 monitorId: data.monitorId,
                 incidentType: data.status,
                 resolved: false,
+                manuallyCreated:false,
             });
             let incidentIds = [];
 
