@@ -28,7 +28,7 @@ class IncidentBasicSettings extends React.Component {
     render() {
         const { handleSubmit, reset } = this.props;
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div id="incidentBasicSettingsBox"  className="Box-root Margin-vertical--12">
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
@@ -74,6 +74,7 @@ class IncidentBasicSettings extends React.Component {
                                                             component={
                                                                 RenderSelect
                                                             }
+                                                            id="incidentPriority"
                                                             name="incidentPriority"
                                                             style={{
                                                                 width: '600px',
