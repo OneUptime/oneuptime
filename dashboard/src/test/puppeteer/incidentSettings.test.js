@@ -141,7 +141,7 @@ describe('Incident Settings API', () => {
     );
 
     test(
-        'Should fill title/description fields on the incident creation form with the default values',
+        'Should fill title, description and priority fields on the incident creation form with the default values',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToMonitorDetails(
@@ -153,6 +153,11 @@ describe('Incident Settings API', () => {
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#title');
                 await page.waitFor(3000);
+                const priorityFieldValue = await page.$eval(
+                    '#incidentPriority',
+                    e => e.textContent,
+                );
+                expect(priorityFieldValue).toEqual('Low')
                 const titleFieldValue = await page.$eval(
                     '#title',
                     e => e.value
