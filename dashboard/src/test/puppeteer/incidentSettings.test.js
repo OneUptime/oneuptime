@@ -101,11 +101,11 @@ describe('Incident Priority API', () => {
                 await page.keyboard.press('Backspace');
                 await page.type('input[name=title]', newDefaultIncidentTitle);
 
-                await page.click('#ace-editor');
+                await page.click('#description');
                 await page.keyboard.down('Control');
                 await page.keyboard.press('A');
                 await page.keyboard.up('Control');
-                await page.type('#ace-editor', newDefaultIncidentDescription);
+                await page.type('#description', newDefaultIncidentDescription);
                 await page.click('#saveButton');
                 await page.reload({
                     waitUntil: 'networkidle0',

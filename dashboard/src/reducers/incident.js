@@ -804,46 +804,55 @@ export default function incident(state = initialState, action) {
 
         case 'ADD_INCIDENT_NOTE': {
             let incidentFound = false;
-            let incidentMessages = [
-                ...state.incidentMessages[action.payload.incidentId._id][
-                    action.payload.type
-                ].incidentMessages.map(incidentMessage => {
-                    if (
-                        String(incidentMessage._id) ===
-                        String(action.payload._id)
-                    ) {
-                        incidentFound = true;
-                        return action.payload;
-                    }
-                    return incidentMessage;
-                }),
-            ];
-            if (!incidentFound) {
-                incidentMessages = [action.payload, ...incidentMessages];
-            }
-            return {
-                ...state,
-                incidentMessages: {
-                    ...state.incidentMessages,
-                    [action.payload.incidentId._id]: {
-                        ...state.incidentMessages[
-                            action.payload.incidentId._id
-                        ],
-                        [action.payload.type]: {
+            let incidentMessages = [];
+            if (state.incidentMessages[action.payload.incidentId._id]) {
+                incidentMessages = [
+                    ...state.incidentMessages[action.payload.incidentId._id][
+                        action.payload.type
+                    ].incidentMessages.map(incidentMessage => {
+                        if (
+                            String(incidentMessage._id) ===
+                            String(action.payload._id)
+                        ) {
+                            incidentFound = true;
+                            return action.payload;
+                        }
+                        return incidentMessage;
+                    }),
+                ];
+
+                if (!incidentFound) {
+                    incidentMessages = [action.payload, ...incidentMessages];
+                }
+
+                return {
+                    ...state,
+                    incidentMessages: {
+                        ...state.incidentMessages,
+                        [action.payload.incidentId._id]: {
                             ...state.incidentMessages[
                                 action.payload.incidentId._id
-                            ][action.payload.type],
-                            incidentMessages,
-                            count: incidentFound
-                                ? state.incidentMessages[
-                                      action.payload.incidentId._id
-                                  ][action.payload.type].count
-                                : state.incidentMessages[
-                                      action.payload.incidentId._id
-                                  ][action.payload.type].count + 1,
+                            ],
+                            [action.payload.type]: {
+                                ...state.incidentMessages[
+                                    action.payload.incidentId._id
+                                ][action.payload.type],
+                                incidentMessages,
+                                count: incidentFound
+                                    ? state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count
+                                    : state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count + 1,
+                            },
                         },
                     },
-                },
+                };
+            }
+
+            return {
+                ...state,
             };
         }
 

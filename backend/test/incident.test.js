@@ -524,7 +524,7 @@ describe('Incident API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body).to.have.property('count');
-                expect(res.body.count).to.be.equal(1);
+                expect(res.body.count).to.be.equal(3); // messages created when incident is acknowledged and resolved
                 expect(res.body.data[0].type).to.be.equal(type);
                 done();
             });
