@@ -12,12 +12,27 @@ module.exports = {
             throw error;
         }
     },
-    findOne: async function(query) {
+    findOne: async (query) => {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
             const incidentSettings = await incidentSettingsModel.findOne(query);
-            if (!incidentSettings) return incidentDefaultSettings;
+            if (!incidentSettings) {
+                const {projectId} = query;
+                if(!projectId)
+                    return incidentDefaultSettings;
+                const incidentPriority = await IncidentPrioritiesService.findOne({
+                    deleted:false,
+                    projectId,
+                    name:'High'
+                });
+                if(!incidentPriority)
+                    return incidentDefaultSettings;
+                return {
+                    ...incidentDefaultSettings,
+                    incidentPriority: incidentPriority._id,
+                };
+            }
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.findOne', error);
