@@ -95,6 +95,25 @@ module.exports = {
                     },
                 }
             );
+            if(incidentPriority===null)
+                return incidentPriority;
+            //update existing incidents along with default incident settings
+            await IncidentService.updateBy(
+                {
+                    incidentPriority: incidentPriority._id
+                },
+                {
+                    incidentPriority: null
+                }
+            );
+            await IncidentSettingsService.updateOne(
+                {
+                    incidentPriority: incidentPriority._id
+                },
+                {
+                    incidentPriority: null
+                }
+            )
             return incidentPriority;
         } catch (error) {
             ErrorService.log(
@@ -107,4 +126,6 @@ module.exports = {
 };
 
 const ErrorService = require('./errorService');
+const IncidentSettingsService = require('./incidentSettingsService');
+const IncidentService = require('./incidentService');
 const incidentPriorityModel = require('../models/incidentPriority');
