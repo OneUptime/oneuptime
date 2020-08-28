@@ -180,7 +180,7 @@ describe('Incident Settings API', () => {
     );
 
     test(
-        'Should substitute variables in title/description when an incident is created',
+        'Should substitute variables in title, description when an incident is created',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToMonitorDetails(
@@ -196,16 +196,22 @@ describe('Incident Settings API', () => {
                 );
                 const incidentTitleSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
                 const incidentDescriptionSelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
+                const incidentPrioritySelector= '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(5) div'
                 await page.waitForSelector(incidentTitleSelector);
                 const title = await page.$eval(incidentTitleSelector, e => e.textContent);
                 const description = await page.$eval(
                     incidentDescriptionSelector,
                     e => e.textContent
                 );
+                const incidentPriority = await page.$eval(
+                    incidentPrioritySelector,
+                    e => e.textContent
+                );
                 expect(title).toEqual(inctidentTitleAfterSubstitution);
                 expect(description).toEqual(
                     inctidentDescriptionAfterSubstitution
                 );
+                expect(incidentPriority).toEqual('Low');
             });
         },
         operationTimeOut
