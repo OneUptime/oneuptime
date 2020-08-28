@@ -75,3 +75,67 @@
     */
     border: none;
 }
+
+/* Ongoing Scheduled Event */
+.box-inner {
+    padding: 35px;
+}
+
+.box__yellow--dark {
+    background: #e39f48;
+    color: white;
+    cursor: pointer;
+}
+
+.ongoing__schedulebox {
+    padding-top: 25px;
+    padding-bottom: 25px;
+    position: relative;
+}
+
+.ongoing__scheduleitem {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ongoing__scheduleitem > span {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: lighter;
+}
+
+.ongoing__scheduleitem > span:first-of-type {
+  text-transform: capitalize;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.ongoing__affectedmonitor {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.ongoing__affectedmonitor--title {
+  font-weight: 900;
+}
+
+.ongoing__affectedmonitor--content {
+    font-weight: lighter;
+}
+
+.se__icon {
+    background-color: transparent;
+    background-size: contain;
+    height: 20px;
+    width: 20px;
+    position: absolute;
+    z-index: 1;
+    right: 35px;
+    bottom: 20px;
+}
+
+.se__icon--forward {
+    background-image: url('../img/arrow-right.svg');
+    background-repeat: no-repeat;
+}
