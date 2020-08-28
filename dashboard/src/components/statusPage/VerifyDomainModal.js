@@ -179,7 +179,7 @@ const VerifyDomainModal = ({
                                 >
                                     <div
                                         id="verifyDomainError"
-                                        className="bs-Tail-copy Flex-flex--1"
+                                        className="bs-Tail-copy Flex-flex--3"
                                     >
                                         <div
                                             className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
@@ -199,7 +199,7 @@ const VerifyDomainModal = ({
                                         </div>
                                     </div>
                                 </ShouldRender>
-                                <div className="Margin-top--8 bs-u-self--end Flex-flex--2 Text-align--right">
+                                <div className="Margin-top--8 bs-u-self--end Flex-flex--1 Text-align--right">
                                     <button
                                         id="cancelVerifyDomain"
                                         className={`bs-Button ${domainField.requesting &&

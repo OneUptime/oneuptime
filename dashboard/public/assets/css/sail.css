@@ -6,6 +6,12 @@
 .Flex-flex--1 {
   flex: 1;
 }
+.Flex-flex--2 {
+  flex: 2;
+}
+.Flex-flex--3 {
+  flex: 3;
+}
 .Flex-inlineFlex {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
