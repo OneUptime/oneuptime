@@ -131,7 +131,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
 
 router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
-        const { to, code, country } = req.body;
+        const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
         if (!to) {
             sendErrorResponse(req, res, {
@@ -164,7 +164,6 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
                 tempAlertPhoneNumber: null,
                 alertPhoneVerificationCode: null,
                 alertPhoneVerificationCodeRequestTime: null,
-                country,
             }
         );
         return sendItemResponse(req, res, { valid: true });

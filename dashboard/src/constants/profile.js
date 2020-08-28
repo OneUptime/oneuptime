@@ -75,7 +75,6 @@ export const SET_VERIFIED = 'ProfileSetting/SET_VERIFIED';
 export const SET_RESEND_TIMER = 'ProfileSetting/SET_RESEND_TIMER';
 export const SET_INIT_ALERT_EMAIL = 'ProfileSetting/SET_INIT_ALERT_EMAIL';
 export const SET_TWO_FACTOR_AUTH = 'ProfileSetting/SET_TWO_FACTOR_AUTH';
-export const SET_ALERT_COUNTRY = 'ProfileSetting/SET_ALERT_COUNTRY';
 
 // Update two factor authentication
 export const UPDATE_TWO_FACTOR_AUTH_REQUEST =

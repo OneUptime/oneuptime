@@ -46,7 +46,6 @@ const INITIAL_STATE = {
         initPhoneVerificationNumber: '',
         initAlertEmail: '',
         twoFactorAuthEnabled: false,
-        alertCountry: '',
     },
     twoFactorAuthSetting: {
         error: null,
@@ -70,8 +69,6 @@ const INITIAL_STATE = {
 };
 
 export default function profileSettings(state = INITIAL_STATE, action) {
-    let rawPhoneNumber;
-
     switch (action.type) {
         //update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:
@@ -164,13 +161,6 @@ export default function profileSettings(state = INITIAL_STATE, action) {
             });
 
         case types.USER_SETTINGS_SUCCESS:
-            rawPhoneNumber =
-                action.payload.alertPhoneNumber && action.payload.country
-                    ? action.payload.alertPhoneNumber.slice(
-                          action.payload.country.dialCode.length + 1
-                      )
-                    : null;
-            action.payload.rawPhoneNumber = rawPhoneNumber;
             return Object.assign({}, state, {
                 profileSetting: {
                     error: null,
@@ -332,14 +322,6 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 profileSettingState: {
                     ...state.profileSettingState,
                     alertPhoneNumber: action.payload,
-                },
-            });
-
-        case types.SET_ALERT_COUNTRY:
-            return Object.assign({}, state, {
-                profileSettingState: {
-                    ...state.profileSettingState,
-                    alertCountry: action.payload,
                 },
             });
 

@@ -986,7 +986,6 @@ router.get('/profile', getUser, async function(req, res) {
             },
             tempEmail: user.tempEmail || null,
             tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
-            country: user.country,
         };
         return sendItemResponse(req, res, userObj);
     } catch (error) {
