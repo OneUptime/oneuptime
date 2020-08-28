@@ -55,7 +55,7 @@ describe('Incident Priority API', () => {
     });
 
     test(
-        'Should fill title/description fields with default values.',
+        'Should fill title,description and priority fields with default values.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL, {
@@ -67,6 +67,11 @@ describe('Incident Priority API', () => {
                 await page.click('#incidentSettings');
                 await page.waitForSelector('input[name=title]');
                 await page.waitFor(3000);
+                const priorityFieldValue = await page.$eval(
+                    '#incidentBasicSettingsBox .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(1) >div',
+                    e => e.textContent,
+                );
+                expect(priorityFieldValue).toEqual('High')
                 const titleFieldValue = await page.$eval(
                     'input[name=title]',
                     e => e.value
