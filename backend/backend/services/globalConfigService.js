@@ -94,6 +94,13 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
+            for (let globalConfig of globalConfigs){
+                if(globalConfig.name==='twilio'){
+                    globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+                    delete globalConfig.value['encrypted-authentication-token'];
+                }
+            }
+
             return globalConfigs;
         } catch (error) {
             ErrorService.log('globalConfigService.findBy', error);
