@@ -1,12 +1,20 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            let globalConfig = new GlobalConfigModel();
+            if(name === 'twilio'){
+                value['encrypted-authentication-token']= await EncryptDecrypt.encrypt(value['authentication-token']);
+                delete value['authentication-token'];
+            }
 
+            let globalConfig = new GlobalConfigModel();
             globalConfig.name = name;
             globalConfig.value = value;
-
             globalConfig = await globalConfig.save();
+
+            if(globalConfig.name === 'twilio'){
+                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(value['encrypted-authentication-token']);
+                delete value['encrypted-authentication-token'];
+            }
 
             return globalConfig;
         } catch (error) {
