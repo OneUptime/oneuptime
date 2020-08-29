@@ -1,8 +1,10 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            if(name === 'twilio'){
-                value['encrypted-authentication-token']= await EncryptDecrypt.encrypt(value['authentication-token']);
+            if (name === 'twilio') {
+                value[
+                    'encrypted-authentication-token'
+                ] = await EncryptDecrypt.encrypt(value['authentication-token']);
                 delete value['authentication-token'];
             }
 
@@ -11,8 +13,12 @@ module.exports = {
             globalConfig.value = value;
             globalConfig = await globalConfig.save();
 
-            if(globalConfig.name === 'twilio'){
-                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(value['encrypted-authentication-token']);
+            if (globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    value['encrypted-authentication-token']
+                );
                 delete value['encrypted-authentication-token'];
             }
 
@@ -29,13 +35,16 @@ module.exports = {
                 query = {};
             }
 
-            if( query.name ==='twilio' && 
-                    data && 
-                    data.value && 
-                    data.value['authentication-token']
-            ){
-                const {value}= data;
-                value['encrypted-authentication-token']= await EncryptDecrypt.encrypt(value['authentication-token']);
+            if (
+                query.name === 'twilio' &&
+                data &&
+                data.value &&
+                data.value['authentication-token']
+            ) {
+                const { value } = data;
+                value[
+                    'encrypted-authentication-token'
+                ] = await EncryptDecrypt.encrypt(value['authentication-token']);
                 delete value['authentication-token'];
             }
 
@@ -47,8 +56,12 @@ module.exports = {
                 }
             );
 
-            if(globalConfig.name === 'twilio'){
-                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+            if (globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['encrypted-authentication-token']
+                );
                 delete globalConfig.value['encrypted-authentication-token'];
             }
 
@@ -94,9 +107,13 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
-            for (let globalConfig of globalConfigs){
-                if(globalConfig.name==='twilio'){
-                    globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+            for (const globalConfig of globalConfigs) {
+                if (globalConfig.name === 'twilio') {
+                    globalConfig.value[
+                        'authentication-token'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['encrypted-authentication-token']
+                    );
                     delete globalConfig.value['encrypted-authentication-token'];
                 }
             }
@@ -116,8 +133,12 @@ module.exports = {
 
             const globalConfig = await GlobalConfigModel.findOne(query);
 
-            if(globalConfig && globalConfig.name === 'twilio'){
-                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+            if (globalConfig && globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['encrypted-authentication-token']
+                );
                 delete globalConfig.value['encrypted-authentication-token'];
             }
 
