@@ -109,6 +109,11 @@ module.exports = {
 
             const globalConfig = await GlobalConfigModel.findOne(query);
 
+            if(globalConfig && globalConfig.name === 'twilio'){
+                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+                delete globalConfig.value['encrypted-authentication-token'];
+            }
+
             return globalConfig;
         } catch (error) {
             ErrorService.log('globalConfigService.findOneBy', error);
@@ -144,3 +149,4 @@ module.exports = {
 
 const GlobalConfigModel = require('../models/globalConfig');
 const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');
