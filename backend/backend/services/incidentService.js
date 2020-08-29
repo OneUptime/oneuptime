@@ -267,7 +267,7 @@ module.exports = {
             await AlertService.sendCreatedIncident(incident);
             await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
-            await RealTimeService.sendCreatedIncident(incident);
+            // await RealTimeService.sendCreatedIncident(incident);
 
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
