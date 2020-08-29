@@ -12,21 +12,26 @@ import {
 } from '../../actions/incidentBasicsSettings';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { RenderSelect } from '../basic/RenderSelect';
 
 class IncidentBasicSettings extends React.Component {
     submit = async values => {
         const projectId = this.props.currentProject._id;
-        const { title, description } = values;
+        const { title, description, incidentPriority } = values;
         await this.props.updateBasicIncidentSettings(
             projectId,
             title,
-            description
+            description,
+            incidentPriority === '' ? null : incidentPriority
         );
     };
     render() {
         const { handleSubmit, reset } = this.props;
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div
+                id="incidentBasicSettingsBox"
+                className="Box-root Margin-vertical--12"
+            >
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
@@ -63,6 +68,50 @@ class IncidentBasicSettings extends React.Component {
                                                             flex: '0 0 10%',
                                                         }}
                                                     >
+                                                        Default Incident
+                                                        Priority
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            id="incidentPriority"
+                                                            name="incidentPriority"
+                                                            style={{
+                                                                width: '600px',
+                                                            }}
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Incident Priority',
+                                                                },
+                                                                ...this.props.incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
+                                                            ]}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="bs-Fieldset-row">
+                                                    <label
+                                                        className="bs-Fieldset-label"
+                                                        style={{
+                                                            flex: '0 0 10%',
+                                                        }}
+                                                    >
                                                         Default Incident Title
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -78,6 +127,11 @@ class IncidentBasicSettings extends React.Component {
                                                             style={{
                                                                 width: '600px',
                                                             }}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -105,6 +159,11 @@ class IncidentBasicSettings extends React.Component {
                                                             width="600px"
                                                             height="150px"
                                                             wrapEnabled={true}
+                                                            disabled={
+                                                                this.props
+                                                                    .updateIncidentBasicSettings
+                                                                    .requesting
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -270,6 +329,7 @@ IncidentBasicSettings.propTypes = {
     setRevealIncidentSettingsVariables: PropTypes.func.isRequired,
     revealVariables: PropTypes.bool.isRequired,
     settingsVariables: PropTypes.array.isRequired,
+    incidentPriorities: PropTypes.array.isRequired,
 };
 
 const IncidentBasicSettingsForm = reduxForm({
@@ -287,6 +347,8 @@ const mapStateToProps = state => {
         settingsVariables:
             state.incidentBasicSettings.incidentBasicSettingsVariables
                 .incidentBasicSettingsVariables,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 };
 const mapDispatchToProps = dispatch =>

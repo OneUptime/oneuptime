@@ -875,6 +875,7 @@ IncidentStatus.propTypes = {
     projectId: PropTypes.string.isRequired,
     componentId: PropTypes.string.isRequired,
     route: PropTypes.string,
+    incidentRequest: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

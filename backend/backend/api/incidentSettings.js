@@ -34,7 +34,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 
 router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     const { projectId } = req.params;
-    const { title, description } = req.body;
+    const { title, description, incidentPriority } = req.body;
     if (!projectId)
         return sendErrorResponse(req, res, {
             code: 400,
@@ -47,13 +47,14 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
         });
 
     try {
-        const incidentSettings = await IncidentSettingsService.UpdateOne(
+        const incidentSettings = await IncidentSettingsService.updateOne(
             {
                 projectId,
             },
             {
                 title,
                 description,
+                incidentPriority,
             }
         );
         return sendItemResponse(req, res, incidentSettings);

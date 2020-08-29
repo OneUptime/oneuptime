@@ -19,7 +19,7 @@ const incidentType = 'offline';
 const inctidentTitleAfterSubstitution = `TEST: ${monitorName}`;
 const inctidentDescriptionAfterSubstitution = `TEST: ${incidentType}`;
 
-describe('Incident Priority API', () => {
+describe('Incident Settings API', () => {
     const operationTimeOut = 500000;
 
     let cluster;
@@ -55,7 +55,7 @@ describe('Incident Priority API', () => {
     });
 
     test(
-        'Should fill title/description fields with default values.',
+        'Should fill title,description and priority fields with default values.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL, {
@@ -67,6 +67,11 @@ describe('Incident Priority API', () => {
                 await page.click('#incidentSettings');
                 await page.waitForSelector('input[name=title]');
                 await page.waitFor(3000);
+                const priorityFieldValue = await page.$eval(
+                    '#incidentPriority',
+                    e => e.textContent
+                );
+                expect(priorityFieldValue).toEqual('High');
                 const titleFieldValue = await page.$eval(
                     'input[name=title]',
                     e => e.value
@@ -85,7 +90,7 @@ describe('Incident Priority API', () => {
     );
 
     test(
-        'Should update default title/description fields',
+        'Should update default title, description and priority fields',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL, {
@@ -97,6 +102,7 @@ describe('Incident Priority API', () => {
                 await page.click('#incidentSettings');
                 await page.waitForSelector('input[name=title]');
                 await page.waitFor(3000);
+                await init.selectByText('#incidentPriority', 'low', page);
                 await page.click('input[name=title]', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 await page.type('input[name=title]', newDefaultIncidentTitle);
@@ -112,6 +118,11 @@ describe('Incident Priority API', () => {
                 });
                 await page.waitFor(3000);
                 await page.waitForSelector('input[name=title]');
+                const priorityFieldValue = await page.$eval(
+                    '#incidentPriority',
+                    e => e.textContent
+                );
+                expect(priorityFieldValue).toEqual('Low');
                 const titleFieldValue = await page.$eval(
                     'input[name=title]',
                     e => e.value
@@ -130,7 +141,7 @@ describe('Incident Priority API', () => {
     );
 
     test(
-        'Should fill title/description fields on the incident creation form with the default values',
+        'Should fill title, description and priority fields on the incident creation form with the default values',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToMonitorDetails(
@@ -142,6 +153,11 @@ describe('Incident Priority API', () => {
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#title');
                 await page.waitFor(3000);
+                const priorityFieldValue = await page.$eval(
+                    '#incidentPriority',
+                    e => e.textContent
+                );
+                expect(priorityFieldValue).toEqual('Low');
                 const titleFieldValue = await page.$eval(
                     '#title',
                     e => e.value
@@ -164,7 +180,7 @@ describe('Incident Priority API', () => {
     );
 
     test(
-        'Should substitute variables in title/description when an incident is created',
+        'Should substitute variables in title, description when an incident is created',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.navigateToMonitorDetails(
@@ -178,16 +194,75 @@ describe('Incident Priority API', () => {
                 await page.click(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
-                await page.waitForSelector('#title');
-                const title = await page.$eval('#title', e => e.textContent);
+                const incidentTitleSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentDescriptionSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
+                const incidentPrioritySelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(5) div';
+                await page.waitForSelector(incidentTitleSelector);
+                const title = await page.$eval(
+                    incidentTitleSelector,
+                    e => e.textContent
+                );
                 const description = await page.$eval(
-                    '#description',
+                    incidentDescriptionSelector,
+                    e => e.textContent
+                );
+                const incidentPriority = await page.$eval(
+                    incidentPrioritySelector,
                     e => e.textContent
                 );
                 expect(title).toEqual(inctidentTitleAfterSubstitution);
                 expect(description).toEqual(
                     inctidentDescriptionAfterSubstitution
                 );
+                expect(incidentPriority).toEqual('Low');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should remove incident priority on incident, if the default priority is removed',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#incidentSettings');
+                await page.click('#incidentSettings');
+                await page.waitForSelector('#incidentPrioritiesList');
+                await page.waitFor(3000);
+                const lowPriorityDeleteButton =
+                    '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
+                await page.click(lowPriorityDeleteButton);
+                await page.waitForSelector('#RemoveIncidentPriority');
+                await page.click('#RemoveIncidentPriority');
+                //check in the monitor's incident list if the priority has been removed.
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                await page.waitForSelector(
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
+                );
+                await page.click(
+                    'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
+                );
+                const incidentTitleSelector =
+                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                const incidentStatusBoxSelector = '#incident_0';
+                await page.waitForSelector(incidentTitleSelector);
+                const incidentStatusBoxContent = await page.$eval(
+                    incidentStatusBoxSelector,
+                    e => e.textContent
+                );
+                expect(incidentStatusBoxContent).not.toContain('Priority');
+                expect(incidentStatusBoxContent).not.toContain('Low');
             });
         },
         operationTimeOut
