@@ -29,6 +29,16 @@ module.exports = {
                 query = {};
             }
 
+            if( query.name ==='twilio' && 
+                    data && 
+                    data.value && 
+                    data.value['authentication-token']
+            ){
+                const {value}= data;
+                value['encrypted-authentication-token']= await EncryptDecrypt.encrypt(value['authentication-token']);
+                delete value['authentication-token'];
+            }
+
             const globalConfig = await GlobalConfigModel.findOneAndUpdate(
                 query,
                 { $set: data },
@@ -36,6 +46,11 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if(globalConfig.name === 'twilio'){
+                globalConfig.value['authentication-token']= await EncryptDecrypt.decrypt(globalConfig.value['encrypted-authentication-token']);
+                delete globalConfig.value['encrypted-authentication-token'];
+            }
 
             return globalConfig;
         } catch (error) {
