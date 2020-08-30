@@ -223,8 +223,7 @@ class ScheduledEvent extends Component {
                                                 )}
                                             </span>
                                             {eventNotes[0] &&
-                                                eventNotes[0]
-                                                    .incident_state && (
+                                                eventNotes[0].event_state && (
                                                     <span
                                                         className={'time'}
                                                         style={{
@@ -239,7 +238,7 @@ class ScheduledEvent extends Component {
                                                     >
                                                         {capitalize(
                                                             eventNotes[0]
-                                                                .incident_state
+                                                                .event_state
                                                         )}
                                                     </span>
                                                 )}
@@ -347,7 +346,7 @@ class ScheduledEvent extends Component {
                                                                 className="note-badge badge badge__color--green"
                                                             >
                                                                 {
-                                                                    note.incident_state
+                                                                    note.event_state
                                                                 }
                                                             </span>
                                                         </span>

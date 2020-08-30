@@ -13,7 +13,7 @@ const scheduledEventNoteSchema = new Schema(
             enum: ['investigation', 'internal'],
             required: true,
         },
-        incident_state: String,
+        event_state: String,
         createdById: { type: Schema.Types.ObjectId, ref: 'User' },
         updated: { type: Boolean, default: false },
         deleted: { type: Boolean, default: false },
