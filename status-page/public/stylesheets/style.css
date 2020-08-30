@@ -1079,6 +1079,14 @@ margin-left:10px;
   background-image: url('../images/right-arrow-alt.svg');
 }
 
+.sp__icon--more {
+  background-image: url('../images/arrow-right.svg');
+  background-repeat: no-repeat;
+  position: absolute;
+  right: 0px;
+  bottom: 20px;
+}
+
 .resolved__incident {
   display: inline-block;
   background-color: transparent;
@@ -1113,6 +1121,7 @@ margin-left:10px;
 .ongoing__schedulebox {
   padding-top: 15px;
   padding-bottom: 15px;
+  position: relative;
 }
 
 .ongoing__scheduleitem {

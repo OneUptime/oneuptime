@@ -459,6 +459,7 @@ class Main extends Component {
                                                 'MMMM Do YYYY, h:mm a'
                                             )}
                                         </span>
+                                        <span className="sp__icon sp__icon--more"></span>
                                     </div>
                                 </div>
                             ))}
