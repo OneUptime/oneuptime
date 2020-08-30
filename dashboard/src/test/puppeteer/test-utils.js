@@ -77,6 +77,17 @@ function generateRandomBusinessEmail() {
         .substring(5)}.com`;
 }
 
+function capitalize(words) {
+    if (!words || !words.trim()) return '';
+
+    words = words.split(' ');
+    words = words.map(
+        word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    );
+
+    return words.join(' ').trim();
+}
+
 const cardNumber = '4111111111111111';
 
 const monitorCategoryName = 'e2e_monitor_category';
@@ -149,4 +160,5 @@ module.exports = {
     gitCredential,
     smtpCredential,
     twilioCredentials,
+    capitalize,
 };
