@@ -131,7 +131,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountBeforeDeletion).toEqual('1 Priority');
+                expect(incidentsCountBeforeDeletion).toEqual('3 Priorities');
                 const deleteButtonFirstRowIndentifier =
                     '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:nth-child(2)>button';
                 await page.click(deleteButtonFirstRowIndentifier);
@@ -146,7 +146,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountAfterDeletion).toEqual('0 Priorities');
+                expect(incidentsCountAfterDeletion).toEqual('2 Priorities');
             });
         },
         operationTimeOut
