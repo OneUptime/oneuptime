@@ -22,6 +22,9 @@ import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEve
 import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
 import { subProjectTeamLoading } from '../actions/team';
 import QuickTipBox from '../components/basic/QuickTipBox';
+import { tutorials } from '../config';
+import FeatureList from '../components/basic/FeatureList';
+import uuid from 'uuid';
 class Home extends Component {
     componentDidMount() {
         this.props.loadPage('Home');
@@ -36,8 +39,8 @@ class Home extends Component {
             );
             this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
-        if (this.props.currentProjectId) {
-            this.props.subProjectTeamLoading(this.props.currentProjectId);
+        if (this.props.currentProject) {
+            this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
     }
 
@@ -55,6 +58,17 @@ class Home extends Component {
             );
             this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
+    }
+    getDescription(type) {
+        return tutorials.getTutorials().filter(note => note.id === type);
+    }
+    renderFeatures(features) {
+        if (features) {
+            return features.map(feature => (
+                <FeatureList key={uuid.v4()} content={feature} />
+            ));
+        }
+        return null;
     }
 
     render() {
@@ -222,31 +236,6 @@ class Home extends Component {
                         <AlertDisabledWarning page="Home" />
                     </ShouldRender>
                     <div className="Box-root">
-                        <RenderIfOwnerOrAdmin
-                            currentProject={this.props.currentProject}
-                        >
-                            <ShouldRender
-                                if={
-                                    this.props.projectTeamMembers &&
-                                    this.props.projectTeamMembers.length === 1
-                                }
-                            >
-                                <QuickTipBox
-                                    header="Invite your Team"
-                                    title="Team Members"
-                                    icon="idea"
-                                    content={
-                                        <div>
-                                            You currently do not have any other
-                                            member on this project.
-                                        </div>
-                                    }
-                                    callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/team`}
-                                    callToAction="Invite Team Member"
-                                />
-                            </ShouldRender>
-                        </RenderIfOwnerOrAdmin>
-
                         <div>
                             <div>
                                 <div className="db-BackboneViewContainer">
@@ -324,6 +313,8 @@ class Home extends Component {
                                                                 </ShouldRender>
 
                                                                 <div className="Box-root Margin-bottom--12">
+                                                                    {/* Here, component and monitor notifier */}
+
                                                                     {this.props
                                                                         .components &&
                                                                     this.props
@@ -334,18 +325,39 @@ class Home extends Component {
                                                                             {/* No Component Notifier */}
                                                                             <QuickTipBox
                                                                                 header="Create your first Component"
-                                                                                title="Components"
-                                                                                icon="idea"
+                                                                                title="Create your first component."
+                                                                                icon={
+                                                                                    this.getDescription(
+                                                                                        'component'
+                                                                                    )[0]
+                                                                                        .icon
+                                                                                }
                                                                                 content={
                                                                                     <div>
-                                                                                        Components
-                                                                                        are
-                                                                                        needed
-                                                                                        before
-                                                                                        you
-                                                                                        can
-                                                                                        create
-                                                                                        Monitors.
+                                                                                        {
+                                                                                            this.getDescription(
+                                                                                                'component'
+                                                                                            )[0]
+                                                                                                .description
+                                                                                        }
+
+                                                                                        <div>
+                                                                                            <br />
+                                                                                            <p>
+                                                                                                Components
+                                                                                                help
+                                                                                                you
+                                                                                                to:{' '}
+                                                                                            </p>
+                                                                                            <ul>
+                                                                                                {this.renderFeatures(
+                                                                                                    this.getDescription(
+                                                                                                        'component'
+                                                                                                    )[0]
+                                                                                                        .features
+                                                                                                )}
+                                                                                            </ul>
+                                                                                        </div>
                                                                                     </div>
                                                                                 }
                                                                                 callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
@@ -363,69 +375,163 @@ class Home extends Component {
                                                                             {/* No Monitor Notifier */}
                                                                             <QuickTipBox
                                                                                 header="Create a Monitor"
-                                                                                title="Monitors"
-                                                                                icon="idea"
+                                                                                title="Create a Monitor"
+                                                                                icon={
+                                                                                    this.getDescription(
+                                                                                        'monitor'
+                                                                                    )[0]
+                                                                                        .icon
+                                                                                }
                                                                                 content={
                                                                                     <div>
-                                                                                        Monitors
-                                                                                        are
-                                                                                        needed
-                                                                                        before
-                                                                                        Incidents
-                                                                                        can
-                                                                                        be
-                                                                                        created.
-                                                                                        You
-                                                                                        can
-                                                                                        create
-                                                                                        a
-                                                                                        monitor
-                                                                                        for
-                                                                                        any
-                                                                                        of
-                                                                                        your
-                                                                                        existing
-                                                                                        components
+                                                                                        {
+                                                                                            this.getDescription(
+                                                                                                'monitor'
+                                                                                            )[0]
+                                                                                                .description
+                                                                                        }
+
+                                                                                        <div>
+                                                                                            <br />
+                                                                                            <p>
+                                                                                                Monitors
+                                                                                                help
+                                                                                                you
+                                                                                                to:{' '}
+                                                                                            </p>
+                                                                                            <ul>
+                                                                                                {this.renderFeatures(
+                                                                                                    this.getDescription(
+                                                                                                        'monitor'
+                                                                                                    )[0]
+                                                                                                        .features
+                                                                                                )}
+                                                                                            </ul>
+                                                                                        </div>
                                                                                     </div>
                                                                                 }
                                                                                 callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
                                                                                 callToAction="Create Monitor"
                                                                             />
                                                                         </div>
-                                                                    ) : incidentslist &&
-                                                                      incidentslist.length >
-                                                                          0 ? (
-                                                                        incidentslist
-                                                                    ) : (
-                                                                        <div>
-                                                                            <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                                                                                <div className="db-Trends-header Padding-vertical--48">
-                                                                                    <div className="db-Trends-controls">
-                                                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                                    <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                                                                        <span
-                                                                                                            id="component-content-header"
-                                                                                                            className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                                                                        >
-                                                                                                            You
-                                                                                                            currently
-                                                                                                            don&apos;t
-                                                                                                            have
-                                                                                                            any
-                                                                                                            active
-                                                                                                            incidents.
+                                                                    ) : null}
+
+                                                                    {/* Here, check if atleast organization has just 1 member before rendering */}
+
+                                                                    <RenderIfOwnerOrAdmin
+                                                                        currentProject={
+                                                                            this
+                                                                                .props
+                                                                                .currentProject
+                                                                        }
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .projectTeamMembers &&
+                                                                                this
+                                                                                    .props
+                                                                                    .projectTeamMembers
+                                                                                    .length ===
+                                                                                    1
+                                                                            }
+                                                                        >
+                                                                            <QuickTipBox
+                                                                                header="Invite your Team"
+                                                                                title="Invite your Team"
+                                                                                icon={
+                                                                                    this.getDescription(
+                                                                                        'teamMember'
+                                                                                    )[0]
+                                                                                        .icon
+                                                                                }
+                                                                                content={
+                                                                                    <div>
+                                                                                        {
+                                                                                            this.getDescription(
+                                                                                                'teamMember'
+                                                                                            )[0]
+                                                                                                .description
+                                                                                        }
+
+                                                                                        <div>
+                                                                                            <br />
+                                                                                            <p>
+                                                                                                Inviting
+                                                                                                your
+                                                                                                team
+                                                                                                members
+                                                                                                would
+                                                                                                help
+                                                                                                you
+                                                                                                to:{' '}
+                                                                                            </p>
+                                                                                            <ul>
+                                                                                                {this.renderFeatures(
+                                                                                                    this.getDescription(
+                                                                                                        'teamMember'
+                                                                                                    )[0]
+                                                                                                        .features
+                                                                                                )}
+                                                                                            </ul>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                }
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/team`}
+                                                                                callToAction="Invite Team Member"
+                                                                            />
+                                                                        </ShouldRender>
+                                                                    </RenderIfOwnerOrAdmin>
+
+                                                                    {/* Here, check if atleast 1 componentsand monitor exists before deciding on incidents */}
+                                                                    {this.props
+                                                                        .components &&
+                                                                    this.props
+                                                                        .components
+                                                                        .length >
+                                                                        0 &&
+                                                                    this.props
+                                                                        .monitors &&
+                                                                    this.props
+                                                                        .monitors
+                                                                        .length >
+                                                                        0 ? (
+                                                                        incidentslist &&
+                                                                        incidentslist.length >
+                                                                            0 ? (
+                                                                            incidentslist
+                                                                        ) : (
+                                                                            <div>
+                                                                                <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                                                                                    <div className="db-Trends-header Padding-vertical--48">
+                                                                                        <div className="db-Trends-controls">
+                                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                                        <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                                                                            <span
+                                                                                                                id="component-content-header"
+                                                                                                                className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                                                                            >
+                                                                                                                You
+                                                                                                                currently
+                                                                                                                don&apos;t
+                                                                                                                have
+                                                                                                                any
+                                                                                                                active
+                                                                                                                incidents.
+                                                                                                            </span>
                                                                                                         </span>
-                                                                                                    </span>
+                                                                                                    </div>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    )}
+                                                                        )
+                                                                    ) : null}
                                                                 </div>
 
                                                                 <div className="Box-root Margin-bottom--12">
@@ -483,7 +589,7 @@ Home.propTypes = {
     fetchOngoingScheduledEvents: PropTypes.func,
     ongoingScheduledEvent: PropTypes.object,
     currentProject: PropTypes.object,
-    projectTeamMembers: PropTypes.object,
+    projectTeamMembers: PropTypes.array,
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,
     components: PropTypes.array,
@@ -492,7 +598,8 @@ Home.propTypes = {
 const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
     let monitors = [],
-        components = [];
+        components = [],
+        projectTeamMembers = [];
     state.monitor.monitorsList.monitors.map(monitor => {
         monitors = monitors.concat(...monitor.monitors);
         return monitor;
@@ -501,10 +608,12 @@ const mapStateToProps = (state, props) => {
         components = components.concat(...component.components);
         return component;
     });
-    let projectTeamMembers = state.team.subProjectTeamMembers.find(
-        subProjectTeamMember => subProjectTeamMember._id === projectId
-    );
-    projectTeamMembers = projectTeamMembers?.teamMembers;
+    state.team.subProjectTeamMembers.map(subProjectTeamMember => {
+        projectTeamMembers = projectTeamMembers.concat(
+            ...subProjectTeamMember.teamMembers
+        );
+        return subProjectTeamMember;
+    });
     return {
         currentProjectId: projectId,
         user: state.profileSettings.profileSetting.data,
