@@ -36,6 +36,7 @@ import {
     FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST,
     FETCH_ONGOING_SCHEDULED_EVENTS_SUCCESS,
 } from '../constants/scheduledEvent';
+import moment from 'moment';
 
 const INITIAL_STATE = {
     scheduledEventList: {
@@ -118,6 +119,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
     switch (action.type) {
         case CREATE_SCHEDULED_EVENT_SUCCESS: {
             let existingPayload = false;
+            let existingOngoingEvent = false;
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
             state.scheduledEventList.scheduledEvents.map(event => {
                 if (String(event._id) === String(action.payload._id)) {
                     existingPayload = true;
@@ -126,6 +131,27 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             });
 
             const eventPayload = existingPayload ? [] : [action.payload];
+
+            let eventData = {
+                events: [...state.ongoingScheduledEvent.events],
+                count: state.ongoingScheduledEvent.count,
+            };
+            state.ongoingScheduledEvent.events.map(event => {
+                if (String(event._id) === String(action.payload._id)) {
+                    existingOngoingEvent = true;
+                }
+                return event;
+            });
+
+            if (!existingOngoingEvent) {
+                if (startDate <= currentDate && endDate > currentDate) {
+                    eventData = {
+                        events: [action.payload, ...eventData.events],
+                        count: eventData.count + 1,
+                    };
+                }
+            }
+
             return Object.assign({}, state, {
                 newScheduledEvent: {
                     requesting: false,
@@ -140,6 +166,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                         ...state.scheduledEventList.scheduledEvents,
                     ],
                     count: state.scheduledEventList.count + 1,
+                },
+                ongoingScheduledEvent: {
+                    ...state.ongoingScheduledEvent,
+                    ...eventData,
                 },
             });
         }
@@ -268,6 +298,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
 
         case DELETE_SCHEDULED_EVENT_SUCCESS: {
             let deleted = true;
+            const events = state.ongoingScheduledEvent.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
             return Object.assign({}, state, {
                 ...state,
                 scheduledEventList: {
@@ -295,6 +329,11 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     error: false,
                 },
+                ongoingScheduledEvent: {
+                    ...state.ongoingScheduledEvent,
+                    events,
+                    count: events.length,
+                },
             });
         }
 
@@ -319,6 +358,9 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
             });
 
         case UPDATE_SCHEDULED_EVENT_SUCCESS: {
+            const currentDate = moment().format();
+            const startDate = moment(action.payload.startDate).format();
+            const endDate = moment(action.payload.endDate).format();
             const scheduledEvents = state.scheduledEventList.scheduledEvents.map(
                 scheduledEvent => {
                     if (
@@ -331,12 +373,13 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 }
             );
 
-            const events = state.ongoingScheduledEvent.events.map(event => {
-                if (String(action.payload._id) === String(event._id)) {
-                    return action.payload;
-                }
-                return event;
-            });
+            let events = state.ongoingScheduledEvent.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+
+            if (startDate <= currentDate && endDate > currentDate) {
+                events = [action.payload, ...events];
+            }
 
             return Object.assign({}, state, {
                 updatedScheduledEvent: {
@@ -358,6 +401,7 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 ongoingScheduledEvent: {
                     ...state.ongoingScheduledEvent,
                     events,
+                    count: events.length,
                 },
             });
         }
