@@ -223,21 +223,29 @@ class EventsMain extends Component {
                             </button>
                         </ShouldRender>
 
-                        <ShouldRender
-                            if={
-                                this.props.futureEvents &&
-                                !this.props.futureEvents.error &&
-                                !this.props.futureEvents.requesting &&
-                                this.props.individualEvents.show
-                            }
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
                         >
-                            <button
-                                className="more button-as-anchor anchor-centered"
-                                onClick={() => this.getAll()}
+                            <ShouldRender
+                                if={
+                                    this.props.futureEvents &&
+                                    !this.props.futureEvents.error &&
+                                    !this.props.futureEvents.requesting &&
+                                    this.props.individualEvents.show
+                                }
                             >
-                                Get all future scheduled events
-                            </button>
-                        </ShouldRender>
+                                <button
+                                    className="all__btn"
+                                    onClick={() => this.getAll()}
+                                >
+                                    Get all future scheduled events
+                                </button>
+                            </ShouldRender>
+                        </div>
 
                         <ShouldRender
                             if={
