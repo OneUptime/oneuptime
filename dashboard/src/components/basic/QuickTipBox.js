@@ -17,7 +17,7 @@ function QuickTipBox({
         <ShouldRender if={display}>
             <div
                 tabIndex="0"
-                id={`info-${title}`}
+                id={`info-${title.replace(/ /g, '-')}`}
                 className="Box-root Margin-vertical--12"
             >
                 <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
@@ -46,11 +46,11 @@ function QuickTipBox({
                                     <div className="bs-u-justify--center col-sm-12 Flex-justifyContent--center Padding-all--20 Vertical">
                                         <div className="Flex-flex Flex-alignItems--center">
                                             <img
-                                                src={`/dashboard/assets/img/${icon}.svg`}
+                                                src={`${icon}`}
                                                 alt=""
                                                 className={`tut-Icon--${title} Margin-right--20`}
-                                                height="50"
-                                                width="50"
+                                                height="75"
+                                                width="75"
                                             />
                                             <div>
                                                 <h3>{title}</h3>
@@ -67,7 +67,7 @@ function QuickTipBox({
                             <div>
                                 <Link
                                     id="gotoPage"
-                                    className="bs-Button bs-Button--blue"
+                                    className="bs-Button "
                                     to={callToActionLink || '/dashboard'}
                                 >
                                     <span>{callToAction || 'Home'}</span>
