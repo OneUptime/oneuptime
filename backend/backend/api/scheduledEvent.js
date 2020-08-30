@@ -258,10 +258,12 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
         const events = await ScheduledEventService.findBy({
             projectId,
             startDate: { $lte: currentDate },
+            endDate: { $gt: currentDate },
         });
         const count = await ScheduledEventService.countBy({
             projectId,
             startDate: { $lte: currentDate },
+            endDate: { $gt: currentDate },
         });
         return sendListResponse(req, res, events, count);
     } catch (error) {
