@@ -123,7 +123,7 @@ export function MonitorChart({
     const monitorStatus = toPascalCase(checkLogs ? data[0].status : status);
     const uptime =
         uptimePercent || uptimePercent === 0
-            ? uptimePercent.toString().slice(0, 4)
+            ? uptimePercent.toFixed(3)
             : '100';
 
     useEffect(() => {
