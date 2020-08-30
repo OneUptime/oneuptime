@@ -61,7 +61,7 @@ describe('Monitor Detail API', () => {
     });
 
     test(
-        'Should navigate to monitor details of monitor created with correct details',
+        'Should navigate to details of monitor created with correct details',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
@@ -105,6 +105,8 @@ describe('Monitor Detail API', () => {
                     priorityName,
                     page
                 );
+                await page.click('#title', { clickCount: 3 });
+                await page.keyboard.press('Backspace');
                 await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
                 await page.waitForSelector('#closeIncident_0');
