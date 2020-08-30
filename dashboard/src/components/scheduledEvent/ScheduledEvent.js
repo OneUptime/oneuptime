@@ -5,28 +5,17 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import {
-    fetchscheduledEvents,
-    createScheduledEventSuccess,
-    updateScheduledEventSuccess,
-    deleteScheduledEventSuccess,
-} from '../../actions/scheduledEvent';
+import { fetchscheduledEvents } from '../../actions/scheduledEvent';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
-import { API_URL, capitalize } from '../../config';
-import io from 'socket.io-client';
+import { capitalize } from '../../config';
 import { fetchMonitors } from '../../actions/monitor';
 import { ListLoader } from '../basic/Loader';
 import { Link } from 'react-router-dom';
-
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
-});
 
 class ScheduledEventBox extends Component {
     constructor(props) {
@@ -38,29 +27,10 @@ class ScheduledEventBox extends Component {
     }
 
     componentDidMount() {
-        const {
-            projectId,
-            fetchscheduledEvents,
-            createScheduledEventSuccess,
-            updateScheduledEventSuccess,
-            deleteScheduledEventSuccess,
-            fetchMonitors,
-        } = this.props;
+        const { projectId, fetchscheduledEvents, fetchMonitors } = this.props;
         fetchscheduledEvents(projectId, 0, this.limit);
 
         fetchMonitors(projectId);
-
-        socket.on(`addScheduledEvent-${projectId}`, event =>
-            createScheduledEventSuccess(event)
-        );
-
-        socket.on(`deleteScheduledEvent-${projectId}`, event =>
-            deleteScheduledEventSuccess(event)
-        );
-
-        socket.on(`updateScheduledEvent-${projectId}`, event =>
-            updateScheduledEventSuccess(event)
-        );
     }
 
     prevClicked = () => {
@@ -517,9 +487,6 @@ ScheduledEventBox.propTypes = {
     error: PropTypes.object,
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
-    createScheduledEventSuccess: PropTypes.func,
-    updateScheduledEventSuccess: PropTypes.func,
-    deleteScheduledEventSuccess: PropTypes.func,
     fetchMonitors: PropTypes.func,
     fetchingMonitors: PropTypes.bool,
     monitors: PropTypes.array,
@@ -531,9 +498,6 @@ const mapDispatchToProps = dispatch =>
             fetchscheduledEvents,
             openModal,
             closeModal,
-            createScheduledEventSuccess,
-            updateScheduledEventSuccess,
-            deleteScheduledEventSuccess,
             fetchMonitors,
         },
         dispatch
