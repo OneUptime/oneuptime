@@ -79,30 +79,35 @@ class Consulting extends Component {
                                             <img
                                                 src="/dashboard/assets/img/icons/sony.jpg"
                                                 className="Responsive-image"
+                                                alt="sony"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/bank-of-america.png"
                                                 className="Responsive-image"
+                                                alt="bank-of-america"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/adobe.png"
                                                 className="Responsive-image"
+                                                alt="adobe"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/hershey-logo.png"
                                                 className="Responsive-image"
+                                                alt="hershey-logo"
                                             />
                                         </div>
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/cocacola.png"
                                                 className="Responsive-image"
+                                                alt="cocacola"
                                             />
                                         </div>
                                     </div>
@@ -300,9 +305,9 @@ class Consulting extends Component {
                                     <div className="Flex-direction--row Padding-bottom--48 Padding-top--48 Text-fontSize--14 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <Slider {...settings}>
                                             <div className="Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',
@@ -353,9 +358,9 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                             <div className="Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 shadow Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',
@@ -405,9 +410,9 @@ class Consulting extends Component {
                                                 </div>
                                             </div>
                                             <div className=" Flex-flex Flex-direction--row Padding-all--12">
-                                                <div className="Flex-flex Flex-direction--row bs-Carousel ContextualPopover Flex-alignItems--center Flex-justifyContent--center">
+                                                <div className="Flex-flex Flex-direction--row bs-Carousel Flex-alignItems--center Flex-justifyContent--center">
                                                     <div
-                                                        className="ContextualPopover-contents Padding-all--32 Card-shadow--clear"
+                                                        className="Padding-all--32 Card-shadow--clear"
                                                         style={{
                                                             width: '400px',
                                                             height: '200px',

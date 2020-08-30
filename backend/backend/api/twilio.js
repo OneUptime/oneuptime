@@ -6,10 +6,10 @@
 
 const express = require('express');
 const IncidentService = require('../services/incidentService');
+const UserService = require('../services/userService');
 const {
     sendIncidentCreatedCall,
     sendVerificationSMS,
-    verifySMSCode,
     test,
 } = require('../services/twilioService');
 const { isAuthorized } = require('../middlewares/authorization');
@@ -110,23 +110,14 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
         const { to } = req.body;
         const userId = req.user ? req.user.id : null;
         const projectId = req.query.projectId;
-        const {
-            validateResend,
-            problem,
-        } = await SmsCountService.validateResend(userId);
-        if (validateResend) {
-            const sendVerifyToken = await sendVerificationSMS(
-                to,
-                userId,
-                projectId
-            );
-            return sendItemResponse(req, res, sendVerifyToken);
-        } else {
-            return sendErrorResponse(req, res, {
-                statusCode: 400,
-                message: problem,
-            });
-        }
+        const validationResult = await SmsCountService.validateResend(userId);
+        const sendVerifyToken = await sendVerificationSMS(
+            to,
+            userId,
+            projectId,
+            validationResult
+        );
+        return sendItemResponse(req, res, sendVerifyToken);
     } catch (error) {
         return sendErrorResponse(
             req,
@@ -142,14 +133,40 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
         const userId = req.user ? req.user.id : null;
-        const projectId = req.query.projectId;
-        const sendVerifyToken = await verifySMSCode(
-            to,
-            code,
-            userId,
-            projectId
+        if (!to) {
+            sendErrorResponse(req, res, {
+                statusCode: 400,
+                message: 'to field must be present.',
+            });
+        }
+        if (!code) {
+            sendErrorResponse(req, res, {
+                statusCode: 400,
+                message: 'code field must be present.',
+            });
+        }
+        const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
+        const user = await UserService.findOneBy({
+            _id: userId,
+            tempAlertPhoneNumber,
+            alertPhoneVerificationCode: code,
+            alertPhoneVerificationCodeRequestTime: {
+                $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+            },
+        });
+        if (!user) {
+            throw new Error('Invalid code !');
+        }
+        await UserService.updateBy(
+            { _id: userId },
+            {
+                alertPhoneNumber: tempAlertPhoneNumber,
+                tempAlertPhoneNumber: null,
+                alertPhoneVerificationCode: null,
+                alertPhoneVerificationCodeRequestTime: null,
+            }
         );
-        return sendItemResponse(req, res, sendVerifyToken);
+        return sendItemResponse(req, res, { valid: true });
     } catch (error) {
         return sendErrorResponse(req, res, {
             code: 400,

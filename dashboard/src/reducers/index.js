@@ -36,6 +36,7 @@ import credential from './credential';
 import msTeams from './msteams';
 import slackWebhooks from './slackWebhooks';
 import incidentPriorities from './incidentPriorities';
+import incidentBasicSettings from './incidentBasicSettings';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -75,6 +76,7 @@ const appReducer = combineReducers({
     credential,
     msTeams,
     incidentPriorities,
+    incidentBasicSettings,
 });
 
 export default (state, action) => {

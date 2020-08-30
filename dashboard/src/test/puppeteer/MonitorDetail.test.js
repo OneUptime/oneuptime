@@ -107,6 +107,8 @@ describe('Monitor Detail API', () => {
                 );
                 await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
+                await page.waitForSelector('#closeIncident_0');
+                await page.click('#closeIncident_0');
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
@@ -138,16 +140,18 @@ describe('Monitor Detail API', () => {
                     'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
                 await page.waitForSelector(selector);
                 await page.click(selector);
-                await page.waitForSelector('#EditIncidentDetails');
                 await page.waitFor(3000);
                 const incidentTitleSelector =
-                    '#incident_0 .bs-Fieldset-row:nth-of-type(1) span';
+                    '#incident_0 .bs-Fieldset-row:nth-of-type(3) span';
                 let currentTitle = await page.$eval(
                     incidentTitleSelector,
                     e => e.textContent
                 );
                 expect(currentTitle).toEqual(incidentTitle);
-                await page.click('#EditIncidentDetails');
+                await page.waitForSelector(
+                    `#${monitorName}_EditIncidentDetails`
+                );
+                await page.click(`#${monitorName}_EditIncidentDetails`);
                 await page.waitForSelector('#saveIncident');
                 await page.click('#title', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
@@ -255,126 +259,6 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(35000);
 
                 expect((await page.$$(incidentList)).length).toEqual(0);
-            });
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should navigate to monitor details and create a scheduled event',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
-
-                const addButtonSelector = '#addScheduledEventButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector, e => e.click());
-
-                await page.waitForSelector('form input[name=startDate]');
-
-                await page.$eval('input[name=startDate]', e => e.click());
-                await page.$eval(
-                    'div.MuiDialogActions-root button:nth-child(2)',
-                    e => e.click()
-                );
-                await page.waitFor(2000);
-                await page.$eval('input[name=endDate]', e => e.click());
-                await page.$eval(
-                    'div.MuiDialogActions-root button:nth-child(2)',
-                    e => e.click()
-                );
-                await page.waitFor(2000);
-
-                await page.type('input[name=name]', utils.scheduledEventName);
-                await page.type(
-                    'textarea[name=description]',
-                    utils.scheduledEventDescription
-                );
-
-                await page.$eval('input[name=showEventOnStatusPage]', e =>
-                    e.click()
-                );
-                await page.$eval('#createScheduledEventButton', e => e.click());
-                await page.waitFor(10000);
-
-                const createdScheduledEventSelector = '.scheduled-event-name';
-                await page.waitForSelector(createdScheduledEventSelector);
-
-                const createdScheduledEventName = await page.$eval(
-                    createdScheduledEventSelector,
-                    el => el.textContent
-                );
-
-                expect(createdScheduledEventName).toEqual(
-                    utils.scheduledEventName
-                );
-            });
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should navigate to monitor details and get list of scheduled events and paginate scheduled events',
-        async () => {
-            expect.assertions(1);
-            return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Monitor details
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
-                );
-
-                const addButtonSelector = '#addScheduledEventButton';
-                await page.waitForSelector(addButtonSelector);
-                await page.$eval(addButtonSelector, e => e.click());
-
-                await page.waitForSelector('form input[name=startDate]');
-
-                await page.$eval('input[name=startDate]', e => e.click());
-                await page.$eval(
-                    'div.MuiDialogActions-root button:nth-child(2)',
-                    e => e.click()
-                );
-                await page.waitFor(2000);
-                await page.$eval('input[name=endDate]', e => e.click());
-                await page.$eval(
-                    'div.MuiDialogActions-root button:nth-child(2)',
-                    e => e.click()
-                );
-                await page.waitFor(2000);
-
-                await page.type(
-                    'input[name=name]',
-                    `${utils.scheduledEventName}1`
-                );
-                await page.type(
-                    'textarea[name=description]',
-                    utils.scheduledEventDescription
-                );
-
-                await page.$eval('input[name=showEventOnStatusPage]', e =>
-                    e.click()
-                );
-                await page.$eval('#createScheduledEventButton', e => e.click());
-                await page.waitFor(10000);
-
-                const createdScheduledEventSelector =
-                    '#scheduledEventsList .scheduled-event-name';
-                await page.waitForSelector(createdScheduledEventSelector);
-
-                const scheduledEventRows = await page.$$(
-                    createdScheduledEventSelector
-                );
-                const countScheduledEvent = scheduledEventRows.length;
-
-                expect(countScheduledEvent).toEqual(2);
             });
         },
         operationTimeOut

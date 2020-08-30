@@ -272,7 +272,9 @@ describe('Application Log API', function() {
             .send({ filter: 'server' })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.logs).to.be.an('array');
+                expect(res.body.data.dateRange).to.be.an('object');
                 expect(res.body.count).to.be.equal(3);
                 done();
             });
@@ -337,7 +339,9 @@ describe('Application Log API', function() {
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.logs).to.be.an('array');
+                expect(res.body.data.dateRange).to.be.an('object');
                 expect(res.body.count).to.be.equal(
                     logCount.error + logCount.info + logCount.warning
                 );
@@ -364,7 +368,9 @@ describe('Application Log API', function() {
             .send({ type: 'warning' })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.logs).to.be.an('array');
+                expect(res.body.data.dateRange).to.be.an('object');
                 expect(res.body.count).to.be.equal(2);
                 done();
             });
@@ -389,7 +395,9 @@ describe('Application Log API', function() {
             .send({ type: 'error' }) // filter by error
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.logs).to.be.an('array');
+                expect(res.body.data.dateRange).to.be.an('object');
                 expect(res.body.count).to.be.equal(logCount.error);
             });
         request
@@ -400,7 +408,9 @@ describe('Application Log API', function() {
             .send({ type: 'error', filter: 'james' }) // filter by error and keyword from content
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.be.an('object');
+                expect(res.body.data.logs).to.be.an('array');
+                expect(res.body.data.dateRange).to.be.an('object');
                 expect(res.body.count).to.be.equal(1);
                 done();
             });

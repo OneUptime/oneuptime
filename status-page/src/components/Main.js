@@ -178,13 +178,6 @@ class Main extends Component {
                 monitorData,
                 'monitorCategoryId'
             );
-            const monitorCategoryStyle = {
-                display: 'inline-block',
-                marginBottom: 10,
-                fontSize: 10,
-                color: '#8898aa',
-                fontWeight: 'Bold',
-            };
             const monitorCategoryGroupContainerStyle = {
                 marginBottom: 40,
             };
@@ -195,16 +188,6 @@ class Main extends Component {
                         style={monitorCategoryGroupContainerStyle}
                         className="uptime-graph-header"
                     >
-                        <div
-                            id={`monitorCategory${i}`}
-                            style={monitorCategoryStyle}
-                        >
-                            <span>
-                                {groupedMonitors[0].monitorCategoryId
-                                    ? groupedMonitors[0].monitorCategoryId.name.toUpperCase()
-                                    : 'Uncategorized'.toUpperCase()}
-                            </span>
-                        </div>
                         {groupedMonitors.map((monitor, i) => {
                             return (
                                 <>
@@ -217,6 +200,9 @@ class Main extends Component {
                                         }
                                         key={i}
                                         id={`monitor${i}`}
+                                        monitorCategory={
+                                            monitor.monitorCategoryId
+                                        }
                                     />
                                     {this.props.monitors.some(
                                         m => monitor._id === m.monitor

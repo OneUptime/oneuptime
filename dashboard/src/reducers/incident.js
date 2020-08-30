@@ -368,6 +368,27 @@ export default function incident(state = initialState, action) {
                 fetchIncidentTimelineRequest: false,
             });
 
+        case 'UPDATE_INCIDENT_TIMELINE': {
+            const incident = Object.assign({}, state.incident.incident);
+            if (
+                incident &&
+                incident.timeline &&
+                action.payload.incidentId === incident._id
+            ) {
+                incident.timeline = [...incident.timeline, action.payload];
+                if (incident.timeline.length > 10) incident.timeline.pop();
+                return Object.assign({}, state, {
+                    incident: {
+                        ...state.incident,
+                        incident,
+                        count: state.incident.count + 1,
+                    },
+                });
+            } else {
+                return state;
+            }
+        }
+
         case types.PROJECT_INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
                 incidents: {

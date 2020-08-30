@@ -101,33 +101,25 @@ export class CustomStyles extends Component {
                 name: 'headerHTML',
                 mode: 'html',
                 label: 'Header HTML',
-                placeholder: `<div>
-                    <!-- HTML code -->
-                </div>`,
+                placeholder: `<div>\n\t<!-- HTML code -->\n</div>`,
             },
             {
                 name: 'footerHTML',
                 mode: 'html',
                 label: 'Footer HTML',
-                placeholder: `<div>
-                    <!-- HTML code -->
-                </div>`,
+                placeholder: `<div>\n\t<!-- HTML code -->\n</div>`,
             },
             {
                 name: 'customCSS',
                 mode: 'css',
                 label: 'Custom CSS',
-                placeholder: `.your-css-class{
-                    /* CSS code */
-                 }`,
+                placeholder: `.your-css-class{\n\t/* CSS code */\n}`,
             },
             {
                 name: 'customJS',
                 mode: 'html',
                 label: 'Custom JS',
-                placeholder: `<script> 
-                // your JS code here (also include the <script> tag)
-                </script>  `,
+                placeholder: `<script>\n\t// your JS code here (also include the <script> tag)\n</script>  `,
             },
         ];
 
@@ -174,13 +166,13 @@ export class CustomStyles extends Component {
                                                     <div className="bs-Fieldset-fields script-editor-wrapper">
                                                         <Field
                                                             key={i}
+                                                            id={script.name}
                                                             name={script.name}
                                                             component={
                                                                 RenderCodeEditor
                                                             }
                                                             mode={script.mode}
                                                             theme="github"
-                                                            id={`editor-${i}`}
                                                             height="150px"
                                                             width="100%"
                                                             onLoad={editor => {

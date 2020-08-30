@@ -18,7 +18,7 @@ import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
-import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
+import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 
 class Home extends Component {
     componentDidMount() {
@@ -173,6 +173,7 @@ class Home extends Component {
                             count={i}
                             incident={incident}
                             multiple={true}
+                            route={pathname}
                         />
                     </RenderIfUserInSubProject>
                 );
@@ -193,9 +194,12 @@ class Home extends Component {
                                 event.projectId._id || event.projectId
                             }
                         >
-                            <ScheduledEventDescription
-                                scheduledEvent={event}
-                                isOngoing={true}
+                            <OngoingScheduledEvent
+                                event={event}
+                                monitorList={this.props.monitorList}
+                                projectId={
+                                    event.projectId._id || event.projectId
+                                }
                             />
                         </RenderIfUserInSubProject>
                     );
@@ -225,6 +229,10 @@ class Home extends Component {
                                                     >
                                                         {userSchedules ? (
                                                             <>
+                                                                {ongoingEventList &&
+                                                                    ongoingEventList.length >
+                                                                        0 &&
+                                                                    ongoingEventList}
                                                                 <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
@@ -319,13 +327,6 @@ class Home extends Component {
                                                                         </div>
                                                                     )}
                                                                 </div>
-
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    {ongoingEventList &&
-                                                                        ongoingEventList.length >
-                                                                            0 &&
-                                                                        ongoingEventList}
-                                                                </div>
                                                             </>
                                                         ) : (
                                                             ''
@@ -374,6 +375,7 @@ Home.propTypes = {
     ]),
     fetchOngoingScheduledEvents: PropTypes.func,
     ongoingScheduledEvent: PropTypes.object,
+    monitorList: PropTypes.array,
 };
 
 const mapStateToProps = (state, props) => {
@@ -386,6 +388,9 @@ const mapStateToProps = (state, props) => {
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
         ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
+        monitorList: state.monitor.monitorsList.monitors[0]
+            ? state.monitor.monitorsList.monitors[0].monitors
+            : [],
     };
 };
 

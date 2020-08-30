@@ -14,7 +14,6 @@ import {
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
-import IncidentDescription from '../components/incident/IncidentDescription';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import IncidentAlert from '../components/incident/IncidentAlert';
 import SubscriberAlert from '../components/subscriber/subscriberAlert';
@@ -30,6 +29,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -156,6 +156,7 @@ class Incident extends React.Component {
 
     ready = () => {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -215,6 +216,10 @@ class Incident extends React.Component {
 
     render() {
         let variable = null;
+        const {
+            component,
+            location: { pathname },
+        } = this.props;
         const monitorId =
             this.props.incident &&
             this.props.incident.monitorId &&
@@ -227,17 +232,9 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
-        const componentId = this.props.component
-            ? this.props.component._id
-            : '';
         if (this.props.incident) {
             variable = (
                 <div>
-                    <IncidentDescription
-                        incident={this.props.incident}
-                        projectId={this.props.currentProject._id}
-                        componentId={componentId}
-                    />
                     <IncidentStatus incident={this.props.incident} count={0} />
                     <IncidentAlert
                         next={this.nextAlerts}
@@ -310,10 +307,6 @@ class Incident extends React.Component {
                 </div>
             );
         }
-        const {
-            component,
-            location: { pathname },
-        } = this.props;
         const componentName = component ? component.name : '';
 
         return (
@@ -388,6 +381,7 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             fetchIncidentMessages,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -419,6 +413,7 @@ Incident.propTypes = {
     componentId: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 Incident.displayName = 'Incident';

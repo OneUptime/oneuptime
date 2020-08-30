@@ -46,7 +46,7 @@ class NewApplicationLog extends Component {
                         thisObj.props.closeCreateApplicationLogModal();
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > NEW APPLICATION LOG',
+                                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > NEW LOG CONTAINER',
                                 values
                             );
                         }
@@ -71,7 +71,7 @@ class NewApplicationLog extends Component {
                         thisObj.props.closeCreateApplicationLogModal();
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG > EDIT APPLICATION LOG',
+                                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > EDIT LOG CONTAINER',
                                 values
                             );
                         }
@@ -99,7 +99,7 @@ class NewApplicationLog extends Component {
                                     </span>
                                     <p>
                                         <span>
-                                            Create an application log so you and
+                                            Create a log container so you and
                                             your team can monitor the logs
                                             related to it.
                                         </span>

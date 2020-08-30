@@ -17,6 +17,7 @@ import {
     incidentcreatedbysocket,
     updatemonitorlogbysocket,
     updatemonitorstatusbysocket,
+    updateincidenttimelinebysocket,
     updatelighthouselogbysocket,
     updateprobebysocket,
     addnotifications,
@@ -61,6 +62,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `updateMonitorStatus-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateIncidentTimeline-${this.props.project._id}`
                 );
                 socket.removeListener(
                     `updateLighthouseLog-${this.props.project._id}`
@@ -348,6 +352,30 @@ class SocketApp extends Component {
                         );
                 }
             });
+            socket.on(
+                `updateIncidentTimeline-${this.props.project._id}`,
+                function(data) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
+                              user => user.userId === loggedInUser
+                          )
+                        : false;
+                    if (isUserInProject) {
+                        thisObj.props.updateincidenttimelinebysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            subProject => subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  user => user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updateincidenttimelinebysocket(data);
+                    }
+                }
+            );
             socket.on(`updateLighthouseLog-${this.props.project._id}`, function(
                 data
             ) {
@@ -556,6 +584,7 @@ const mapDispatchToProps = dispatch =>
             incidentcreatedbysocket,
             updatemonitorlogbysocket,
             updatemonitorstatusbysocket,
+            updateincidenttimelinebysocket,
             updatelighthouselogbysocket,
             updateprobebysocket,
             addnotifications,

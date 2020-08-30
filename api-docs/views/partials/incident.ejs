@@ -1306,12 +1306,11 @@
     </div>
   </section>
 </article>
-
-<article id="edit-incident" class="cf-grid-container dev-doc-item-container">
+<article id="add-incident-message" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Edit Incident<span class="requestType">PUT</span></h3>
+    <h3>Add Incident Message<span class="requestType">POST</span></h3>
     <p>
-      <p>Edit Incident by Project ID and Incident ID.</p>
+      <p>Add Incident Message by Project ID and Incident ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1322,7 +1321,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId</span>
+                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId/message</span>
               </div>
             </div>
           </div>
@@ -1366,89 +1365,27 @@
         </li>
       </ul>
     </div>
-
-    <!-- <div class="attribute-parameter-container">
-      <h3>Body</h3>
+    <div class="attribute-parameter-container">
+      <h3>Note </h3>
 
       <ul class="doc-item-detail-container">
-        <li data-location="path">
+        <li data-location="body">
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
+                <span>type</span>
                 <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p>type can be only be 'internal' or 'investigation'</p>
               </div>
             </div>
           </div>
         </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>resolved</span>
-                <span class="item-type">boolean</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Is this incident resolved?</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>acknowledged</span>
-                <span class="item-type">boolean</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Is this incident acknowledged?</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>internalNote</span>
-                <span class="item-type">boolean</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Internal note for your team</p>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li data-location="path">
-          <div class="cf-grid-row">
-            <div class="col-lg-third-1 pull-left">
-              <div class="item-title">
-                <span>investigationNote</span>
-                <span class="item-type">boolean</span>
-              </div>
-            </div>
-            <div class="col-lg-third-2 pull-left">
-              <div class="item-description">
-                <p>Investigation note that will be posted to status page.</p>
-              </div>
-            </div>
-          </div>
-        </li>
-
       </ul>
-    </div> -->
+    </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1458,15 +1395,16 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb</p>
+          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb/message</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p>
 {
-  "investigationNote": "Test",
-  "internalNote": "Test"
+  "content": "This is a note",
+  "type": "investigation",
+  "incident_state": "creation"
 }                   
               </p>
             </code>
@@ -1480,44 +1418,257 @@
           <pre>
             <code class="language-json">
               <p>
+                {
+                  "updated": false,
+                  "deleted": false,
+                  "_id": "5f3ae17313c22b449b950e1a",
+                  "createdAt": "2020-08-17T19:58:43.967Z",
+                  "content": "This is a note",
+                  "incidentId": {
+                      "_id": "5f154ead30735313889f9ca2"
+                  },
+                  "createdById": {
+                      "_id": "5ee92d2323cc0e359d45a93b",
+                      "name": "Travis Scott"
+                  },
+                  "type": "investigation",
+                  "incident_state": "creation",
+                  "__v": 0
+              }                                         
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+<article id="edit-incident-message" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Edit Incident Message<span class="requestType">POST</span></h3>
+    <p>
+      <p>Edit Incident Message by Incident Message ID, Project ID and Incident ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId/message</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The incident id of the monitor incident.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb/message</p>
+
+          <p>Request Body</p>
+          <pre>
+            <code class="language-json">
+              <p>
 {
-  "acknowledged": true,
-  "acknowledgedByZapier": null,
-  "resolved": true,
-  "resolvedByZapier": null,
-  "internalNote": "Test",
-  "investigationNote": "Test",
-  "createdByZapier": false,
-  "notClosedBy": [
-    "5e162d9f1b8ae8185921498f"
-  ],
-  "manuallyCreated": true,
-  "deleted": false,
-  "_id": "5e1725db1f31a13e98acd8d9",
-  "probes": [],
-  "createdAt": "2020-01-09T13:08:43.790Z",
-  "projectId": "5e089f94b400211639928c94",
-  "monitorId": {
-    "_id": "5e1633101b8ae81859214adf",
-    "name": "Cello"
-  },
-  "createdById": {
-    "_id": "5e089f88b400211639928c92",
-    "name": "Nawaz Dhandala"
-  },
-  "incidentType": "offline",
-  "__v": 0,
-  "acknowledgedAt": "2020-01-09T13:10:42.766Z",
-  "acknowledgedBy": {
-    "_id": "5e089f88b400211639928c92",
-    "name": "Nawaz Dhandala"
-  },
-  "resolvedAt": "2020-01-09T13:10:42.766Z",
-  "resolvedBy": {
-    "_id": "5e089f88b400211639928c92",
-    "name": "Nawaz Dhandala"
-  }
-}                                         
+  "content": "update on the notes",
+  "id": "5f3ae17313c22b449b950e1a",
+  "incident_state": "new state"
+}                  
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+                {
+                  "updated": true,
+                  "deleted": false,
+                  "_id": "5f3ae17313c22b449b950e1a",
+                  "createdAt": "2020-08-17T19:58:43.967Z",
+                  "content": "update on the notes",
+                  "incidentId": {
+                      "_id": "5f154ead30735313889f9ca2"
+                  },
+                  "createdById": {
+                      "_id": "5ee92d2323cc0e359d45a93b",
+                      "name": "Travis Scott"
+                  },
+                  "type": "investigation",
+                  "incident_state": "test",
+                  "__v": 0
+              }                                      
+              </p>
+            </code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+<article id="delete-incident-message" class="cf-grid-container dev-doc-item-container">
+  <section class="col-lg-half col-md-half dev-doc-item">
+    <h3>Delete Incident Message<span class="requestType">DELETE</span></h3>
+    <p>
+      <p>Delete Incident Message by Incident Message ID, Project ID and Incident ID.</p>
+    </p>
+
+    <div class="attribute-parameter-container">
+      <h3>Path</h3>
+
+      <ul class="doc-item-detail-container">
+        <li>
+          <div class="cf-grid-row">
+            <div class="col-full">
+              <div class="item-title">
+                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId/message/incidentMessageId</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Path Variables</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>projectId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The project id of the project.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The incident id of the monitor incident.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentMessageId</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>The id of the incident message.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col-lg-half col-md-half dev-doc-example">
+    <div class="sample-type type-curl">
+      <div id="exampleRequest" class="doc-example-item doc-example-request">
+        <h1>Example Request</h1>
+
+        <div class="example-code example-response">
+          <p>Request URL</p>
+          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb/message/5f3ae17313c22b449b950e1a</p>
+        </div>
+      </div>
+
+      <div class="doc-example-item">
+        <h1>Example Response (200)</h1>
+        <div class="example-code example-response">
+          <pre>
+            <code class="language-json">
+              <p>
+                {
+                  "updated": true,
+                  "deleted": true,
+                  "_id": "5f3ae17313c22b449b950e1a",
+                  "createdAt": "2020-08-17T19:58:43.967Z",
+                  "content": "update on the notes",
+                  "incidentId": {
+                      "_id": "5f154ead30735313889f9ca2"
+                  },
+                  "createdById": {
+                      "_id": "5ee92d2323cc0e359d45a93b",
+                      "name": "Travis Scott"
+                  },
+                  "type": "investigation",
+                  "incident_state": "test",
+                  "__v": 0
+              }                                      
               </p>
             </code>
           </pre>

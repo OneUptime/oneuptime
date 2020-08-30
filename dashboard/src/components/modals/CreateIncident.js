@@ -26,7 +26,7 @@ class CreateIncident extends Component {
             incidentType,
             title,
             description,
-            incidentPriorities,
+            incidentPriority,
         } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
@@ -42,7 +42,7 @@ class CreateIncident extends Component {
             incidentType,
             title,
             description,
-            incidentPriorities
+            incidentPriority === '' ? null : incidentPriority
         ).then(
             function() {
                 closeThisDialog();
@@ -226,7 +226,6 @@ class CreateIncident extends Component {
                                                                     }
                                                                     name="incidentPriority"
                                                                     id="incidentPriority"
-                                                                    placeholder="Incident Priority"
                                                                     disabled={
                                                                         this
                                                                             .props
@@ -238,7 +237,7 @@ class CreateIncident extends Component {
                                                                             value:
                                                                                 '',
                                                                             label:
-                                                                                'Select type',
+                                                                                'Incident Priority',
                                                                         },
                                                                         ...incidentPriorities.map(
                                                                             incidentPriority => ({
@@ -291,6 +290,9 @@ class CreateIncident extends Component {
                                                                 height="150px"
                                                                 width="100%"
                                                                 placeholder="This can be markdown"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -427,6 +429,7 @@ function mapStateToProps(state) {
         newIncident: state.incident.newIncident,
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
     };
 }
 

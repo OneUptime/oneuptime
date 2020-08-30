@@ -70,6 +70,15 @@ export function updatemonitorstatusbysocket(status, probes) {
     };
 }
 
+export function updateincidenttimelinebysocket(incidentTimeline) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_INCIDENT_TIMELINE',
+            payload: incidentTimeline,
+        });
+    };
+}
+
 export function updatelighthouselogbysocket(log) {
     return function(dispatch) {
         dispatch({

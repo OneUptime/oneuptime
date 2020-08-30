@@ -35,7 +35,7 @@ class CreateManualIncident extends Component {
             values.incidentType,
             values.title,
             values.description,
-            values.incidentPriority
+            values.incidentPriority === '' ? null : values.incidentPriority
         ).then(() => {
             createIncidentReset();
             closeModal({
@@ -174,7 +174,7 @@ class CreateManualIncident extends Component {
                                                                 {
                                                                     value: '',
                                                                     label:
-                                                                        'Select type',
+                                                                        'Incident Priority',
                                                                 },
                                                                 ...incidentPriorities.map(
                                                                     incidentPriority => ({
@@ -225,6 +225,7 @@ class CreateManualIncident extends Component {
                                                         height="150px"
                                                         width="100%"
                                                         placeholder="This can be markdown"
+                                                        wrapEnabled={true}
                                                     />
                                                 </div>
                                             </div>
@@ -345,6 +346,7 @@ function mapStateToProps(state) {
         createIncidentModalId: state.modal.modals[0].id,
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
     };
 }
 

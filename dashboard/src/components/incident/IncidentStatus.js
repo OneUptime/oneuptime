@@ -5,12 +5,13 @@ import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
+import { Link } from 'react-router-dom';
 import {
     acknowledgeIncident,
     resolveIncident,
     closeIncident,
 } from '../../actions/incident';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
@@ -18,6 +19,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import EditIncident from '../modals/EditIncident';
+import { history } from '../../store';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -91,6 +93,24 @@ export class IncidentStatus extends Component {
             isUserInSubProject = subProject.users.some(
                 user => user.userId === loggedInUser
             );
+        const monitorName =
+            (this.props.multiple &&
+                this.props.incident &&
+                this.props.incident.monitorId) ||
+            (this.props.incident && this.props.incident.monitorId)
+                ? this.props.incident.monitorId.name
+                : '';
+        const projectId = this.props.currentProject
+            ? this.props.currentProject._id
+            : '';
+        const incidentId = this.props.incident ? this.props.incident._id : '';
+        const componentId = this.props.incident
+            ? this.props.incident.monitorId.componentId._id
+            : '';
+        const homeRoute = this.props.currentProject
+            ? '/dashboard/project/' + this.props.currentProject._id
+            : '';
+
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -104,11 +124,8 @@ export class IncidentStatus extends Component {
                                     <span
                                         id={`incident_span_${this.props.count}`}
                                     >
-                                        {this.props.multiple &&
-                                        this.props.incident &&
-                                        this.props.incident.monitorId
-                                            ? this.props.incident.monitorId
-                                                  .name + "'s Incident Status"
+                                        {monitorName
+                                            ? monitorName + "'s Incident Status"
                                             : 'Incident Status'}
                                     </span>
                                 </span>
@@ -123,24 +140,47 @@ export class IncidentStatus extends Component {
                                 style={{ marginTop: '-20px' }}
                             >
                                 <button
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    id="EditIncidentDetails"
+                                    className="bs-Button bs-Button--icon bs-Button--more"
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
-                                        this.props.openModal({
-                                            id: this.state.editIncidentModalId,
-                                            content: DataPathHoC(EditIncident, {
-                                                incident: this.props.incident,
-                                                incidentId: this.props.incident
-                                                    ._id,
-                                            }),
-                                        });
+                                        history.push(
+                                            `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                        );
                                     }}
                                 >
-                                    <span className="bs-Button bs-Button--icon">
-                                        <span>Edit Incident</span>
-                                    </span>
+                                    <span>View Incident</span>
                                 </button>
+                                <ShouldRender
+                                    if={
+                                        !this.props.route ||
+                                        (this.props.route &&
+                                            !(this.props.route === homeRoute))
+                                    }
+                                >
+                                    <button
+                                        className="bs-Button bs-Button--icon bs-Button--settings"
+                                        id={`${monitorName}_EditIncidentDetails`}
+                                        type="button"
+                                        onClick={() => {
+                                            this.props.openModal({
+                                                id: this.state
+                                                    .editIncidentModalId,
+                                                content: DataPathHoC(
+                                                    EditIncident,
+                                                    {
+                                                        incident: this.props
+                                                            .incident,
+                                                        incidentId: this.props
+                                                            .incident._id,
+                                                    }
+                                                ),
+                                            });
+                                        }}
+                                    >
+                                        <span>Edit Incident</span>
+                                    </button>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         this.props.multiple &&
@@ -162,6 +202,59 @@ export class IncidentStatus extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Incident ID
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <span
+                                                        className="value"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        {
+                                                            this.props.incident
+                                                                .idNumber
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Monitor
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{ marginTop: '6px' }}
+                                                >
+                                                    <span className="value">
+                                                        <Link
+                                                            to={
+                                                                '/dashboard/project/' +
+                                                                this.props
+                                                                    .projectId +
+                                                                '/' +
+                                                                this.props
+                                                                    .componentId +
+                                                                '/monitoring/' +
+                                                                this.props
+                                                                    .incident
+                                                                    .monitorId
+                                                                    ._id
+                                                            }
+                                                            id="backToMonitorView"
+                                                        >
+                                                            {
+                                                                this.props
+                                                                    .incident
+                                                                    .monitorId
+                                                                    .name
+                                                            }
+                                                        </Link>
+                                                    </span>
+                                                </div>
+                                            </div>
                                             {this.props.incident.title && (
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
@@ -449,10 +542,35 @@ export class IncidentStatus extends Component {
                                                                             .acknowledge
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Acknowledge
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Acknowledge
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -604,10 +722,35 @@ export class IncidentStatus extends Component {
                                                                             .resolve
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Resolve
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Resolve
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -706,6 +849,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
+        incidentRequest: state.incident.incident,
     };
 };
 
@@ -728,6 +872,10 @@ IncidentStatus.propTypes = {
     multiple: PropTypes.bool,
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
+    projectId: PropTypes.string.isRequired,
+    componentId: PropTypes.string.isRequired,
+    route: PropTypes.string,
+    incidentRequest: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

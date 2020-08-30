@@ -223,7 +223,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create a new application log in component',
+        'Should create a new log container in component',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -277,11 +277,13 @@ describe('Components', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
+                await page.waitFor(5000);
 
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const newComponentSelector = '#component0 table > tbody > tr';
                 await page.waitForSelector(newComponentSelector);
@@ -297,7 +299,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
             });
         },
         operationTimeOut
@@ -397,7 +399,6 @@ describe('Components', () => {
                 componentSpanElement = await componentSpanElement.jsonValue();
 
                 expect(componentSpanElement).toMatch('Online');
-                await componentPage.waitFor(2000);
             });
         },
         operationTimeOut
@@ -413,6 +414,7 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
+                await page.waitFor(5000);
 
                 const componentSelector = '#component1 table > tbody > tr';
                 await page.waitForSelector(componentSelector);
@@ -420,7 +422,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
 
                 let spanElement = await page.waitForSelector(
                     `#resource_type_${monitorName}`
@@ -436,7 +438,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Application Logs');
+                expect(spanElement).toMatch('Log Containers');
 
                 spanElement = await page.waitForSelector(
                     `#resource_status_${applicationLogName}`
@@ -467,7 +469,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one application log and one monitor
+                expect(countResources).toEqual(2); // one log container and one monitor
 
                 await page.click(`#view-resource-${applicationLogName}`);
 

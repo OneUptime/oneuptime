@@ -23,6 +23,11 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
                 .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -42,12 +47,19 @@ module.exports = {
                 project && project.users && project.users.length
                     ? project.users.map(({ userId }) => userId)
                     : [];
-            const monitorCount = await MonitorService.countBy({
+            const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
 
-            if (monitorCount > 0) {
+            if (monitor) {
                 let incident = new IncidentModel();
+                const incidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                });
+                const deletedIncidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                });
 
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
@@ -55,9 +67,28 @@ module.exports = {
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
                 incident.incidentPriority = data.incidentPriority;
-                incident.title = data.title;
-                incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
+                incident.idNumber =
+                    incidentsCountInProject + deletedIncidentsCountInProject;
+
+                const incidentSettings = await IncidentSettingsService.findOne({
+                    projectId: data.projectId,
+                });
+                const templatesInput = {
+                    incidentType: data.incidentType,
+                    monitorName: monitor.name,
+                    projectName: project.name,
+                    time: Moment().format('h:mm:ss a'),
+                    date: Moment().format('MMM Do YYYY'),
+                };
+                const titleTemplate = Handlebars.compile(
+                    incidentSettings.title
+                );
+                const descriptionTemplate = Handlebars.compile(
+                    incidentSettings.description
+                );
+                incident.title = titleTemplate(templatesInput);
+                incident.description = descriptionTemplate(templatesInput);
 
                 if (data.probeId) {
                     incident.probes = [
@@ -149,7 +180,12 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('incidentPriority', 'name color')
-                .populate('probes.probeId', 'probeName');
+                .populate('probes.probeId', 'probeName')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                });
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -192,6 +228,11 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
                 .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);
@@ -226,7 +267,7 @@ module.exports = {
             await AlertService.sendCreatedIncident(incident);
             await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
-            await RealTimeService.sendCreatedIncident(incident);
+            // await RealTimeService.sendCreatedIncident(incident);
 
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
@@ -773,4 +814,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
 const ComponentService = require('./componentService');
+const IncidentSettingsService = require('./incidentSettingsService');
+const Handlebars = require('handlebars');
+const Moment = require('moment');
 const IncidentMessageService = require('./incidentMessageService');
