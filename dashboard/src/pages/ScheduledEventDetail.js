@@ -107,7 +107,11 @@ class ScheduledEvent extends Component {
                         route={getParentRoute(pathname)}
                         name="Scheduled Events"
                     />
-                    <BreadCrumbItem route={pathname} name={eventName} />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name={eventName}
+                        pageTitle="Scheduled Event Detail"
+                    />
                     <ShouldRender if={requesting}>
                         <LoadingState />
                     </ShouldRender>
