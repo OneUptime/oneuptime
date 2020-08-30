@@ -260,7 +260,7 @@ class IncidentBasicSettings extends React.Component {
                                             </div>
                                         </ShouldRender>
                                     </span>
-                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root Padding-horizontal--20">
                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                             <div className="Box-root Margin-right--8">
                                                 <button
