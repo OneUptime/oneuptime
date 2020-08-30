@@ -14,12 +14,29 @@ import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
+import { fetchOngoingScheduledEvents } from '../../actions/scheduledEvent';
 
 class TopContent extends Component {
     componentDidMount() {
-        const { userSettings, getVersion } = this.props;
+        const {
+            userSettings,
+            getVersion,
+            currentProject,
+            fetchOngoingScheduledEvents,
+        } = this.props;
         userSettings();
         getVersion();
+        if (currentProject && currentProject._id) {
+            fetchOngoingScheduledEvents(currentProject._id);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.currentProject !== this.props.currentProject) {
+            this.props.fetchOngoingScheduledEvents(
+                this.props.currentProject._id
+            );
+        }
     }
 
     showFeedbackModal = () => {
@@ -91,6 +108,30 @@ class TopContent extends Component {
             </div>
         ) : null;
 
+    renderOngoingScheduledEvents = () => {
+        const { ongoingScheduledEvents } = this.props;
+        const count = ongoingScheduledEvents.length;
+        return count > 0 ? (
+            <div
+                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer Margin-left--20"
+                onClick={this.handleActiveIncidentClick}
+                id="ongoingEvents"
+            >
+                <span
+                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                    style={{
+                        filter: 'brightness(0) invert(1)',
+                        marginTop: '1px',
+                        marginRight: '5px',
+                    }}
+                />
+                <span id="ongoingEventsText">{`${count} Scheduled Event${
+                    count === 1 ? '' : 's'
+                } Currently Active`}</span>
+            </div>
+        ) : null;
+    };
+
     render() {
         const IMG_URL =
             this.props.profilePic &&
@@ -151,6 +192,7 @@ class TopContent extends Component {
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                         {this.renderActiveIncidents(incidentCounter)}
+                        {this.renderOngoingScheduledEvents()}
                         <div className="Box-root Margin-right--16">
                             <div
                                 id="feedback-div"
@@ -261,6 +303,8 @@ const mapStateToProps = state => {
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
+        ongoingScheduledEvents:
+            state.scheduledEvent.ongoingScheduledEvent.events,
     };
 };
 
@@ -274,6 +318,7 @@ const mapDispatchToProps = dispatch =>
             openNotificationMenu,
             getVersion,
             openSideNav,
+            fetchOngoingScheduledEvents,
         },
         dispatch
     );
@@ -299,6 +344,8 @@ TopContent.propTypes = {
     length: PropTypes.number,
     map: PropTypes.func,
     currentProject: PropTypes.shape({ _id: PropTypes.string }),
+    fetchOngoingScheduledEvents: PropTypes.func,
+    ongoingScheduledEvents: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
