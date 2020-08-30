@@ -71,9 +71,15 @@ module.exports = {
                 incident.idNumber =
                     incidentsCountInProject + deletedIncidentsCountInProject;
 
-                const incidentSettings = await IncidentSettingsService.findOne({
-                    projectId: data.projectId,
-                });
+                const incidentSettings = data.probeId
+                    ? await IncidentSettingsService.findOne({
+                          projectId: data.projectId,
+                      })
+                    : {
+                          title: data.title,
+                          description: data.description,
+                      };
+
                 const templatesInput = {
                     incidentType: data.incidentType,
                     monitorName: monitor.name,
