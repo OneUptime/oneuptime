@@ -172,7 +172,8 @@ export class IncidentList extends Component {
                                                             .currentProject
                                                             ._id +
                                                         '/' +
-                                                        this.props.componentId +
+                                                        incident.monitorId
+                                                            .componentId._id +
                                                         '/incidents/' +
                                                         incident._id
                                                 );
