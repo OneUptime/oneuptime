@@ -85,8 +85,11 @@ function validate(values) {
 
 export class ProfileSetting extends Component {
     handleOnChange = value => {
-        this.props.setAlertPhoneNumber(value);
+        const internationalNumber = value.startsWith('+') ? value : '+' + value;
+        this.props.setAlertPhoneNumber(internationalNumber);
     };
+
+    ref = React.createRef();
 
     tick = () => {
         if (this.props.resendTimer < 1) {
@@ -403,6 +406,7 @@ export class ProfileSetting extends Component {
             (verifySMSCodeError || sendVerificationSMSError) &&
             profileSettingState.alertPhoneNumber ===
                 profileSettingState.initPhoneVerificationNumber;
+
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -610,7 +614,7 @@ export class ProfileSetting extends Component {
                                                     style={{ flex: 'unset' }}
                                                 >
                                                     <ReactPhoneInput
-                                                        defaultCountry={'us'}
+                                                        defaultCountry="us"
                                                         value={
                                                             profileSettingState.alertPhoneNumber
                                                         }
@@ -621,14 +625,6 @@ export class ProfileSetting extends Component {
                                                             profileSettings &&
                                                             profileSettings.requesting
                                                         }
-                                                        inputStyle={{
-                                                            width: 250,
-                                                            height: 28,
-                                                            fontSize: 14,
-                                                            color: '#525f7f',
-                                                            fontFamily:
-                                                                'camphor',
-                                                        }}
                                                     />
                                                 </div>
                                                 <ShouldRender
