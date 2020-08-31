@@ -32,7 +32,6 @@ import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import 'react-tabs/style/react-tabs.css';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line

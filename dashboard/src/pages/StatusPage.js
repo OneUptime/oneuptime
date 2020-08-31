@@ -27,7 +27,6 @@ import CustomStyles from '../components/statusPage/CustomStyles';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import 'react-tabs/style/react-tabs.css';
 
 class StatusPage extends Component {
     async componentDidMount() {
