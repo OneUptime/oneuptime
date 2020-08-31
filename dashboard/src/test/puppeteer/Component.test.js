@@ -438,7 +438,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Log Containers');
+                expect(spanElement).toMatch('Log Container');
 
                 spanElement = await page.waitForSelector(
                     `#resource_status_${applicationLogName}`
