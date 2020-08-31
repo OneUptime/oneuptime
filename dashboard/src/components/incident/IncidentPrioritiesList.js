@@ -1,7 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import uuid from 'uuid';
+import { connect } from 'react-redux';
+import MessageBox from '../modals/MessageBox';
+import { openModal } from '../../actions/modal';
 
-export class IncidentPrioritiesList extends React.Component {
+class IncidentPrioritiesListClass extends React.Component {
     render() {
         return (
             <div
@@ -82,11 +87,27 @@ export class IncidentPrioritiesList extends React.Component {
                                                     <button
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
-                                                        onClick={() =>
-                                                            this.props.handleDeleteIncidentPriority(
+                                                        onClick={() => {
+                                                            if (
+                                                                this.props
+                                                                    .selectedIncidentPriority ===
                                                                 incidentPriority._id
                                                             )
-                                                        }
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: uuid.v4(),
+                                                                        content: MessageBox,
+                                                                        title:
+                                                                            'Warning',
+                                                                        message:
+                                                                            'This incident priority is used by default and should not be deleted.',
+                                                                    }
+                                                                );
+                                                            else
+                                                                this.props.handleDeleteIncidentPriority(
+                                                                    incidentPriority._id
+                                                                );
+                                                        }}
                                                     >
                                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -110,9 +131,24 @@ export class IncidentPrioritiesList extends React.Component {
     }
 }
 
-IncidentPrioritiesList.displayName = 'IncidentPrioritiesList';
-IncidentPrioritiesList.propTypes = {
+IncidentPrioritiesListClass.displayName = 'IncidentPrioritiesList';
+IncidentPrioritiesListClass.propTypes = {
     incidentPrioritiesList: PropTypes.array.isRequired,
     handleEditIncidentPriority: PropTypes.func.isRequired,
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
+    selectedIncidentPriority: PropTypes.string.isRequired,
 };
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(
+        {
+            openModal,
+        },
+        dispatch
+    );
+
+export const IncidentPrioritiesList = connect(
+    null,
+    mapDispatchToProps
+)(IncidentPrioritiesListClass);

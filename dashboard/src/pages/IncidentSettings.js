@@ -148,6 +148,10 @@ class IncidentSettings extends React.Component {
                                             incidentPrioritiesList={
                                                 this.props.incidentPriorities
                                             }
+                                            selectedIncidentPriority={
+                                                this.props
+                                                    .selectedIncidentPriority
+                                            }
                                             handleEditIncidentPriority={id =>
                                                 this.handleEditIncidentPriority(
                                                     id
@@ -260,6 +264,7 @@ IncidentSettings.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
+    selectedIncidentPriority: PropTypes.string.isRequired,
 };
 const mapStateToProps = state => {
     return {
@@ -267,6 +272,8 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
+        selectedIncidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
     };
 };
 const mapDispatchToProps = dispatch =>
