@@ -196,7 +196,7 @@ class IncidentLog extends React.Component {
                             name={componentName}
                         />
                     </ShouldRender>
-                    <BreadCrumbItem route={pathname} name="Incident Log" />
+                    <BreadCrumbItem route={pathname} name="Incidents" />
                     <div>
                         <div>
                             <div className="db-RadarRulesLists-page">

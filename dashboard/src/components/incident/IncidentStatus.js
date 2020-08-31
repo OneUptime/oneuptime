@@ -110,6 +110,21 @@ export class IncidentStatus extends Component {
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject._id
             : '';
+        const monitorRoute = this.props.currentProject
+            ? '/dashboard/project/' +
+              projectId +
+              '/' +
+              componentId +
+              '/monitoring'
+            : '';
+        const incidentRoute = this.props.currentProject
+            ? '/dashboard/project/' +
+              projectId +
+              '/' +
+              componentId +
+              '/incidents/' +
+              this.props.incident._id
+            : '';
 
         return (
             <div
@@ -139,23 +154,35 @@ export class IncidentStatus extends Component {
                                 className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
                                 style={{ marginTop: '-20px' }}
                             >
-                                <button
-                                    className="bs-Button bs-Button--icon bs-Button--more"
-                                    id={`${monitorName}_ViewIncidentDetails`}
-                                    type="button"
-                                    onClick={() => {
-                                        history.push(
-                                            `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
-                                        );
-                                    }}
+                                <ShouldRender
+                                    if={
+                                        this.props.route &&
+                                        !(this.props.route === incidentRoute)
+                                    }
                                 >
-                                    <span>View Incident</span>
-                                </button>
+                                    <button
+                                        className="bs-Button bs-Button--icon bs-Button--more"
+                                        id={`${monitorName}_ViewIncidentDetails`}
+                                        type="button"
+                                        onClick={() => {
+                                            history.push(
+                                                `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                            );
+                                        }}
+                                    >
+                                        <span>View Incident</span>
+                                    </button>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         !this.props.route ||
                                         (this.props.route &&
-                                            !(this.props.route === homeRoute))
+                                            !(
+                                                this.props.route ===
+                                                    homeRoute ||
+                                                this.props.route ===
+                                                    monitorRoute
+                                            ))
                                     }
                                 >
                                     <button
@@ -232,11 +259,9 @@ export class IncidentStatus extends Component {
                                                         <Link
                                                             to={
                                                                 '/dashboard/project/' +
-                                                                this.props
-                                                                    .projectId +
+                                                                projectId +
                                                                 '/' +
-                                                                this.props
-                                                                    .componentId +
+                                                                componentId +
                                                                 '/monitoring/' +
                                                                 this.props
                                                                     .incident

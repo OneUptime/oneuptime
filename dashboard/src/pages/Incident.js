@@ -235,7 +235,11 @@ class Incident extends React.Component {
         if (this.props.incident) {
             variable = (
                 <div>
-                    <IncidentStatus incident={this.props.incident} count={0} />
+                    <IncidentStatus
+                        incident={this.props.incident}
+                        count={0}
+                        route={pathname}
+                    />
                     <IncidentAlert
                         next={this.nextAlerts}
                         previous={this.previousAlerts}

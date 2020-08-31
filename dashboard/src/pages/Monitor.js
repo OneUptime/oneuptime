@@ -132,6 +132,13 @@ class DashboardView extends Component {
 
     render() {
         let incidentslist = null;
+        const {
+            componentId,
+            subProjects,
+            currentProject,
+            location: { pathname },
+            component,
+        } = this.props;
 
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -165,19 +172,12 @@ class DashboardView extends Component {
                                 count={i}
                                 incident={incident}
                                 multiple={true}
+                                route={pathname}
                             />
                         </RenderIfUserInSubProject>
                     );
                 });
         }
-
-        const {
-            componentId,
-            subProjects,
-            currentProject,
-            location: { pathname },
-            component,
-        } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
         // SubProject Monitors List

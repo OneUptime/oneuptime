@@ -224,7 +224,7 @@ export const groups = [
                 shortcut: 'f+c',
             },
             {
-                title: 'Incident Logs',
+                title: 'Incidents',
                 path: '/dashboard/project/:projectId/incidents',
                 icon: 'info',
                 visible: true,
