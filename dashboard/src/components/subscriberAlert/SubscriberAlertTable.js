@@ -251,6 +251,27 @@ class SubscriberAlertTableRowsClass extends React.Component {
                   <tr
                       key={`alert ${index}`}
                       className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                      onClick={() =>
+                          this.props.openModal({
+                              id: uuid.v4(),
+                              content: DataPathHoC(AlertDetails, {
+                                  monitor: monitor ? monitor.name : 'Unknown',
+                                  subscriber: alert.subscriberId
+                                      ? alert.subscriberId.contactEmail ||
+                                        (alert.subscriberId.contactPhone &&
+                                            `+${countryTelephoneCode(
+                                                alert.subscriberId.countryCode.toUpperCase()
+                                            )}${
+                                                alert.subscriberId.contactPhone
+                                            }`) ||
+                                        alert.subscriberId.contactWebhook
+                                      : 'Unknown',
+                                  alertVia: alert.alertVia,
+                                  createdAt: alert.createdAt,
+                                  eventType: alert.eventType,
+                              }),
+                          })
+                      }
                   >
                       <TD1 text={monitor ? monitor.name : 'Unknown'} />
                       <TD2
