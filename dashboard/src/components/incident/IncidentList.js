@@ -753,6 +753,12 @@ export class IncidentList extends Component {
                                         </tr>
                                     );
                                 })
+                            ) : this.props.incidents &&
+                              (!this.props.incidents.incidents ||
+                                  !this.props.incidents.incidents.length) &&
+                              !this.props.incidents.requesting &&
+                              !this.props.incidents.error ? (
+                                <tr></tr>
                             ) : (
                                 <tr>
                                     <td

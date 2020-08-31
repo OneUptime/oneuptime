@@ -132,11 +132,13 @@ class ScheduledEventBox extends Component {
             openModal,
             fetchingMonitors,
             monitors,
+            currentProject,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
+        const projectName = currentProject ? currentProject.name : '';
 
         return (
             <div
@@ -150,7 +152,12 @@ class ScheduledEventBox extends Component {
                                 <span>Scheduled Events</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>Scheduled events for this project.</span>
+                                <span>
+                                    Scheduled events show up on status pages and
+                                    dashboard to let your team or customers know
+                                    of any planned maintenance activity you have
+                                    for {projectName}
+                                </span>
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -523,6 +530,7 @@ ScheduledEventBox.propTypes = {
     fetchMonitors: PropTypes.func,
     fetchingMonitors: PropTypes.bool,
     monitors: PropTypes.array,
+    currentProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
