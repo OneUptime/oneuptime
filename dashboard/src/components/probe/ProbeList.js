@@ -136,32 +136,23 @@ export class ProbeList extends Component {
                                             key={probesData._id}
                                             id={`probe_${index}`}
                                             onClick={() =>
-                                                (probesData.lastAlive &&
-                                                    moment(Date.now()).diff(
-                                                        moment(
-                                                            probesData.lastAlive
-                                                        ),
-                                                        'seconds'
-                                                    ) >= 300) ||
-                                                !probesData.lastAlive
-                                                    ? this.props.openModal({
-                                                          id: this.state
-                                                              .ProbeDetailModalId,
-                                                          onClose: () => '',
-                                                          content: DataPathHoC(
-                                                              ProbeDetail,
-                                                              {
-                                                                  ProbeDetailModalId: this
-                                                                      .state
-                                                                      .ProbeDetailModalId,
-                                                                  closeModal: this
-                                                                      .props
-                                                                      .closeModal,
-                                                                  probesData,
-                                                              }
-                                                          ),
-                                                      })
-                                                    : null
+                                                this.props.openModal({
+                                                    id: this.state
+                                                        .ProbeDetailModalId,
+                                                    onClose: () => '',
+                                                    content: DataPathHoC(
+                                                        ProbeDetail,
+                                                        {
+                                                            ProbeDetailModalId: this
+                                                                .state
+                                                                .ProbeDetailModalId,
+                                                            closeModal: this
+                                                                .props
+                                                                .closeModal,
+                                                            probesData,
+                                                        }
+                                                    ),
+                                                })
                                             }
                                         >
                                             <td
