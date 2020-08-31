@@ -58,6 +58,9 @@ class Home extends Component {
             );
             this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
+        if (prevProps.currentProjectId !== this.props.currentProjectId) {
+            this.props.subProjectTeamLoading(this.props.currentProjectId);
+        }
     }
     getDescription(type) {
         return tutorials.getTutorials().filter(note => note.id === type);
@@ -324,8 +327,13 @@ class Home extends Component {
                                                                         <div>
                                                                             {/* No Component Notifier */}
                                                                             <QuickTipBox
-                                                                                header="Create your first Component"
-                                                                                title="Create your first component."
+                                                                                id={
+                                                                                    this.getDescription(
+                                                                                        'component'
+                                                                                    )[0]
+                                                                                        .id
+                                                                                }
+                                                                                title="Create your first Component"
                                                                                 icon={
                                                                                     this.getDescription(
                                                                                         'component'
@@ -374,7 +382,12 @@ class Home extends Component {
                                                                         <div>
                                                                             {/* No Monitor Notifier */}
                                                                             <QuickTipBox
-                                                                                header="Create a Monitor"
+                                                                                id={
+                                                                                    this.getDescription(
+                                                                                        'monitor'
+                                                                                    )[0]
+                                                                                        .id
+                                                                                }
                                                                                 title="Create a Monitor"
                                                                                 icon={
                                                                                     this.getDescription(
@@ -432,7 +445,12 @@ class Home extends Component {
                                                                             }
                                                                         >
                                                                             <QuickTipBox
-                                                                                header="Invite your Team"
+                                                                                id={
+                                                                                    this.getDescription(
+                                                                                        'teamMember'
+                                                                                    )[0]
+                                                                                        .id
+                                                                                }
                                                                                 title="Invite your Team"
                                                                                 icon={
                                                                                     this.getDescription(
