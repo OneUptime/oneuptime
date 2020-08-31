@@ -1085,12 +1085,13 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                let sendResult;
+                let sendResult, eventType;
                 const smsTemplate = await SmsTemplateService.findOneBy({
                     projectId: incident.projectId,
                     smsType: templateType,
                 });
                 if (templateType === 'Subscriber Incident Acknowldeged') {
+                    eventType = 'acknowledged';
                     sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
                         date,
                         subscriber.monitorName,
@@ -1102,6 +1103,7 @@ module.exports = {
                         component.name
                     );
                 } else if (templateType === 'Subscriber Incident Resolved') {
+                    eventType = 'resolved';
                     sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
                         date,
                         subscriber.monitorName,
@@ -1113,6 +1115,7 @@ module.exports = {
                         component.name
                     );
                 } else {
+                    eventType = 'identified';
                     sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
                         date,
                         subscriber.monitorName,
@@ -1131,6 +1134,7 @@ module.exports = {
                         subscriberId: subscriber._id,
                         alertVia: AlertType.SMS,
                         alertStatus: null,
+                        eventType,
                         error: true,
                         errorMessage: sendResult.message,
                     });
@@ -1141,6 +1145,7 @@ module.exports = {
                         subscriberId: subscriber._id,
                         alertVia: AlertType.SMS,
                         alertStatus: 'Success',
+                        eventType,
                     });
                 }
             }
