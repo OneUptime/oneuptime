@@ -18,9 +18,11 @@ describe('Enterprise Backend API', () => {
         await page.goto(utils.BACKEND_URL, {
             waitUntil: 'networkidle0',
         });
-        const response = await page.$eval('body > p', e => {
+        const response = await page.$eval('body > pre', e => {
             return e.innerHTML;
         });
-        expect(response).toBe('Status: 200');
+        expect(response).toBe(
+            '{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}'
+        );
     });
 });

@@ -270,7 +270,7 @@ module.exports = {
                 monitorId: data.monitorId,
                 incidentType: data.status,
                 resolved: false,
-                manuallyCreated:false,
+                manuallyCreated: false,
             });
             let incidentIds = [];
 
@@ -427,7 +427,7 @@ module.exports = {
                 monitorId: data.monitorId,
                 incidentType: lastStatus,
                 resolved: false,
-                manuallyCreated:false,
+                manuallyCreated: false,
             });
             const incidentsV1 = [];
             const incidentsV2 = [];

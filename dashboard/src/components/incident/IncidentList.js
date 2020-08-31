@@ -901,7 +901,6 @@ IncidentList.propTypes = {
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
-    componentId: PropTypes.string,
     isFiltered: PropTypes.bool,
 };
 
