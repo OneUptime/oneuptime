@@ -5,7 +5,7 @@ module.exports = {
         await GlobalConfigService.create({
             name: 'smtp',
             value: {
-                'email-enabled': true,
+                'email-enabled': false,
                 email: 'ibukun.o.dairo@gmail.com',
                 password: 'ZEC1kY9xFN6aVf3j',
                 'from-name': 'Fyipe <ibukun.o.dairo@gmail.com>',
