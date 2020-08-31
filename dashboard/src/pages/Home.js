@@ -39,8 +39,8 @@ class Home extends Component {
             );
             this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
         }
-        if (this.props.currentProject) {
-            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        if (this.props.currentProjectId) {
+            this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
 
@@ -360,7 +360,7 @@ class Home extends Component {
                                                                                         </div>
                                                                                     </div>
                                                                                 }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
                                                                                 callToAction="Create Component"
                                                                             />
                                                                         </div>
@@ -410,7 +410,7 @@ class Home extends Component {
                                                                                         </div>
                                                                                     </div>
                                                                                 }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/components`}
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
                                                                                 callToAction="Create Monitor"
                                                                             />
                                                                         </div>
@@ -418,13 +418,7 @@ class Home extends Component {
 
                                                                     {/* Here, check if atleast organization has just 1 member before rendering */}
 
-                                                                    <RenderIfOwnerOrAdmin
-                                                                        currentProject={
-                                                                            this
-                                                                                .props
-                                                                                .currentProject
-                                                                        }
-                                                                    >
+                                                                    <RenderIfOwnerOrAdmin>
                                                                         <ShouldRender
                                                                             if={
                                                                                 this
@@ -478,7 +472,7 @@ class Home extends Component {
                                                                                         </div>
                                                                                     </div>
                                                                                 }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProject?._id}/team`}
+                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/team`}
                                                                                 callToAction="Invite Team Member"
                                                                             />
                                                                         </ShouldRender>
@@ -588,7 +582,6 @@ Home.propTypes = {
     ]),
     fetchOngoingScheduledEvents: PropTypes.func,
     ongoingScheduledEvent: PropTypes.object,
-    currentProject: PropTypes.object,
     projectTeamMembers: PropTypes.array,
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,
@@ -614,6 +607,7 @@ const mapStateToProps = (state, props) => {
         );
         return subProjectTeamMember;
     });
+
     return {
         currentProjectId: projectId,
         user: state.profileSettings.profileSetting.data,
@@ -621,7 +615,6 @@ const mapStateToProps = (state, props) => {
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
         ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
-        currentProject: state.project.currentProject,
         projectTeamMembers,
         components,
         monitors,
