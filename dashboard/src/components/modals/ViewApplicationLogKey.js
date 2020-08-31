@@ -60,9 +60,9 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--8 Padding-vertical--4">
                                     <p>
                                         <span>
-                                            Use your Log API ID and Log
-                                            API Key to log requests from
-                                            your apps to your Fyipe Dashboard
+                                            Use your Log API ID and Log API Key
+                                            to log requests from your apps to
+                                            your Fyipe Dashboard
                                         </span>
                                     </p>
                                 </div>
@@ -178,11 +178,11 @@ class ViewApplicationLogKey extends Component {
                                             <div className="bs-Fieldset-row">
                                                 <p>
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Resetting the Log
-                                                        API Key will break
-                                                        all your existing
-                                                        integrations with the
-                                                        Fyipe Logger Library
+                                                        Resetting the Log API
+                                                        Key will break all your
+                                                        existing integrations
+                                                        with the Fyipe Logger
+                                                        Library
                                                     </span>
                                                 </p>
                                             </div>
