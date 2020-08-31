@@ -33,10 +33,8 @@ import { UploadFile } from '../basic/UploadFile';
 import TimezoneSelector from '../basic/TimezoneSelector';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import 'react-phone-number-input/style.css';
-import PhoneInput from 'react-phone-number-input';
-import flags from 'react-phone-number-input/flags';
-import labels from 'react-phone-number-input/locale/en.json';
+import ReactPhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -44,9 +42,6 @@ import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import TwoFactorAuthModal from '../modals/TwoFactorAuth';
 import BackupCodesModal from '../modals/BackupCodes';
-import CountrySelect from '../basic/CountrySelect';
-import InputField from '../basic/InputField';
-import Icon from '../basic/Icon';
 
 const selector = formValueSelector('Profile');
 
@@ -90,7 +85,8 @@ function validate(values) {
 
 export class ProfileSetting extends Component {
     handleOnChange = value => {
-        this.props.setAlertPhoneNumber(value);
+        const internationalNumber = value.startsWith('+') ? value : '+' + value;
+        this.props.setAlertPhoneNumber(internationalNumber);
     };
 
     ref = React.createRef();
@@ -617,13 +613,10 @@ export class ProfileSetting extends Component {
                                                     className="bs-Fieldset-fields"
                                                     style={{ flex: 'unset' }}
                                                 >
-                                                    <PhoneInput
-                                                        international
-                                                        defaultCountry="US"
+                                                    <ReactPhoneInput
+                                                        defaultCountry="us"
                                                         value={
-                                                            this.props
-                                                                .profileSettingState
-                                                                .alertPhoneNumber
+                                                            profileSettingState.alertPhoneNumber
                                                         }
                                                         onChange={
                                                             this.handleOnChange
@@ -631,16 +624,6 @@ export class ProfileSetting extends Component {
                                                         disabled={
                                                             profileSettings &&
                                                             profileSettings.requesting
-                                                        }
-                                                        flags={flags}
-                                                        countrySelectComponent={
-                                                            CountrySelect
-                                                        }
-                                                        flagComponent={Icon}
-                                                        labels={labels}
-                                                        ref={this.ref}
-                                                        inputComponent={
-                                                            InputField
                                                         }
                                                     />
                                                 </div>
