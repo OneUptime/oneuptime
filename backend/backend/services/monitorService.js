@@ -409,19 +409,117 @@ module.exports = {
         }
     },
 
-    async getProbeMonitors(date) {
+    async getProbeMonitors(probeId, date) {
         try {
             const newdate = new Date();
             const monitors = await MonitorModel.find({
-                pollTime: { $lt: date },
-                deleted: false,
+                $and: [
+                    {
+                        deleted: false,
+                        scriptRunStatus: { $nin: ['inProgress'] },
+                    },
+                    {
+                        $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['server-monitor', 'script'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                pollTime: { $size: 0 },
+                                            },
+                                            {
+                                                //Avoid monitors that has been pinged during the last interval of time.
+                                                pollTime: {
+                                                    $not: {
+                                                        $elemMatch: {
+                                                            date: {
+                                                                $gt: date,
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['url', 'device', 'api'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                pollTime: {
+                                                    $elemMatch: {
+                                                        probeId,
+                                                        date: { $lt: date },
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                //pollTime doesn't include the probeId yet.
+                                                pollTime: {
+                                                    $not: {
+                                                        $elemMatch: {
+                                                            probeId,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
             });
+
             if (monitors && monitors.length) {
-                await MonitorModel.update(
-                    { pollTime: { $lt: date }, deleted: false },
-                    { $set: { pollTime: newdate } },
-                    { multi: true }
-                );
+                await monitors.map(async m => {
+                    if (m.type === 'script') {
+                        await MonitorModel.update(
+                            { _id: m._id, deleted: false },
+                            { $set: { scriptRunStatus: 'inProgress' } },
+                            { multi: true }
+                        );
+                    }
+                    return m;
+                });
+                for (const monitor of monitors) {
+                    if (
+                        monitor.pollTime.length === 0 ||
+                        !monitor.pollTime.some(
+                            pt => String(pt.probeId) === String(probeId)
+                        )
+                    ) {
+                        await MonitorModel.update(
+                            { _id: monitor._id },
+                            { $push: { pollTime: { probeId, date: newdate } } }
+                        );
+                    } else {
+                        await MonitorModel.update(
+                            {
+                                _id: monitor._id,
+                                pollTime: {
+                                    $elemMatch: {
+                                        probeId,
+                                    },
+                                },
+                            },
+                            { $set: { 'pollTime.$.date': newdate } }
+                        );
+                    }
+                }
                 return monitors;
             } else {
                 return [];

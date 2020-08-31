@@ -115,7 +115,6 @@ module.exports = {
     addComponent: async function(component, page, projectName = null) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#components', { visible: true });
-
         await page.click('#components');
 
         // Fill and submit New Component form
@@ -133,6 +132,8 @@ module.exports = {
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
 
         // Navigate to details page of component assumed created
         await page.waitForSelector(`#more-details-${component}`);
@@ -157,10 +158,10 @@ module.exports = {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
-        // then goto list of application logs
+        // then goto list of log containers
         await page.click('#logs');
 
-        // Navigate to details page of application log assumed created
+        // Navigate to details page of log container assumed created
         await page.waitForSelector(`#more-details-${applicationLog}`);
         await page.click(`#more-details-${applicationLog}`);
         await page.waitForSelector(`#application-log-title-${applicationLog}`);
@@ -308,7 +309,7 @@ module.exports = {
         } else {
             await page.keyboard.press('Enter');
         }
-        await page.waitFor(5000);
+        await page.waitFor(1000);
     },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await this.addComponent(component, page));
@@ -369,6 +370,21 @@ module.exports = {
             await page.waitFor(5000);
         }
     },
+    addIncidentPriority: async function(incidentPriority, page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle0',
+        });
+        await page.waitForSelector('#projectSettings');
+        await page.click('#projectSettings');
+        await page.waitForSelector('#incidentSettings');
+        await page.click('#incidentSettings');
+        await page.waitForSelector('#addNewPriority');
+        await page.click('#addNewPriority');
+        await page.waitForSelector('#CreateIncidentPriority');
+        await page.type('input[name=name]', incidentPriority);
+        await page.click('#CreateIncidentPriority');
+        await page.waitFor(3000);
+    },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
@@ -408,28 +424,45 @@ module.exports = {
             await page.click('#btnCreateSchedule');
         }
     },
-    addScheduledEvent: async function(eventName, eventDescription, page) {
-        const addButtonSelector = '#addScheduledEventButton';
-        await page.click(addButtonSelector);
+    addScheduledEvent: async function(monitorName, scheduledEventName, page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#scheduledEvents', {
+            visible: true,
+        });
+        await page.click('#scheduledEvents');
+        await page.waitForSelector('#addScheduledEventButton', {
+            visible: true,
+        });
+        await page.click('#addScheduledEventButton');
 
+        await page.waitForSelector('#scheduledEventForm', {
+            visible: true,
+        });
+        await page.waitForSelector('#name');
+        await page.click('#name');
+        await page.type('#name', scheduledEventName);
+        if (monitorName) {
+            await page.click('label[for=selectAllMonitorsBox]');
+            await page.click('#addMoreMonitor');
+            await page.waitForSelector('#monitorfield_0');
+            await this.selectByText('#monitorfield_0', monitorName, page);
+        }
+        await page.click('#description');
+        await page.type(
+            '#description',
+            'This is an example description for a test'
+        );
         await page.waitForSelector('input[name=startDate]');
         await page.click('input[name=startDate]');
-        await page.click(
-            'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-        );
-        await page.waitFor(5000);
+        await page.click('div.MuiDialogActions-root button:nth-child(2)');
+        await page.waitFor(1000); // needed because of the date picker
         await page.click('input[name=endDate]');
-        await page.click(
-            'div > div:nth-child(3) > div > div:nth-child(2) button:nth-child(2)'
-        );
-
-        await page.type('input[name=name]', eventName);
-        await page.type('textarea[name=description]', eventDescription);
-
-        await page.evaluate(() => {
-            document.querySelector('input[name=showEventOnStatusPage]').click();
-        });
+        await page.click('div.MuiDialogActions-root button:nth-child(2)');
+        await page.waitFor(1000); // needed because of the date picker
         await page.click('#createScheduledEventButton');
+        await page.waitForSelector('.ball-beat', {
+            hidden: true,
+        });
     },
     filterRequest: async (request, response) => {
         if ((await request.url()).match(/user\/login/)) {
@@ -528,5 +561,59 @@ module.exports = {
             await page.click('#btnCreateProject'),
             await page.waitForNavigation({ waitUntil: 'networkidle0' }),
         ]);
+    },
+    addScheduledEventNote: async function(
+        page,
+        type,
+        eventBtn,
+        noteDescription,
+        incidentState = 'update'
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#scheduledEvents', {
+            visible: true,
+        });
+        await page.click('#scheduledEvents');
+
+        await page.waitForSelector(`#${eventBtn}`, {
+            visible: true,
+        });
+        await page.click(`#${eventBtn}`);
+        await page.waitForSelector(`#add-${type}-message`, {
+            visible: true,
+        });
+        await page.click(`#add-${type}-message`);
+        await page.waitForSelector('#incident_state', {
+            visible: true,
+        });
+        await this.selectByText('#incident_state', incidentState, page);
+        await page.click('#new-investigation');
+        await page.type('#new-investigation', noteDescription);
+        await page.click('#investigation-addButton');
+        await page.waitForSelector('#form-new-schedule-investigation-message', {
+            hidden: true,
+        });
+    },
+    addIncident: async function(monitorName, incidentType, page) {
+        await page.waitForSelector(`button[id=create_incident_${monitorName}]`);
+        await page.click(`button[id=create_incident_${monitorName}]`);
+        await page.waitForSelector('button[id=createIncident]');
+        await this.selectByText('#incidentType', incidentType, page);
+        await page.waitForSelector('input[id=title]');
+        await page.type('input[id=title]', incidentType);
+        await page.click('button[id=createIncident]');
+        await page.waitFor(5000);
+    },
+    addMonitorIncident: async function(monitorName, incidentType, page) {
+        await page.waitForSelector(
+            `button[id=monitorCreateIncident_${monitorName}]`
+        );
+        await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
+        await page.waitForSelector('button[id=createIncident]');
+        await this.selectByText('#incidentType', incidentType, page);
+        await page.waitForSelector('input[id=title]');
+        await page.type('input[id=title]', incidentType);
+        await page.click('button[id=createIncident]');
+        await page.waitFor(5000);
     },
 };

@@ -18,7 +18,7 @@ import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, User } from '../config';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
@@ -111,7 +111,8 @@ export class DashboardApp extends Component {
             notification =>
                 notification.read.length === 0 &&
                 notification.meta &&
-                notification.meta.type === 'Incident'
+                notification.meta.type === 'Incident' &&
+                !notification.closed.includes(User.getUserId())
         );
 
         return (
@@ -165,8 +166,10 @@ export class DashboardApp extends Component {
                                     />
                                 </ShouldRender>
 
-                                <div className="db-World-mainPane Box-root Padding-right--20">
-                                    {children}
+                                <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
+                                    <div className="db-World-contentPane Box-root Padding-bottom--48">
+                                        {children}
+                                    </div>
                                 </div>
 
                                 <TopNav />

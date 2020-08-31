@@ -37,6 +37,9 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         const monitorId = req.params.monitorId;
         const projectId = req.params.projectId;
         const incidentType = req.body.incidentType;
+        const incidentPriority = req.body.incidentPriority;
+        const title = req.body.title;
+        const description = req.body.description;
         const userId = req.user ? req.user.id : null;
         let oldIncidentsCount = null;
 
@@ -68,6 +71,13 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             });
         }
 
+        if (!title) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Title must be present.',
+            });
+        }
+
         if (incidentType) {
             if (!['offline', 'online', 'degraded'].includes(incidentType)) {
                 return sendErrorResponse(req, res, {
@@ -81,6 +91,12 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
                 incidentType,
                 resolved: false,
                 deleted: false,
+                manuallyCreated: true,
+            });
+        } else {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'IncidentType must be present.',
             });
         }
 
@@ -97,6 +113,9 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
             createdById: userId,
             manuallyCreated: true,
             incidentType,
+            title,
+            description,
+            incidentPriority,
         });
         await MonitorStatusService.create({
             monitorId,
@@ -316,79 +335,47 @@ router.post(
     }
 );
 
-// Routes
-// Description: Updating internal and investigation notes.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId, internalNote, investigationNote}
-// Returns: 200: incident, 400: Error; 500: Server Error.
+// update incident details
+// title, description, priority and type
 router.put(
-    '/:projectId/incident/:incidentId',
+    '/:projectId/incident/:incidentId/details',
     getUser,
     isAuthorized,
     async function(req, res) {
+        const projectId = req.params.projectId;
+        const incidentId = req.params.incidentId;
+        const { title, description, incidentPriority } = req.body;
+
+        const query = {
+            title,
+            description,
+            incidentPriority,
+        };
+
+        if (!incidentId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'incidentId must be set.',
+            });
+        }
         try {
-            const data = req.body;
-            const incidentId = req.params.incidentId;
-
-            if (data.internalNote && typeof data.internalNote !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Internal Note is not in string type.',
-                });
-            }
-
-            if (
-                data.investigationNote &&
-                typeof data.investigationNote !== 'string'
-            ) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Investigation note is not in string type.',
-                });
-            }
-            // Call the IncidentService
-            let incident = await IncidentService.findOneBy({ _id: incidentId });
-
-            if (incident && incident._id) {
-                const status =
-                    (data.internalNote &&
-                        (!incident.internalNote ||
-                            (incident.internalNote &&
-                                incident.internalNote === ''))) ||
-                    (data.investigationNote &&
-                        (!incident.investigationNote ||
-                            (incident.investigationNote &&
-                                incident.investigationNote === '')))
-                        ? `${
-                              data.internalNote ? 'internal' : 'investigation'
-                          } notes added`
-                        : `${
-                              data.internalNote ? 'internal' : 'investigation'
-                          } notes updated`;
-
-                incident = await IncidentService.updateOneBy(
-                    { _id: incident._id },
-                    data
-                );
-                await IncidentTimelineService.create({
-                    incidentId: incident._id,
-                    createdById: req.user.id,
-                    status,
-                });
-
-                incident = await IncidentService.findOneBy({
-                    _id: incident._id,
-                    projectId: incident.projectId,
-                });
-                await RealTimeService.updateIncidentNote(incident);
-            }
+            await IncidentService.updateOneBy(
+                {
+                    projectId,
+                    _id: incidentId,
+                },
+                query
+            );
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
-
 router.post(
     '/:projectId/incident/:incidentId/message',
     getUser,
@@ -500,6 +487,7 @@ router.post(
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
                     createdById: req.user.id,
+                    incident_state: data.incident_state,
                     status,
                 });
 
@@ -507,7 +495,6 @@ router.post(
                     _id: incidentMessage._id,
                     incidentId: incidentMessage.incidentId,
                 });
-                await RealTimeService.updateIncidentNote(incident);
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
@@ -521,27 +508,24 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
+            const { incidentId, incidentMessageId } = req.params;
             const incidentMessage = await IncidentMessageService.deleteBy(
                 {
-                    _id: req.params.incidentMessageId,
-                    incidentId: req.params.incidentId,
+                    _id: incidentMessageId,
+                    incidentId,
                 },
                 req.user.id
             );
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
-
-                const incident = IncidentService.findOneBy({
-                    _id: incidentMessage.incidentId._id,
-                });
                 // update timeline
                 await IncidentTimelineService.create({
-                    incidentId: incident._id,
+                    incidentId,
                     createdById: req.user.id,
                     status,
                 });
 
-                await RealTimeService.deleteIncidentNote(incident);
+                await RealTimeService.deleteIncidentNote(incidentMessage);
                 return sendItemResponse(req, res, incidentMessage);
             } else {
                 return sendErrorResponse(req, res, {
@@ -592,6 +576,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
+            await RealTimeService.deleteIncident(incident);
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {

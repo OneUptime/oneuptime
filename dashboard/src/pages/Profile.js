@@ -14,23 +14,24 @@ const Profile = props => {
     return (
         <Dashboard>
             <Fade>
-                <div className="db-World-contentPane Box-root Padding-bottom--48 Padding-top--78">
-                    <BreadCrumbItem route={pathname} name="Profile Settings" />
-                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                <BreadCrumbItem route={pathname} name="Profile Settings" />
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span data-reactroot="">
+                        <div className="db-RadarRulesLists-page bs-ContentSection">
+                            <div className="react-settings-view react-view">
+                                <span data-reactroot="">
+                                    <div>
                                         <div>
-                                            <div>
-                                                <div className="Margin-vertical--12">
-                                                    <ProfileSetting />
-                                                </div>
+                                            <div
+                                                id="profileSettingPage"
+                                                className="Margin-vertical--12"
+                                            >
+                                                <ProfileSetting />
                                             </div>
                                         </div>
-                                    </span>
-                                </div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>

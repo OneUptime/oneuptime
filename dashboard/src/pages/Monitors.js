@@ -39,7 +39,10 @@ class Monitors extends Component {
                     <BreadCrumbItem route={pathname} name="Monitors" />
                     <div className="Margin-vertical--12">
                         <div>
-                            <div className="db-BackboneViewContainer">
+                            <div
+                                id="monitorCategories"
+                                className="db-BackboneViewContainer"
+                            >
                                 <div className="react-settings-view react-view">
                                     <span>
                                         <div>

@@ -22,6 +22,12 @@ module.exports = {
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('probes.probeId', 'probeName')
+                .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -41,19 +47,54 @@ module.exports = {
                 project && project.users && project.users.length
                     ? project.users.map(({ userId }) => userId)
                     : [];
-            const monitorCount = await MonitorService.countBy({
+            const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
 
-            if (monitorCount > 0) {
+            if (monitor) {
                 let incident = new IncidentModel();
+                const incidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                });
+                const deletedIncidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                });
 
                 incident.projectId = data.projectId || null;
                 incident.monitorId = data.monitorId || null;
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
+                incident.incidentPriority = data.incidentPriority;
                 incident.manuallyCreated = data.manuallyCreated || false;
+                incident.idNumber =
+                    incidentsCountInProject + deletedIncidentsCountInProject;
+
+                const incidentSettings = data.probeId
+                    ? await IncidentSettingsService.findOne({
+                          projectId: data.projectId,
+                      })
+                    : {
+                          title: data.title,
+                          description: data.description,
+                      };
+
+                const templatesInput = {
+                    incidentType: data.incidentType,
+                    monitorName: monitor.name,
+                    projectName: project.name,
+                    time: Moment().format('h:mm:ss a'),
+                    date: Moment().format('MMM Do YYYY'),
+                };
+                const titleTemplate = Handlebars.compile(
+                    incidentSettings.title
+                );
+                const descriptionTemplate = Handlebars.compile(
+                    incidentSettings.description
+                );
+                incident.title = titleTemplate(templatesInput);
+                incident.description = descriptionTemplate(templatesInput);
 
                 if (data.probeId) {
                     incident.probes = [
@@ -69,6 +110,8 @@ module.exports = {
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
+
+                await RealTimeService.sendCreatedIncident(incident);
 
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
@@ -142,7 +185,13 @@ module.exports = {
                 .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('probes.probeId', 'probeName');
+                .populate('incidentPriority', 'name color')
+                .populate('probes.probeId', 'probeName')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                });
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -170,13 +219,30 @@ module.exports = {
             data.manuallyCreated =
                 data.manuallyCreated || oldIncident.manuallyCreated || false;
 
-            const updatedIncident = await IncidentModel.findOneAndUpdate(
+            let updatedIncident = await IncidentModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
             );
+
+            updatedIncident = await updatedIncident
+                .populate('acknowledgedBy', 'name')
+                .populate('monitorId', 'name')
+                .populate('resolvedBy', 'name')
+                .populate('createdById', 'name')
+                .populate('probes.probeId', 'probeName')
+                .populate('incidentPriority', 'name color')
+                .populate({
+                    path: 'monitorId',
+                    select: '_id name',
+                    populate: { path: 'componentId', select: '_id name' },
+                })
+                .execPopulate();
+
+            RealTimeService.updateIncident(updatedIncident);
+
             return updatedIncident;
         } catch (error) {
             ErrorService.log('incidentService.updateOneBy', error);
@@ -207,7 +273,7 @@ module.exports = {
             await AlertService.sendCreatedIncident(incident);
             await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
-            await RealTimeService.sendCreatedIncident(incident);
+            // await RealTimeService.sendCreatedIncident(incident);
 
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
@@ -326,6 +392,16 @@ module.exports = {
                         acknowledgedByZapier: zapier,
                     }
                 );
+
+                // automatically create acknowledgement incident note
+                await IncidentMessageService.create({
+                    content: 'This incident has been acknowledged',
+                    incidentId,
+                    createdById: userId,
+                    type: 'investigation',
+                    incident_state: 'Acknowledged',
+                });
+
                 const downtime =
                     (new Date().getTime() -
                         new Date(incident.createdAt).getTime()) /
@@ -333,8 +409,13 @@ module.exports = {
                 let downtimestring = `${Math.ceil(downtime)} minutes`;
                 if (downtime < 1) {
                     downtimestring = 'less than a minute';
-                }
-                if (downtime > 60) {
+                } else if (downtime > 24 * 60) {
+                    downtimestring = `${Math.floor(
+                        downtime / (24 * 60)
+                    )} days ${Math.floor(
+                        (downtime % (24 * 60)) / 60
+                    )} hours ${Math.floor(downtime % 60)} minutes`;
+                } else if (downtime > 60) {
                     downtimestring = `${Math.floor(
                         downtime / 60
                     )} hours ${Math.floor(downtime % 60)} minutes`;
@@ -468,6 +549,15 @@ module.exports = {
                 });
             }
 
+            // automatically create resolved incident note
+            await IncidentMessageService.create({
+                content: 'This incident has been resolved',
+                incidentId,
+                createdById: userId,
+                type: 'investigation',
+                incident_state: 'Resolved',
+            });
+
             await IncidentTimelineService.create({
                 incidentId: incidentId,
                 createdById: userId,
@@ -566,8 +656,13 @@ module.exports = {
             let msg;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
-            }
-            if (downtime > 60) {
+            } else if (downtime > 24 * 60) {
+                downtimestring = `${Math.floor(
+                    downtime / (24 * 60)
+                )} days ${Math.floor(
+                    (downtime % (24 * 60)) / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            } else if (downtime > 60) {
                 downtimestring = `${Math.floor(
                     downtime / 60
                 )} hours ${Math.floor(downtime % 60)} minutes`;
@@ -725,3 +820,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
 const ComponentService = require('./componentService');
+const IncidentSettingsService = require('./incidentSettingsService');
+const Handlebars = require('handlebars');
+const Moment = require('moment');
+const IncidentMessageService = require('./incidentMessageService');

@@ -4,24 +4,43 @@ import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { ListLoader } from '../basic/Loader';
 import { fetchComponentResources } from '../../actions/component';
+import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
+import threatLevel from '../../utils/threatLevel';
+import StatusIndicator from '../monitor/StatusIndicator';
+import moment from 'moment';
+import IssueIndicator from '../security/IssueIndicator';
+import sortByName from '../../utils/sortByName';
 
 class ResourceTabularList extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            startDate: moment().subtract(30, 'd'),
+            endDate: moment(),
+        };
+    }
     generateUrlLink(componentResource) {
         const { currentProject, componentId } = this.props;
         const baseUrl = `/dashboard/project/${currentProject._id}/${componentId}/`;
         let route = '';
         switch (componentResource.type) {
-            case 'monitor':
+            case 'website monitor':
+            case 'device monitor':
+            case 'manual monitor':
+            case 'api monitor':
+            case 'server monitor':
+            case 'script monitor':
                 route = 'monitoring';
                 break;
-            case 'application-security':
+            case 'application security':
                 route = 'security/application';
                 break;
-            case 'container-security':
+            case 'container security':
                 route = 'security/container';
                 break;
-            case 'application-log':
+            case 'log container':
                 route = 'application-logs';
                 break;
             default:
@@ -29,8 +48,119 @@ class ResourceTabularList extends Component {
         }
         return `${baseUrl}${route}/${componentResource._id}`;
     }
+    generateResourceStatus(componentResource) {
+        let statusColor = 'slate';
+        let statusDescription = 'TBD';
+        let indicator, monitor, logs, probe;
+        let appSecurityStatus = 'no data yet',
+            monitorStatus = '';
+        const { monitors, probes, activeProbe } = this.props;
+        const { startDate, endDate } = this.state;
+        let data = null;
+        switch (componentResource.type) {
+            case 'website monitor':
+            case 'device monitor':
+            case 'manual monitor':
+            case 'api monitor':
+            case 'server monitor':
+            case 'script monitor':
+                // get monitor status
+                monitor = monitors.filter(
+                    monitor => monitor._id === componentResource._id
+                )[0];
+                // Monitor already exists in the list of monitors
+                if (monitor) {
+                    if (monitor.statuses && monitor.statuses[0]) {
+                        // Get the latest status here if the monitor is changing status elsewheree
+                        monitorStatus = monitor.statuses[0].statuses[0].status;
+                    } else {
+                        // Get the latest status here if the page is just loading
+                        probe =
+                            monitor && probes && probes.length > 0
+                                ? probes[probes.length < 2 ? 0 : activeProbe]
+                                : null;
+                        logs = filterProbeData(
+                            monitor,
+                            probe,
+                            startDate,
+                            endDate
+                        ).logs;
+                        monitorStatus = getMonitorStatus(
+                            monitor.incidents,
+                            logs
+                        );
+                    }
+                }
+
+                indicator = (
+                    <StatusIndicator
+                        status={monitorStatus}
+                        resourceName={componentResource.name}
+                    />
+                );
+                statusDescription = monitorStatus;
+                break;
+            case 'application security':
+            case 'container security':
+                // get application security status
+                data =
+                    componentResource.securityLog &&
+                    componentResource.securityLog.data
+                        ? componentResource.securityLog.data
+                        : null;
+                if (data) {
+                    appSecurityStatus = threatLevel(data.vulnerabilities);
+                    statusDescription = `${appSecurityStatus} issues`;
+                } else {
+                    statusDescription = 'No Scan Yet';
+                }
+                indicator = (
+                    <IssueIndicator
+                        status={appSecurityStatus}
+                        resourceName={componentResource.name}
+                        count={
+                            data && data.vulnerabilities
+                                ? data.vulnerabilities[appSecurityStatus]
+                                : 0
+                        }
+                    />
+                );
+                break;
+            case 'log container':
+                // get log container status
+                if (componentResource.status === 'Collecting Logs')
+                    statusColor = 'green';
+
+                statusDescription = componentResource.status;
+                indicator = (
+                    <div className="Flex-flex">
+                        <div
+                            className={`db-Badge Box-background--${statusColor}`}
+                        ></div>
+
+                        <span
+                            id={`resource_status_${componentResource.name}`}
+                            className={`Text-color--${statusColor}`}
+                        >
+                            {' '}
+                            {` ${statusDescription}`}{' '}
+                        </span>
+                    </div>
+                );
+                break;
+            default:
+                break;
+        }
+
+        return <div>{indicator}</div>;
+    }
+
     render() {
         const { componentResource } = this.props;
+        const componentResources =
+            componentResource && componentResource.componentResources
+                ? sortByName(componentResource.componentResources)
+                : [];
 
         return (
             <div>
@@ -50,6 +180,16 @@ class ResourceTabularList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '100px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Status</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -59,22 +199,8 @@ class ResourceTabularList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px', minWidth: '100px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -82,27 +208,12 @@ class ResourceTabularList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
-                                    id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                        maxWidth: '48px',
-                                        minWidth: '48px',
-                                        width: '48px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
-                                    </div>
-                                </td>
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            {componentResource &&
-                            componentResource.componentResources &&
-                            componentResource.componentResources.length > 0 ? (
-                                componentResource.componentResources.map(
+                            {componentResources &&
+                            componentResources.length > 0 ? (
+                                componentResources.map(
                                     (componentResource, i) => {
                                         return (
                                             <tr
@@ -160,54 +271,56 @@ class ResourceTabularList extends Component {
                                                 </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                >
-                                                    <div className="db-ListViewItem-link">
-                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                            <div
-                                                                className={`Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                            >
-                                                                <span
-                                                                    id={`resource_type_${componentResource.name}`}
-                                                                    className={`Badge-text Text-typeface--upper Text-color--green Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper`}
-                                                                >
-                                                                    {
-                                                                        componentResource.type
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    id="placeholder-left"
-                                                    className="Table-cell Table-cell--align--left  Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{
                                                         height: '1px',
-                                                        maxWidth: '48px',
-                                                        minWidth: '48px',
-                                                        width: '48px',
+                                                        minWidth: '100px',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
+                                                                <span
+                                                                    className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                >
+                                                                    {this.generateResourceStatus(
+                                                                        componentResource
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td
                                                     className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     style={{ height: '1px' }}
                                                 >
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <div
+                                                            className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                        >
+                                                            <span
+                                                                id={`resource_type_${componentResource.name}`}
+                                                                className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                            >
+                                                                {componentResource.type ===
+                                                                'api monitor'
+                                                                    ? 'API Monitor'
+                                                                    : componentResource.type}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--right  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell Padding-right--20"
+                                                    style={{
+                                                        height: '1px',
+                                                        minWidth: '100px',
+                                                    }}
+                                                >
                                                     <button
                                                         id={`view-resource-${componentResource.name}`}
                                                         className="bs-Button"
                                                         type="button"
-                                                        onClick={() => {
-                                                            history.push(
-                                                                this.generateUrlLink(
-                                                                    componentResource
-                                                                )
-                                                            );
-                                                        }}
                                                     >
                                                         <span>View</span>
                                                     </button>
@@ -278,13 +391,22 @@ const mapDispatchToProps = dispatch => {
     );
 };
 function mapStateToProps(state, props) {
-    let componentResource = null;
+    let componentResource,
+        monitors = [];
     if (state.component.componentResourceList) {
         componentResource =
             state.component.componentResourceList[props.componentId];
     }
+
+    state.monitor.monitorsList.monitors.map(monitor => {
+        monitors = monitors.concat(...monitor.monitors);
+        return monitor;
+    });
     return {
         componentResource,
+        monitors,
+        probes: state.probe.probes.data,
+        activeProbe: state.monitor.activeProbe,
     };
 }
 
@@ -292,6 +414,9 @@ ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
     componentId: PropTypes.string,
+    monitors: PropTypes.array,
+    probes: PropTypes.array,
+    activeProbe: PropTypes.number,
 };
 
 export default connect(

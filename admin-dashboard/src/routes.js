@@ -27,6 +27,7 @@ export const groups = [
                 icon: 'customers',
                 component: Users,
                 visible: true,
+                shortcut: 'f+u',
                 subRoutes: [
                     {
                         title: 'User',
@@ -46,6 +47,7 @@ export const groups = [
                 icon: 'projects',
                 component: Projects,
                 visible: true,
+                shortcut: 'f+p',
                 subRoutes: [
                     {
                         title: 'Project',
@@ -67,15 +69,17 @@ export const groups = [
                 visible: true,
                 subRoutes: [],
                 index: 3,
+                shortcut: 'f+b',
             },
             {
                 title: 'Audit Logs',
-                path: '/admin/auditLogs',
+                path: '/admin/audit-logs',
                 icon: 'appLog',
                 component: AuditLogs,
                 visible: true,
                 subRoutes: [],
                 index: 4,
+                shortcut: 'f+a',
             },
         ],
     },
@@ -96,6 +100,7 @@ export const groups = [
                         : Settings,
                 exact: true,
                 visible: true,
+                shortcut: 'f+s',
                 subRoutes: [
                     {
                         title: 'License',
@@ -105,6 +110,7 @@ export const groups = [
                         visible: !IS_THIRD_PARTY_BILLING && !IS_SAAS_SERVICE,
                         subRoutes: [],
                         index: 1,
+                        shortcut: 'f+l',
                     },
                     {
                         title: 'SMTP',
@@ -114,6 +120,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 2,
+                        shortcut: 'f+m',
                     },
                     {
                         title: 'Twilio',
@@ -123,6 +130,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 3,
+                        shortcut: 'f+t',
                     },
                     {
                         title: 'SSO',
@@ -132,6 +140,17 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         index: 4,
+                        shortcut: 'f+o',
+                    },
+                    {
+                        title: 'Audit Log',
+                        path: '/admin/settings/audit-logs',
+                        icon: 'appLog',
+                        component: Settings,
+                        visible: true,
+                        subRoutes: [],
+                        index: 5,
+                        shortcut: 'f+g',
                     },
                 ],
                 index: 1,
@@ -151,6 +170,7 @@ export const groups = [
                 subRoutes: [],
                 index: 1,
                 external: true,
+                shortcut: 'f+d',
             },
         ],
     },

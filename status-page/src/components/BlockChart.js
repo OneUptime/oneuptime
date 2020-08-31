@@ -58,13 +58,8 @@ class BlockChart extends Component {
         let backgroundColor;
 
         const { colors } = this.props.statusData;
-        if (
-            this.props.time &&
-            (this.props.time.downTime ||
-                this.props.time.degradedTime ||
-                this.props.time.upTime)
-        ) {
-            if (this.props.time.downTime > 1) {
+        if (this.props.time && this.props.time.status) {
+            if (this.props.time.status === 'offline') {
                 const downTimeInMinutes = Math.floor(
                     this.props.time.downTime / 60
                 );
@@ -82,7 +77,7 @@ class BlockChart extends Component {
                 need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`;
-            } else if (this.props.time.degradedTime > 1) {
+            } else if (this.props.time.status === 'degraded') {
                 const degradedTimeInMinutes = Math.floor(
                     this.props.time.degradedTime / 60
                 );
@@ -104,6 +99,7 @@ class BlockChart extends Component {
                 bar = 'bar';
                 title = moment(this.props.time.date).format('LL');
                 title1 = 'No downtime';
+                need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }

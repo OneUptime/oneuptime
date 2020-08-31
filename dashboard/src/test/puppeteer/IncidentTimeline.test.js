@@ -126,7 +126,7 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
-                    'tr.incidentListItem'
+                    '#incidentTimeline tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(2);
@@ -189,7 +189,7 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 const incidentTimelineRows = await page.$$(
-                    'tr.incidentListItem'
+                    '#incidentTimeline tr.incidentListItem'
                 );
                 const countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(6);
@@ -222,6 +222,7 @@ describe('Incident Timeline API', () => {
                 );
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
 
                 await page.waitFor(2000);
@@ -267,19 +268,15 @@ describe('Incident Timeline API', () => {
                 const type = 'investigation';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-
                 await page.waitFor(2000);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
 
-                await page.waitFor(2000);
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
-                await page.waitFor(2000);
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
+                await page.waitFor(5000);
 
                 // edit investigation message thread form
                 await page.waitForSelector(`#edit-${type}`);
@@ -313,16 +310,13 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // fill internal message thread form
-                await page.waitFor(2000);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
@@ -361,16 +355,15 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
+                await page.waitFor(5000);
 
                 // edit investigation message thread form
                 await page.waitForSelector(`#edit-${type}`);
@@ -408,21 +401,21 @@ describe('Incident Timeline API', () => {
                 const type = 'internal';
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitForSelector(`#componentResource_0`);
-                await page.click(`#componentResource_0`);
-
                 await page.waitFor(2000);
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
-
                 await page.waitFor(2000);
-                await page.waitForSelector(`#edit_${type}_incident_message_0`);
+
+                await page.waitForSelector(
+                    `#delete_${type}_incident_message_0`
+                );
                 await page.click(`#delete_${type}_incident_message_0`);
                 await page.waitFor(5000);
 
                 // click confirmation delete button
-                await page.waitForSelector(`#deleteIncidentMessage`);
-                await page.click(`#deleteIncidentMessage`);
+                await page.waitForSelector('#deleteIncidentMessage');
+                await page.click('#deleteIncidentMessage');
                 await page.waitFor(2000);
 
                 const incidentMessage = await page.$(
@@ -443,12 +436,13 @@ describe('Incident Timeline API', () => {
         return await cluster.execute(null, async ({ page }) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            await page.waitForSelector(`#componentResource_0`);
-            await page.click(`#componentResource_0`);
+            await page.waitFor(2000);
+
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
+            await page.waitFor(2000);
 
             for (let i = 0; i < 10; i++) {
                 // add internal note
@@ -461,28 +455,32 @@ describe('Incident Timeline API', () => {
                 await init.selectByText('#incident_state', 'update', page);
 
                 await page.click(`#${type}-addButton`);
-                await page.waitFor(1000);
+                await page.waitFor(2000);
             }
 
-            await page.waitForSelector('tr.incidentListItem');
-            let incidentTimelineRows = await page.$$('tr.incidentListItem');
+            await page.waitForSelector('#incidentTimeline tr.incidentListItem');
+            let incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             let countIncidentTimelines = incidentTimelineRows.length;
 
             expect(countIncidentTimelines).toEqual(10);
 
             const nextSelector = await page.$('#btnTimelineNext');
-
             await nextSelector.click();
             await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(10);
+            expect(countIncidentTimelines).toEqual(6);
 
             const prevSelector = await page.$('#btnTimelinePrev');
-
             await prevSelector.click();
             await page.waitFor(7000);
-            incidentTimelineRows = await page.$$('tr.incidentListItem');
+            incidentTimelineRows = await page.$$(
+                '#incidentTimeline tr.incidentListItem'
+            );
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(10);
         });

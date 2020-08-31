@@ -16,13 +16,14 @@ import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
 import LibraryList from '../components/application/LibraryList';
+import sortByName from '../utils/sortByName';
 
 class ApplicationLog extends Component {
     componentDidMount() {
         this.props.loadPage('Logs');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > APPLICATION LOG LIST'
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER LIST'
             );
         }
     }
@@ -45,11 +46,15 @@ class ApplicationLog extends Component {
             location: { pathname },
             component,
             componentId,
+            applicationLog: appLogs,
         } = this.props;
 
+        const applicationLogs =
+            appLogs && appLogs.applicationLogs
+                ? sortByName(appLogs.applicationLogs)
+                : [];
         const applicationLogsList =
-            this.props.applicationLog.applicationLogs &&
-            this.props.applicationLog.applicationLogs.length > 0 ? (
+            applicationLogs && applicationLogs.length > 0 ? (
                 <div
                     id={`box_${componentId}`}
                     className="Box-root Margin-vertical--12"

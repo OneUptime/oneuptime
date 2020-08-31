@@ -16,14 +16,8 @@ const AirtableService = require('../backend/services/airtableService');
 
 let token, projectId, userId, airtableId;
 const VerificationTokenModel = require('../backend/models/verificationToken');
-const payment = require('../backend/config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
-const ngrok = require('ngrok');
 
-let cardId, authorization, webhookId;
-
-const sleep = waitTimeInMs =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+let cardId, authorization;
 
 describe('Stripe payment API', function() {
     this.timeout(50000);
@@ -74,8 +68,6 @@ describe('Stripe payment API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
-        await ngrok.disconnect();
-        await stripe.webhookEndpoints.del(webhookId);
         await AirtableService.deleteUser(airtableId);
     });
 
@@ -240,33 +232,5 @@ describe('Stripe payment API', function() {
                 expect(res.body.source).not.to.be.null;
                 done();
             });
-    });
-    it('should update balance when payment intent is confirmed from the client side', async function() {
-        const ngrokURL = await ngrok.connect(3020);
-        const url = `${ngrokURL}/stripe/webHook/pi`;
-        const webhook = await stripe.webhookEndpoints.create({
-            url,
-            enabled_events: ['payment_intent.succeeded'],
-        });
-        webhookId = webhook.id;
-        if (webhook.status === 'enabled') {
-            const addBalanceRequest = await request
-                .post(`/stripe/${projectId}/addBalance`)
-                .set('Authorization', authorization)
-                .send({
-                    rechargeBalanceAmount: '100',
-                });
-            const confirmedpaymentIntent = await stripe.paymentIntents.confirm(
-                addBalanceRequest.body.id
-            );
-            if (confirmedpaymentIntent) {
-                await sleep(20000);
-                const project = await ProjectService.findOneBy({
-                    _id: projectId,
-                });
-                const { balance } = project;
-                expect(balance).to.be.equal(100);
-            }
-        }
     });
 });

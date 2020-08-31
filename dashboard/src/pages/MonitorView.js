@@ -8,13 +8,13 @@ import {
     getMonitorLogs,
     fetchLighthouseLogs,
 } from '../actions/monitor';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import MonitorViewHeader from '../components/monitor/MonitorViewHeader';
 import MonitorViewIncidentBox from '../components/monitor/MonitorViewIncidentBox';
 import MonitorViewLighthouseLogsBox from '../components/monitor/MonitorViewLighthouseLogsBox';
 import MonitorViewSubscriberBox from '../components/monitor/MonitorViewSubscriberBox';
-import MonitorAddScheduleBox from '../components/monitor/MonitorAddScheduleBox';
 import MonitorViewDeleteBox from '../components/monitor/MonitorViewDeleteBox';
 import NewMonitor from '../components/monitor/NewMonitor';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -31,6 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -83,6 +84,8 @@ class MonitorView extends React.Component {
 
     ready = () => {
         const { monitor } = this.props;
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
@@ -312,15 +315,6 @@ class MonitorView extends React.Component {
                                                                 </div>
                                                             </ShouldRender>
                                                             <div className="Box-root Margin-bottom--12">
-                                                                <MonitorAddScheduleBox
-                                                                    monitor={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
                                                                 <MonitorViewSubscriberBox
                                                                     monitorId={
                                                                         this
@@ -501,6 +495,7 @@ const mapStateToProps = (state, props) => {
         match: props.match,
         component,
         probeList: state.probe.probes,
+        currentProject: state.project.currentProject,
     };
 };
 
@@ -512,6 +507,8 @@ const mapDispatchToProps = dispatch => {
             getMonitorLogs,
             fetchLighthouseLogs,
             getProbes,
+            fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -528,13 +525,14 @@ MonitorView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.shape({
+        name: PropTypes.string,
+    }),
     getProbes: PropTypes.func.isRequired,
     probeList: PropTypes.object,
+    currentProject: PropTypes.object.isRequired,
+    fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 MonitorView.displayName = 'MonitorView';

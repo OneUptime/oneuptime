@@ -1,5 +1,5 @@
-import axios from '../node_modules/axios';
-class Logger {
+import axios from 'axios';
+class FyipeLogger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
@@ -90,4 +90,4 @@ class Logger {
         });
     }
 }
-export default Logger;
+export default FyipeLogger;

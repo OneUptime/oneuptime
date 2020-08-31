@@ -4,9 +4,15 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import AuditLogsList from '../components/auditLogs/AuditLogsList';
-import { fetchAuditLogs, searchAuditLogs } from '../actions/auditLogs';
+import {
+    fetchAuditLogs,
+    searchAuditLogs,
+    fetchAuditLogStatus,
+} from '../actions/auditLogs';
 import Dashboard from '../components/Dashboard';
-
+import { Link } from 'react-router-dom';
+import AlertPanel from '../components/basic/AlertPanel';
+import ShouldRender from '../components/basic/ShouldRender';
 class AuditLogs extends React.Component {
     constructor(props) {
         super(props);
@@ -44,6 +50,7 @@ class AuditLogs extends React.Component {
 
     ready = () => {
         this.props.fetchAuditLogs();
+        this.props.fetchAuditLogStatus();
     };
 
     onChange = e => {
@@ -55,9 +62,11 @@ class AuditLogs extends React.Component {
     };
 
     render() {
+        const { auditLogStatus } = this.props;
         return (
             <Dashboard ready={this.ready}>
                 <div
+                    id="fyipeAuditLog"
                     onKeyDown={this.handleKeyBoard}
                     className="Box-root Margin-vertical--12"
                 >
@@ -116,8 +125,38 @@ class AuditLogs extends React.Component {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                    <div></div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column">
+                                                    <ShouldRender
+                                                        if={
+                                                            auditLogStatus.data &&
+                                                            !auditLogStatus.data
+                                                                .value
+                                                        }
+                                                    >
+                                                        <AlertPanel
+                                                            className=""
+                                                            message={
+                                                                <span id="auditLogDisabled">
+                                                                    You are
+                                                                    currently
+                                                                    not storing
+                                                                    any audit
+                                                                    logs at the
+                                                                    moment.
+                                                                    Click{' '}
+                                                                    <Link
+                                                                        className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                                        to="/admin/settings/audit-logs"
+                                                                        id="auditLogSetting"
+                                                                    >
+                                                                        here
+                                                                    </Link>{' '}
+                                                                    to turn it
+                                                                    on.
+                                                                </span>
+                                                            }
+                                                        />
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                             <AuditLogsList
@@ -146,7 +185,14 @@ class AuditLogs extends React.Component {
 AuditLogs.displayName = 'AuditLogs';
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ fetchAuditLogs, searchAuditLogs }, dispatch);
+    return bindActionCreators(
+        {
+            fetchAuditLogs,
+            searchAuditLogs,
+            fetchAuditLogStatus,
+        },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
@@ -158,10 +204,13 @@ const mapStateToProps = state => {
                 ? true
                 : false
             : false;
-
+    const auditLogStatus = state.auditLogs.auditLogStatus;
+    const changeAuditLogStatus = state.auditLogs.changeAuditLogStatus;
     return {
         auditLogs,
         requesting,
+        auditLogStatus,
+        changeAuditLogStatus,
     };
 };
 
@@ -171,6 +220,8 @@ AuditLogs.propTypes = {
     requesting: PropTypes.bool,
     auditLogs: PropTypes.object,
     userId: PropTypes.string,
+    fetchAuditLogStatus: PropTypes.func.isRequired,
+    auditLogStatus: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AuditLogs);

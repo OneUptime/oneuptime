@@ -51,6 +51,7 @@ const DateTimeSelector = ({
     minDate,
     id,
     label,
+    maxDate,
 }) => {
     if (!input.value) {
         input.value = null;
@@ -69,7 +70,8 @@ const DateTimeSelector = ({
                 style={{
                     //width: '10px',
                     height: '28px',
-                    marginTop: '-15px',
+                    marginTop:
+                        style && style.marginTop ? style.marginTop : '-15px',
                     // zIndex: 1000,
                 }}
             >
@@ -95,6 +97,7 @@ const DateTimeSelector = ({
                             }}
                             style={{ ...style }}
                             minDate={minDate}
+                            maxDate={maxDate}
                         />
                     </MuiPickersUtilsProvider>
                 </MuiThemeProvider>
@@ -126,9 +129,10 @@ DateTimeSelector.propTypes = {
     style: PropTypes.object,
     meta: PropTypes.object.isRequired,
     classes: PropTypes.object,
-    minDate: PropTypes.object,
+    minDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     id: PropTypes.string,
     label: PropTypes.string,
+    maxDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 
 export default withStyles(styles)(DateTimeSelector);

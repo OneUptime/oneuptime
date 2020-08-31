@@ -9,7 +9,14 @@ deploy_staging_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
+        - npm install
+        - npm run build
         - sudo npm install -g json
+        - git config --global user.email "gitlab-runner@gitlab-shell-runner-02.com"
+        - git config --global user.name "Gitlab Runner"
+        - git init
+        - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js-staging"'
@@ -21,6 +28,8 @@ deploy_staging_log-js:
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git staging --force
         - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
@@ -37,8 +46,13 @@ deploy_production_log-js:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - cd log-js
+        - npm install
+        - npm run build
         - sudo npm install -g json
-        - git checkout -f master
+        - git init
+        - git add .
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
+        # - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
         - json -I -f package.json -e 'this.name="fyipe-log-js"'
@@ -48,6 +62,8 @@ deploy_production_log-js:
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-js.git master --force
         - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - release

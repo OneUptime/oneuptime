@@ -10,7 +10,6 @@ const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
 const GlobalConfigService = require('./globalConfigService');
-const UserModel = require('../models/user');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
@@ -245,32 +244,58 @@ const _this = {
                 componentName,
             };
             template = template(data);
-            const creds = await _this.getSettings();
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-            const options = {
-                body: template,
-                from: creds.phone,
-                to: number,
-            };
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-            let alertLimit = true;
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
 
-            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
-
-            if (alertLimit) {
+            if (customTwilioSettings) {
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to: number,
+                };
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    authToken
+                );
                 const message = await twilioClient.messages.create(options);
                 return message;
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                return error;
+                const creds = await _this.getSettings();
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    return error;
+                }
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+                let alertLimit = true;
+
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+
+                if (alertLimit) {
+                    const message = await twilioClient.messages.create(options);
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    return error;
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -305,32 +330,57 @@ const _this = {
                 componentName,
             };
             template = template(data);
-            const creds = await _this.getSettings();
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-            const options = {
-                body: template,
-                from: creds.phone,
-                to: number,
-            };
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-            let alertLimit = true;
-
-            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
-
-            if (alertLimit) {
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (customTwilioSettings) {
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to: number,
+                };
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    authToken
+                );
                 const message = await twilioClient.messages.create(options);
                 return message;
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                return error;
+                const creds = await _this.getSettings();
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    return error;
+                }
+                const options = {
+                    body: template,
+                    from: creds.phone,
+                    to: number,
+                };
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+                let alertLimit = true;
+
+                alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+
+                if (alertLimit) {
+                    const message = await twilioClient.messages.create(options);
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    return error;
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -359,7 +409,10 @@ const _this = {
             return message;
         } catch (error) {
             let err = Object.assign({}, error);
-            if (err && err.status) {
+            if (
+                (err && err.status) ||
+                error.message === 'accountSid must start with AC'
+            ) {
                 err = new Error(error.message);
                 err.code = 400;
             }
@@ -439,101 +492,95 @@ const _this = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function(to, userId, projectId) {
+    sendVerificationSMS: async function(
+        to,
+        userId,
+        projectId,
+        validationResult
+    ) {
         try {
-            const creds = await _this.getSettings();
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-
-            const alertLimit = await AlertService.checkPhoneAlertsLimit(
-                projectId
-            );
-            if (alertLimit) {
-                if (!to.startsWith('+')) {
-                    to = '+' + to;
-                }
-                const channel = 'sms';
-
-                if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
-                    error.code = 400;
-                    return error;
-                }
-
-                const verificationRequest = await twilioClient.verify
-                    .services(creds['verification-sid'])
-                    .verifications.create({ to, channel });
-
-                await SmsCountService.create(userId, to, projectId);
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
+            if (!to.startsWith('+')) {
+                to = '+' + to;
+            }
+            const alertPhoneVerificationCode = process.env.IS_TESTING
+                ? process.env.TWILIO_SMS_VERIFICATION_CODE
+                : Math.random()
+                      .toString(10)
+                      .substr(2, 6);
+            if (customTwilioSettings) {
+                const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                const options = {
+                    body: template,
+                    from: customTwilioSettings.phoneNumber,
+                    to,
+                };
+                const authToken = await EncryptDecrypt.decrypt(
+                    customTwilioSettings.authToken
+                );
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    authToken
+                );
+                await twilioClient.messages.create(options);
                 await UserService.updateOneBy(
                     { _id: userId },
-                    { tempAlertPhoneNumber: to }
+                    {
+                        tempAlertPhoneNumber: to,
+                        alertPhoneVerificationCode,
+                        alertPhoneVerificationCodeRequestTime: Date.now(),
+                    }
                 );
-                return verificationRequest;
+                return {};
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('twillioService.sendVerificationSMS', error);
-            throw error;
-        }
-    },
-    verifySMSCode: async function(to, code, userId, projectId) {
-        try {
-            const creds = await _this.getSettings();
-
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-
-            const alertLimit = await AlertService.checkPhoneAlertsLimit(
-                projectId
-            );
-            if (alertLimit) {
-                if (!to.startsWith('+')) {
-                    to = '+' + to;
+                if (!validationResult.validateResend) {
+                    throw new Error(validationResult.problem);
                 }
+                const creds = await _this.getSettings();
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
 
-                const verificationResult = await twilioClient.verify
-                    .services(creds['verification-sid'])
-                    .verificationChecks.create({ to, code });
-                if (verificationResult.status === 'pending') {
-                    const error = new Error('Incorrect code');
+                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+                if (alertLimit) {
+                    if (!creds['sms-enabled']) {
+                        const error = new Error('SMS Not Enabled');
+                        error.code = 400;
+                        throw error;
+                    }
+                    const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                    const options = {
+                        body: template,
+                        from: creds.phone,
+                        to,
+                    };
+                    await twilioClient.messages.create(options);
+                    await SmsCountService.create(userId, to, projectId);
+                    await UserService.updateOneBy(
+                        { _id: userId },
+                        {
+                            tempAlertPhoneNumber: to,
+                            alertPhoneVerificationCode,
+                            alertPhoneVerificationCodeRequestTime: Date.now(),
+                        }
+                    );
+                    return {};
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
                     error.code = 400;
                     throw error;
                 }
-                if (verificationResult.status === 'approved') {
-                    await UserModel.findByIdAndUpdate(userId, {
-                        $set: {
-                            alertPhoneNumber: to,
-                            tempAlertPhoneNumber: null,
-                        },
-                    });
-                }
-                return verificationResult;
-            } else {
-                const newError = new Error('Alerts limit reached for the day.');
-                newError.code = 400;
-                throw newError;
             }
         } catch (error) {
-            if (error.message === 'Invalid parameter: To') {
-                const invalidNumbererror = new Error('Invalid number');
-                error.code = 400;
-                throw invalidNumbererror;
-            }
-            ErrorService.log('twillioService.verifySMSCode', error);
+            ErrorService.log('twillioService.sendVerificationSMS', error);
             throw error;
         }
     },

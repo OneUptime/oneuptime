@@ -8,7 +8,7 @@ import NewIncidentMessage from '../modals/NewIncidentMessage';
 import { User } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx';
 import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
 export class IncidentMessageThread extends Component {
     render() {
@@ -46,7 +46,9 @@ export class IncidentMessageThread extends Component {
                         <button
                             className="bs-Button bs-ButtonLegacy ActionIconParent"
                             type="button"
-                            id={`add-${title.toLowerCase()}-message`}
+                            id={`add-${
+                                title.toLowerCase().split(' ')[0]
+                            }-message`}
                             onClick={() =>
                                 openModal({
                                     id: createMessageModalId,
@@ -151,7 +153,8 @@ export class IncidentMessageThread extends Component {
                                                                 }}
                                                             />
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {incidentMessage
+                                                                {incidentMessage.createdById &&
+                                                                incidentMessage
                                                                     .createdById
                                                                     .name
                                                                     ? incidentMessage
@@ -164,34 +167,39 @@ export class IncidentMessageThread extends Component {
                                                         <div className="Margin-left--30">
                                                             <span
                                                                 id={`content_${type}_incident_message_${i}`}
+                                                                style={{
+                                                                    display:
+                                                                        'block',
+                                                                }}
                                                             >
-                                                                <ReactMarkdown
-                                                                    source={
+                                                                <Markdown>
+                                                                    {
                                                                         incidentMessage.content
                                                                     }
-                                                                />
-                                                                <ShouldRender
-                                                                    if={
-                                                                        incidentMessage.updated
-                                                                    }
-                                                                >
-                                                                    <span
-                                                                        id={`edited_${type}_incident_message_${i}`}
-                                                                        className="Text-color--dark Margin-right--4"
-                                                                    >
-                                                                        (edited)
-                                                                    </span>
-                                                                </ShouldRender>
+                                                                </Markdown>
                                                             </span>
+                                                            <ShouldRender
+                                                                if={
+                                                                    incidentMessage.updated
+                                                                }
+                                                            >
+                                                                <span
+                                                                    id={`edited_${type}_incident_message_${i}`}
+                                                                    className="Text-color--dark Margin-right--4"
+                                                                >
+                                                                    (edited)
+                                                                </span>
+                                                            </ShouldRender>
                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                 <span
                                                                     style={{
                                                                         fontWeight:
                                                                             '500',
-                                                                        fontStyle:
-                                                                            'italic',
+                                                                        fontSize:
+                                                                            '11px',
                                                                     }}
                                                                 >
+                                                                    Posted on{' '}
                                                                     {currentTimeZone
                                                                         ? momentTz(
                                                                               incidentMessage.createdAt
@@ -254,9 +262,11 @@ export class IncidentMessageThread extends Component {
                                                 >
                                                     <ShouldRender
                                                         if={
+                                                            incidentMessage.createdById &&
                                                             User.getUserId() ===
-                                                            incidentMessage
-                                                                .createdById._id
+                                                                incidentMessage
+                                                                    .createdById
+                                                                    ._id
                                                         }
                                                     >
                                                         <div className="db-ListViewItem-link">
@@ -383,7 +393,9 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    id="btnTimelinePrev"
+                                    id={`btn-${
+                                        title.toLowerCase().split(' ')[0]
+                                    }-Prev`}
                                     onClick={() => {
                                         olderMessage();
                                     }}
@@ -404,7 +416,9 @@ export class IncidentMessageThread extends Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    id="btnTimelineNext"
+                                    id={`btn-${
+                                        title.toLowerCase().split(' ')[0]
+                                    }-Next`}
                                     onClick={() => {
                                         newerMessage();
                                     }}

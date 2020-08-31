@@ -51,7 +51,9 @@ app.use(function(req, res, next) {
         'Access-Control-Allow-Headers',
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
-
+    if (req.get('host').includes('cluster.local')) {
+        return next();
+    }
     // Add this to global object, and this can be used anywhere where you need backend host.
     global.apiHost = 'https://' + req.hostname + '/api';
     global.accountsHost = 'https://' + req.hostname + '/accounts';
@@ -122,6 +124,14 @@ app.use(
 );
 app.use(['/file', '/api/file'], require('./backend/api/file'));
 app.use(['/incident', '/api/incident'], require('./backend/api/incident'));
+app.use(
+    ['/incidentPriorities', '/api/incidentPriorities'],
+    require('./backend/api/incidentPriorities')
+);
+app.use(
+    ['/incidentSettings', '/api/incidentSettings'],
+    require('./backend/api/incidentSettings')
+);
 app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));

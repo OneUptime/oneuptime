@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function StatusIndicator({ status }) {
-    let statusColor;
+function StatusIndicator({ status, resourceName }) {
+    // When resource Name is passed, it renders the status with the same color
+    let statusColor, content;
 
     switch (status.toLowerCase()) {
         case 'online':
@@ -15,10 +16,29 @@ function StatusIndicator({ status }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'blue';
+            statusColor = 'slate5';
     }
+    resourceName
+        ? (content = (
+              <div className="Flex-flex">
+                  <div
+                      className={`db-Badge Box-background--${statusColor}`}
+                  ></div>
 
-    return <div className={`db-Badge Box-background--${statusColor}`}></div>;
+                  <span
+                      id={`resource_status_${resourceName}`}
+                      className={`Text-color--${statusColor}`}
+                  >
+                      {' '}
+                      {` ${status}`}{' '}
+                  </span>
+              </div>
+          ))
+        : (content = (
+              <div className={`db-Badge Box-background--${statusColor}`}></div>
+          ));
+
+    return content;
 }
 
 StatusIndicator.displayName = 'StatusIndicator';

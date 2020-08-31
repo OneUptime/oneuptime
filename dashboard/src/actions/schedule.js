@@ -618,3 +618,60 @@ export function paginate(type) {
         type === 'reset' && dispatch(paginateReset());
     };
 }
+
+export function userScheduleReset() {
+    return {
+        type: types.USER_SCHEDULE_RESET,
+    };
+}
+
+export function userScheduleRequest() {
+    return {
+        type: types.USER_SCHEDULE_REQUEST,
+    };
+}
+
+export function userScheduleSuccess(userSchedule) {
+    return {
+        type: types.USER_SCHEDULE_SUCCESS,
+        payload: userSchedule,
+    };
+}
+
+export function userScheduleError(error) {
+    return {
+        type: types.USER_SCHEDULE_FAILED,
+        payload: error,
+    };
+}
+
+export function fetchUserSchedule(projectId, userId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `schedule/${projectId}/${userId}/getescalations`
+        );
+
+        dispatch(userScheduleRequest());
+
+        promise.then(
+            function(schedule) {
+                dispatch(userScheduleSuccess(schedule.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(userScheduleError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

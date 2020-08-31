@@ -65,12 +65,21 @@ const initialState = {
         error: null,
         success: false,
     },
+    editIncident: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
     fetchIncidentTimelineRequest: false,
     incidentMessages: {},
 };
 
 export default function incident(state = initialState, action) {
-    let incidents,
+    let incident,
+        incidents,
+        unresolvedincidents,
+        index,
+        index1,
         isExistingIncident,
         failureIncidentMessage,
         requestIncidentMessage,
@@ -206,6 +215,80 @@ export default function incident(state = initialState, action) {
                 },
             });
 
+        case types.UPDATE_INCIDENT_REQUEST:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_SUCCESS:
+            incidents = Object.assign([], state.incidents.incidents);
+            index = incidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index >= 0) incidents[index] = action.payload;
+
+            if (
+                state.incident.incident &&
+                state.incident.incident._id === action.payload._id
+            )
+                incident = Object.assign({}, action.payload);
+            else Object.assign(incident, state.incident.incident);
+
+            unresolvedincidents = Object.assign(
+                [],
+                state.unresolvedincidents.incidents
+            );
+            index1 = unresolvedincidents.findIndex(
+                incident => incident._id === action.payload._id
+            );
+            if (index1 >= 0) unresolvedincidents[index1] = action.payload;
+
+            return Object.assign({}, state, {
+                incidents: {
+                    ...state.incidents,
+                    incidents,
+                },
+                incident: {
+                    ...state.incident,
+                    incident,
+                },
+                unresolvedincidents: {
+                    ...state.unresolvedincidents,
+                    incidents: unresolvedincidents,
+                },
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_FAILED:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
+        case types.UPDATE_INCIDENT_RESET:
+            return Object.assign({}, state, {
+                editIncident: {
+                    ...state.editIncident,
+                    error: null,
+                    requesting: false,
+                    success: false,
+                },
+            });
+
         case types.INCIDENT_SUCCESS:
             return Object.assign({}, state, {
                 incident: {
@@ -284,6 +367,27 @@ export default function incident(state = initialState, action) {
                 },
                 fetchIncidentTimelineRequest: false,
             });
+
+        case 'UPDATE_INCIDENT_TIMELINE': {
+            const incident = Object.assign({}, state.incident.incident);
+            if (
+                incident &&
+                incident.timeline &&
+                action.payload.incidentId === incident._id
+            ) {
+                incident.timeline = [...incident.timeline, action.payload];
+                if (incident.timeline.length > 10) incident.timeline.pop();
+                return Object.assign({}, state, {
+                    incident: {
+                        ...state.incident,
+                        incident,
+                        count: state.incident.count + 1,
+                    },
+                });
+            } else {
+                return state;
+            }
+        }
 
         case types.PROJECT_INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
@@ -541,6 +645,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -556,6 +661,13 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count: action.payload.updated
+                                ? state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count
+                                : state.incidentMessages[
+                                      action.payload.incidentId._id
+                                  ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -599,7 +711,8 @@ export default function incident(state = initialState, action) {
                 },
             });
 
-        case types.INVESTIGATION_NOTE_SUCCESS:
+        case types.INVESTIGATION_NOTE_SUCCESS: {
+            let noteFound = false;
             incidentMessages =
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
@@ -611,6 +724,7 @@ export default function incident(state = initialState, action) {
                           action.payload.type
                       ].incidentMessages.map(incidentMessage => {
                           if (incidentMessage._id === action.payload._id) {
+                              noteFound = true;
                               incidentMessage = action.payload;
                           }
                           return incidentMessage;
@@ -620,6 +734,7 @@ export default function incident(state = initialState, action) {
                               action.payload.type
                           ].incidentMessages
                       );
+            if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -635,6 +750,14 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count:
+                                noteFound || action.payload.updated
+                                    ? state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count
+                                    : state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -643,6 +766,7 @@ export default function incident(state = initialState, action) {
                     ...noteStatus,
                 },
             });
+        }
 
         case types.INVESTIGATION_NOTE_REQUEST:
             noteStatus = action.payload.updated
@@ -677,6 +801,60 @@ export default function incident(state = initialState, action) {
                     ...noteStatus,
                 },
             });
+
+        case 'ADD_INCIDENT_NOTE': {
+            let incidentFound = false;
+            let incidentMessages = [];
+            if (state.incidentMessages[action.payload.incidentId._id]) {
+                incidentMessages = [
+                    ...state.incidentMessages[action.payload.incidentId._id][
+                        action.payload.type
+                    ].incidentMessages.map(incidentMessage => {
+                        if (
+                            String(incidentMessage._id) ===
+                            String(action.payload._id)
+                        ) {
+                            incidentFound = true;
+                            return action.payload;
+                        }
+                        return incidentMessage;
+                    }),
+                ];
+
+                if (!incidentFound) {
+                    incidentMessages = [action.payload, ...incidentMessages];
+                }
+
+                return {
+                    ...state,
+                    incidentMessages: {
+                        ...state.incidentMessages,
+                        [action.payload.incidentId._id]: {
+                            ...state.incidentMessages[
+                                action.payload.incidentId._id
+                            ],
+                            [action.payload.type]: {
+                                ...state.incidentMessages[
+                                    action.payload.incidentId._id
+                                ][action.payload.type],
+                                incidentMessages,
+                                count: incidentFound
+                                    ? state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count
+                                    : state.incidentMessages[
+                                          action.payload.incidentId._id
+                                      ][action.payload.type].count + 1,
+                            },
+                        },
+                    },
+                };
+            }
+
+            return {
+                ...state,
+            };
+        }
 
         case 'INCIDENT_RESOLVED_BY_SOCKET':
             return Object.assign({}, state, {
@@ -1012,6 +1190,10 @@ export default function incident(state = initialState, action) {
                                 action.payload.incidentId
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
+                            count:
+                                state.incidentMessages[
+                                    action.payload.incidentId
+                                ][action.payload.type].count - 1,
                         },
                     },
                 },

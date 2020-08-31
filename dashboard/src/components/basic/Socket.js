@@ -17,12 +17,16 @@ import {
     incidentcreatedbysocket,
     updatemonitorlogbysocket,
     updatemonitorstatusbysocket,
+    updateincidenttimelinebysocket,
     updatelighthouselogbysocket,
     updateprobebysocket,
     addnotifications,
     teamMemberRoleUpdate,
     teamMemberCreate,
     teamMemberDelete,
+    addIncidentNote,
+    createMonitor,
+    deleteMonitor,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 
@@ -60,6 +64,9 @@ class SocketApp extends Component {
                     `updateMonitorStatus-${this.props.project._id}`
                 );
                 socket.removeListener(
+                    `updateIncidentTimeline-${this.props.project._id}`
+                );
+                socket.removeListener(
                     `updateLighthouseLog-${this.props.project._id}`
                 );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
@@ -74,6 +81,15 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `TeamMemberDelete-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `createMonitor-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteMonitor-${this.props.project._id}`
                 );
             }
             return true;
@@ -336,6 +352,30 @@ class SocketApp extends Component {
                         );
                 }
             });
+            socket.on(
+                `updateIncidentTimeline-${this.props.project._id}`,
+                function(data) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
+                              user => user.userId === loggedInUser
+                          )
+                        : false;
+                    if (isUserInProject) {
+                        thisObj.props.updateincidenttimelinebysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            subProject => subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  user => user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updateincidenttimelinebysocket(data);
+                    }
+                }
+            );
             socket.on(`updateLighthouseLog-${this.props.project._id}`, function(
                 data
             ) {
@@ -494,6 +534,21 @@ class SocketApp extends Component {
                 }
                 thisObj.props.teamMemberDelete(data.response);
             });
+            socket.on(`addIncidentNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.addIncidentNote(data);
+            });
+            socket.on(`createMonitor-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.createMonitor(data);
+            });
+            socket.on(`deleteMonitor-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteMonitor(data);
+            });
         }
         return null;
     }
@@ -529,6 +584,7 @@ const mapDispatchToProps = dispatch =>
             incidentcreatedbysocket,
             updatemonitorlogbysocket,
             updatemonitorstatusbysocket,
+            updateincidenttimelinebysocket,
             updatelighthouselogbysocket,
             updateprobebysocket,
             addnotifications,
@@ -537,6 +593,9 @@ const mapDispatchToProps = dispatch =>
             teamMemberDelete,
             openModal,
             closeModal,
+            addIncidentNote,
+            createMonitor,
+            deleteMonitor,
         },
         dispatch
     );

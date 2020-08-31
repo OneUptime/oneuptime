@@ -21,7 +21,7 @@ describe('Global Config API', function() {
     this.timeout(20000);
 
     before(function(done) {
-        this.timeout(40000);
+        this.timeout(100000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, data.user, function(err, res) {
                 const project = res.body.project;
@@ -64,7 +64,9 @@ describe('Global Config API', function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await AirtableService.deleteUser(airtableId);
         await GlobalConfigService.hardDeleteBy({
-            name: { $in: ['TestName', 'Other TestName'] },
+            name: {
+                $in: ['TestName', 'Other TestName', 'auditLogMonitoringStatus'],
+            },
         });
     });
 
@@ -162,6 +164,31 @@ describe('Global Config API', function() {
             .end(async function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('TestName');
+                done();
+            });
+    });
+    it('should retrieve global config for audit Log status', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get('/globalConfig/auditLogMonitoringStatus')
+            .set('Authorization', authorization)
+            .end(async function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.equal('auditLogMonitoringStatus');
+                expect(res.body.value).to.equal(true);
+                done();
+            });
+    });
+    it('should toggle global config for audit Log status', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post('/globalConfig')
+            .set('Authorization', authorization)
+            .send({ name: 'auditLogMonitoringStatus', value: false })
+            .end(async function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.name).to.equal('auditLogMonitoringStatus');
+                expect(res.body.value).to.equal(false);
                 done();
             });
     });

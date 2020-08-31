@@ -124,7 +124,7 @@ export class IncidentInternal extends Component {
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentMessageThread
-                        title="Internal"
+                        title="Internal Notes"
                         description="Internal Notes for your team about this
                         incident. This is only visible to your
                         team."

@@ -12,9 +12,14 @@ import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { getStatusPage, selectedProbe } from '../actions/status';
+import {
+    getStatusPage,
+    selectedProbe,
+    getScheduledEvent,
+} from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
+import AffectedResources from './basic/AffectedResources';
 
 const greenBackground = {
     display: 'inline-block',
@@ -75,6 +80,14 @@ class Main extends Component {
                 .createRange()
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
+        }
+        if (
+            prevProps.statusData.projectId !== this.props.statusData.projectId
+        ) {
+            this.props.getScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData._id
+            );
         }
     }
 
@@ -165,13 +178,6 @@ class Main extends Component {
                 monitorData,
                 'monitorCategoryId'
             );
-            const monitorCategoryStyle = {
-                display: 'inline-block',
-                marginBottom: 10,
-                fontSize: 10,
-                color: '#8898aa',
-                fontWeight: 'Bold',
-            };
             const monitorCategoryGroupContainerStyle = {
                 marginBottom: 40,
             };
@@ -182,16 +188,6 @@ class Main extends Component {
                         style={monitorCategoryGroupContainerStyle}
                         className="uptime-graph-header"
                     >
-                        <div
-                            id={`monitorCategory${i}`}
-                            style={monitorCategoryStyle}
-                        >
-                            <span>
-                                {groupedMonitors[0].monitorCategoryId
-                                    ? groupedMonitors[0].monitorCategoryId.name.toUpperCase()
-                                    : 'Uncategorized'.toUpperCase()}
-                            </span>
-                        </div>
                         {groupedMonitors.map((monitor, i) => {
                             return (
                                 <>
@@ -204,6 +200,9 @@ class Main extends Component {
                                         }
                                         key={i}
                                         id={`monitor${i}`}
+                                        monitorCategory={
+                                            monitor.monitorCategoryId
+                                        }
                                     />
                                     {this.props.monitors.some(
                                         m => monitor._id === m.monitor
@@ -362,7 +361,7 @@ class Main extends Component {
                     ''
                 )}
                 {view ? (
-                    <div className="innernew">
+                    <div className="innernew" style={{ width: 609 }}>
                         {headerHTML ? (
                             <React.Fragment>
                                 <style>{sanitizedCSS}</style>
@@ -391,6 +390,64 @@ class Main extends Component {
                                 </div>
                             </div>
                         )}
+                        {this.props.events &&
+                            this.props.events.length > 0 &&
+                            this.props.statusData &&
+                            this.props.statusData._id &&
+                            this.props.events.map(event => (
+                                <div
+                                    className="content box box__yellow--dark"
+                                    style={{
+                                        marginBottom: 40,
+                                        cursor: 'pointer',
+                                    }}
+                                    key={event._id}
+                                    onClick={() => {
+                                        this.props.history.push(
+                                            `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
+                                        );
+                                    }}
+                                >
+                                    <div className="box-inner ongoing__schedulebox">
+                                        <div
+                                            style={{
+                                                textTransform: 'uppercase',
+                                                fontSize: 11,
+                                                fontWeight: 900,
+                                            }}
+                                        >
+                                            Ongoing Scheduled Event
+                                        </div>
+                                        <div className="ongoing__scheduleitem">
+                                            <span>{event.name}</span>
+                                            <span>{event.description}</span>
+                                        </div>
+                                        <div className="ongoing__affectedmonitor">
+                                            <AffectedResources
+                                                event={event}
+                                                monitorState={
+                                                    this.props.monitorState
+                                                }
+                                            />
+                                        </div>
+
+                                        <span
+                                            style={{
+                                                display: 'inline-block',
+                                                fontSize: 12,
+                                            }}
+                                        >
+                                            {moment(event.startDate).format(
+                                                'MMMM Do YYYY, h:mm a'
+                                            )}
+                                            &nbsp;&nbsp;-&nbsp;&nbsp;
+                                            {moment(event.endDate).format(
+                                                'MMMM Do YYYY, h:mm a'
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         <div className="content">
                             <div
                                 className="white box"
@@ -444,11 +501,29 @@ class Main extends Component {
                                         >
                                             <span
                                                 style={
-                                                    probe.lastAlive &&
-                                                    moment(this.state.now).diff(
-                                                        moment(probe.lastAlive),
-                                                        'seconds'
-                                                    ) >= 300
+                                                    // If the page doesn't include any monitor or includes only manual monitors
+                                                    // The probe servers will be shown online
+                                                    this.props.monitorState
+                                                        .length === 0 ||
+                                                    this.props.monitorState.every(
+                                                        monitor =>
+                                                            monitor.type ===
+                                                            'manual'
+                                                    )
+                                                        ? {
+                                                              ...greenBackground,
+                                                              backgroundColor:
+                                                                  uptimeColor.backgroundColor,
+                                                          }
+                                                        : probe.lastAlive &&
+                                                          moment(
+                                                              this.state.now
+                                                          ).diff(
+                                                              moment(
+                                                                  probe.lastAlive
+                                                              ),
+                                                              'seconds'
+                                                          ) >= 300
                                                         ? greyBackground
                                                         : serviceStatus ===
                                                               'none' ||
@@ -690,7 +765,10 @@ class Main extends Component {
                     if={
                         this.props.status &&
                         (this.props.status.requesting ||
-                            this.props.status.logs.some(log => log.requesting))
+                            this.props.status.logs.some(
+                                log => log.requesting
+                            )) &&
+                        this.props.requestingEvents
                     }
                 >
                     <div
@@ -745,6 +823,8 @@ const mapStateToProps = state => ({
     monitorState: state.status.statusPage.monitorsData,
     monitors: state.status.statusPage.monitors,
     probes: state.probe.probes,
+    events: state.status.events.events,
+    requestingEvents: state.status.events.requesting,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -753,6 +833,7 @@ const mapDispatchToProps = dispatch =>
             getStatusPage,
             getProbes,
             selectedProbe,
+            getScheduledEvent,
         },
         dispatch
     );
@@ -768,6 +849,10 @@ Main.propTypes = {
     selectedProbe: PropTypes.func,
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
+    events: PropTypes.array,
+    history: PropTypes.object,
+    getScheduledEvent: PropTypes.func,
+    requestingEvents: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

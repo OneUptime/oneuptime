@@ -16,7 +16,7 @@ class MSTeamsBox extends React.Component {
                                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--a1 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                                 <span>
                                                     Microsoft Teams Integration
                                                 </span>
@@ -25,6 +25,10 @@ class MSTeamsBox extends React.Component {
                                                 <span>
                                                     Click{' '}
                                                     <a
+                                                        style={{
+                                                            textDecoration:
+                                                                'underline',
+                                                        }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#microsoft-teams"

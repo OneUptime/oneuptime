@@ -7,6 +7,7 @@ const getApi = require('../utils/api').getApi;
 const ApiMonitors = require('./apiMonitors');
 const UrlMonitors = require('./urlMonitors');
 const DeviceMonitors = require('./deviceMonitors');
+const ScriptMonitors = require('./scriptMonitors');
 const ErrorService = require('../utils/errorService');
 const ApplicationSecurity = require('./applicationSecurity');
 const ContainerSecurity = require('./containerSecurity');
@@ -24,7 +25,10 @@ module.exports = {
                         return UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'device') {
                         return DeviceMonitors.ping(monitor);
+                    } else if (monitor.type === 'script') {
+                        return ScriptMonitors.run(monitor);
                     }
+
                     return null;
                 })
             );

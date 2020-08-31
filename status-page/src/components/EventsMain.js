@@ -5,11 +5,7 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import Events from './Events';
 import ShouldRender from './ShouldRender';
-import {
-    getScheduledEvent,
-    getIndividualEvent,
-    getMoreEvent,
-} from '../actions/status';
+import { fetchMoreFutureEvents, fetchFutureEvents } from '../actions/status';
 
 class EventsMain extends Component {
     constructor(props) {
@@ -20,35 +16,15 @@ class EventsMain extends Component {
     }
 
     componentDidMount() {
-        this.props.getScheduledEvent(
+        this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
             0
         );
     }
 
-    componentDidUpdate(prevProps) {
-        if (prevProps.statusPage !== this.props.statusPage) {
-            if (this.props.individualevent) {
-                this.props.getIndividualEvent(
-                    this.props.projectId,
-                    this.props.individualevent._id,
-                    this.props.individualevent.date,
-                    this.props.individualevent.name,
-                    true
-                );
-            } else {
-                this.props.getScheduledEvent(
-                    this.props.projectId,
-                    this.props.statusPageId,
-                    0
-                );
-            }
-        }
-    }
-
     getAll = () => {
-        this.props.getScheduledEvent(
+        this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
             0
@@ -56,10 +32,10 @@ class EventsMain extends Component {
     };
 
     more = () => {
-        this.props.getMoreEvent(
+        this.props.fetchMoreFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
-            this.props.skip + 5
+            this.props.skip + 1
         );
     };
 
@@ -86,18 +62,38 @@ class EventsMain extends Component {
                 background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
             };
         }
-        if (this.props.eventData && this.props.eventData.events) {
+        if (this.props.futureEvents && this.props.futureEvents.events) {
             event = (
                 <Events
-                    events={this.props.eventData.events}
+                    events={this.props.futureEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
+                    monitorState={this.props.monitorState}
                 />
             );
         }
 
-        return (
+        if (
+            this.props.individualEvents.show &&
+            this.props.individualEvents.events
+        ) {
+            event = (
+                <Events
+                    events={this.props.individualEvents.events}
+                    secondaryTextColor={secondaryTextColor}
+                    primaryTextColor={primaryTextColor}
+                    noteBackgroundColor={noteBackgroundColor}
+                    statusPageId={this.props.statusPageId}
+                    monitorState={this.props.monitorState}
+                />
+            );
+        }
+
+        return (!this.props.individualEvents.show &&
+            this.props.futureEvents.events.length > 0) ||
+            this.props.individualEvents.show ? (
             <div
                 id="scheduledEvents"
                 className="twitter-feed white box"
@@ -105,38 +101,55 @@ class EventsMain extends Component {
             >
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
-                        if={this.props.eventData && !this.props.eventData.error}
+                        if={
+                            this.props.futureEvents &&
+                            !this.props.futureEvents.error
+                        }
                     >
-                        <div className="box-inner">
+                        <div
+                            className="box-inner"
+                            style={{
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                width: '100%',
+                            }}
+                        >
                             <div
                                 className="feed-header clearfix"
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'row',
                                     flexWrap: 'nowrap',
+                                    paddingLeft: 40,
+                                    paddingRight: 40,
                                 }}
                             >
-                                <ShouldRender if={!this.props.individualevent}>
+                                <ShouldRender
+                                    if={!this.props.individualEvents.show}
+                                >
                                     <span
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Scheduled Events
+                                        Future Scheduled Events
                                     </span>
                                 </ShouldRender>
-                                <ShouldRender if={this.props.individualevent}>
+                                <ShouldRender
+                                    if={this.props.individualEvents.show}
+                                >
                                     <span
                                         className="feed-title"
                                         style={primaryTextColor}
                                     >
                                         Scheduled Events for{' '}
-                                        {this.props.individualevent
-                                            ? this.props.individualevent.name
+                                        {this.props.individualEvents.monitorName
+                                            ? this.props.individualEvents
+                                                  .monitorName
                                             : ''}{' '}
                                         on{' '}
-                                        {this.props.individualevent
+                                        {this.props.individualEvents.date
                                             ? moment(
-                                                  this.props.individualevent
+                                                  this.props.individualEvents
                                                       .date
                                               ).format('LL')
                                             : ''}
@@ -145,21 +158,21 @@ class EventsMain extends Component {
                             </div>
                             <ShouldRender
                                 if={
-                                    this.props.eventData &&
-                                    !this.props.eventData.requesting &&
-                                    this.props.eventData.events &&
-                                    this.props.eventData.events.length
+                                    (!this.props.individualEvents.show &&
+                                        this.props.futureEvents.events.length >
+                                            0) ||
+                                    (this.props.individualEvents.show &&
+                                        this.props.individualEvents.events
+                                            .length > 0)
                                 }
                             >
                                 <ul className="feed-contents plain">{event}</ul>
                             </ShouldRender>
-
                             <ShouldRender
                                 if={
-                                    this.props.eventData &&
-                                    !this.props.eventData.requesting &&
-                                    this.props.eventData.events &&
-                                    !this.props.eventData.events.length
+                                    this.props.individualEvents.show &&
+                                    this.props.individualEvents.events
+                                        .length === 0
                                 }
                             >
                                 <ul className="feed-contents plain">
@@ -182,10 +195,7 @@ class EventsMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            {this.props.eventsmessage
-                                                ? this.props.eventsmessage
-                                                : 'No scheduled events yet'}
-                                            .
+                                            No data available for this date.
                                         </span>
                                     </li>
                                 </ul>
@@ -194,14 +204,15 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.eventData &&
-                                this.props.eventData.events &&
-                                this.props.eventData.events.length &&
-                                this.props.count > this.props.skip + 5 &&
-                                !this.props.eventData.requesting &&
+                                this.props.futureEvents &&
+                                this.props.futureEvents.events &&
+                                this.props.futureEvents.events.length &&
+                                this.props.count >
+                                    this.props.futureEvents.events.length &&
+                                !this.props.futureEvents.requesting &&
                                 !this.props.requestingmoreevents &&
-                                !this.props.eventData.error &&
-                                !this.props.individualevent
+                                !this.props.futureEvents.error &&
+                                !this.props.individualEvents.show
                             }
                         >
                             <button
@@ -214,24 +225,24 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.eventData &&
-                                !this.props.eventData.error &&
-                                !this.props.eventData.requesting &&
-                                this.props.individualevent
+                                this.props.futureEvents &&
+                                !this.props.futureEvents.error &&
+                                !this.props.futureEvents.requesting &&
+                                this.props.individualEvents.show
                             }
                         >
                             <button
                                 className="more button-as-anchor anchor-centered"
                                 onClick={() => this.getAll()}
                             >
-                                Get all scheduled events
+                                Get all future scheduled events
                             </button>
                         </ShouldRender>
 
                         <ShouldRender
                             if={
-                                this.props.eventData &&
-                                this.props.eventData.requesting
+                                this.props.futureEvents.requesting ||
+                                this.props.requestingmoreevents
                             }
                         >
                             <div className="ball-beat" id="notes-loader">
@@ -246,29 +257,10 @@ class EventsMain extends Component {
                                 ></div>
                             </div>
                         </ShouldRender>
-
-                        <ShouldRender
-                            if={
-                                this.props.eventData &&
-                                this.props.requestingmoreevents
-                            }
-                        >
-                            <div className="ball-beat" id="more-loader">
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                            </div>
-                        </ShouldRender>
                     </ShouldRender>
                 </div>
             </div>
-        );
+        ) : null;
     }
 }
 
@@ -276,12 +268,12 @@ EventsMain.displayName = 'EventsMain';
 
 const mapStateToProps = state => {
     let skip =
-        state.status.events && state.status.events.skip
-            ? state.status.events.skip
+        state.status.futureEvents && state.status.futureEvents.skip
+            ? state.status.futureEvents.skip
             : 0;
     let count =
-        state.status.events && state.status.events.count
-            ? state.status.events.count
+        state.status.futureEvents && state.status.futureEvents.count
+            ? state.status.futureEvents.count
             : 0;
     if (typeof skip === 'string') {
         skip = parseInt(skip, 10);
@@ -291,39 +283,37 @@ const mapStateToProps = state => {
     }
 
     return {
-        eventData: state.status.events,
-        requestingmoreevents: state.status.requestingmoreevents,
-        individualevent: state.status.individualevent,
-        eventsmessage: state.status.eventsmessage,
+        requestingmoreevents: state.status.moreFutureEvents.requesting,
         skip,
         count,
         statusPage: state.status.statusPage,
+        futureEvents: state.status.futureEvents,
+        individualEvents: state.status.individualEvents,
+        monitorState: state.status.statusPage.monitorsData,
     };
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            getScheduledEvent,
-            getIndividualEvent,
-            getMoreEvent,
+            fetchMoreFutureEvents,
+            fetchFutureEvents,
         },
         dispatch
     );
 
 EventsMain.propTypes = {
-    eventData: PropTypes.object,
-    eventsmessage: PropTypes.string,
-    individualevent: PropTypes.object,
-    getScheduledEvent: PropTypes.func,
-    getIndividualEvent: PropTypes.func,
-    getMoreEvent: PropTypes.func,
+    fetchMoreFutureEvents: PropTypes.func,
     requestingmoreevents: PropTypes.bool,
     projectId: PropTypes.string,
     skip: PropTypes.number,
     count: PropTypes.number,
     statusPageId: PropTypes.string,
     statusPage: PropTypes.object,
+    fetchFutureEvents: PropTypes.func,
+    futureEvents: PropTypes.object,
+    individualEvents: PropTypes.object,
+    monitorState: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EventsMain);

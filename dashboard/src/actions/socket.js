@@ -70,6 +70,15 @@ export function updatemonitorstatusbysocket(status, probes) {
     };
 }
 
+export function updateincidenttimelinebysocket(incidentTimeline) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_INCIDENT_TIMELINE',
+            payload: incidentTimeline,
+        });
+    };
+}
+
 export function updatelighthouselogbysocket(log) {
     return function(dispatch) {
         dispatch({
@@ -136,5 +145,32 @@ export function teamMemberCreate(data) {
 export function teamMemberDelete(data) {
     return function(dispatch) {
         dispatch(teamDeleteSuccess(data));
+    };
+}
+
+export function addIncidentNote(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'ADD_INCIDENT_NOTE',
+            payload: data,
+        });
+    };
+}
+
+export function createMonitor(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'CREATE_MONITOR',
+            payload: data,
+        });
+    };
+}
+
+export function deleteMonitor(data) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_MONITOR',
+            payload: data,
+        });
     };
 }

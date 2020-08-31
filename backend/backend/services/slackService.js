@@ -39,9 +39,6 @@ module.exports = {
                 return;
             }
             const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             for (const integration of integrations) {
                 response = await self.notify(
@@ -49,7 +46,6 @@ module.exports = {
                     monitor,
                     incident,
                     integration,
-                    monitorStatus ? monitorStatus.status : null,
                     component,
                     duration
                 );
@@ -62,56 +58,125 @@ module.exports = {
     },
 
     // send notification to slack workspace channels
-    async notify(
-        project,
-        monitor,
-        incident,
-        integration,
-        monitorStatus,
-        component,
-        duration
-    ) {
+    async notify(project, monitor, incident, integration, component, duration) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
-
-            const payloadText = incident.resolved
-                ? `Incident on *${component.name} / ${
-                      monitor.name
-                  }* is resolved by ${
-                      incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
-                  } at ${
-                      incident.resolvedAt
-                  } after being down for ${duration}\n <${uri}|More details>`
-                : incident.acknowledged
-                ? `Incident on *${component.name} / ${
-                      monitor.name
-                  }* is acknowledge by ${
-                      incident.acknowledgedBy
-                          ? incident.acknowledgedBy.name
-                          : 'Fyipe'
-                  } at ${
-                      incident.acknowledgedAt
-                  } after being down for ${duration}\n <${uri}|More details>`
-                : `
-*New incident:*
-
-*Project name:* ${project.name}
-
-*Monitor name:* ${component.name} / ${monitor.name}
-
-*Created at:* ${incident.createdAt}
-
-*Created by:* ${incident.createdById ? incident.createdById.name : 'Fyipe'}
-
-*Incident status:* ${incident.incidentType}
-
-*Monitor status:* ${monitorStatus}
-
-<${uri}|Acknowledge>
-`;
-            const payload = {
-                text: payloadText,
-            };
+            const yellow = '#fedc56';
+            const green = '#028A0F';
+            let payload;
+            if (incident.resolved) {
+                payload = {
+                    attachments: [
+                        {
+                            color: green,
+                            title: `Incident Resolved`,
+                            title_link: uri,
+                            text: `Incident on *${component.name} / ${
+                                monitor.name
+                            }* is resolved by ${
+                                incident.resolvedBy
+                                    ? incident.resolvedBy.name
+                                    : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`,
+                        },
+                    ],
+                };
+            } else if (incident.acknowledged) {
+                payload = {
+                    attachments: [
+                        {
+                            color: yellow,
+                            title: `Incident Acknowledged`,
+                            title_link: uri,
+                            text: `Incident on *${component.name} / ${
+                                monitor.name
+                            }* is acknowledged by ${
+                                incident.acknowledgedBy
+                                    ? incident.acknowledgedBy.name
+                                    : 'Fyipe'
+                            } after being ${
+                                incident.incidentType
+                            } for ${duration}`,
+                        },
+                    ],
+                };
+            } else {
+                payload = {
+                    attachments: [
+                        {
+                            color:
+                                incident.incidentType === 'online'
+                                    ? green
+                                    : incident.incidentType === 'degraded'
+                                    ? yellow
+                                    : '#f00',
+                            title: `New ${incident.incidentType} incident for ${monitor.name}`,
+                            title_link: uri,
+                            fields: [
+                                {
+                                    title: 'Project Name:',
+                                    value: project.name,
+                                    short: true,
+                                },
+                                {
+                                    title: 'Monitor Name:',
+                                    value: `${component.name} / ${monitor.name}`,
+                                    short: true,
+                                },
+                                ...(incident.title
+                                    ? [
+                                          {
+                                              title: 'Incident Title:',
+                                              value: incident.title,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.description
+                                    ? [
+                                          {
+                                              title: 'Incident Description:',
+                                              value: incident.description,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
+                                ...(incident.incidentPriority
+                                    ? [
+                                          {
+                                              title: 'Incident Priority:',
+                                              value:
+                                                  incident.incidentPriority
+                                                      .name,
+                                              short: true,
+                                          },
+                                      ]
+                                    : []),
+                                {
+                                    title: 'Created By:',
+                                    value: incident.createdById
+                                        ? incident.createdById.name
+                                        : 'Fyipe',
+                                    short: true,
+                                },
+                                {
+                                    title: 'Incident Status:',
+                                    value:
+                                        incident.incidentType === 'online'
+                                            ? 'Online'
+                                            : incident.incidentType ===
+                                              'degraded'
+                                            ? 'Degraded'
+                                            : 'Offline',
+                                    short: true,
+                                },
+                            ],
+                        },
+                    ],
+                };
+            }
             await axios.post(
                 integration.data.endpoint,
                 {
@@ -135,5 +200,4 @@ module.exports = {
 const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
-const MonitorStatusService = require('./monitorStatusService');
 const ErrorService = require('./errorService');

@@ -102,6 +102,8 @@ describe('Monitor API With SubProjects', () => {
                 // Switch to invited project for new user
                 // await init.switchProject(subProjectName, page); // Commented because project already switched to
                 // await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
                 const newComponentForm = await page.$('#form-new-component');
                 expect(newComponentForm).toEqual(null);
                 // Navigate to details page of component created
@@ -204,6 +206,10 @@ describe('Monitor API With SubProjects', () => {
                     await init.loginUser(user, page);
                     // switch to invited project for new user
                     // await init.switchProject(data.projectName, page); // Commented because project already switched to
+                    await page.waitForSelector('#components', {
+                        visible: true,
+                    });
+                    await page.click('#components');
 
                     const projectBadgeSelector = await page.$(
                         `#badge_${data.projectName}`

@@ -262,7 +262,7 @@ class TeamApp extends Component {
                         className="Margin-vertical--12"
                     >
                         <div>
-                            <div>
+                            <div id="teamMemberPage">
                                 <div className="db-BackboneViewContainer">
                                     <div
                                         className="customers-list-view react-view popover-container"

@@ -13,6 +13,9 @@ const ApplicationLogService = require('../services/applicationLogService');
 const MonitorService = require('../services/monitorService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
+const LogService = require('../services/logService');
+const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
+const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -210,27 +213,9 @@ router.get(
                 });
             }
 
-            let totalResources = [];
+            const totalResources = [];
             const limit = req.query.limit || 5;
             const skip = req.query.skip || 0;
-            // fetch application logs
-            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
-                componentId,
-                limit,
-                skip
-            );
-            applicationLogs.map(elem => {
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'application-log',
-                    createdAt: elem.createdAt,
-                    icon: 'appLog',
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
 
             // fetch monitors
             const monitors = await MonitorService.findBy(
@@ -242,28 +227,15 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: 'monitor',
+                    type: `${
+                        elem.type === 'server-monitor'
+                            ? 'server monitor'
+                            : elem.type === 'url'
+                            ? 'website monitor'
+                            : elem.type + ` monitor`
+                    }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
-
-            // fetch application security
-            const applicationSecurity = await ApplicationSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
-            applicationSecurity.map(elem => {
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'application-security',
-                    createdAt: elem.createdAt,
-                    icon: 'security',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -276,24 +248,86 @@ router.get(
                 limit,
                 skip
             );
-            containerSecurity.map(elem => {
-                const newElement = {
-                    _id: elem._id,
-                    name: elem.name,
-                    type: 'container-security',
-                    createdAt: elem.createdAt,
-                    icon: 'docker',
-                };
-                // add it to the total resources
-                totalResources.push(newElement);
-                return newElement;
-            });
-
-            // Sort all resources by creation date
-            totalResources = totalResources.sort(
-                (a, b) => b.createdAt - a.createdAt
+            await Promise.all(
+                containerSecurity.map(async elem => {
+                    const securityLog = await ContainerSecurityLogService.findOneBy(
+                        {
+                            securityId: elem._id,
+                            componentId,
+                        }
+                    );
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'container security',
+                        createdAt: elem.createdAt,
+                        icon: 'docker',
+                        securityLog,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
             );
 
+            // fetch application security
+            const applicationSecurity = await ApplicationSecurityService.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            await Promise.all(
+                applicationSecurity.map(async elem => {
+                    // get the security log
+                    const securityLog = await ApplicationSecurityLogService.findOneBy(
+                        {
+                            securityId: elem._id,
+                            componentId,
+                        }
+                    );
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'application security',
+                        createdAt: elem.createdAt,
+                        icon: 'security',
+                        securityLog,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
+
+            // fetch application logs
+            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+            await Promise.all(
+                applicationLogs.map(async elem => {
+                    let logStatus = 'No logs yet';
+                    // confirm if the application log has started collecting logs or not
+                    const logs = await LogService.getLogsByApplicationLogId(
+                        elem._id,
+                        1,
+                        0
+                    );
+                    if (logs.length > 0) logStatus = 'Collecting Logs';
+                    const newElement = {
+                        _id: elem._id,
+                        name: elem.name,
+                        type: 'log container',
+                        createdAt: elem.createdAt,
+                        icon: 'appLog',
+                        status: logStatus,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
             // return response
             return sendItemResponse(req, res, {
                 totalResources,

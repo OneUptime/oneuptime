@@ -435,7 +435,7 @@ const mapStateToProps = (state, ownProps) => {
     let initialValues = null;
 
     if (ownProps.data.incidentMessage) {
-        const isCustomState = !['investigation', 'update'].includes(
+        const isCustomState = !['investigating', 'update'].includes(
             ownProps.data.incidentMessage.incident_state
         );
         initialValues = {

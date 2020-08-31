@@ -1,6 +1,9 @@
+import Home from './Home';
+
 import Monitor from './Monitor';
 import IncidentLog from './IncidentLog';
 import Incident from './Incident';
+import IncidentSettings from './IncidentSettings';
 
 import StatusPage from './StatusPage';
 import StatusPages from './StatusPages';
@@ -8,6 +11,9 @@ import StatusPages from './StatusPages';
 import OnCall from './OnCall';
 import AlertLog from './AlertLog';
 import Schedule from './Schedule';
+
+import ScheduledEvent from './ScheduledEvent';
+import ScheduledEventDetail from './ScheduledEventDetail';
 
 import ChangePassword from './ChangePassword';
 
@@ -42,9 +48,11 @@ import DockerCredential from './DockerCredential';
 import FyipeApi from './FyipeApi';
 import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
+import Consulting from './Consulting';
 
 export default {
     ChangePassword,
+    Home,
     Monitor,
     Component,
     Settings,
@@ -57,6 +65,7 @@ export default {
     AlertLog,
     IncidentLog,
     Incident,
+    IncidentSettings,
     Billing,
     Monitors,
     Schedule,
@@ -79,4 +88,7 @@ export default {
     FyipeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
+    ScheduledEvent,
+    ScheduledEventDetail,
+    Consulting,
 };

@@ -13,6 +13,8 @@ build_n_test_admin-dashboard:
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_admin-dashboard admin-dashboard
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master
@@ -40,6 +42,8 @@ build_n_test_enterprise_admin-dashboard:
         - sudo docker run --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts:3.0.$CI_PIPELINE_IID
         - sudo docker build -t fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID ./admin-dashboard
         - sudo docker run --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
+        - sudo docker run --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd admin-dashboard
         - npm ci
@@ -49,6 +53,8 @@ build_n_test_enterprise_admin-dashboard:
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

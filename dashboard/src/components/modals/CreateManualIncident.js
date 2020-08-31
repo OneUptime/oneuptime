@@ -9,6 +9,8 @@ import { createNewIncident, createIncidentReset } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
+import { RenderField } from '../basic/RenderField';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateManualIncident extends Component {
     constructor(props) {
@@ -27,14 +29,19 @@ class CreateManualIncident extends Component {
         } = this.props;
         const { projectId, monitorId } = this.props.data;
         this.setState({ incidentType: values.incidentType });
-        createNewIncident(projectId, monitorId, values.incidentType).then(
-            () => {
-                createIncidentReset();
-                closeModal({
-                    id: createIncidentModalId,
-                });
-            }
-        );
+        createNewIncident(
+            projectId,
+            monitorId,
+            values.incidentType,
+            values.title,
+            values.description,
+            values.incidentPriority === '' ? null : values.incidentPriority
+        ).then(() => {
+            createIncidentReset();
+            closeModal({
+                id: createIncidentModalId,
+            });
+        });
     };
 
     handleKeyBoard = e => {
@@ -55,7 +62,7 @@ class CreateManualIncident extends Component {
     };
 
     render() {
-        const { handleSubmit, newIncident } = this.props;
+        const { handleSubmit, newIncident, incidentPriorities } = this.props;
         const sameError =
             newIncident &&
             newIncident.error &&
@@ -94,7 +101,7 @@ class CreateManualIncident extends Component {
                                 <div className="bs-Modal-block bs-u-paddingless">
                                     <div className="bs-Modal-content">
                                         <ShouldRender if={!sameError}>
-                                            <div className="bs-Fieldset-row">
+                                            <div className="bs-Fieldset-row Margin-bottom--12">
                                                 <label className="bs-Fieldset-label">
                                                     Incident type
                                                 </label>
@@ -136,6 +143,89 @@ class CreateManualIncident extends Component {
                                                                     'Degraded',
                                                             },
                                                         ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <ShouldRender
+                                                if={
+                                                    incidentPriorities.length >
+                                                    0
+                                                }
+                                            >
+                                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                                    <label className="bs-Fieldset-label">
+                                                        Priority
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            name="incidentPriority"
+                                                            id="incidentPriority"
+                                                            placeholder="Incident Priority"
+                                                            disabled={
+                                                                this.props
+                                                                    .newIncident
+                                                                    .requesting
+                                                            }
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Incident Priority',
+                                                                },
+                                                                ...incidentPriorities.map(
+                                                                    incidentPriority => ({
+                                                                        value:
+                                                                            incidentPriority._id,
+                                                                        label:
+                                                                            incidentPriority.name,
+                                                                    })
+                                                                ),
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Incident title
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        component={RenderField}
+                                                        name="title"
+                                                        id="title"
+                                                        placeholder="Incident title"
+                                                        disabled={
+                                                            this.props
+                                                                .newIncident
+                                                                .requesting
+                                                        }
+                                                        validate={[
+                                                            ValidateField.required,
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label script-label">
+                                                    Description
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="description"
+                                                        component={
+                                                            RenderCodeEditor
+                                                        }
+                                                        mode="markdown"
+                                                        height="150px"
+                                                        width="100%"
+                                                        placeholder="This can be markdown"
+                                                        wrapEnabled={true}
                                                     />
                                                 </div>
                                             </div>
@@ -232,7 +322,9 @@ class CreateManualIncident extends Component {
 }
 
 CreateManualIncident.displayName = 'CreateManualIncident';
-
+CreateManualIncident.propTypes = {
+    incidentPriorities: PropTypes.array.isRequired,
+};
 const CreateManualIncidentForm = reduxForm({
     form: 'CreateManualIncident',
 })(CreateManualIncident);
@@ -252,6 +344,9 @@ function mapStateToProps(state) {
     return {
         newIncident: state.incident.newIncident,
         createIncidentModalId: state.modal.modals[0].id,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        initialValues: state.incidentBasicSettings.incidentBasicSettings,
     };
 }
 

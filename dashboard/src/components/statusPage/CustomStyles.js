@@ -9,10 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm } from 'redux-form';
-import AceEditor from 'react-ace';
-import 'brace/mode/html';
-import 'brace/mode/css';
-import 'brace/theme/github';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 export class CustomStyles extends Component {
     state = {
@@ -104,33 +101,25 @@ export class CustomStyles extends Component {
                 name: 'headerHTML',
                 mode: 'html',
                 label: 'Header HTML',
-                placeholder: `<div>
-                    <!-- HTML code -->
-                </div>`,
+                placeholder: `<div>\n\t<!-- HTML code -->\n</div>`,
             },
             {
                 name: 'footerHTML',
                 mode: 'html',
                 label: 'Footer HTML',
-                placeholder: `<div>
-                    <!-- HTML code -->
-                </div>`,
+                placeholder: `<div>\n\t<!-- HTML code -->\n</div>`,
             },
             {
                 name: 'customCSS',
                 mode: 'css',
                 label: 'Custom CSS',
-                placeholder: `.your-css-class{
-                    /* CSS code */
-                 }`,
+                placeholder: `.your-css-class{\n\t/* CSS code */\n}`,
             },
             {
                 name: 'customJS',
                 mode: 'html',
                 label: 'Custom JS',
-                placeholder: `<script> 
-                // your JS code here (also include the <script> tag)
-                </script>  `,
+                placeholder: `<script>\n\t// your JS code here (also include the <script> tag)\n</script>  `,
             },
         ];
 
@@ -177,51 +166,29 @@ export class CustomStyles extends Component {
                                                     <div className="bs-Fieldset-fields script-editor-wrapper">
                                                         <Field
                                                             key={i}
+                                                            id={script.name}
                                                             name={script.name}
-                                                            component={({
-                                                                input,
-                                                            }) => (
-                                                                <AceEditor
-                                                                    mode={
-                                                                        script.mode
-                                                                    }
-                                                                    theme="github"
-                                                                    value={
-                                                                        input.value
-                                                                    }
-                                                                    id={`editor-${i}`}
-                                                                    name={
-                                                                        script.name
-                                                                    }
-                                                                    editorProps={{
-                                                                        $blockScrolling: true,
-                                                                    }}
-                                                                    height="150px"
-                                                                    width="100%"
-                                                                    highlightActiveLine={
-                                                                        true
-                                                                    }
-                                                                    setOptions={{
-                                                                        enableBasicAutocompletion: true,
-                                                                        enableLiveAutocompletion: true,
-                                                                        enableSnippets: true,
-                                                                    }}
-                                                                    onLoad={editor => {
-                                                                        this[
-                                                                            script.name
-                                                                        ] = editor;
-                                                                    }}
-                                                                    onBlur={() =>
-                                                                        this.handleChange(
-                                                                            input.onChange,
-                                                                            script.name
-                                                                        )
-                                                                    }
-                                                                    placeholder={
-                                                                        script.placeholder
-                                                                    }
-                                                                />
-                                                            )}
+                                                            component={
+                                                                RenderCodeEditor
+                                                            }
+                                                            mode={script.mode}
+                                                            theme="github"
+                                                            height="150px"
+                                                            width="100%"
+                                                            onLoad={editor => {
+                                                                this[
+                                                                    script.name
+                                                                ] = editor;
+                                                            }}
+                                                            onBlur={input =>
+                                                                this.handleChange(
+                                                                    input.onChange,
+                                                                    script.name
+                                                                )
+                                                            }
+                                                            placeholder={
+                                                                script.placeholder
+                                                            }
                                                         />
                                                         <ShouldRender
                                                             if={

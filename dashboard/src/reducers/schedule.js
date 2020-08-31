@@ -68,6 +68,13 @@ import {
     PAGINATE_RESET,
 } from '../constants/schedule';
 
+import {
+    USER_SCHEDULE_REQUEST,
+    USER_SCHEDULE_SUCCESS,
+    USER_SCHEDULE_FAILED,
+    USER_SCHEDULE_RESET,
+} from '../constants/schedule';
+
 const initialState = {
     schedules: {
         requesting: false,
@@ -605,6 +612,43 @@ export default function schedule(state = initialState, action) {
                     counter: 1,
                 },
             };
+
+        case USER_SCHEDULE_SUCCESS:
+            return Object.assign({}, state, {
+                escalation: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                escalations: action.payload.data,
+            });
+
+        case USER_SCHEDULE_REQUEST:
+            return Object.assign({}, state, {
+                escalation: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case USER_SCHEDULE_FAILED:
+            return Object.assign({}, state, {
+                escalation: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case USER_SCHEDULE_RESET:
+            return Object.assign({}, state, {
+                escalation: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
 
         default:
             return state;

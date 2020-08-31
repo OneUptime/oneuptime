@@ -232,7 +232,10 @@ class AlertLog extends Component {
                     <div className="Box-root">
                         <div>
                             <div>
-                                <div className="Margin-vertical--12">
+                                <div
+                                    id="alertLogPage"
+                                    className="Margin-vertical--12"
+                                >
                                     {allAlerts}
                                 </div>
                             </div>

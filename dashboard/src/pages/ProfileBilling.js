@@ -31,7 +31,7 @@ class ProfileBilling extends Component {
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Billing" />
-                    <div className="Margin-vertical--12">
+                    <div id="profileBilling" className="Margin-vertical--12">
                         <Invoice />
                         <PaymentCard />
                     </div>

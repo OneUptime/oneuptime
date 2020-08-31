@@ -13,12 +13,16 @@ import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 
 export class MonitorViewIncidentBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
             createIncidentModalId: uuid.v4(),
+            filteredIncidents: [],
+            isFiltered: false,
+            filterOption: 'Filter By',
         };
     }
 
@@ -71,9 +75,44 @@ export class MonitorViewIncidentBox extends Component {
         }
     };
 
+    filterIncidentLogs = status => {
+        const { monitor } = this.props;
+        const filteredIncidents = [];
+        switch (status) {
+            case 'unacknowledged':
+                monitor.incidents.forEach(incident => {
+                    if (!incident.acknowledged) {
+                        filteredIncidents.push(incident);
+                    }
+                });
+                this.setState(() => ({ filteredIncidents, isFiltered: true }));
+                break;
+            case 'unresolved':
+                monitor.incidents.forEach(incident => {
+                    if (!incident.resolved) {
+                        filteredIncidents.push(incident);
+                    }
+                });
+                this.setState(() => ({ filteredIncidents, isFiltered: true }));
+                break;
+            default:
+                this.setState(() => ({
+                    filteredIncidents: [],
+                    isFiltered: false,
+                }));
+                break;
+        }
+    };
+
     render() {
-        const { createIncidentModalId } = this.state;
+        const {
+            createIncidentModalId,
+            filteredIncidents,
+            isFiltered,
+            filterOption,
+        } = this.state;
         const creating = this.props.create ? this.props.create : false;
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -93,6 +132,57 @@ export class MonitorViewIncidentBox extends Component {
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                            <span className="Margin-right--8">
+                                <Dropdown>
+                                    <Dropdown.Toggle
+                                        id="filterToggle"
+                                        title={filterOption}
+                                        className="bs-Button bs-DeprecatedButton"
+                                    />
+                                    <Dropdown.Menu>
+                                        <MenuItem
+                                            title="clear"
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption: 'Filter By',
+                                                });
+                                                this.filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                            }}
+                                        >
+                                            Clear Filters
+                                        </MenuItem>
+                                        <MenuItem
+                                            title="unacknowledged"
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption:
+                                                        'Unacknowledged',
+                                                });
+                                                this.filterIncidentLogs(
+                                                    'unacknowledged'
+                                                );
+                                            }}
+                                        >
+                                            Unacknowledged
+                                        </MenuItem>
+                                        <MenuItem
+                                            title="unresolved"
+                                            onClick={() => {
+                                                this.setState({
+                                                    filterOption: 'Unresolved',
+                                                });
+                                                this.filterIncidentLogs(
+                                                    'unresolved'
+                                                );
+                                            }}
+                                        >
+                                            Unresolved
+                                        </MenuItem>
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            </span>
                             <button
                                 className={
                                     creating
@@ -135,6 +225,8 @@ export class MonitorViewIncidentBox extends Component {
                         incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
+                        filteredIncidents={filteredIncidents}
+                        isFiltered={isFiltered}
                     />
                 </div>
             </div>

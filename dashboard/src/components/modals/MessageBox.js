@@ -46,15 +46,19 @@ class MessageBox extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span
+                                    id="message-modal-message"
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                >
                                     {message}
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--white"
                                         type="button"
+                                        id="modal-ok"
                                         onClick={() =>
                                             this.props.closeModal({
                                                 id: messageBoxId,

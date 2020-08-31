@@ -31,6 +31,7 @@ import { fetchNotifications, fetchNotificationsReset } from './notification';
 import { fetchAlert, resetAlert } from './alert';
 import { deleteProjectIncidents } from './incident';
 import { getSubProjects, resetSubProjects } from './subProject';
+import { resetFetchComponentResources } from './component';
 import errors from '../errors';
 
 export function showDeleteModal() {
@@ -225,10 +226,10 @@ export function switchProject(dispatch, project) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
     if (!currentProjectId || project._id !== currentProjectId) {
-        history.push(`/dashboard/project/${project._id}/components`);
+        history.push(`/dashboard/project/${project._id}`);
         User.setCurrentProjectId(project._id);
     } else if (historyProjectId && historyProjectId === '/') {
-        history.push(`/dashboard/project/${project._id}/components`);
+        history.push(`/dashboard/project/${project._id}`);
     }
 
     dispatch(resetSubProjects());
@@ -241,6 +242,7 @@ export function switchProject(dispatch, project) {
     dispatch(resetSubProjectFetchStatusPages());
     dispatch(fetchNotificationsReset());
     dispatch(resetFetchTutorial());
+    dispatch(resetFetchComponentResources());
 
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);

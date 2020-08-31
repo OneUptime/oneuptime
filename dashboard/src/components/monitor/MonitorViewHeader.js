@@ -155,7 +155,10 @@ export class MonitorViewHeader extends Component {
             endDate
         );
 
-        const status = getMonitorStatus(monitor.incidents, logs);
+        const requesting = monitorState.fetchMonitorLogsRequest;
+        const status = requesting
+            ? 'requesting'
+            : getMonitorStatus(monitor.incidents, logs);
 
         let deleting = false;
         if (
@@ -293,10 +296,14 @@ export class MonitorViewHeader extends Component {
                                             startDate,
                                             endDate
                                         );
-                                        const status = getMonitorStatus(
-                                            monitor.incidents,
-                                            logs
-                                        );
+                                        const checkLogs =
+                                            logs && logs.length > 0;
+                                        const status = checkLogs
+                                            ? logs[0].status
+                                            : getMonitorStatus(
+                                                  monitor.incidents,
+                                                  logs
+                                              );
                                         const probe = probes.filter(
                                             probe => probe._id === location._id
                                         );

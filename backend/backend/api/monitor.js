@@ -175,6 +175,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         code: 400,
                         message:
                             (err.response && err.response.statusText) ||
+                            err.message ||
                             'Monitor url did not return a valid response.',
                     });
                 }
@@ -453,6 +454,7 @@ router.delete(
                 req.user.id
             );
             if (monitor) {
+                await RealTimeService.deleteMonitor(monitor);
                 return sendItemResponse(req, res, monitor);
             } else {
                 return sendErrorResponse(req, res, {

@@ -43,6 +43,11 @@ export class APISettings extends Component {
             },
         });
     };
+    changeAPIKeyVisualState = () => {
+        this.setState(state => ({
+            hidden: !state.hidden,
+        }));
+    };
 
     render() {
         const { hidden } = this.state;
@@ -111,16 +116,7 @@ export class APISettings extends Component {
                                                 <label className="bs-Fieldset-label">
                                                     API Key
                                                 </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    onClick={() =>
-                                                        this.setState(
-                                                            state => ({
-                                                                hidden: !state.hidden,
-                                                            })
-                                                        )
-                                                    }
-                                                >
+                                                <div className="bs-Fieldset-fields">
                                                     <ShouldRender if={hidden}>
                                                         <span
                                                             id="apiKey"
@@ -131,28 +127,52 @@ export class APISettings extends Component {
                                                                 cursor:
                                                                     'pointer',
                                                             }}
+                                                            onClick={
+                                                                this
+                                                                    .changeAPIKeyVisualState
+                                                            }
                                                         >
                                                             Click here to reveal
                                                             API key
                                                         </span>
                                                     </ShouldRender>
                                                     <ShouldRender if={!hidden}>
-                                                        <span
-                                                            id="apiKey"
-                                                            className="value"
-                                                            style={{
-                                                                marginTop:
-                                                                    '6px',
-                                                            }}
-                                                        >
-                                                            {this.props
-                                                                .currentProject !==
-                                                            null
-                                                                ? this.props
-                                                                      .currentProject
-                                                                      .apiKey
-                                                                : 'LOADING...'}
-                                                        </span>
+                                                        <div className="Flex-flex">
+                                                            <span
+                                                                id="apiKey"
+                                                                className="value"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '6px',
+                                                                }}
+                                                            >
+                                                                {this.props
+                                                                    .currentProject !==
+                                                                null
+                                                                    ? this.props
+                                                                          .currentProject
+                                                                          .apiKey
+                                                                    : 'LOADING...'}
+                                                            </span>
+                                                            <div
+                                                                onClick={
+                                                                    this
+                                                                        .changeAPIKeyVisualState
+                                                                }
+                                                                className="Flex-flex Flex-alignItems--center Padding-left--8"
+                                                            >
+                                                                <img
+                                                                    src="/dashboard/assets/img/hide.svg"
+                                                                    style={{
+                                                                        width:
+                                                                            '15px',
+                                                                        height:
+                                                                            '15px',
+                                                                    }}
+                                                                    alt="hide_api_key"
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </ShouldRender>
                                                 </div>
                                             </div>

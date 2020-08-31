@@ -100,6 +100,7 @@ describe('Incident API With SubProjects', () => {
                 await page.click(`#create_incident_${projectMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitForSelector('#incident_span_0');
                 const incidentTitleSelector = await page.$('#incident_span_0');
@@ -155,6 +156,7 @@ describe('Incident API With SubProjects', () => {
                 await page.click(`#create_incident_${projectMonitorName1}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.click('#createIncident');
                 await page.waitForSelector('#incident_span_1');
                 const incidentTitleSelector = await page.$('#incident_span_0');
@@ -187,6 +189,7 @@ describe('Incident API With SubProjects', () => {
                 // acknowledge incident
                 await page.waitForSelector('#btnAcknowledge_0');
                 await page.click('#btnAcknowledge_0');
+                await page.waitFor(2000);
                 await page.waitForSelector('#AcknowledgeText_0');
 
                 const acknowledgeTextSelector = await page.$(
@@ -214,6 +217,7 @@ describe('Incident API With SubProjects', () => {
                 // resolve incident
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
+                await page.waitFor(2000);
                 await page.waitForSelector('#ResolveText_0');
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
@@ -238,49 +242,72 @@ describe('Incident API With SubProjects', () => {
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
-                // update internal note
+
                 await page.waitForSelector(
                     `#incident_${projectMonitorName1}_0`,
                     { visible: true }
                 );
-                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(2000);
 
-                await page.waitForSelector('#txtInternalNote', {
-                    visible: true,
-                });
-                await page.type('#txtInternalNote', internalNote);
-                await page.waitForSelector('#btnUpdateInternalNote', {
-                    visible: true,
-                });
-                await page.$eval('#btnUpdateInternalNote', e => e.click());
-                await page.waitFor(5000);
+                let type = 'internal';
+                // fill internal message thread form
+                await page.waitForSelector(`#add-${type}-message`);
+                await page.$eval(`#add-${type}-message`, e => e.click());
+                await page.waitForSelector(
+                    `#form-new-incident-${type}-message`
+                );
+                await page.click(`textarea[id=new-${type}]`);
+                await page.type(`textarea[id=new-${type}]`, `${internalNote}`);
+                await init.selectByText(
+                    '#incident_state',
+                    'investigating',
+                    page
+                );
+                await page.click(`#${type}-addButton`);
+                await page.waitFor(2000);
 
-                await page.waitForSelector('#txtInvestigationNote', {
-                    visible: true,
-                });
-                await page.type('#txtInvestigationNote', investigationNote);
-                await page.waitForSelector('#btnUpdateInvestigationNote', {
-                    visible: true,
-                });
-                await page.$eval('#btnUpdateInvestigationNote', e => e.click());
-                await page.waitFor(5000);
-                const internalNoteSelector = await page.$('#txtInternalNote');
-                let internalContent = await internalNoteSelector.getProperty(
+                const internalMessage = await page.$(
+                    `#content_${type}_incident_message_0`
+                );
+                let internalContent = await internalMessage.getProperty(
                     'textContent'
                 );
 
                 internalContent = await internalContent.jsonValue();
-                expect(internalContent).toEqual(internalNote);
+                expect(internalContent).toEqual(`${internalNote}`);
 
-                const investigationNoteSelector = await page.$(
-                    '#txtInvestigationNote'
+                type = 'investigation';
+                // fill investigation message thread form
+                await page.waitForSelector(`#add-${type}-message`);
+                await page.$eval(`#add-${type}-message`, e => e.click());
+                await page.waitForSelector(
+                    `#form-new-incident-${type}-message`
                 );
-                let investigationContent = await investigationNoteSelector.getProperty(
+                await page.click(`textarea[id=new-${type}]`);
+                await page.type(
+                    `textarea[id=new-${type}]`,
+                    `${investigationNote}`
+                );
+                await init.selectByText(
+                    '#incident_state',
+                    'investigating',
+                    page
+                );
+                await page.click(`#${type}-addButton`);
+                await page.waitFor(2000);
+
+                const investigationMessage = await page.$(
+                    `#content_${type}_incident_message_0`
+                );
+                let investigationContent = await investigationMessage.getProperty(
                     'textContent'
                 );
 
                 investigationContent = await investigationContent.jsonValue();
-                expect(investigationContent).toEqual(investigationNote);
+                expect(investigationContent).toEqual(`${investigationNote}`);
                 await init.logout(page);
             });
         },
@@ -292,46 +319,63 @@ describe('Incident API With SubProjects', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 const internalNote = utils.generateRandomString();
+                const type = 'internal';
                 await init.loginUser(newUser, page);
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
-                // Navigate to details page of component created
+                // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(3000);
+                await page.waitFor(2000);
 
                 await page.waitForSelector(
                     `#incident_${projectMonitorName1}_0`
                 );
-                await page.click(`#incident_${projectMonitorName1}_0`);
+                await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {
-                    // update internal note
-                    await page.waitForSelector('#txtInternalNote', {
-                        visible: true,
-                    });
-                    await page.type('#txtInternalNote', internalNote);
-                    await page.$eval('#btnUpdateInternalNote', e => e.click());
+                    await page.$eval(`#add-${type}-message`, e => e.click());
+                    await page.waitForSelector(
+                        `#form-new-incident-${type}-message`
+                    );
+                    await page.click(`textarea[id=new-${type}]`);
+                    await page.type(
+                        `textarea[id=new-${type}]`,
+                        `${internalNote}`
+                    );
+                    await init.selectByText('#incident_state', 'update', page);
+                    await page.click(`#${type}-addButton`);
                     await page.waitFor(2000);
                 }
-                let incidentTimelineRows = await page.$$('tr.incidentListItem');
+
+                await page.waitForSelector(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                let incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 let countIncidentTimelines = incidentTimelineRows.length;
 
                 expect(countIncidentTimelines).toEqual(10);
 
-                const nextSelector = await page.$('#btnTimelineNext');
-                await nextSelector.click();
-                await page.waitFor(2000);
-                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                await page.$eval('#btnTimelineNext', e => e.click());
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(5);
 
-                const prevSelector = await page.$('#btnTimelinePrev');
-                await prevSelector.click();
-                await page.waitFor(2000);
-                incidentTimelineRows = await page.$$('tr.incidentListItem');
+                await page.$eval('#btnTimelinePrev', e => e.click());
+                await page.waitFor(7000);
+                incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
                 countIncidentTimelines = incidentTimelineRows.length;
                 expect(countIncidentTimelines).toEqual(10);
                 await init.logout(page);
@@ -353,31 +397,16 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
 
-                for (let i = 0; i < 10; i++) {
-                    await init.addIncidentToProject(
-                        projectMonitorName1,
-                        subProjectName,
-                        page
-                    );
-                    await page.waitFor(2000);
-                }
+                await init.addIncidentToProject(
+                    projectMonitorName1,
+                    subProjectName,
+                    page
+                );
+                await page.waitFor(2000);
 
-                let incidentRows = await page.$$('tr.incidentListItem');
-                let countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(10);
-
-                await page.waitForSelector('#btnNext', { visible: true });
-                await page.$eval('#btnNext', e => e.click());
-                await page.waitFor(5000);
-                incidentRows = await page.$$('tr.incidentListItem');
-                countIncidents = incidentRows.length;
+                const incidentRows = await page.$$('tr.incidentListItem');
+                const countIncidents = incidentRows.length;
                 expect(countIncidents).toEqual(2);
-
-                await page.$eval('#btnPrev', e => e.click());
-                await page.waitFor(5000);
-                incidentRows = await page.$$('tr.incidentListItem');
-                countIncidents = incidentRows.length;
-                expect(countIncidents).toEqual(10);
                 await init.logout(page);
             });
         },

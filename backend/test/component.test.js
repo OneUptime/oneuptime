@@ -21,13 +21,13 @@ const DockerCredentialService = require('../backend/services/dockerCredentialSer
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, componentId, monitorId;
+let token, userId, airtableId, projectId, componentId, monitorId, resourceCount = 0;
 
 describe('Component API', function() {
     this.timeout(30000);
 
     before(function(done) {
-        this.timeout(40000);
+        this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
                 let project = res.body.project;
@@ -158,6 +158,7 @@ describe('Component API', function() {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor');
+                resourceCount++; // Increment Resource Count
                 done();
             });
     });
@@ -170,7 +171,8 @@ describe('Component API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.totalResources).to.be.an('array');
-                expect(res.body.totalResources).to.have.lengthOf(1); // one monitor
+                expect(res.body.totalResources[0].type).to.be.a('string'); // type of the monitor
+                expect(res.body.totalResources).to.have.lengthOf(resourceCount); // one monitor
                 done();
             });
     });
@@ -186,14 +188,69 @@ describe('Component API', function() {
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Application Log');
+                resourceCount++; // Increment Resource Count
                 request
                     .get(`/component/${projectId}/resources/${componentId}`)
                     .set('Authorization', authorization)
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
                         expect(res.body.totalResources).to.be.an('array');
-                        expect(res.body.totalResources).to.have.lengthOf(2); // one application log and one monitor
+                        expect(res.body.totalResources[1].status).to.be.a(
+                            'string'
+                        ); // type of the monitor
+                        expect(res.body.totalResources[1].status).to.be.equal(
+                            'No logs yet'
+                        );
+                        expect(res.body.totalResources).to.have.lengthOf(resourceCount); // one application log and one monitor
                         done();
+                    });
+            });
+    });
+    it('should create a new application log then creater a log when `componentId` is given then get list of resources`', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/application-log/${projectId}/${componentId}/create`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Application Log II',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                resourceCount++; // Increment Resource Count
+                expect(res.body.name).to.be.equal('New Application Log II');
+                const log = {
+                    applicationLogKey: res.body.key,
+                    content: 'this is a log',
+                    type: 'info',
+                };
+                request
+                    .post(`/application-log/${res.body._id}/log`)
+                    .set('Authorization', authorization)
+                    .send(log)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+
+                        request
+                            .get(
+                                `/component/${projectId}/resources/${componentId}`
+                            )
+                            .set('Authorization', authorization)
+                            .end(function(err, res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body.totalResources).to.be.an(
+                                    'array'
+                                );
+                                expect(
+                                    res.body.totalResources[2].status
+                                ).to.be.a('string'); // type of the monitor
+                                expect(
+                                    res.body.totalResources[2].status
+                                ).to.be.equal('Collecting Logs');
+                                expect(
+                                    res.body.totalResources
+                                ).to.have.lengthOf(resourceCount); // two application logs and one monitor
+                                done();
+                            });
                     });
             });
     });
@@ -220,6 +277,7 @@ describe('Component API', function() {
                 .end(function(err, res) {
                     applicationSecurityId = res.body._id;
                     expect(res).to.have.status(200);
+                    resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
                     expect(res.body.name).to.be.equal(data.name);
                     expect(res.body.gitRepositoryUrl).to.be.equal(
@@ -234,7 +292,7 @@ describe('Component API', function() {
                         .end(function(err, res) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
-                            expect(res.body.totalResources).to.have.lengthOf(3); // one application log, one monitor and one application log security
+                            expect(res.body.totalResources).to.have.lengthOf(resourceCount); // two application logs, one monitor and one application log security
                             done();
                         });
                 });
@@ -265,6 +323,7 @@ describe('Component API', function() {
                 .end(function(err, res) {
                     containerSecurityId = res.body._id;
                     expect(res).to.have.status(200);
+                    resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
                     expect(res.body.name).to.be.equal(data.name);
                     expect(res.body.imagePath).to.be.equal(data.imagePath);
@@ -275,7 +334,7 @@ describe('Component API', function() {
                         .end(function(err, res) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
-                            expect(res.body.totalResources).to.have.lengthOf(4); // one application log, one monitor, one application log security and one container security
+                            expect(res.body.totalResources).to.have.lengthOf(resourceCount); // tws application logs, one monitor, one application log security and one container security
                             done();
                         });
                 });
@@ -481,6 +540,23 @@ describe('Component API with Sub-Projects', function() {
                 newComponentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component 1');
+                done();
+            });
+    });
+
+    it('should not create a component with exisiting name in sub-project.', function(done) {
+        let authorization = `Basic ${token}`;
+        request
+            .post(`/component/${subProjectId}`)
+            .set('Authorization', authorization)
+            .send({
+                name: 'New Component 1',
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    'Component with that name already exists.'
+                );
                 done();
             });
     });

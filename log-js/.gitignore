@@ -1,3 +1,2 @@
-/dist/**
-/lib/**
 test.html
+/node_modules

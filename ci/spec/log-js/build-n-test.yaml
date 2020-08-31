@@ -17,10 +17,13 @@ build_n_test_log-js:
         - sudo docker ps
         - cd log-js
         - npm ci
+        - npm run build
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_log-js log-js backend
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

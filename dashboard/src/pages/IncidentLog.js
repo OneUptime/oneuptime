@@ -11,6 +11,7 @@ import {
     getIncidents,
     getProjectIncidents,
 } from '../actions/incident';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
@@ -24,6 +25,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -40,6 +42,8 @@ class IncidentLog extends React.Component {
 
     ready = () => {
         this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -186,11 +190,13 @@ class IncidentLog extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem route={pathname} name="Incident Log" />
+                    <ShouldRender if={!pathname.endsWith('incidents')}>
+                        <BreadCrumbItem
+                            route={getParentRoute(pathname)}
+                            name={componentName}
+                        />
+                    </ShouldRender>
+                    <BreadCrumbItem route={pathname} name="Incidents" />
                     <div>
                         <div>
                             <div className="db-RadarRulesLists-page">
@@ -259,6 +265,8 @@ const mapDispatchToProps = dispatch => {
             getProjectIncidents,
             openModal,
             closeModal,
+            fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -286,6 +294,8 @@ IncidentLog.propTypes = {
             name: PropTypes.string,
         })
     ),
+    fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 IncidentLog.displayName = 'IncidentLog';

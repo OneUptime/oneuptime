@@ -7,6 +7,7 @@ import {
     fetchComponents,
     fetchComponentResources,
 } from '../../actions/component';
+import { fetchMonitors } from '../../actions/monitor';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteComponent from '../modals/DeleteComponent';
 import { deleteComponent } from '../../actions/component';
@@ -131,6 +132,7 @@ export class ComponentDetail extends Component {
             0,
             5
         );
+        this.props.fetchMonitors(component.projectId._id);
     }
 
     render() {
@@ -302,6 +304,7 @@ const mapDispatchToProps = dispatch => {
             deleteComponent,
             fetchComponents,
             fetchComponentResources,
+            fetchMonitors,
         },
         dispatch
     );
@@ -341,6 +344,7 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
+    fetchMonitors: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);

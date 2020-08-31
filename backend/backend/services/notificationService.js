@@ -85,13 +85,23 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             let notification = await _this.findOneBy(query);
-            const read = notification.read;
+
             if (data.read) {
+                const read = notification.read;
                 for (const userId of data.read) {
                     read.push(userId);
                 }
+                data.read = read;
             }
-            data.read = read;
+            if (data.closed) {
+                const closed = notification.closed;
+                if (data.closed) {
+                    for (const userId of data.closed) {
+                        closed.push(userId);
+                    }
+                }
+                data.closed = closed;
+            }
             notification = await NotificationModel.findOneAndUpdate(
                 query,
                 {

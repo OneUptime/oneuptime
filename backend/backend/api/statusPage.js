@@ -24,6 +24,7 @@ const { getSubProjects } = require('../middlewares/subProject');
 const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
 const { isAuthorized } = require('../middlewares/authorization');
+const IncidentTimelineService = require('../services/incidentTimelineService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -549,6 +550,42 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function(
     }
 });
 
+router.get('/:projectId/incident/:incidentId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+
+        const incident = await StatusPageService.getIncident({
+            _id: incidentId,
+        });
+        return sendItemResponse(req, res, incident);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+        const { skip, limit, type } = req.query;
+
+        const response = await StatusPageService.getIncidentNotes(
+            { incidentId, type },
+            skip,
+            limit
+        );
+        const { message, count } = response;
+        return sendListResponse(req, res, message, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     req,
     res
@@ -617,37 +654,67 @@ router.get('/:projectId/:statusPageId/events', checkUser, async function(
     }
 });
 
+router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageId } = req.params;
+        const { skip = 0, limit = 5 } = req.query;
+
+        const response = await StatusPageService.getFutureEvents(
+            { _id: statusPageId },
+            skip,
+            limit
+        );
+        const { events, count } = response;
+        return sendListResponse(req, res, events, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
+    req,
+    res
+) {
+    const { scheduledEventId } = req.params;
+    const { skip, limit, type } = req.query;
+
+    try {
+        const response = await StatusPageService.getEventNotes(
+            { scheduledEventId, type },
+            skip,
+            limit
+        );
+        const { notes, count } = response;
+        return sendListResponse(req, res, notes, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     req,
     res
 ) {
     let date = req.query.date;
-    date = new Date(date);
-    const start = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        0,
-        0,
-        0
-    );
-    const end = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        23,
-        59,
-        59
-    );
+    date = moment(date)
+        .endOf('day')
+        .format();
 
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
+
+    const currentDate = moment().format();
     const query = {
-        monitorId: req.params.monitorId,
+        'monitors.monitorId': req.params.monitorId,
         showEventOnStatusPage: true,
         deleted: false,
-        startDate: { $lt: end },
-        endDate: { $gte: start },
+        startDate: { $lte: date },
+        endDate: {
+            $gte: currentDate,
+        },
     };
 
     try {
@@ -664,6 +731,24 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// get a particular scheduled event
+router.get(
+    '/:projectId/scheduledEvent/:scheduledEventId',
+    checkUser,
+    async function(req, res) {
+        const { scheduledEventId } = req.params;
+
+        try {
+            const response = await StatusPageService.getEvent({
+                _id: scheduledEventId,
+            });
+            return sendListResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 // Route
 // Description: Get all Monitor Statuses by monitorId
 router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
@@ -760,5 +845,46 @@ router.delete(
         }
     }
 );
+
+router.get('/:projectId/timeline/:incidentId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { incidentId } = req.params;
+        // setting limit to one
+        // since the frontend only need the last content (current content)
+        // of incident timeline
+        const { skip = 0, limit = 1 } = req.query;
+
+        const timeline = await IncidentTimelineService.findBy(
+            { incidentId },
+            skip,
+            limit
+        );
+        return sendItemResponse(req, res, timeline);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/:statusPageId/timelines', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageId } = req.params;
+
+        const incidents = await StatusPageService.getNotes({
+            _id: statusPageId,
+        });
+        const response = await IncidentTimelineService.getIncidentLastTimelines(
+            incidents.notes
+        );
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 
 module.exports = router;

@@ -1,10 +1,19 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
+import AffectedResources from './basic/AffectedResources';
 
 class Events extends Component {
+    handleNavigation = (statusPageId, eventId) => {
+        const { history } = this.props;
+
+        history.push(`/status-page/${statusPageId}/scheduledEvent/${eventId}`);
+    };
+
     render() {
+        const { statusPageId } = this.props;
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
@@ -13,6 +22,9 @@ class Events extends Component {
                         <li
                             className="scheduledEvent feed-item clearfix"
                             key={i}
+                            onClick={() =>
+                                this.handleNavigation(statusPageId, event._id)
+                            }
                         >
                             <div
                                 className="message"
@@ -22,39 +34,79 @@ class Events extends Component {
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
-                                <div className="text">
+                                <div
+                                    className="text"
+                                    style={{
+                                        paddingLeft: 0,
+                                        paddingRight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexWrap: 'nowrap',
+                                    }}
+                                >
                                     <span
+                                        className="feed-title"
                                         style={{
-                                            fontWeight: 'Bold',
-                                            ...this.props.primaryTextColor,
+                                            ...this.props.secondaryTextColor,
+                                            color: 'rgba(76, 76, 76, 0.8)',
+                                            fontWeight: 'bold',
+                                            fontSize: 14,
                                         }}
                                     >
-                                        {event.monitorId.name
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            event.monitorId.name.substr(1)}
+                                        {event.name}
                                     </span>
-                                    :{' '}
-                                    <span style={this.props.secondaryTextColor}>
-                                        {event.name}.
+                                    <span
+                                        style={{
+                                            ...this.props.primaryTextColor,
+                                            color: 'rgba(0, 0, 0, 0.5)',
+                                            display: 'block',
+                                            textAlign: 'justify',
+                                        }}
+                                    >
+                                        {event.description}
                                     </span>
                                 </div>
                             </div>
-                            <span
-                                className="time"
+                            <div
+                                className="ongoing__affectedmonitor"
+                                style={
+                                    event.description
+                                        ? { marginTop: 10 }
+                                        : { marginTop: 0 }
+                                }
+                            >
+                                <AffectedResources
+                                    monitorState={this.props.monitorState}
+                                    event={event}
+                                    colorStyle="grey"
+                                />
+                            </div>
+                            <div
                                 style={{
-                                    marginLeft: 12,
-                                    ...this.props.secondaryTextColor,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                 }}
                             >
-                                {moment(event.startDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                {moment(event.endDate).format(
-                                    'MMMM Do YYYY, h:mm a'
-                                )}
-                            </span>
+                                <span
+                                    className="time"
+                                    style={{
+                                        marginLeft: 0,
+                                        ...this.props.secondaryTextColor,
+                                        paddingBottom: 10,
+                                        color: 'rgba(76, 76, 76, 0.8)',
+                                    }}
+                                >
+                                    {moment(event.startDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                    &nbsp;&nbsp;-&nbsp;&nbsp;
+                                    {moment(event.endDate).format(
+                                        'MMMM Do YYYY, h:mm a'
+                                    )}
+                                </span>
+                                <span className="sp__icon sp__icon--forward"></span>
+                            </div>
                         </li>
                     );
                 })}
@@ -70,6 +122,9 @@ Events.propTypes = {
     secondaryTextColor: PropTypes.object,
     primaryTextColor: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
+    statusPageId: PropTypes.string,
+    monitorState: PropTypes.array,
+    history: PropTypes.object,
 };
 
-export default Events;
+export default withRouter(Events);
