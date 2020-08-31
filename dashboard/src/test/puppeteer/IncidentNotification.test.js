@@ -272,8 +272,8 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#incidentLogs');
-                await page.click('#incidentLogs');
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
 
                 // Acknowledge the second incident
                 await page.waitForSelector(`tr#incident_${monitorName}_1`);
@@ -283,8 +283,8 @@ describe('Incident Created test', () => {
 
                 await page.waitForSelector('#backToDashboard');
                 await page.click('#backToDashboard');
-                await page.waitForSelector('#incidentLogs');
-                await page.click('#incidentLogs');
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
 
                 // Acknowledge the third incident
                 await page.waitForSelector(`tr#incident_${monitorName}_2`);
@@ -294,8 +294,8 @@ describe('Incident Created test', () => {
 
                 await page.waitForSelector('#backToDashboard');
                 await page.click('#backToDashboard');
-                await page.waitForSelector('#incidentLogs');
-                await page.click('#incidentLogs');
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
 
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
@@ -383,8 +383,8 @@ describe('Incident Created test', () => {
                 await init.addIncident(monitorName2, 'Offline', page);
                 await page.goto(utils.DASHBOARD_URL);
 
-                await page.waitForSelector('#incidentLogs');
-                await page.click('#incidentLogs');
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
@@ -404,8 +404,8 @@ describe('Incident Created test', () => {
                     visible: true,
                 });
                 await page.click('#closeIncident_0');
-                await page.waitForSelector('#incidentLogs');
-                await page.click('#incidentLogs');
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
                 await page.click(`#btnCreateIncident_${projectName}`);
                 await page.waitForSelector('#frmIncident');
@@ -420,6 +420,20 @@ describe('Incident Created test', () => {
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
                 expect(filteredIncidentsCount).toEqual(5);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should open modal for unresolved incident when close button is clicked',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#closeIncidentButton_0');
+                await page.click('#closeIncidentButton_0');
+                const elementHandle = await page.$('#modal-ok');
+                expect(elementHandle).not.toBe(null);
             });
         },
         operationTimeOut
