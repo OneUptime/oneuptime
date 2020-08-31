@@ -29,6 +29,11 @@ import {
     deleteMonitor,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
+import {
+    createScheduledEventSuccess,
+    updateScheduledEventSuccess,
+    deleteScheduledEventSuccess,
+} from '../../actions/scheduledEvent';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -90,6 +95,15 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `deleteMonitor-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addScheduledEvent-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteScheduledEvent-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateScheduledEvent-${this.props.project._id}`
                 );
             }
             return true;
@@ -549,6 +563,17 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.deleteMonitor(data);
             });
+            socket.on(`addScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.createScheduledEventSuccess(event)
+            );
+
+            socket.on(`deleteScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.deleteScheduledEventSuccess(event)
+            );
+
+            socket.on(`updateScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.updateScheduledEventSuccess(event)
+            );
         }
         return null;
     }
@@ -596,6 +621,9 @@ const mapDispatchToProps = dispatch =>
             addIncidentNote,
             createMonitor,
             deleteMonitor,
+            createScheduledEventSuccess,
+            updateScheduledEventSuccess,
+            deleteScheduledEventSuccess,
         },
         dispatch
     );

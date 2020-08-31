@@ -250,23 +250,25 @@ export class ScheduledEventNote extends Component {
                                                     <div className="Margin-left--30">
                                                         <span
                                                             id={`content_${type}_incident_message_${i}`}
+                                                            style={{
+                                                                display:
+                                                                    'block',
+                                                            }}
                                                         >
                                                             <Markdown>
                                                                 {note.content}
                                                             </Markdown>
-                                                            <ShouldRender
-                                                                if={
-                                                                    note.updated
-                                                                }
-                                                            >
-                                                                <span
-                                                                    id={`edited_${type}_incident_message_${i}`}
-                                                                    className="Text-color--dark Margin-right--4"
-                                                                >
-                                                                    (edited)
-                                                                </span>
-                                                            </ShouldRender>
                                                         </span>
+                                                        <ShouldRender
+                                                            if={note.updated}
+                                                        >
+                                                            <span
+                                                                id={`edited_${type}_incident_message_${i}`}
+                                                                className="Text-color--dark Margin-right--4"
+                                                            >
+                                                                (edited)
+                                                            </span>
+                                                        </ShouldRender>
                                                         <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                             <span
                                                                 style={{
@@ -274,8 +276,10 @@ export class ScheduledEventNote extends Component {
                                                                         '500',
                                                                     fontStyle:
                                                                         'italic',
+                                                                    fontSize: 11,
                                                                 }}
                                                             >
+                                                                Posted on{' '}
                                                                 {currentTimeZone
                                                                     ? momentTz(
                                                                           note.createdAt
@@ -307,7 +311,7 @@ export class ScheduledEventNote extends Component {
                                                     minWidth: '150px',
                                                 }}
                                             >
-                                                {note.incident_state ? (
+                                                {note.event_state ? (
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
                                                             <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -318,7 +322,7 @@ export class ScheduledEventNote extends Component {
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     <span>
                                                                                         {
-                                                                                            note.incident_state
+                                                                                            note.event_state
                                                                                         }
                                                                                     </span>
                                                                                 </span>

@@ -22,12 +22,12 @@ class EditNoteModal extends Component {
         if (!ValidateField.text(values[`content`])) {
             errors.name = 'Note content is required.';
         }
-        if (!ValidateField.text(values[`incident_state`])) {
+        if (!ValidateField.text(values[`event_state`])) {
             errors.name = 'Incident State is required.';
         }
         if (
-            values[`incident_state`] === 'others' &&
-            !ValidateField.text(values[`custom_incident_state`])
+            values[`event_state`] === 'others' &&
+            !ValidateField.text(values[`custom_event_state`])
         ) {
             errors.name = 'Custom Incident State is required.';
         }
@@ -46,10 +46,10 @@ class EditNoteModal extends Component {
         } = this.props;
         const postObj = {};
         postObj.content = values[`content`];
-        postObj.incident_state =
-            values[`incident_state`] === 'others'
-                ? values[`custom_incident_state`]
-                : values[`incident_state`];
+        postObj.event_state =
+            values[`event_state`] === 'others'
+                ? values[`custom_event_state`]
+                : values[`event_state`];
         postObj.type = type;
 
         if (type === 'internal') {
@@ -110,7 +110,7 @@ class EditNoteModal extends Component {
     render() {
         const {
             handleSubmit,
-            incident_state,
+            event_state,
             updatingInternalNote,
             updatingInvestigationNote,
             updateInternalError,
@@ -163,8 +163,8 @@ class EditNoteModal extends Component {
                                                     <Field
                                                         className="db-select-nw-300"
                                                         component={RenderSelect}
-                                                        name="incident_state"
-                                                        id="incident_state"
+                                                        name="event_state"
+                                                        id="event_state"
                                                         placeholder="Incident State"
                                                         disabled={false}
                                                         validate={
@@ -193,7 +193,7 @@ class EditNoteModal extends Component {
                                                 </div>
                                             </div>
                                             <ShouldRender
-                                                if={incident_state === 'others'}
+                                                if={event_state === 'others'}
                                             >
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
@@ -206,8 +206,8 @@ class EditNoteModal extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            name={`custom_incident_state`}
-                                                            id="custom_incident_state"
+                                                            name={`custom_event_state`}
+                                                            id="custom_event_state"
                                                             placeholder="Enter a custom incident state"
                                                             validate={
                                                                 ValidateField.text
@@ -364,10 +364,10 @@ const mapStateToProps = state => {
     const currentProject = state.project.currentProject;
     const note = state.modal.modals[0].note;
 
-    const incident_state =
+    const event_state =
         state.form.EditNote &&
         state.form.EditNote.values &&
-        state.form.EditNote.values.incident_state;
+        state.form.EditNote.values.event_state;
 
     const content =
         (state.form.EditNote &&
@@ -376,18 +376,18 @@ const mapStateToProps = state => {
         note.content;
 
     const initialValues = {
-        incident_state:
-            note.incident_state === 'investigating' ||
-            note.incident_state === 'update'
-                ? note.incident_state
+        event_state:
+            note.event_state === 'investigating' ||
+            note.event_state === 'update'
+                ? note.event_state
                 : 'others',
-        custom_incident_state: note.incident_state,
+        custom_event_state: note.event_state,
         content: note.content,
     };
 
     return {
         currentProject,
-        incident_state,
+        event_state,
         modalId: state.modal.modals[0].id,
         content,
         initialValues,
@@ -415,7 +415,7 @@ EditNoteModal.propTypes = {
     data: PropTypes.object,
     handleSubmit: PropTypes.func,
     closeThisDialog: PropTypes.func,
-    incident_state: PropTypes.string,
+    event_state: PropTypes.string,
     updatingInternalNote: PropTypes.bool,
     updatingInvestigationNote: PropTypes.bool,
     updateInternalError: PropTypes.oneOfType([

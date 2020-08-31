@@ -258,10 +258,12 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
         const events = await ScheduledEventService.findBy({
             projectId,
             startDate: { $lte: currentDate },
+            endDate: { $gt: currentDate },
         });
         const count = await ScheduledEventService.countBy({
             projectId,
             startDate: { $lte: currentDate },
+            endDate: { $gt: currentDate },
         });
         return sendListResponse(req, res, events, count);
     } catch (error) {
@@ -444,14 +446,14 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
             });
         }
 
-        if (!data.incident_state || !data.incident_state.trim()) {
+        if (!data.event_state || !data.event_state.trim()) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Scheduled Event State is required.',
             });
         }
 
-        if (typeof data.incident_state !== 'string') {
+        if (typeof data.event_state !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Scheduled Event State is not in string type.',
@@ -592,14 +594,14 @@ router.put(
                 });
             }
 
-            if (!data.incident_state || !data.incident_state.trim()) {
+            if (!data.event_state || !data.event_state.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Scheduled Event State is required.',
                 });
             }
 
-            if (typeof data.incident_state !== 'string') {
+            if (typeof data.event_state !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Scheduled Event State is not in string type.',

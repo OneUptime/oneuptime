@@ -1059,8 +1059,8 @@ margin-left:10px;
 .sp__icon {
   background-color: transparent;
   background-size: contain;
-  height: 20px;
-  width: 20px;
+  height: 15px;
+  width: 15px;
   margin-top: -3px;
   padding-left: 25px;
 }
@@ -1077,6 +1077,14 @@ margin-left:10px;
 
 .sp__icon--forward:hover {
   background-image: url('../images/right-arrow-alt.svg');
+}
+
+.sp__icon--more {
+  background-image: url('../images/arrow-right.svg');
+  background-repeat: no-repeat;
+  position: absolute;
+  right: 0px;
+  bottom: 20px;
 }
 
 .resolved__incident {
@@ -1113,6 +1121,7 @@ margin-left:10px;
 .ongoing__schedulebox {
   padding-top: 15px;
   padding-bottom: 15px;
+  position: relative;
 }
 
 .ongoing__scheduleitem {
@@ -1175,6 +1184,20 @@ margin-left:10px;
   display: flex;
   align-items: center;
   margin-left: 5px;
+}
+
+.all__btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  margin-bottom: 20px;
+  color: #6d6d6d;
+  background: transparent;
+  font-size: 14px;
+  font-weight: normal;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
+  outline: transparent;
 }
 
 @media screen and (max-width: 500px) {

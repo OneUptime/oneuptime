@@ -203,6 +203,10 @@ class Main extends Component {
                                         monitorCategory={
                                             monitor.monitorCategoryId
                                         }
+                                        isGroupedByMonitorCategory={
+                                            this.props.statusData
+                                                .isGroupedByMonitorCategory
+                                        }
                                     />
                                     {this.props.monitors.some(
                                         m => monitor._id === m.monitor
@@ -445,6 +449,7 @@ class Main extends Component {
                                                 'MMMM Do YYYY, h:mm a'
                                             )}
                                         </span>
+                                        <span className="sp__icon sp__icon--more"></span>
                                     </div>
                                 </div>
                             ))}
@@ -590,6 +595,9 @@ class Main extends Component {
                                                             }
                                                             key={`uptime-${i}`}
                                                             id={`monitor${i}`}
+                                                            isGroupedByMonitorCategory={
+                                                                isGroupedByMonitorCategory
+                                                            }
                                                         />
                                                         <LineChartsContainer
                                                             monitor={

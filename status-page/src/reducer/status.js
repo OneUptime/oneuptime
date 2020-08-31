@@ -591,9 +591,23 @@ export default (state = INITIAL_STATE, action) => {
             let addFutureEvent = false;
             let futureEventExist = false;
             let eventExist = false;
+            let monitorInStatusPage = false;
             const currentDate = moment().format();
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
+
+            state.statusPage.monitors.map(monitorData => {
+                action.payload.monitors.map(monitor => {
+                    if (
+                        String(monitor.monitorId._id) ===
+                        String(monitorData.monitor)
+                    ) {
+                        monitorInStatusPage = true;
+                    }
+                    return monitor;
+                });
+                return monitorData;
+            });
 
             const updatedEvents = state.events.events.map(event => {
                 if (String(event._id) === String(action.payload._id)) {
@@ -612,11 +626,11 @@ export default (state = INITIAL_STATE, action) => {
             });
 
             if (!eventExist) {
-                updatedEvents.push(action.payload);
+                updatedEvents.unshift(action.payload);
             }
 
             if (!futureEventExist) {
-                updatedFutureEvent.push(action.payload);
+                updatedFutureEvent.unshift(action.payload);
             }
 
             const removeEvent = state.events.events.filter(
@@ -627,11 +641,15 @@ export default (state = INITIAL_STATE, action) => {
                 event => String(event._id) !== String(action.payload._id)
             );
 
-            if (startDate <= currentDate && endDate >= currentDate) {
+            if (
+                monitorInStatusPage &&
+                startDate <= currentDate &&
+                endDate >= currentDate
+            ) {
                 addEvent = true;
             }
 
-            if (startDate > currentDate) {
+            if (monitorInStatusPage && startDate > currentDate) {
                 addFutureEvent = true;
             }
 
