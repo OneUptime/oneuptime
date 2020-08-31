@@ -5,7 +5,7 @@ import ShouldRender from './ShouldRender';
 
 function QuickTipBox({
     title,
-    header,
+    id,
     content,
     icon,
     callToActionLink,
@@ -17,7 +17,7 @@ function QuickTipBox({
         <ShouldRender if={display}>
             <div
                 tabIndex="0"
-                id={`info-${title.replace(/ /g, '-')}`}
+                id={`info-${id}`}
                 className="Box-root Margin-vertical--12"
             >
                 <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
@@ -25,8 +25,8 @@ function QuickTipBox({
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="ContentHeader-title Text-color--inherit Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-lineHeight--28">
-                                    <span id="box-header">
-                                        {header || 'Quick Tip'}
+                                    <span id={`box-header-${id}`}>
+                                        {title || 'Quick Tip'}
                                     </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"></span>
@@ -66,7 +66,7 @@ function QuickTipBox({
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
                             <div>
                                 <Link
-                                    id="gotoPage"
+                                    id={`gotoPage-${id}`}
                                     className="bs-Button "
                                     to={callToActionLink || '/dashboard'}
                                 >
@@ -85,7 +85,7 @@ QuickTipBox.displayName = 'QuickTipBox';
 
 QuickTipBox.propTypes = {
     title: PropTypes.string,
-    header: PropTypes.string,
+    id: PropTypes.string,
     content: PropTypes.object,
     icon: PropTypes.string,
     callToActionLink: PropTypes.string,
