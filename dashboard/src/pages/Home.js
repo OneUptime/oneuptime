@@ -478,7 +478,7 @@ class Home extends Component {
                                                                         </ShouldRender>
                                                                     </RenderIfOwnerOrAdmin>
 
-                                                                    {/* Here, check if atleast 1 componentsand monitor exists before deciding on incidents */}
+                                                                    {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
                                                                     {this.props
                                                                         .components &&
                                                                     this.props
