@@ -1034,6 +1034,12 @@ module.exports = {
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
                     alertStatus: 'Sent',
+                    eventType:
+                        templateType === 'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
