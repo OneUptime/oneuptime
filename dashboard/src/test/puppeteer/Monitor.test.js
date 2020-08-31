@@ -608,6 +608,8 @@ describe('API Monitor API', () => {
                 await page.waitForSelector('#advanceOptions');
                 await page.click('#advanceOptions');
 
+                await page.waitForSelector('#addApiHeaders');
+                await page.click('#addApiHeaders');
                 await page.waitForSelector('input[id=headers_1000_0_key]');
                 await page.click('input[id=headers_1000_0_key]');
                 await page.type(
