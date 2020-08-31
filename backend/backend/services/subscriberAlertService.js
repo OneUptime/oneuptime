@@ -7,6 +7,7 @@ module.exports = {
             subscriberAlertModel.incidentId = data.incidentId || null;
             subscriberAlertModel.alertVia = data.alertVia || null;
             subscriberAlertModel.alertStatus = data.alertStatus || null;
+            subscriberAlertModel.eventType = data.eventType || null;
             if (data.error) {
                 subscriberAlertModel.error = data.error;
                 subscriberAlertModel.errorMessage = data.errorMessage;
