@@ -91,6 +91,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
                 incidentType,
                 resolved: false,
                 deleted: false,
+                manuallyCreated:true,
             });
         } else {
             return sendErrorResponse(req, res, {
