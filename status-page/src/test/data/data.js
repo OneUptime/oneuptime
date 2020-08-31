@@ -27,7 +27,7 @@ module.exports = {
         reference: 'Github',
     },
     monitor: {
-        name: 'New Monitor',
+        name: 'NewMonitor',
         type: 'url',
         data: { url: 'http://localhost:3010/' },
     },
