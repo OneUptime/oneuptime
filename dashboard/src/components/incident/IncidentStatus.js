@@ -20,12 +20,14 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
+import MessageBox from '../modals/MessageBox';
 
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
             editIncidentModalId: uuid.v4(),
+            messageModalId: uuid.v4(),
         };
     }
     acknowledge = () => {
@@ -817,15 +819,30 @@ export class IncidentStatus extends Component {
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
                             <ShouldRender
-                                if={
-                                    this.props.multiple &&
-                                    this.props.incident &&
-                                    this.props.incident.resolved
-                                }
+                                if={this.props.multiple && this.props.incident}
                             >
                                 <div>
                                     <button
-                                        onClick={this.closeIncident}
+                                        onClick={() => {
+                                            this.props.incident.resolved
+                                                ? this.closeIncident()
+                                                : this.props.openModal({
+                                                      id: this.state
+                                                          .messageModalId,
+                                                      onClose: () => '',
+                                                      content: DataPathHoC(
+                                                          MessageBox,
+                                                          {
+                                                              messageBoxId: this
+                                                                  .state
+                                                                  .messageModalId,
+                                                              title: 'Warning',
+                                                              message:
+                                                                  'This incident cannot be closed because it is not acknowledged or resolved',
+                                                          }
+                                                      ),
+                                                  });
+                                        }}
                                         className={
                                             this.props.closeincident &&
                                             this.props.closeincident.requesting
@@ -837,6 +854,7 @@ export class IncidentStatus extends Component {
                                             this.props.closeincident.requesting
                                         }
                                         type="button"
+                                        id={`closeIncidentButton_${this.props.count}`}
                                     >
                                         <ShouldRender
                                             if={
@@ -897,8 +915,8 @@ IncidentStatus.propTypes = {
     multiple: PropTypes.bool,
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
-    componentId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
 };
