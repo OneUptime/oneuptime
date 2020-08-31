@@ -1,6 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import uuid from 'uuid';
+import { openModal } from '../../actions/modal';
+import AlertDetails from '../modals/AlertDetails';
+import countryTelephoneCode from 'country-telephone-code';
+import DataPathHoC from '../DataPathHoC';
 
 function HTD1() {
     return (
@@ -236,30 +243,53 @@ function SubscriberAlertTableHeader() {
     );
 }
 
-function SubscriberAlertTableRows({ alerts, monitor }) {
-    return alerts.length > 0
-        ? alerts.map((alert, index) => (
-              <tr
-                  key={`alert ${index}`}
-                  className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-              >
-                  <TD1 text={monitor ? monitor.name : 'Unknown'} />
-                  <TD2
-                      text={
-                          alert.subscriberId
-                              ? alert.subscriberId.contactEmail ||
-                                alert.subscriberId.contactPhone ||
-                                alert.subscriberId.contactWebhook
-                              : 'Unknown'
-                      }
-                  />
-                  <TD3 text={alert.alertVia} />
-                  <TD4 text={alert.createdAt} />
-                  <TD5 text={alert.eventType} />
-              </tr>
-          ))
-        : null;
+class SubscriberAlertTableRowsClass extends React.Component {
+    render() {
+        const { alerts, monitor } = this.props;
+        return alerts.length > 0
+            ? alerts.map((alert, index) => (
+                  <tr
+                      key={`alert ${index}`}
+                      className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                  >
+                      <TD1 text={monitor ? monitor.name : 'Unknown'} />
+                      <TD2
+                          text={
+                              alert.subscriberId
+                                  ? alert.subscriberId.contactEmail ||
+                                    (alert.subscriberId.contactPhone &&
+                                        `+${countryTelephoneCode(
+                                            alert.subscriberId.countryCode.toUpperCase()
+                                        )}${
+                                            alert.subscriberId.contactPhone
+                                        }`) ||
+                                    alert.subscriberId.contactWebhook
+                                  : 'Unknown'
+                          }
+                      />
+                      <TD3 text={alert.alertVia} />
+                      <TD4 text={alert.createdAt} />
+                      <TD5 text={alert.eventType} />
+                  </tr>
+              ))
+            : null;
+    }
 }
+SubscriberAlertTableRowsClass.displayName = 'SubscriberAlertTableRowsClass';
+SubscriberAlertTableRowsClass.propTypes = {
+    alerts: PropTypes.array.isRequired,
+    monitor: PropTypes.object.isRequired,
+    openModal: PropTypes.func.isRequired,
+};
+
+const SubscriberAlertTableRows = connect(null, dispatch =>
+    bindActionCreators(
+        {
+            openModal,
+        },
+        dispatch
+    )
+)(SubscriberAlertTableRowsClass);
 
 HTD1.displayName = 'HTD1';
 HTD2.displayName = 'HTD2';
