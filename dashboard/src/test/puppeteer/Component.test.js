@@ -53,6 +53,40 @@ describe('Components', () => {
     });
 
     test(
+        'Should show indicator on how to invite new Team members since no other member exist, then goto team page ',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitFor(15000);
+                const componentBoxElement = await page.waitForSelector(
+                    '#info-teamMember'
+                );
+                expect(componentBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    `span#box-header-teamMember`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Invite your Team');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage-teamMember');
+                await page.click('#gotoPage-teamMember');
+
+                const componentFormElement = await page.waitForSelector(
+                    `#teamMemberPage`
+                );
+                expect(componentFormElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
         'Should show indicator on how to create a component since no component exist, then goto component creation ',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -61,19 +95,21 @@ describe('Components', () => {
                     waitUntil: 'networkidle0',
                 });
                 const componentBoxElement = await page.waitForSelector(
-                    '#info-Components'
+                    '#info-component'
                 );
                 expect(componentBoxElement).toBeDefined();
 
                 let spanElement;
-                spanElement = await page.waitForSelector(`span#box-header`);
+                spanElement = await page.waitForSelector(
+                    `span#box-header-component`
+                );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('Create your first Component');
 
                 // click on the call to action button
-                await page.waitForSelector('#gotoPage');
-                await page.click('#gotoPage');
+                await page.waitForSelector('#gotoPage-component');
+                await page.click('#gotoPage-component');
 
                 const componentFormElement = await page.waitForSelector(
                     '#form-new-component'
@@ -124,19 +160,21 @@ describe('Components', () => {
                 });
 
                 const monitorBoxElement = await page.waitForSelector(
-                    '#info-Monitors'
+                    '#info-monitor'
                 );
                 expect(monitorBoxElement).toBeDefined();
 
                 let spanElement;
-                spanElement = await page.waitForSelector(`span#box-header`);
+                spanElement = await page.waitForSelector(
+                    `span#box-header-monitor`
+                );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('Create a Monitor');
 
                 // click on the call to action button
-                await page.waitForSelector('#gotoPage');
-                await page.click('#gotoPage');
+                await page.waitForSelector('#gotoPage-monitor');
+                await page.click('#gotoPage-monitor');
 
                 // Navigate to Component details
                 await page.waitForSelector(`#more-details-${componentName}`);
@@ -503,7 +541,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Log Containers');
+                expect(spanElement).toMatch('Log Container');
 
                 spanElement = await page.waitForSelector(
                     `#resource_status_${applicationLogName}`
