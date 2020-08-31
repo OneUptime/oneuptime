@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchMonitorStatuses } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
+import ShouldRender from './ShouldRender';
 
 const calculateTime = (statuses, start, range) => {
     const timeBlock = [];
@@ -191,6 +192,7 @@ class MonitorInfo extends Component {
             colors,
             selectedCharts,
             monitorCategory,
+            isGroupedByMonitorCategory,
         } = this.props;
         const now = Date.now();
         const range = 90;
@@ -275,20 +277,18 @@ class MonitorInfo extends Component {
                     }}
                 >
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div
-                            id={`monitorCategory_${
-                                monitorCategory
-                                    ? monitorCategory.name
-                                    : 'uncategorized'
-                            }`}
-                            style={monitorCategoryStyle}
-                        >
-                            <span>
-                                {monitorCategory
-                                    ? monitorCategory.name
-                                    : 'Uncategorized'}
-                            </span>
-                        </div>
+                        <ShouldRender if={isGroupedByMonitorCategory}>
+                            <div
+                                id={`monitorCategory_${monitor.name}`}
+                                style={monitorCategoryStyle}
+                            >
+                                <span>
+                                    {monitorCategory
+                                        ? monitorCategory.name
+                                        : 'Uncategorized'}
+                                </span>
+                            </div>
+                        </ShouldRender>
                         <div style={{ display: 'flex' }}>
                             <div>
                                 <span style={status}></span>
@@ -375,6 +375,7 @@ MonitorInfo.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    isGroupedByMonitorCategory: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
