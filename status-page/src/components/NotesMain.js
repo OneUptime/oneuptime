@@ -411,7 +411,7 @@ class NotesMain extends Component {
                                     className="all__btn"
                                     onClick={() => this.getAll()}
                                 >
-                                    Get all incidents
+                                    All Incidents
                                 </button>
                             </ShouldRender>
                         </div>

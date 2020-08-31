@@ -242,7 +242,7 @@ class EventsMain extends Component {
                                     className="all__btn"
                                     onClick={() => this.getAll()}
                                 >
-                                    Get all future scheduled events
+                                    All Scheduled Events
                                 </button>
                             </ShouldRender>
                         </div>
