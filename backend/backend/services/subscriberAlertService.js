@@ -110,7 +110,7 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate(
                     'subscriberId',
-                    'name contactEmail contactPhone contactWebhook'
+                    'name contactEmail contactPhone contactWebhook countryCode'
                 )
                 .populate('incidentId', 'name');
             return subscriberAlerts;
