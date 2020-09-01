@@ -83,11 +83,6 @@ class IncidentBasicSettings extends React.Component {
                                                                 width: '600px',
                                                             }}
                                                             options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Incident Priority',
-                                                                },
                                                                 ...this.props.incidentPriorities.map(
                                                                     incidentPriority => ({
                                                                         value:
