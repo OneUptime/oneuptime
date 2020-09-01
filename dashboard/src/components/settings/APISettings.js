@@ -11,6 +11,7 @@ import ResetAPIKey from '../modals/ResetAPIKey';
 import { openModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { API_URL, SHOULD_LOG_ANALYTICS } from '../../config';
+import TooltipMini from '../basic/TooltipMini';
 
 export class APISettings extends Component {
     constructor(props) {
@@ -161,15 +162,22 @@ export class APISettings extends Component {
                                                                 }
                                                                 className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                             >
-                                                                <img
-                                                                    src="/dashboard/assets/img/hide.svg"
-                                                                    style={{
-                                                                        width:
-                                                                            '15px',
-                                                                        height:
-                                                                            '15px',
-                                                                    }}
-                                                                    alt="hide_api_key"
+                                                                <TooltipMini
+                                                                    title="Hide API Key"
+                                                                    content={
+                                                                        <img
+                                                                            alt="hide_api_key"
+                                                                            src="/dashboard/assets/img/hide.svg"
+                                                                            style={{
+                                                                                width:
+                                                                                    '15px',
+                                                                                height:
+                                                                                    '15px',
+                                                                                cursor:
+                                                                                    'pointer',
+                                                                            }}
+                                                                        />
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>

@@ -27,7 +27,6 @@ import CustomStyles from '../components/statusPage/CustomStyles';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import 'react-tabs/style/react-tabs.css';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -96,15 +95,22 @@ class StatusPage extends Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab'}>Basic</Tab>
-                                <Tab className={'custom-tab'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
+                                    Basic
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Domain Settings
                                 </Tab>
-                                <Tab className={'custom-tab'}>Branding</Tab>
-                                <Tab className={'custom-tab'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
+                                    Branding
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Advanced Options
                                 </Tab>
-                                <div id="tab-slider"></div>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-4"
+                                ></div>
                             </TabList>
                         </div>
 
