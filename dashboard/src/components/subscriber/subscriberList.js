@@ -247,7 +247,12 @@ export class SubscriberList extends Component {
                                                                 <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                     {subscriber.contactWebhook ||
                                                                         subscriber.contactEmail ||
-                                                                        (subscriber.contactPhone && `+${countryTelephoneCode(subscriber.countryCode.toUpperCase())}${subscriber.contactPhone}`) ||
+                                                                        (subscriber.contactPhone &&
+                                                                            `+${countryTelephoneCode(
+                                                                                subscriber.countryCode.toUpperCase()
+                                                                            )}${
+                                                                                subscriber.contactPhone
+                                                                            }`) ||
                                                                         ''}
                                                                 </div>
                                                             </div>
