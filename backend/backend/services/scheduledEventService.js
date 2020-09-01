@@ -260,6 +260,73 @@ module.exports = {
             throw error;
         }
     },
+
+    /**
+     * @description removes a particular monitor from scheduled event
+     * @description if no monitor remains after deletion, then the scheduled event is deleted
+     * @param {string} monitorId the id of the monitor
+     * @param {string} userId the id of the user
+     */
+    removeMonitor: async function(monitorId, userId) {
+        try {
+            const scheduledEvents = await this.findBy({
+                'monitors.monitorId': monitorId,
+            });
+
+            await Promise.all(
+                scheduledEvents.map(async event => {
+                    // remove the monitor from scheduled event monitors list
+                    event.monitors = event.monitors.filter(
+                        monitor =>
+                            String(monitor.monitorId._id) !== String(monitorId)
+                    );
+
+                    if (event.monitors.length > 0) {
+                        let updatedEvent = await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            { $set: { monitors: event.monitors } },
+                            { new: true }
+                        );
+                        updatedEvent = await updatedEvent
+                            .populate('monitors.monitorId', 'name')
+                            .populate('projectId', 'name')
+                            .populate('createdById', 'name')
+                            .execPopulate();
+
+                        await RealTimeService.updateScheduledEvent(
+                            updatedEvent
+                        );
+                    } else {
+                        // delete the scheduled event when no monitor is remaining
+                        let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            {
+                                $set: {
+                                    monitors: event.monitors,
+                                    deleted: true,
+                                    deletedAt: Date.now(),
+                                    deletedById: userId,
+                                },
+                            },
+                            { new: true }
+                        );
+                        deletedEvent = await deletedEvent
+                            .populate('monitors.monitorId', 'name')
+                            .populate('projectId', 'name')
+                            .populate('createdById', 'name')
+                            .execPopulate();
+
+                        await RealTimeService.deleteScheduledEvent(
+                            deletedEvent
+                        );
+                    }
+                })
+            );
+        } catch (error) {
+            ErrorService.log('scheduledEventService.removeMonitor', error);
+            throw error;
+        }
+    },
 };
 
 /**
