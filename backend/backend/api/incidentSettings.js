@@ -38,12 +38,19 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     if (!projectId)
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Project Id must be present',
+            message: 'Project Id must be present.',
         });
+
     if (!title)
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Title must be present',
+            message: 'Title must be present.',
+        });
+
+    if(!incidentPriority)
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Incident priority must be present.',
         });
 
     try {
