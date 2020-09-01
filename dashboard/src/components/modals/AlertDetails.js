@@ -21,7 +21,7 @@ class AlertDetailsModal extends Component {
                         </div>
                         <div className="bs-Modal-content">
                             <div className="bs-Fieldset-rows">
-                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Monitor
                                     </label>
@@ -29,7 +29,7 @@ class AlertDetailsModal extends Component {
                                         <div>{this.props.data.monitor}</div>
                                     </div>
                                 </div>
-                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Subscriber
                                     </label>
@@ -37,7 +37,7 @@ class AlertDetailsModal extends Component {
                                         <div>{this.props.data.subscriber}</div>
                                     </div>
                                 </div>
-                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Alert via
                                     </label>
@@ -51,7 +51,7 @@ class AlertDetailsModal extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Event type
                                     </label>
@@ -82,7 +82,7 @@ class AlertDetailsModal extends Component {
                                         )}
                                     </div>
                                 </div>
-                                <div className="bs-Fieldset-row Margin-bottom--12">
+                                <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
                                         Created At
                                     </label>
