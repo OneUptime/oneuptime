@@ -616,4 +616,27 @@ module.exports = {
         await page.click('button[id=createIncident]');
         await page.waitFor(5000);
     },
+    addTwilioSettings: async function(enableSms, accountSid, authToken, phoneNumber, page){
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+        });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#email');
+        await page.click('#sms');
+        await page.waitForSelector('label[for=enabled]', {
+            visible: true,
+        });
+        if(enableSms)
+            await page.click('label[for=enabled]');
+        await page.type('#accountSid', accountSid);
+        await page.type('#authToken', authToken);
+        await page.type('#phoneNumber', phoneNumber);
+        await page.click('#submitTwilioSettings');
+        await page.waitFor(3000);
+        await page.reload();
+        await page.waitForSelector(
+            '#accountSid'
+        );
+    }
 };
