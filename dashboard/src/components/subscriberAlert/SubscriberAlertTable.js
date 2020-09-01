@@ -86,6 +86,23 @@ function HTD5() {
     );
 }
 
+function HTD6() {
+    return (
+        <td
+            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+            style={{
+                height: '1px',
+            }}
+        >
+            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                    <span>Status</span>
+                </span>
+            </div>
+        </td>
+    );
+}
+
 function TD1({ text }) {
     return (
         <td
@@ -231,6 +248,46 @@ TD5.propTypes = {
     text: PropTypes.string,
 };
 
+function TD6({ text }) {
+    return (
+        <td
+            aria-hidden="true"
+            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+            style={{
+                height: '1px',
+            }}
+        >
+            <div className="db-ListViewItem-link">
+                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        {text === 'Pending' && (
+                            <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                    {text}
+                                </span>
+                            </div>
+                        )}
+                        {(text === 'Success' || text === 'Sent') && (
+                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                    Sent
+                                </span>
+                            </div>
+                        )}
+                        {text === null && (
+                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                    Error
+                                </span>
+                            </div>
+                        )}
+                    </span>
+                </div>
+            </div>
+        </td>
+    );
+}
+
 function SubscriberAlertTableHeader() {
     return (
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -239,6 +296,7 @@ function SubscriberAlertTableHeader() {
             <HTD3 />
             <HTD4 />
             <HTD5 />
+            <HTD6 />
         </tr>
     );
 }
@@ -291,6 +349,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                       <TD3 text={alert.alertVia} />
                       <TD4 text={alert.createdAt} />
                       <TD5 text={alert.eventType} />
+                      <TD6 text={alert.alertStatus} />
                   </tr>
               ))
             : null;
