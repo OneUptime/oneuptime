@@ -42,6 +42,8 @@ describe('Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
+            await page.waitForSelector('#components');
+            await page.click('#components');
             await page.waitForSelector(`#more-details-${componentName}`);
             await page.click(`#more-details-${componentName}`);
             await page.waitForSelector(`#more-details-${monitorName}`);
@@ -56,6 +58,9 @@ describe('Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
+            await page.waitForSelector('#components');
+            await page.click('#components');
+
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
@@ -74,18 +79,21 @@ describe('Monitor API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
-                });
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
 
-                let spanElement = await page.waitForSelector(
-                    `#component-title-${componentName}`
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    `span#component-title-${componentName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -103,6 +111,8 @@ describe('Monitor API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
@@ -141,6 +151,8 @@ describe('Monitor API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);

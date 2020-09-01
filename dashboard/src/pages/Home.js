@@ -18,13 +18,14 @@ import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
-import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
 import { subProjectTeamLoading } from '../actions/team';
 import QuickTipBox from '../components/basic/QuickTipBox';
 import { tutorials } from '../config';
 import FeatureList from '../components/basic/FeatureList';
 import uuid from 'uuid';
+import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
+
 class Home extends Component {
     componentDidMount() {
         this.props.loadPage('Home');
@@ -216,9 +217,12 @@ class Home extends Component {
                                 event.projectId._id || event.projectId
                             }
                         >
-                            <ScheduledEventDescription
-                                scheduledEvent={event}
-                                isOngoing={true}
+                            <OngoingScheduledEvent
+                                event={event}
+                                monitorList={this.props.monitorList}
+                                projectId={
+                                    event.projectId._id || event.projectId
+                                }
                             />
                         </RenderIfUserInSubProject>
                     );
@@ -255,6 +259,10 @@ class Home extends Component {
                                                     >
                                                         {userSchedules ? (
                                                             <>
+                                                                {ongoingEventList &&
+                                                                    ongoingEventList.length >
+                                                                        0 &&
+                                                                    ongoingEventList}
                                                                 <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
@@ -545,13 +553,6 @@ class Home extends Component {
                                                                         )
                                                                     ) : null}
                                                                 </div>
-
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    {ongoingEventList &&
-                                                                        ongoingEventList.length >
-                                                                            0 &&
-                                                                        ongoingEventList}
-                                                                </div>
                                                             </>
                                                         ) : (
                                                             ''
@@ -604,6 +605,7 @@ Home.propTypes = {
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,
     components: PropTypes.array,
+    monitorList: PropTypes.array,
 };
 
 const mapStateToProps = (state, props) => {
@@ -636,6 +638,9 @@ const mapStateToProps = (state, props) => {
         projectTeamMembers,
         components,
         monitors,
+        monitorList: state.monitor.monitorsList.monitors[0]
+            ? state.monitor.monitorsList.monitors[0].monitors
+            : [],
     };
 };
 

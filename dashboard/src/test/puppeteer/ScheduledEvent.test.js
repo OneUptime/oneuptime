@@ -198,7 +198,7 @@ describe('Scheduled event', () => {
                         document.querySelector('.scheduled-event-name')
                             .textContent
                 );
-                expect(eventName).toBe(newScheduledEventName);
+                expect(eventName).toBe(utils.capitalize(newScheduledEventName));
             });
             done();
         },

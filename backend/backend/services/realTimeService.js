@@ -428,6 +428,28 @@ module.exports = {
         }
     },
 
+    deleteMonitor: async monitor => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: monitor.projectId._id,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : monitor.projectId._id;
+
+            global.io.emit(`deleteMonitor-${projectId}`, monitor);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteMonitor', error);
+            throw error;
+        }
+    },
+
     sendComponentDelete: async component => {
         try {
             if (!global || !global.io) {

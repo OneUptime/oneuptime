@@ -56,7 +56,7 @@ class MessageBox extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--white"
                                         type="button"
                                         id="modal-ok"
                                         onClick={() =>

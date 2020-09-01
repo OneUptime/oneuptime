@@ -19,7 +19,7 @@ module.exports = {
         await GlobalConfigService.create({
             name: 'twilio',
             value: {
-                'sms-enabled': false,
+                'sms-enabled': true,
                 'call-enabled': false,
                 'account-sid': 'AC4b957669470069d68cd5a09d7f91d7c6',
                 'authentication-token': '79a35156d9967f0f6d8cc0761ef7d48d',

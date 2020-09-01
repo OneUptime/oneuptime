@@ -166,7 +166,7 @@ export class APISettings extends Component {
                                                                     title="Hide API Key"
                                                                     content={
                                                                         <img
-                                                                            alt="hide"
+                                                                            alt="hide_api_key"
                                                                             src="/dashboard/assets/img/hide.svg"
                                                                             style={{
                                                                                 width:

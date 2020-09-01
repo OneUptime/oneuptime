@@ -11,7 +11,7 @@ import {
     resolveIncident,
     closeIncident,
 } from '../../actions/incident';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
@@ -20,12 +20,14 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
+import MessageBox from '../modals/MessageBox';
 
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
         this.state = {
             editIncidentModalId: uuid.v4(),
+            messageModalId: uuid.v4(),
         };
     }
     acknowledge = () => {
@@ -110,6 +112,21 @@ export class IncidentStatus extends Component {
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject._id
             : '';
+        const monitorRoute = this.props.currentProject
+            ? '/dashboard/project/' +
+              projectId +
+              '/' +
+              componentId +
+              '/monitoring'
+            : '';
+        const incidentRoute = this.props.currentProject
+            ? '/dashboard/project/' +
+              projectId +
+              '/' +
+              componentId +
+              '/incidents/' +
+              this.props.incident._id
+            : '';
 
         return (
             <div
@@ -139,23 +156,35 @@ export class IncidentStatus extends Component {
                                 className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16"
                                 style={{ marginTop: '-20px' }}
                             >
-                                <button
-                                    className="bs-Button bs-Button--icon bs-Button--more"
-                                    id={`${monitorName}_ViewIncidentDetails`}
-                                    type="button"
-                                    onClick={() => {
-                                        history.push(
-                                            `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
-                                        );
-                                    }}
+                                <ShouldRender
+                                    if={
+                                        this.props.route &&
+                                        !(this.props.route === incidentRoute)
+                                    }
                                 >
-                                    <span>View Incident</span>
-                                </button>
+                                    <button
+                                        className="bs-Button bs-Button--icon bs-Button--more"
+                                        id={`${monitorName}_ViewIncidentDetails`}
+                                        type="button"
+                                        onClick={() => {
+                                            history.push(
+                                                `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                            );
+                                        }}
+                                    >
+                                        <span>View Incident</span>
+                                    </button>
+                                </ShouldRender>
                                 <ShouldRender
                                     if={
                                         !this.props.route ||
                                         (this.props.route &&
-                                            !(this.props.route === homeRoute))
+                                            !(
+                                                this.props.route ===
+                                                    homeRoute ||
+                                                this.props.route ===
+                                                    monitorRoute
+                                            ))
                                     }
                                 >
                                     <button
@@ -232,11 +261,9 @@ export class IncidentStatus extends Component {
                                                         <Link
                                                             to={
                                                                 '/dashboard/project/' +
-                                                                this.props
-                                                                    .projectId +
+                                                                projectId +
                                                                 '/' +
-                                                                this.props
-                                                                    .componentId +
+                                                                componentId +
                                                                 '/monitoring/' +
                                                                 this.props
                                                                     .incident
@@ -542,10 +569,35 @@ export class IncidentStatus extends Component {
                                                                             .acknowledge
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Acknowledge
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Acknowledge
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -697,10 +749,35 @@ export class IncidentStatus extends Component {
                                                                             .resolve
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Resolve
-                                                                        Incident
-                                                                    </span>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <ListLoader />
+                                                                    </ShouldRender>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest &&
+                                                                            !this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Resolve
+                                                                            Incident
+                                                                        </span>
+                                                                    </ShouldRender>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -742,15 +819,30 @@ export class IncidentStatus extends Component {
                         </div>
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
                             <ShouldRender
-                                if={
-                                    this.props.multiple &&
-                                    this.props.incident &&
-                                    this.props.incident.resolved
-                                }
+                                if={this.props.multiple && this.props.incident}
                             >
                                 <div>
                                     <button
-                                        onClick={this.closeIncident}
+                                        onClick={() => {
+                                            this.props.incident.resolved
+                                                ? this.closeIncident()
+                                                : this.props.openModal({
+                                                      id: this.state
+                                                          .messageModalId,
+                                                      onClose: () => '',
+                                                      content: DataPathHoC(
+                                                          MessageBox,
+                                                          {
+                                                              messageBoxId: this
+                                                                  .state
+                                                                  .messageModalId,
+                                                              title: 'Warning',
+                                                              message:
+                                                                  'This incident cannot be closed because it is not acknowledged or resolved',
+                                                          }
+                                                      ),
+                                                  });
+                                        }}
                                         className={
                                             this.props.closeincident &&
                                             this.props.closeincident.requesting
@@ -762,6 +854,7 @@ export class IncidentStatus extends Component {
                                             this.props.closeincident.requesting
                                         }
                                         type="button"
+                                        id={`closeIncidentButton_${this.props.count}`}
                                     >
                                         <ShouldRender
                                             if={
@@ -799,6 +892,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         closeincident: state.incident.closeincident,
         subProjects: state.subProject.subProjects.subProjects,
+        incidentRequest: state.incident.incident,
     };
 };
 
@@ -821,9 +915,10 @@ IncidentStatus.propTypes = {
     multiple: PropTypes.bool,
     count: PropTypes.number,
     openModal: PropTypes.func.isRequired,
-    projectId: PropTypes.string.isRequired,
-    componentId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
     route: PropTypes.string,
+    incidentRequest: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

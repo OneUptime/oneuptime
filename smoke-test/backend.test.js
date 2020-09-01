@@ -5,6 +5,7 @@ let page, browser;
 
 describe('Check Backend', () => {
     beforeAll(async () => {
+        jest.setTimeout(30000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
     });

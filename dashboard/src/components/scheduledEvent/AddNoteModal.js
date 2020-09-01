@@ -19,12 +19,12 @@ class AddNoteModal extends Component {
         if (!ValidateField.text(values[`content`])) {
             errors.name = 'Note content is required.';
         }
-        if (!ValidateField.text(values[`incident_state`])) {
+        if (!ValidateField.text(values[`event_state`])) {
             errors.name = 'Incident State is required.';
         }
         if (
-            values[`incident_state`] === 'others' &&
-            !ValidateField.text(values[`custom_incident_state`])
+            values[`event_state`] === 'others' &&
+            !ValidateField.text(values[`custom_event_state`])
         ) {
             errors.name = 'Custom Incident State is required.';
         }
@@ -41,10 +41,10 @@ class AddNoteModal extends Component {
         } = this.props;
         const postObj = {};
         postObj.content = values[`content`];
-        postObj.incident_state =
-            values[`incident_state`] === 'others'
-                ? values[`custom_incident_state`]
-                : values[`incident_state`];
+        postObj.event_state =
+            values[`event_state`] === 'others'
+                ? values[`custom_event_state`]
+                : values[`event_state`];
         postObj.type = type;
 
         createScheduledEventNote(projectId, scheduledEventId, postObj).then(
@@ -52,7 +52,7 @@ class AddNoteModal extends Component {
                 if (!createError) {
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
-                            `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > INCIDENT > ${type} INVESTIGATION MESSAGE`,
+                            `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > ${type} INVESTIGATION MESSAGE`,
                             values
                         );
                     }
@@ -80,7 +80,7 @@ class AddNoteModal extends Component {
     render() {
         const {
             handleSubmit,
-            incident_state,
+            event_state,
             creatingNote,
             createError,
             content,
@@ -125,15 +125,15 @@ class AddNoteModal extends Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Incident State
+                                                    Event State
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
                                                         className="db-select-nw-300"
                                                         component={RenderSelect}
-                                                        name="incident_state"
-                                                        id="incident_state"
-                                                        placeholder="Incident State"
+                                                        name="event_state"
+                                                        id="event_state"
+                                                        placeholder="Event State"
                                                         disabled={false}
                                                         validate={
                                                             ValidateField.select
@@ -161,11 +161,11 @@ class AddNoteModal extends Component {
                                                 </div>
                                             </div>
                                             <ShouldRender
-                                                if={incident_state === 'others'}
+                                                if={event_state === 'others'}
                                             >
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
-                                                        Custom Incident State
+                                                        Custom Event State
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
@@ -174,9 +174,9 @@ class AddNoteModal extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            name={`custom_incident_state`}
-                                                            id="custom_incident_state"
-                                                            placeholder="Enter a custom incident state"
+                                                            name={`custom_event_state`}
+                                                            id="custom_event_state"
+                                                            placeholder="Enter a custom event state"
                                                             validate={
                                                                 ValidateField.text
                                                             }
@@ -275,10 +275,10 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => {
     const currentProject = state.project.currentProject;
-    const incident_state =
+    const event_state =
         state.form.AddNote &&
         state.form.AddNote.values &&
-        state.form.AddNote.values.incident_state;
+        state.form.AddNote.values.event_state;
     const content =
         state.form.AddNote &&
         state.form.AddNote.values &&
@@ -286,7 +286,7 @@ const mapStateToProps = state => {
 
     return {
         currentProject,
-        incident_state,
+        event_state,
         creatingNote: state.scheduledEvent.newScheduledEventNote.requesting,
         createError: state.scheduledEvent.newScheduledEventNote.error,
         modalId: state.modal.modals[0].id,
@@ -307,7 +307,7 @@ AddNoteModal.propTypes = {
     handleSubmit: PropTypes.func,
     closeThisDialog: PropTypes.func,
     createScheduledEventNote: PropTypes.func,
-    incident_state: PropTypes.string,
+    event_state: PropTypes.string,
     creatingNote: PropTypes.bool,
     createError: PropTypes.oneOfType([
         PropTypes.string,

@@ -42,25 +42,25 @@ const scheduledEvent = {
 
 const internalNote = {
     type: 'internal',
-    incident_state: 'update',
+    event_state: 'update',
     content: 'This is an update for internal',
 };
 
 const updatedInternalNote = {
     type: 'internal',
-    incident_state: 'something new',
+    event_state: 'something new',
     content: 'Something new for new',
 };
 
 const investigationNote = {
     type: 'investigation',
-    incident_state: 'investigating',
+    event_state: 'investigating',
     content: 'This is an investigation note',
 };
 
 const updatedInvestigationNote = {
     type: 'investigation',
-    incident_state: 'test',
+    event_state: 'test',
     content: 'Just updated this note',
 };
 
@@ -138,7 +138,7 @@ describe('Scheduled Event Note', function() {
                                                                 {
                                                                     type:
                                                                         'internal',
-                                                                    incident_state:
+                                                                    event_state:
                                                                         'update',
                                                                     content:
                                                                         'This is an update for internal',
@@ -284,9 +284,7 @@ describe('Scheduled Event Note', function() {
             .end((err, res) => {
                 internalNoteId = res.body._id;
                 expect(res).to.have.status(200);
-                expect(res.body.incident_state).to.equal(
-                    internalNote.incident_state
-                );
+                expect(res.body.event_state).to.equal(internalNote.event_state);
                 done();
             });
     });
@@ -312,7 +310,7 @@ describe('Scheduled Event Note', function() {
         request
             .post(`/scheduledEvent/${projectId}/${scheduledEventId}/notes`)
             .set('Authorization', authorization)
-            .send({ ...internalNote, incident_state: '' })
+            .send({ ...internalNote, event_state: '' })
             .end((err, res) => {
                 expect(res).to.have.status(400);
                 done();
@@ -343,8 +341,8 @@ describe('Scheduled Event Note', function() {
             .send(updatedInternalNote)
             .end((err, res) => {
                 expect(res).to.have.status(200);
-                expect(res.body.incident_state).to.equal(
-                    updatedInternalNote.incident_state
+                expect(res.body.event_state).to.equal(
+                    updatedInternalNote.event_state
                 );
                 done();
             });
@@ -361,8 +359,8 @@ describe('Scheduled Event Note', function() {
             .send(updatedInvestigationNote)
             .end((err, res) => {
                 expect(res).to.have.status(200);
-                expect(res.body.incident_state).to.equal(
-                    updatedInvestigationNote.incident_state
+                expect(res.body.event_state).to.equal(
+                    updatedInvestigationNote.event_state
                 );
                 done();
             });

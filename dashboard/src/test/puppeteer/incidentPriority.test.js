@@ -131,7 +131,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountBeforeDeletion).toEqual('1 Priority');
+                expect(incidentsCountBeforeDeletion).toEqual('3 Priorities');
                 const deleteButtonFirstRowIndentifier =
                     '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:nth-child(2)>button';
                 await page.click(deleteButtonFirstRowIndentifier);
@@ -146,7 +146,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCount,
                     e => e.textContent
                 );
-                expect(incidentsCountAfterDeletion).toEqual('0 Priorities');
+                expect(incidentsCountAfterDeletion).toEqual('2 Priorities');
             });
         },
         operationTimeOut
@@ -170,7 +170,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
                 );
-                expect(incidentPrioritiesCount).toEqual('0 Priorities');
+                expect(incidentPrioritiesCount).toEqual('2 Priorities');
 
                 for (let i = 0; i < 11; i++) {
                     await page.waitForSelector('#addNewPriority');
@@ -192,7 +192,7 @@ describe('Incident Priority API', () => {
                     incidentPrioritiesCountIdentifier,
                     e => e.textContent
                 );
-                expect(incidentPrioritiesCount).toEqual('1 Priority');
+                expect(incidentPrioritiesCount).toEqual('3 Priorities');
 
                 await page.waitForSelector('#btnPrev');
                 await page.click('#btnPrev');

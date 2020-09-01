@@ -22,13 +22,15 @@ mobile_lighthouse_accounts:
         - sudo docker ps
         - cd accounts
         - npm ci
-        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
+        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-722234/chrome-linux/chrome"
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run light-house-mobile
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh mobile_lighthouse_accounts dashboard backend accounts
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master
@@ -57,13 +59,15 @@ desktop_lighthouse_accounts:
         - sudo docker ps
         - cd accounts
         - npm ci
-        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-674921/chrome-linux/chrome"
+        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-722234/chrome-linux/chrome"
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run light-house
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh desktop_lighthouse_accounts dashboard backend accounts
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

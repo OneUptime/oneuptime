@@ -591,9 +591,23 @@ export default (state = INITIAL_STATE, action) => {
             let addFutureEvent = false;
             let futureEventExist = false;
             let eventExist = false;
+            let monitorInStatusPage = false;
             const currentDate = moment().format();
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
+
+            state.statusPage.monitors.map(monitorData => {
+                action.payload.monitors.map(monitor => {
+                    if (
+                        String(monitor.monitorId._id) ===
+                        String(monitorData.monitor)
+                    ) {
+                        monitorInStatusPage = true;
+                    }
+                    return monitor;
+                });
+                return monitorData;
+            });
 
             const updatedEvents = state.events.events.map(event => {
                 if (String(event._id) === String(action.payload._id)) {
@@ -612,11 +626,11 @@ export default (state = INITIAL_STATE, action) => {
             });
 
             if (!eventExist) {
-                updatedEvents.push(action.payload);
+                updatedEvents.unshift(action.payload);
             }
 
             if (!futureEventExist) {
-                updatedFutureEvent.push(action.payload);
+                updatedFutureEvent.unshift(action.payload);
             }
 
             const removeEvent = state.events.events.filter(
@@ -627,11 +641,15 @@ export default (state = INITIAL_STATE, action) => {
                 event => String(event._id) !== String(action.payload._id)
             );
 
-            if (startDate <= currentDate && endDate >= currentDate) {
+            if (
+                monitorInStatusPage &&
+                startDate <= currentDate &&
+                endDate >= currentDate
+            ) {
                 addEvent = true;
             }
 
-            if (startDate > currentDate) {
+            if (monitorInStatusPage && startDate > currentDate) {
                 addFutureEvent = true;
             }
 
@@ -649,6 +667,10 @@ export default (state = INITIAL_STATE, action) => {
                     count: addFutureEvent
                         ? updatedFutureEvent.length
                         : removeFutureEvent.length,
+                },
+                scheduledEvent: {
+                    ...state.scheduledEvent,
+                    event: action.payload,
                 },
             });
         }
@@ -1232,15 +1254,36 @@ export default (state = INITIAL_STATE, action) => {
                 moreIncidentNotesError: action.payload,
             };
 
-        case 'INCIDENT_CREATED':
+        case 'INCIDENT_CREATED': {
+            let incidentFound = false;
+            const statusPageMonitorIds = state.statusPage.monitors.map(
+                monitorData => String(monitorData.monitor)
+            );
+            let notes = state.notes.notes.map(note => {
+                if (String(note._id) === String(action.payload._id)) {
+                    incidentFound = true;
+                }
+                return note;
+            });
+            if (
+                !incidentFound &&
+                statusPageMonitorIds.includes(
+                    String(action.payload.monitorId._id)
+                )
+            ) {
+                notes = [action.payload, ...notes];
+            }
             return {
                 ...state,
                 notes: {
                     ...state.notes,
-                    notes: [...state.notes.notes, action.payload],
-                    count: state.notes.count + 1,
+                    notes,
+                    count: incidentFound
+                        ? state.notes.count
+                        : state.notes.count + 1,
                 },
             };
+        }
 
         case 'INCIDENT_DELETED': {
             const notes = state.notes.notes.filter(
@@ -1269,6 +1312,10 @@ export default (state = INITIAL_STATE, action) => {
                 notes: {
                     ...state.notes,
                     notes,
+                },
+                incident: {
+                    ...state.incident,
+                    incident: action.payload,
                 },
             };
         }
@@ -1369,12 +1416,14 @@ export default (state = INITIAL_STATE, action) => {
 
         case 'INCIDENT_TIMELINE_CREATED': {
             const timelineIds = [];
+            let singleTimeline = false;
             let timelines = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
                         String(timeline.incidentId) ===
                         String(action.payload.incidentId)
                     ) {
+                        singleTimeline = true;
                         timeline = action.payload;
                     }
                     timelineIds.push(String(timeline.incidentId));
@@ -1386,6 +1435,10 @@ export default (state = INITIAL_STATE, action) => {
                 String(state.incident.incident._id) ===
                     String(action.payload.incidentId)
             ) {
+                singleTimeline = true;
+                timelines = [...timelines, action.payload];
+            }
+            if (!timelineIds.includes(String(action.payload.incidentId))) {
                 timelines = [...timelines, action.payload];
             }
             const timeline =
@@ -1399,10 +1452,12 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.lastIncidentTimelines,
                     timelines,
                 },
-                lastIncidentTimeline: {
-                    ...state.lastIncidentTimeline,
-                    timeline,
-                },
+                lastIncidentTimeline: singleTimeline
+                    ? {
+                          ...state.lastIncidentTimeline,
+                          timeline,
+                      }
+                    : { ...state.lastIncidentTimeline },
             };
         }
 

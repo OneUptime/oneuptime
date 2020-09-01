@@ -10,6 +10,8 @@ build_n_test_init-script:
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_init-script init-script
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

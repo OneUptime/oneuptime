@@ -57,6 +57,31 @@ module.exports = {
             projectModel.isBlocked = data.isBlocked || false;
             projectModel.adminNotes = data.adminNotes || null;
             const project = await projectModel.save();
+
+            const prioritiesData = {
+                high: {
+                    projectId: project._id,
+                    name: 'High',
+                    color: {
+                        r: 255,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                },
+                low: {
+                    projectId: project._id,
+                    name: 'Low',
+                    color: {
+                        r: 255,
+                        g: 211,
+                        b: 0,
+                        a: 1,
+                    },
+                },
+            };
+            await IncidentPrioritiesService.create(prioritiesData.high);
+            await IncidentPrioritiesService.create(prioritiesData.low);
             return project;
         } catch (error) {
             ErrorService.log('projectService.create', error);
@@ -698,6 +723,7 @@ const MonitorService = require('../services/monitorService');
 const PaymentService = require('./paymentService');
 const ErrorService = require('./errorService');
 const UserService = require('./userService');
+const IncidentPrioritiesService = require('./incidentPrioritiesService');
 const integrationService = require('./integrationService');
 const ScheduleService = require('./scheduleService');
 const moment = require('moment');

@@ -24,8 +24,16 @@ import {
     teamMemberRoleUpdate,
     teamMemberCreate,
     teamMemberDelete,
+    addIncidentNote,
+    createMonitor,
+    deleteMonitor,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
+import {
+    createScheduledEventSuccess,
+    updateScheduledEventSuccess,
+    deleteScheduledEventSuccess,
+} from '../../actions/scheduledEvent';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -78,6 +86,24 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `TeamMemberDelete-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `createMonitor-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteMonitor-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `addScheduledEvent-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteScheduledEvent-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateScheduledEvent-${this.props.project._id}`
                 );
             }
             return true;
@@ -522,6 +548,32 @@ class SocketApp extends Component {
                 }
                 thisObj.props.teamMemberDelete(data.response);
             });
+            socket.on(`addIncidentNote-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.addIncidentNote(data);
+            });
+            socket.on(`createMonitor-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.createMonitor(data);
+            });
+            socket.on(`deleteMonitor-${this.props.project._id}`, function(
+                data
+            ) {
+                thisObj.props.deleteMonitor(data);
+            });
+            socket.on(`addScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.createScheduledEventSuccess(event)
+            );
+
+            socket.on(`deleteScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.deleteScheduledEventSuccess(event)
+            );
+
+            socket.on(`updateScheduledEvent-${this.props.project._id}`, event =>
+                thisObj.props.updateScheduledEventSuccess(event)
+            );
         }
         return null;
     }
@@ -566,6 +618,12 @@ const mapDispatchToProps = dispatch =>
             teamMemberDelete,
             openModal,
             closeModal,
+            addIncidentNote,
+            createMonitor,
+            deleteMonitor,
+            createScheduledEventSuccess,
+            updateScheduledEventSuccess,
+            deleteScheduledEventSuccess,
         },
         dispatch
     );

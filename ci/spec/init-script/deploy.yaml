@@ -19,6 +19,8 @@ deploy_staging_init-script:
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - master
@@ -46,6 +48,8 @@ deploy_production_init-script:
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     only:
         refs:
             - release

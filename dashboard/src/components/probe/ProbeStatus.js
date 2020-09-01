@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-function ProbeStatus({ lastAlive }) {
+function ProbeStatus({ lastAlive, id }) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
@@ -20,13 +20,19 @@ function ProbeStatus({ lastAlive }) {
     return (lastAlive &&
         moment(now).diff(moment(lastAlive), 'seconds') >= 300) ||
         !lastAlive ? (
-        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+        <div
+            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+            id={`offline_${id}`}
+        >
             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                 <span>OFFLINE</span>
             </span>
         </div>
     ) : (
-        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+        <div
+            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+            id={`online_${id}`}
+        >
             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                 <span>ONLINE</span>
             </span>
@@ -42,6 +48,7 @@ ProbeStatus.propTypes = {
         PropTypes.string,
         PropTypes.object,
     ]),
+    id: PropTypes.number,
 };
 
 export default ProbeStatus;

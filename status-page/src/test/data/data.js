@@ -27,7 +27,7 @@ module.exports = {
         reference: 'Github',
     },
     monitor: {
-        name: 'New Monitor',
+        name: 'NewMonitor',
         type: 'url',
         data: { url: 'http://localhost:3010/' },
     },
@@ -37,6 +37,14 @@ module.exports = {
     scheduledEvent: {
         name: 'New Scheduled Event',
         description: 'New Scheduled Event description',
+        showEventOnStatusPage: true,
+        alertSubscriber: true,
+        callScheduleOnEvent: true,
+        monitorDuringEvent: false,
+    },
+    futureScheduledEvent: {
+        name: 'Future Scheduled Event',
+        description: 'This scheduled event will happen in the future',
         showEventOnStatusPage: true,
         alertSubscriber: true,
         callScheduleOnEvent: true,
@@ -57,5 +65,25 @@ module.exports = {
         title: 'Status title',
         description: 'status description',
         copyright: 'status copyright',
+    },
+    degradeIncident: {
+        incidentType: 'degraded',
+        title: 'Degraded Incident',
+        description: 'This is a degraded incident',
+    },
+    onlineIncident: {
+        incidentType: 'online',
+        title: 'Online Incident',
+        description: 'This is an online incident',
+    },
+    scheduledEventNote: {
+        content: 'This is just a random note for a scheduled event',
+        type: 'investigation',
+        incident_state: 'update',
+    },
+    incidentNote: {
+        content: 'Another random note for incident',
+        type: 'investigation',
+        incident_state: 'investigating',
     },
 };

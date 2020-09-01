@@ -264,15 +264,17 @@ class SideNav extends Component {
                                                 </div>
                                             )}
 
-                                            {group.routes.map(route => {
-                                                return (
-                                                    <li key={route.index}>
-                                                        <NavItem
-                                                            route={route}
-                                                        />
-                                                    </li>
-                                                );
-                                            })}
+                                            {group.routes.map(
+                                                (route, index) => {
+                                                    return (
+                                                        <li key={index}>
+                                                            <NavItem
+                                                                route={route}
+                                                            />
+                                                        </li>
+                                                    );
+                                                }
+                                            )}
                                         </ul>
                                     </div>
                                 );

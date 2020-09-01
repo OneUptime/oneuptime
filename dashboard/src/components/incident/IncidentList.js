@@ -172,7 +172,8 @@ export class IncidentList extends Component {
                                                             .currentProject
                                                             ._id +
                                                         '/' +
-                                                        this.props.componentId +
+                                                        incident.monitorId
+                                                            .componentId._id +
                                                         '/incidents/' +
                                                         incident._id
                                                 );
@@ -752,6 +753,12 @@ export class IncidentList extends Component {
                                         </tr>
                                     );
                                 })
+                            ) : this.props.incidents &&
+                              (!this.props.incidents.incidents ||
+                                  !this.props.incidents.incidents.length) &&
+                              !this.props.incidents.requesting &&
+                              !this.props.incidents.error ? (
+                                <tr></tr>
                             ) : (
                                 <tr>
                                     <td
@@ -900,7 +907,6 @@ IncidentList.propTypes = {
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
-    componentId: PropTypes.string,
     isFiltered: PropTypes.bool,
 };
 

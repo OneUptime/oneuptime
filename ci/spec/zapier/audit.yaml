@@ -18,6 +18,8 @@ audit_zapier:
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh audit_zapier zapier
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
     except:
         refs:
             - hotfix-master

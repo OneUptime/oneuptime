@@ -148,7 +148,7 @@ class ViewApplicationLogKey extends Component {
                                                                     title="Hide Log API Key"
                                                                     content={
                                                                         <img
-                                                                            alt="hide"
+                                                                            alt="hide_application_log_key"
                                                                             src="/dashboard/assets/img/hide.svg"
                                                                             style={{
                                                                                 width:

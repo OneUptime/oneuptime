@@ -51,7 +51,10 @@ module.exports = {
             const count = await _this.countBy({
                 projectId: { $in: subProjectIds },
             });
-            const plan = await Plans.getPlanById(project.stripePlanId);
+            let plan = Plans.getPlanById(project.stripePlanId);
+            // null plan => enterprise plan
+            plan = plan && plan.category ? plan : { category: 'Enterprise' };
+
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
@@ -62,7 +65,19 @@ module.exports = {
                 ErrorService.log('componentService.create', error);
                 throw error;
             } else {
-                if (count < projectSeats * 5 || !IS_SAAS_SERVICE) {
+                const unlimitedComponent = ['Scale', 'Enterprise'];
+                const componentCount =
+                    plan.category === 'Startup'
+                        ? 5
+                        : plan.category === 'Growth'
+                        ? 10
+                        : 0;
+
+                if (
+                    count < projectSeats * componentCount ||
+                    !IS_SAAS_SERVICE ||
+                    unlimitedComponent.includes(plan.category)
+                ) {
                     let component = new ComponentModel();
                     component.name = data.name;
                     component.createdById = data.createdById;
