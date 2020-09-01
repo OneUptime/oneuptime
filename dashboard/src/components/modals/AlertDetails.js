@@ -84,6 +84,44 @@ class AlertDetailsModal extends Component {
                                 </div>
                                 <div className="bs-Fieldset-row">
                                     <label className="bs-Fieldset-label">
+                                        Alert status
+                                    </label>
+                                    <div className="bs-Fieldset-fields Margin-top--6">
+                                        <div>
+                                            {this.props.data.alertStatus ===
+                                                'Pending' && (
+                                                <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                    <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                        {
+                                                            this.props.data
+                                                                .alertStatus
+                                                        }
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {(this.props.data.alertStatus ===
+                                                'Success' ||
+                                                this.props.data.alertStatus ===
+                                                    'Sent') && (
+                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                        Sent
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {this.props.data.alertStatus ===
+                                                null && (
+                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                        Error
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bs-Fieldset-row">
+                                    <label className="bs-Fieldset-label">
                                         Created At
                                     </label>
                                     <div className="bs-Fieldset-fields Margin-top--6">
