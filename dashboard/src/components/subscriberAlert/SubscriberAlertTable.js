@@ -326,6 +326,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                                       : 'Unknown',
                                   alertVia: alert.alertVia,
                                   createdAt: alert.createdAt,
+                                  alertStatus: alert.alertStatus,
                                   eventType: alert.eventType,
                               }),
                           })
