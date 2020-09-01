@@ -848,6 +848,44 @@ module.exports = {
             throw error;
         }
     },
+    sendContainerSecurityCreated: async containerSecurity => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = containerSecurity.componentId;
+
+            global.io.emit(
+                `createContainerSecurity-${componentId}`,
+                containerSecurity
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendContainerSecurityCreated',
+                error
+            );
+            throw error;
+        }
+    },
+    sendApplicationSecurityCreated: async applicationSecurity => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = applicationSecurity.componentId;
+
+            global.io.emit(
+                `createApplicationSecurity-${componentId}`,
+                applicationSecurity
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendApplicationSecurityCreated',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
