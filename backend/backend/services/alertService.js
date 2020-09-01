@@ -1105,68 +1105,91 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                let sendResult, eventType;
+                let sendResult;
                 const smsTemplate = await SmsTemplateService.findOneBy({
                     projectId: incident.projectId,
                     smsType: templateType,
                 });
-                if (templateType === 'Subscriber Incident Acknowldeged') {
-                    eventType = 'acknowledged';
-                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
+                const subscriberAlert = await SubscriberAlertService.create({
+                    projectId: incident.projectId,
+                    incidentId: incident._id,
+                    subscriberId: subscriber._id,
+                    alertVia: AlertType.SMS,
+                    alertStatus: 'Pending',
+                    eventType:
+                        templateType === 'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
+                });
+                const alertId = subscriberAlert._id;
+                try {
+                    if (templateType === 'Subscriber Incident Acknowldeged') {
+                        sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    } else {
+                        sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    }
+                    if (
+                        sendResult &&
+                        sendResult.code &&
+                        sendResult.code === 400
+                    ) {
+                        await SubscriberAlertService.updateBy(
+                            { _id: alertId },
+                            {
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: sendResult.message,
+                            }
+                        );
+                    } else {
+                        await SubscriberAlertService.updateBy(
+                            { _id: alertId },
+                            {
+                                alertStatus: 'Success',
+                            }
+                        );
+                    }
+                } catch (error) {
+                    await SubscriberAlertService.updateBy(
+                        { _id: alertId },
+                        {
+                            alertStatus: null,
+                        }
                     );
-                } else if (templateType === 'Subscriber Incident Resolved') {
-                    eventType = 'resolved';
-                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
-                    );
-                } else {
-                    eventType = 'identified';
-                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
-                    );
-                }
-                if (sendResult && sendResult.code && sendResult.code === 400) {
-                    await SubscriberAlertService.create({
-                        projectId: incident.projectId,
-                        incidentId: incident._id,
-                        subscriberId: subscriber._id,
-                        alertVia: AlertType.SMS,
-                        alertStatus: null,
-                        eventType,
-                        error: true,
-                        errorMessage: sendResult.message,
-                    });
-                } else {
-                    await SubscriberAlertService.create({
-                        projectId: incident.projectId,
-                        incidentId: incident._id,
-                        subscriberId: subscriber._id,
-                        alertVia: AlertType.SMS,
-                        alertStatus: 'Success',
-                        eventType,
-                    });
+                    throw error;
                 }
             }
         } catch (error) {
