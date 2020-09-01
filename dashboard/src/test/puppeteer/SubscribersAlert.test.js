@@ -81,5 +81,28 @@ describe('Incident Priority API', () => {
         operationTimeOut
     );
 
+    test(
+      'Should add Email subscribers.',
+      async () => {
+          return await cluster.execute(null, async ({ page }) => {
+              await page.goto(utils.DASHBOARD_URL, {
+                  waitUntil: 'networkidle0',
+              });
+              await init.navigateToMonitorDetails(componentName,monitorName,page);
+              await page.waitForSelector('#addSubscriberButton');
+              await page.click('#addSubscriberButton');
+              await page.waitForSelector('#alertViaId');
+              await init.selectByText('#alertViaId','email',page);
+              await page.waitForSelector('#emailId');
+              await page.type('#emailId',subscriberEmail);
+              await page.click('#createSubscriber');
+              const subscriberEmailSelector = '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
+              await page.waitForSelector(subscriberEmailSelector);
+              const renderedSubscriberEmail = await page.$eval(subscriberEmailSelector, e => e.textContent);
+              expect(renderedSubscriberEmail).toEqual(subscriberEmail);
+          });
+      },
+      operationTimeOut
+  );
 
 });
