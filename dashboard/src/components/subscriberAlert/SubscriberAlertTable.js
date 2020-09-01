@@ -288,6 +288,10 @@ function TD6({ text }) {
     );
 }
 
+TD6.propTypes = {
+    text: PropTypes.string,
+};
+
 function SubscriberAlertTableHeader() {
     return (
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
@@ -377,11 +381,13 @@ HTD2.displayName = 'HTD2';
 HTD3.displayName = 'HTD3';
 HTD4.displayName = 'HTD4';
 HTD5.displayName = 'HTD5';
+HTD6.displayName = 'HTD6';
 TD1.displayName = 'TD1';
 TD2.displayName = 'TD2';
 TD3.displayName = 'TD3';
 TD4.displayName = 'TD4';
 TD5.displayName = 'TD5';
+TD6.displayName = 'TD6';
 SubscriberAlertTableHeader.displayName = 'SubscriberAlertTableHeader';
 
 export {
