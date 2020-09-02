@@ -76,7 +76,7 @@ describe('Log Containers', () => {
         operationTimeOut
     );
     test(
-        'Should create new log container',
+        'Should create new log container and confirm that it redirects to the details page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -97,6 +97,12 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(applicationLogName);
+
+                // find the log api key button which appears only on the details page
+                const logKeyElement = await page.waitForSelector(
+                    `#key_${applicationLogName}`
+                );
+                expect(logKeyElement).toBeDefined();
             });
         },
         operationTimeOut
@@ -346,9 +352,7 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toEqual(
-                    'Click here to reveal Log Container key'
-                );
+                expect(spanElement).toEqual('Click here to reveal Log API key');
             });
         },
         operationTimeOut
