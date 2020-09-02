@@ -174,3 +174,12 @@ export function deleteMonitor(data) {
         });
     };
 }
+
+export function deleteincidentbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'DELETE_INCIDENT',
+            payload: incident,
+        });
+    };
+}
