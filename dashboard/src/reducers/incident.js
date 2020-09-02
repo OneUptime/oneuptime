@@ -1019,6 +1019,39 @@ export default function incident(state = initialState, action) {
                 },
             });
 
+        case 'DELETE_INCIDENT': {
+            if (state.incidents.incidents[0]) {
+                return {
+                    ...state,
+                    incidents: {
+                        ...state.incidents,
+                        incidents: [
+                            {
+                                ...state.incidents.incidents[0],
+                                incidents: state.incidents.incidents[0].incidents.filter(
+                                    incident =>
+                                        String(incident._id) !==
+                                        String(action.payload._id)
+                                ),
+                            },
+                        ],
+                    },
+                    unresolvedincidents: {
+                        ...state.unresolvedincidents,
+                        incidents: state.unresolvedincidents.incidents.filter(
+                            incident =>
+                                String(incident._id) !==
+                                String(action.payload._id)
+                        ),
+                    },
+                };
+            }
+
+            return {
+                ...state,
+            };
+        }
+
         case types.DELETE_INCIDENT_FAILURE:
             return Object.assign({}, state, {
                 incident: {

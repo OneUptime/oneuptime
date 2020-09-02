@@ -616,4 +616,63 @@ module.exports = {
         await page.click('button[id=createIncident]');
         await page.waitFor(5000);
     },
+    addTwilioSettings: async function(
+        enableSms,
+        accountSid,
+        authToken,
+        phoneNumber,
+        page
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+        });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#sms');
+        await page.click('#sms');
+        await page.waitForSelector('label[for=enabled]', {
+            visible: true,
+        });
+        if (enableSms) await page.click('label[for=enabled]');
+        await page.type('#accountSid', accountSid);
+        await page.type('#authToken', authToken);
+        await page.type('#phoneNumber', phoneNumber);
+        await page.click('#submitTwilioSettings');
+        await page.waitFor(3000);
+        await page.reload();
+        await page.waitForSelector('#accountSid');
+    },
+    addSmtpSettings: async function(
+        enable,
+        user,
+        pass,
+        host,
+        port,
+        from,
+        secure,
+        page
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+        });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#email');
+        await page.click('#email');
+        await page.waitForSelector('label[for=smtpswitch]');
+        if (enable) await page.click('label[for=smtpswitch]');
+        await page.waitForSelector('#user');
+        await page.type('#user', user);
+        await page.type('#pass', pass);
+        await page.type('#host', host);
+        await page.type('#port', port);
+        await page.type('#from', from);
+        if (secure) await page.$eval('#secure', e => e.click());
+        await page.click('#saveSmtp');
+        await page.waitFor(3000);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        await page.waitFor(3000);
+    },
 };

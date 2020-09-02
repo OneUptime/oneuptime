@@ -804,6 +804,39 @@ module.exports = {
             return incident;
         }
     },
+
+    /**
+     * @description removes a particular monitor from incident and deletes the incident
+     * @param {string} monitorId the id of the monitor
+     * @param {string} userId the id of the user
+     */
+    removeMonitor: async function(monitorId, userId) {
+        try {
+            const incidents = await this.findBy({ monitorId: monitorId });
+
+            await Promise.all(
+                incidents.map(async incident => {
+                    // only delete the incident, since the monitor can be restored
+                    const deletedIncident = await IncidentModel.findOneAndUpdate(
+                        { _id: incident._id },
+                        {
+                            $set: {
+                                deleted: true,
+                                deletedAt: Date.now(),
+                                deletedById: userId,
+                            },
+                        },
+                        { new: true }
+                    );
+
+                    await RealTimeService.deleteIncident(deletedIncident);
+                })
+            );
+        } catch (error) {
+            ErrorService.log('incidentService.removeMonitor', error);
+            throw error;
+        }
+    },
 };
 
 const IncidentModel = require('../models/incident');
