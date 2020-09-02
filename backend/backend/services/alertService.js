@@ -1033,49 +1033,69 @@ module.exports = {
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
-                    alertStatus: 'Sent',
+                    alertStatus: 'Pending',
+                    eventType:
+                        templateType === 'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-                if (templateType === 'Subscriber Incident Acknowldeged') {
-                    MailService.sendIncidentAcknowledgedMailToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        subscriber.contactEmail,
-                        subscriber._id,
-                        subscriber.contactEmail,
-                        incident,
-                        project.name,
-                        emailTemplate,
-                        trackEmailAsViewedUrl,
-                        component.name
+                try {
+                    if (templateType === 'Subscriber Incident Acknowldeged') {
+                        await MailService.sendIncidentAcknowledgedMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            incident,
+                            project.name,
+                            emailTemplate,
+                            trackEmailAsViewedUrl,
+                            component.name
+                        );
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        await MailService.sendIncidentResolvedMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            incident,
+                            project.name,
+                            emailTemplate,
+                            trackEmailAsViewedUrl,
+                            component.name
+                        );
+                    } else {
+                        await MailService.sendIncidentCreatedMailToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            subscriber.contactEmail,
+                            subscriber._id,
+                            subscriber.contactEmail,
+                            incident,
+                            project.name,
+                            emailTemplate,
+                            trackEmailAsViewedUrl,
+                            component.name
+                        );
+                    }
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus: 'Sent' }
                     );
-                } else if (templateType === 'Subscriber Incident Resolved') {
-                    MailService.sendIncidentResolvedMailToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        subscriber.contactEmail,
-                        subscriber._id,
-                        subscriber.contactEmail,
-                        incident,
-                        project.name,
-                        emailTemplate,
-                        trackEmailAsViewedUrl,
-                        component.name
+                } catch (error) {
+                    await SubscriberAlertService.updateOneBy(
+                        { _id: alertId },
+                        { alertStatus: null }
                     );
-                } else {
-                    MailService.sendIncidentCreatedMailToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        subscriber.contactEmail,
-                        subscriber._id,
-                        subscriber.contactEmail,
-                        incident,
-                        project.name,
-                        emailTemplate,
-                        trackEmailAsViewedUrl,
-                        component.name
-                    );
+                    throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
@@ -1090,58 +1110,86 @@ module.exports = {
                     projectId: incident.projectId,
                     smsType: templateType,
                 });
-                if (templateType === 'Subscriber Incident Acknowldeged') {
-                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
+                const subscriberAlert = await SubscriberAlertService.create({
+                    projectId: incident.projectId,
+                    incidentId: incident._id,
+                    subscriberId: subscriber._id,
+                    alertVia: AlertType.SMS,
+                    alertStatus: 'Pending',
+                    eventType:
+                        templateType === 'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
+                });
+                const alertId = subscriberAlert._id;
+                try {
+                    if (templateType === 'Subscriber Incident Acknowldeged') {
+                        sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    } else if (
+                        templateType === 'Subscriber Incident Resolved'
+                    ) {
+                        sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    } else {
+                        sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                            date,
+                            subscriber.monitorName,
+                            contactPhone,
+                            smsTemplate,
+                            incident,
+                            project.name,
+                            incident.projectId,
+                            component.name
+                        );
+                    }
+                    if (
+                        sendResult &&
+                        sendResult.code &&
+                        sendResult.code === 400
+                    ) {
+                        await SubscriberAlertService.updateBy(
+                            { _id: alertId },
+                            {
+                                alertStatus: null,
+                                error: true,
+                                errorMessage: sendResult.message,
+                            }
+                        );
+                    } else {
+                        await SubscriberAlertService.updateBy(
+                            { _id: alertId },
+                            {
+                                alertStatus: 'Success',
+                            }
+                        );
+                    }
+                } catch (error) {
+                    await SubscriberAlertService.updateBy(
+                        { _id: alertId },
+                        {
+                            alertStatus: null,
+                        }
                     );
-                } else if (templateType === 'Subscriber Incident Resolved') {
-                    sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
-                    );
-                } else {
-                    sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                        date,
-                        subscriber.monitorName,
-                        contactPhone,
-                        smsTemplate,
-                        incident,
-                        project.name,
-                        incident.projectId,
-                        component.name
-                    );
-                }
-                if (sendResult && sendResult.code && sendResult.code === 400) {
-                    await SubscriberAlertService.create({
-                        projectId: incident.projectId,
-                        incidentId: incident._id,
-                        subscriberId: subscriber._id,
-                        alertVia: AlertType.SMS,
-                        alertStatus: null,
-                        error: true,
-                        errorMessage: sendResult.message,
-                    });
-                } else {
-                    await SubscriberAlertService.create({
-                        projectId: incident.projectId,
-                        incidentId: incident._id,
-                        subscriberId: subscriber._id,
-                        alertVia: AlertType.SMS,
-                        alertStatus: 'Success',
-                    });
+                    throw error;
                 }
             }
         } catch (error) {

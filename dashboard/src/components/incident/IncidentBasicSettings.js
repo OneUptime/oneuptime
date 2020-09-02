@@ -62,12 +62,7 @@ class IncidentBasicSettings extends React.Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row">
-                                                    <label
-                                                        className="bs-Fieldset-label"
-                                                        style={{
-                                                            flex: '0 0 10%',
-                                                        }}
-                                                    >
+                                                    <label className="bs-Fieldset-label">
                                                         Default Incident
                                                         Priority
                                                     </label>
@@ -79,9 +74,6 @@ class IncidentBasicSettings extends React.Component {
                                                             }
                                                             id="incidentPriority"
                                                             name="incidentPriority"
-                                                            style={{
-                                                                width: '600px',
-                                                            }}
                                                             options={[
                                                                 ...this.props.incidentPriorities.map(
                                                                     incidentPriority => ({
@@ -101,12 +93,7 @@ class IncidentBasicSettings extends React.Component {
                                                     </div>
                                                 </div>
                                                 <div className="bs-Fieldset-row">
-                                                    <label
-                                                        className="bs-Fieldset-label"
-                                                        style={{
-                                                            flex: '0 0 10%',
-                                                        }}
-                                                    >
+                                                    <label className="bs-Fieldset-label">
                                                         Default Incident Title
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -119,9 +106,6 @@ class IncidentBasicSettings extends React.Component {
                                                             validate={
                                                                 ValidateField.text
                                                             }
-                                                            style={{
-                                                                width: '600px',
-                                                            }}
                                                             disabled={
                                                                 this.props
                                                                     .updateIncidentBasicSettings
@@ -131,18 +115,16 @@ class IncidentBasicSettings extends React.Component {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <label
-                                                        className="bs-Fieldset-label"
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Default Incident Description
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div
                                                         style={{
-                                                            flex: '0 0 10%',
+                                                            width: '100%',
                                                         }}
                                                     >
-                                                        Default Incident
-                                                        Description
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             component={
@@ -151,7 +133,7 @@ class IncidentBasicSettings extends React.Component {
                                                             id="description"
                                                             name="description"
                                                             mode="markdown"
-                                                            width="600px"
+                                                            width="250px"
                                                             height="150px"
                                                             wrapEnabled={true}
                                                             disabled={
@@ -161,60 +143,79 @@ class IncidentBasicSettings extends React.Component {
                                                             }
                                                         />
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <ShouldRender
-                                                if={!this.props.revealVariables}
-                                            >
-                                                <div
-                                                    className="template-variable-1"
-                                                    style={{
-                                                        display: 'block',
-                                                        marginLeft: '120px',
-                                                    }}
-                                                >
-                                                    <button
-                                                        onClick={() =>
-                                                            this.props.setRevealIncidentSettingsVariables(
-                                                                true
-                                                            )
-                                                        }
-                                                        className="button-as-anchor"
-                                                        type="button"
+                                                    <div
+                                                        style={{
+                                                            marginTop: '20px',
+                                                        }}
                                                     >
-                                                        Click here to reveal
-                                                        available variables.
-                                                    </button>
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={this.props.revealVariables}
-                                            >
-                                                <ul
-                                                    className="template-variable-1"
-                                                    style={{
-                                                        display: 'block',
-                                                        marginLeft: '120px',
-                                                    }}
-                                                >
-                                                    {this.props.settingsVariables.map(
-                                                        (variable, index) => (
-                                                            <li
-                                                                key={index}
-                                                                className="template-variables"
+                                                        <ShouldRender
+                                                            if={
+                                                                !this.props
+                                                                    .revealVariables
+                                                            }
+                                                        >
+                                                            <div
+                                                                className="template-variable-1"
                                                                 style={{
-                                                                    listStyleType:
-                                                                        'disc',
-                                                                    listStylePosition:
-                                                                        'inside',
+                                                                    display:
+                                                                        'block',
                                                                 }}
                                                             >
-                                                                {`{{${variable.name}}} : ${variable.definition}`}
-                                                            </li>
-                                                        )
-                                                    )}
-                                                </ul>
-                                            </ShouldRender>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        this.props.setRevealIncidentSettingsVariables(
+                                                                            true
+                                                                        )
+                                                                    }
+                                                                    className="button-as-anchor"
+                                                                    type="button"
+                                                                >
+                                                                    Click here
+                                                                    to reveal
+                                                                    available
+                                                                    variables.
+                                                                </button>
+                                                            </div>
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props
+                                                                    .revealVariables
+                                                            }
+                                                        >
+                                                            <ul
+                                                                className="template-variable-1"
+                                                                style={{
+                                                                    display:
+                                                                        'block',
+                                                                }}
+                                                            >
+                                                                {this.props.settingsVariables.map(
+                                                                    (
+                                                                        variable,
+                                                                        index
+                                                                    ) => (
+                                                                        <li
+                                                                            key={
+                                                                                index
+                                                                            }
+                                                                            className="template-variables"
+                                                                            style={{
+                                                                                listStyleType:
+                                                                                    'disc',
+                                                                                listStylePosition:
+                                                                                    'inside',
+                                                                            }}
+                                                                        >
+                                                                            {`{{${variable.name}}} : ${variable.definition}`}
+                                                                        </li>
+                                                                    )
+                                                                )}
+                                                            </ul>
+                                                        </ShouldRender>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </fieldset>
                                     </div>
                                 </div>
@@ -255,7 +256,7 @@ class IncidentBasicSettings extends React.Component {
                                             </div>
                                         </ShouldRender>
                                     </span>
-                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                    <div className="Box-root Padding-horizontal--20">
                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                             <div className="Box-root Margin-right--8">
                                                 <button

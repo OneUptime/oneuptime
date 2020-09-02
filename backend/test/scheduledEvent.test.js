@@ -14,7 +14,7 @@ const ProjectService = require('../backend/services/projectService');
 const ScheduledEventService = require('../backend/services/scheduledEventService');
 const MonitorService = require('../backend/services/monitorService');
 const AirtableService = require('../backend/services/airtableService');
-
+const moment = require('moment');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
 
@@ -31,6 +31,21 @@ const scheduledEvent = {
     startDate: '2019-06-11 11:01:52.178',
     endDate: '2019-06-26 11:31:53.302',
     description: 'New scheduled Event description ',
+    showEventOnStatusPage: true,
+    alertSubscriber: true,
+    callScheduleOnEvent: true,
+    monitorDuringEvent: false,
+};
+
+const ongoingScheduledEvent = {
+    name: 'Ongoing Scheduled Event',
+    startDate: moment()
+        .startOf('day')
+        .format(),
+    endDate: moment()
+        .add(2, 'days')
+        .format(),
+    description: 'Ongoing Scheduled Event description ',
     showEventOnStatusPage: true,
     alertSubscriber: true,
     callScheduleOnEvent: true,
@@ -330,6 +345,28 @@ describe('Scheduled event API', function() {
                     .to.be.an('number')
                     .to.be.equal(10);
                 done();
+            });
+    });
+
+    it('should fetch an onging scheduled event', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/scheduledEvent/${projectId}`)
+            .set('Authorization', authorization)
+            .send({ ...ongoingScheduledEvent, monitors: [monitorId] })
+            .end(function(err, res) {
+                scheduleEventId = res.body._id;
+                request
+                    .get(`/scheduledEvent/${projectId}/ongoingEvent`)
+                    .set('Authorization', authorization)
+                    .end((err, res) => {
+                        expect(res).to.have.status(200);
+                        expect(res.body.data).to.be.an('array');
+                        expect(String(res.body.data[0]._id)).to.be.equal(
+                            String(scheduleEventId)
+                        );
+                        done();
+                    });
             });
     });
 });

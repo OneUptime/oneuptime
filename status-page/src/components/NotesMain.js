@@ -392,21 +392,29 @@ class NotesMain extends Component {
                             </button>
                         </ShouldRender>
 
-                        <ShouldRender
-                            if={
-                                this.props.noteData &&
-                                !this.props.noteData.error &&
-                                !this.props.noteData.requesting &&
-                                this.props.individualnote
-                            }
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
                         >
-                            <button
-                                className="more button-as-anchor anchor-centered"
-                                onClick={() => this.getAll()}
+                            <ShouldRender
+                                if={
+                                    this.props.noteData &&
+                                    !this.props.noteData.error &&
+                                    !this.props.noteData.requesting &&
+                                    this.props.individualnote
+                                }
                             >
-                                Get all incidents
-                            </button>
-                        </ShouldRender>
+                                <button
+                                    className="all__btn"
+                                    onClick={() => this.getAll()}
+                                >
+                                    All Incidents
+                                </button>
+                            </ShouldRender>
+                        </div>
 
                         <ShouldRender
                             if={

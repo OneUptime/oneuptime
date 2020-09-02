@@ -63,9 +63,7 @@ class ApplicationLogHeader extends Component {
                                                         })
                                                     }
                                                 >
-                                                    <span>
-                                                        Log Container Key
-                                                    </span>
+                                                    <span>Log API Key</span>
                                                 </button>
                                                 <button
                                                     id={`edit_${applicationLog.name}`}

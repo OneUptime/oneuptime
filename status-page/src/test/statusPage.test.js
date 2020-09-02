@@ -25,7 +25,9 @@ let token,
     privateStatusPageId,
     userId,
     futureEventId,
-    incidentId;
+    incidentId,
+    monitorCategoryName,
+    monitorName;
 const testData = require('./data/data');
 const VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
 const UserService = require('../../../backend/backend/services/userService');
@@ -103,6 +105,7 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitorCategory);
         monitorCategoryId = monitorCategoryRequest.body._id;
+        monitorCategoryName = monitorCategoryRequest.body.name;
         monitor.monitorCategoryId = monitorCategoryId;
 
         const monitorRequest = await request
@@ -110,6 +113,7 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitor);
         monitorId = monitorRequest.body._id;
+        monitorName = monitorRequest.body.name;
         scheduledEventMonitorId = monitorId;
 
         scheduledEvent.startDate = today;
@@ -307,14 +311,26 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
-        const monitorCategoryNameSelector = '#monitorCategory1';
+        const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
         const monitorCategoryName = await page.$eval(
-            monitorCategoryNameSelector,
+            `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
         expect(monitorCategoryName).to.be.equal(
-            monitorCategory.monitorCategoryName.toUpperCase()
+            monitorCategory.monitorCategoryName
         );
+    });
+
+    it('should display monitor category on status page', async function() {
+        await page.goto(statusPageURL, { waitUntil: 'networkidle0' });
+        const categoryId = `#monitorCategory_${monitorName}`;
+
+        await page.waitForSelector(categoryId);
+        const categoryName = await page.$eval(
+            `${categoryId} > span`,
+            elem => elem.textContent
+        );
+        expect(categoryName).to.be.equal(monitorCategoryName);
     });
 
     it('should display "UNCATEGORIZED" when the monitor category associated with monitor is deleted', async function() {
@@ -324,12 +340,12 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
-        const monitorCategoryNameSelector = '#monitorCategory0';
+        const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
         const monitorCategoryName = await page.$eval(
-            monitorCategoryNameSelector,
+            `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
-        expect(monitorCategoryName).to.be.equal('UNCATEGORIZED');
+        expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
     it('should display scheduled events when enabled on status page', async function() {
@@ -438,7 +454,7 @@ describe('Status page monitors check', function() {
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
             .send(onlineIncident);
-        incidentId = incident._id;
+        incidentId = incident.body._id;
 
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.incidentlist');

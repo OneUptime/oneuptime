@@ -27,7 +27,9 @@ class AlertDisabledWarning extends Component {
                                     >
                                         <span>
                                             SMS and Call Alerts are disabled for
-                                            this project. Please go to{' '}
+                                            this project. Your team will not be
+                                            alerted by SMS or Call when downtime
+                                            happens. Please go to{' '}
                                             <span
                                                 className="pointer Border-bottom--white Text-fontWeight--medium"
                                                 onClick={() =>

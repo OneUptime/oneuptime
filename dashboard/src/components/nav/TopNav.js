@@ -14,12 +14,30 @@ import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
+import { fetchOngoingScheduledEvents } from '../../actions/scheduledEvent';
+import ShouldRender from '../basic/ShouldRender';
 
 class TopContent extends Component {
     componentDidMount() {
-        const { userSettings, getVersion } = this.props;
+        const {
+            userSettings,
+            getVersion,
+            currentProject,
+            fetchOngoingScheduledEvents,
+        } = this.props;
         userSettings();
         getVersion();
+        if (currentProject && currentProject._id) {
+            fetchOngoingScheduledEvents(currentProject._id);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.currentProject !== this.props.currentProject) {
+            this.props.fetchOngoingScheduledEvents(
+                this.props.currentProject._id
+            );
+        }
     }
 
     showFeedbackModal = () => {
@@ -67,12 +85,46 @@ class TopContent extends Component {
         history.push(`/dashboard/project/${projectId}`);
     };
 
-    renderActiveIncidents = incidentCounter =>
-        incidentCounter > 0 ? (
+    renderActiveIncidents = incidentCounter => (
+        <div
+            className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                incidentCounter > 0 ? 'red' : 'green'
+            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer`}
+            onClick={this.handleActiveIncidentClick}
+            id="activeIncidents"
+        >
+            <span
+                className={`db-SideNav-icon db-SideNav-icon--${
+                    incidentCounter > 0 ? 'info' : 'tick'
+                } db-SideNav-icon--selected`}
+                style={{
+                    filter: 'brightness(0) invert(1)',
+                    marginTop: '1px',
+                    marginRight: '5px',
+                }}
+            />
+            <span id="activeIncidentsText">
+                <ShouldRender if={incidentCounter > 0}>
+                    {`${incidentCounter +
+                        (incidentCounter === 1
+                            ? ' Incident Currently Active'
+                            : ' Incidents Currently Active')}`}
+                </ShouldRender>
+                <ShouldRender if={incidentCounter === 0}>
+                    No incidents currently active.
+                </ShouldRender>
+            </span>
+        </div>
+    );
+
+    renderOngoingScheduledEvents = () => {
+        const { ongoingScheduledEvents } = this.props;
+        const count = ongoingScheduledEvents.length;
+        return count > 0 ? (
             <div
-                className="Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--red Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer"
+                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer Margin-left--20"
                 onClick={this.handleActiveIncidentClick}
-                id="activeIncidents"
+                id="ongoingEvents"
             >
                 <span
                     className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
@@ -82,14 +134,12 @@ class TopContent extends Component {
                         marginRight: '5px',
                     }}
                 />
-                <span id="activeIncidentsText">
-                    {`${incidentCounter +
-                        (incidentCounter === 1
-                            ? ' Incident Currently Active'
-                            : ' Incidents Currently Active')}`}
-                </span>
+                <span id="ongoingEventsText">{`${count} Scheduled Event${
+                    count === 1 ? '' : 's'
+                } Currently Active`}</span>
             </div>
         ) : null;
+    };
 
     render() {
         const IMG_URL =
@@ -151,6 +201,7 @@ class TopContent extends Component {
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                         {this.renderActiveIncidents(incidentCounter)}
+                        {this.renderOngoingScheduledEvents()}
                         <div className="Box-root Margin-right--16">
                             <div
                                 id="feedback-div"
@@ -261,6 +312,8 @@ const mapStateToProps = state => {
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
+        ongoingScheduledEvents:
+            state.scheduledEvent.ongoingScheduledEvent.events,
     };
 };
 
@@ -274,6 +327,7 @@ const mapDispatchToProps = dispatch =>
             openNotificationMenu,
             getVersion,
             openSideNav,
+            fetchOngoingScheduledEvents,
         },
         dispatch
     );
@@ -299,6 +353,8 @@ TopContent.propTypes = {
     length: PropTypes.number,
     map: PropTypes.func,
     currentProject: PropTypes.shape({ _id: PropTypes.string }),
+    fetchOngoingScheduledEvents: PropTypes.func,
+    ongoingScheduledEvents: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

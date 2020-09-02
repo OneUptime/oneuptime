@@ -77,14 +77,10 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#add-investigation-message');
-                await page.waitForSelector('#incident_state', {
+                await page.waitForSelector('#event_state', {
                     visible: true,
                 });
-                await init.selectByText(
-                    '#incident_state',
-                    'investigating',
-                    page
-                );
+                await init.selectByText('#event_state', 'investigating', page);
                 await page.click('#new-investigation');
                 await page.type(
                     '#new-investigation',
@@ -203,10 +199,10 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#add-internal-message');
-                await page.waitForSelector('#incident_state', {
+                await page.waitForSelector('#event_state', {
                     visible: true,
                 });
-                await init.selectByText('#incident_state', 'update', page);
+                await init.selectByText('#event_state', 'update', page);
                 await page.click('#new-internal');
                 await page.type('#new-internal', 'Some random description');
                 await page.click('#internal-addButton');

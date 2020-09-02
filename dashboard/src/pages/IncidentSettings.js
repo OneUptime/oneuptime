@@ -91,7 +91,7 @@ class IncidentSettings extends React.Component {
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="Incident Settings" />
+                    <BreadCrumbItem route={pathname} name="Incidents" />
                     <IncidentBasicSettings />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">
