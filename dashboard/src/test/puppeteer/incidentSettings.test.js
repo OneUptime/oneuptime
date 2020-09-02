@@ -279,6 +279,9 @@ describe('Incident Settings API', () => {
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
                 await page.waitForSelector('#incidentPrioritiesList');
+                //change default priority before remove the priority 
+                await init.selectByText('#incidentPriority','high',page);
+                await page.click('#saveButton');
                 await page.waitFor(3000);
                 const lowPriorityDeleteButton =
                     '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
@@ -291,6 +294,8 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
