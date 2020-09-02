@@ -122,7 +122,9 @@ export function MonitorChart({
     const responseTime = checkLogs ? data[0].responseTime : '0';
     const monitorStatus = toPascalCase(checkLogs ? data[0].status : status);
     const uptime =
-        uptimePercent != 100 ? uptimePercent.toFixed(3) : uptimePercent;
+        uptimePercent != 100 && !isNaN(uptimePercent)
+            ? uptimePercent.toFixed(3)
+            : '100';
 
     useEffect(() => {
         setNow(Date.now());
