@@ -81,6 +81,7 @@ describe('Incident Priority API', () => {
         'Should edit incident priority.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
+                const newPriorityName = utils.generateRandomString();
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -88,27 +89,27 @@ describe('Incident Priority API', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                const editButtonFirstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:first-child>button';
-                await page.waitForSelector(editButtonFirstRowIndentifier);
-                await page.click(editButtonFirstRowIndentifier);
+                const editButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:first-child>button';
+                await page.waitForSelector(editButtonLastRowIndentifier);
+                await page.click(editButtonLastRowIndentifier);
                 await page.waitForSelector('#EditIncidentPriority');
                 await page.click('input[name=name]', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
-                await page.type('input[name=name]', 'Medium');
+                await page.type('input[name=name]', newPriorityName);
                 await page.click('#EditIncidentPriority');
                 await page.waitFor(3000);
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
-                const firstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:first-child';
-                await page.waitForSelector(firstRowIndentifier);
+                const lastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:first-child';
+                await page.waitForSelector(lastRowIndentifier);
                 const content = await page.$eval(
-                    firstRowIndentifier,
+                    lastRowIndentifier,
                     e => e.textContent
                 );
-                expect(content).toEqual('Medium');
+                expect(content).toEqual(newPriorityName);
             });
         },
         operationTimeOut
