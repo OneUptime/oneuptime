@@ -288,7 +288,6 @@ describe('Twilio Settings API', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor(5000);
                 await page.waitFor('#successMessage');
                 const message = await page.$eval(
                     '#successMessage',
@@ -328,7 +327,6 @@ describe('Twilio Settings API', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor(5000);
                 await page.waitFor('#successMessage');
                 const message = await page.$eval(
                     '#successMessage',
