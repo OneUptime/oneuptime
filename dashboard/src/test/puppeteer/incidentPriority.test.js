@@ -59,9 +59,14 @@ describe('Incident Priority API', () => {
                 await page.waitForSelector(deleteButtonFirstRowIndentifier);
                 await page.click(deleteButtonFirstRowIndentifier);
                 await page.waitForSelector('#message-modal-message');
-                const warningMessage = await page.$eval('#message-modal-message', e => e.textContent);
-                expect(warningMessage).toEqual('This incident priority is marked as default and cannot be deleted.')
-            })
+                const warningMessage = await page.$eval(
+                    '#message-modal-message',
+                    e => e.textContent
+                );
+                expect(warningMessage).toEqual(
+                    'This incident priority is marked as default and cannot be deleted.'
+                );
+            });
         },
         operationTimeOut
     );
@@ -201,7 +206,10 @@ describe('Incident Priority API', () => {
                     await page.waitForSelector('#addNewPriority');
                     await page.click('#addNewPriority');
                     await page.waitForSelector('#CreateIncidentPriority');
-                    await page.type('input[name=name]', utils.generateRandomString());
+                    await page.type(
+                        'input[name=name]',
+                        utils.generateRandomString()
+                    );
                     await page.click('#CreateIncidentPriority');
                 }
 

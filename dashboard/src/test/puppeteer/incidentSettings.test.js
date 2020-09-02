@@ -113,7 +113,11 @@ describe('Incident Settings API', () => {
                 });
 
                 //Select the priority in incidentSettings form
-                await init.selectByText('#incidentPriority',priorityName,page);
+                await init.selectByText(
+                    '#incidentPriority',
+                    priorityName,
+                    page
+                );
                 //Delete the new incident priority.
                 const deleteButtonLastRowIndentifier =
                     '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
@@ -124,9 +128,14 @@ describe('Incident Settings API', () => {
                 //Try to save the incident settings
                 await page.click('#saveButton');
                 await page.waitForSelector('#errorInfo');
-                const  errorMessage = await page.$eval('#errorInfo', e => e.textContent);
-                expect(errorMessage).toEqual(`Incident priority doesn't exist.`);
-            })
+                const errorMessage = await page.$eval(
+                    '#errorInfo',
+                    e => e.textContent
+                );
+                expect(errorMessage).toEqual(
+                    `Incident priority doesn't exist.`
+                );
+            });
         },
         operationTimeOut
     );
@@ -191,7 +200,9 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+                await page.waitForSelector(
+                    `#monitorCreateIncident_${monitorName}`
+                );
                 await page.click(`#monitorCreateIncident_${monitorName}`);
                 await page.waitForSelector('#title');
                 await page.waitFor(3000);
@@ -279,8 +290,8 @@ describe('Incident Settings API', () => {
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
                 await page.waitForSelector('#incidentPrioritiesList');
-                //change default priority before remove the priority 
-                await init.selectByText('#incidentPriority','high',page);
+                //change default priority before remove the priority
+                await init.selectByText('#incidentPriority', 'high', page);
                 await page.click('#saveButton');
                 await page.waitFor(3000);
                 const lowPriorityDeleteButton =
