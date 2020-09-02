@@ -118,4 +118,33 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2]).to.have.property('name');
         expect(res.body.data[2].name).to.eql('Intermediate');
     });
+
+    it('Should update priority.', async () => {
+      const newIncidentPriorityName = 'Intermediate Updated';
+      const authorization = `Basic ${token}`;
+      let res = await request
+          .put(`/incidentPriorities/${projectId}`)
+          .set('Authorization', authorization)
+          .send({
+            _id: newIncidentPriorityId,
+            name: newIncidentPriorityName,
+            color:{
+              r: 255,
+              g: 255,
+              b: 0,
+              a:1,
+            }
+          });
+
+      expect(res).to.have.status(200);
+      res = await request
+          .get(`/incidentPriorities/${projectId}`)
+          .set('Authorization', authorization);
+
+      expect(res).to.have.status(200);
+      expect(res.body).to.be.an('object');
+      expect(res.body.count).to.eql(3);
+      expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
+
+    });
 });
