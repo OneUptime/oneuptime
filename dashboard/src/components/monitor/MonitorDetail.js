@@ -440,6 +440,7 @@ export class MonitorDetail extends Component {
                                                 monitorId: monitor._id,
                                                 projectId:
                                                     monitor.projectId._id,
+                                                monitor,
                                             }
                                         ),
                                     })

@@ -235,6 +235,7 @@ export class MonitorViewHeader extends Component {
                                                         monitorId: monitor._id,
                                                         projectId:
                                                             currentProject._id,
+                                                        monitor,
                                                     }
                                                 ),
                                             })

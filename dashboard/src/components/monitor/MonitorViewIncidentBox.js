@@ -202,6 +202,7 @@ export class MonitorViewIncidentBox extends Component {
                                                     ._id,
                                                 projectId: this.props.monitor
                                                     .projectId._id,
+                                                monitor: this.props.monitor,
                                             }
                                         ),
                                     })
