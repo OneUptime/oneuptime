@@ -17,7 +17,7 @@ const {
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
-let token, userId, projectId, defaultIncidentPriorityId;
+let token, userId, projectId, defaultIncidentPriorityId, newIncidentPriorityId;
 
 describe('Incident Priority API', function() {
     this.timeout(500000);
@@ -119,9 +119,10 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2].name).to.eql('Intermediate');
     });
 
-    it('Should update priority.', async () => {
+    it('Should update incident priority.', async () => {
       const newIncidentPriorityName = 'Intermediate Updated';
       const authorization = `Basic ${token}`;
+
       let res = await request
           .put(`/incidentPriorities/${projectId}`)
           .set('Authorization', authorization)
@@ -135,16 +136,30 @@ describe('Incident Priority API', function() {
               a:1,
             }
           });
-
       expect(res).to.have.status(200);
+
       res = await request
           .get(`/incidentPriorities/${projectId}`)
           .set('Authorization', authorization);
-
       expect(res).to.have.status(200);
       expect(res.body).to.be.an('object');
       expect(res.body.count).to.eql(3);
       expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
+    });
 
+    it('Should delete incident priority.', async () => {
+      const authorization = `Basic ${token}`;
+      let res = await request
+        .delete(`/incidentPriorities/${projectId}`)
+        .set('Authorization', authorization)
+        .send({_id: newIncidentPriorityId});
+      expect(res).to.have.status(200);
+
+      res = await request
+          .get(`/incidentPriorities/${projectId}`)
+          .set('Authorization', authorization);
+      expect(res).to.have.status(200);
+      expect(res.body).to.be.an('object');
+      expect(res.body.count).to.eql(2);
     });
 });
