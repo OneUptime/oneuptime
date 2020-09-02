@@ -178,7 +178,7 @@ describe('Incident Priority API', () => {
                     await page.waitForSelector('#addNewPriority');
                     await page.click('#addNewPriority');
                     await page.waitForSelector('#CreateIncidentPriority');
-                    await page.type('input[name=name]', 'High');
+                    await page.type('input[name=name]', utils.generateRandomString());
                     await page.click('#CreateIncidentPriority');
                 }
 
