@@ -44,6 +44,29 @@ describe('Incident Priority API', () => {
     });
 
     test(
+        'Should not remove the incident priority used by default.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#incidentSettings');
+                await page.click('#incidentSettings');
+                const deleteButtonFirstRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:first-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.waitForSelector(deleteButtonFirstRowIndentifier);
+                await page.click(deleteButtonFirstRowIndentifier);
+                await page.waitForSelector('#message-modal-message');
+                const warningMessage = await page.$eval('#message-modal-message', e => e.textContent);
+                expect(warningMessage).toEqual('This incident priority is marked as default and cannot be deleted.')
+            })
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should create incident priority.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
