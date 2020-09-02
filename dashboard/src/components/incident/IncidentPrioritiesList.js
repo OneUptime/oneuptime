@@ -100,7 +100,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                                         title:
                                                                             'Warning',
                                                                         message:
-                                                                            'This incident priority is used by default and should not be deleted.',
+                                                                            'This incident priority is marked as default and cannot be deleted.',
                                                                     }
                                                                 );
                                                             else
