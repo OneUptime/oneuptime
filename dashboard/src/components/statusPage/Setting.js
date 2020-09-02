@@ -41,13 +41,16 @@ function validate(values) {
     if (!Validate.text(values.domain)) {
         errors.domain = 'Domain is required.';
     } else if (!Validate.isDomain(values.domain)) {
-        errors.domain = 'Domain is invalid.';
+        errors.domain = 'Domain is not valid.';
     }
     return errors;
 }
 
 export class Setting extends Component {
-    state = { verifyModalId: uuid.v4(), deleteDomainModalId: uuid.v4() };
+    state = {
+        verifyModalId: uuid.v4(),
+        deleteDomainModalId: uuid.v4(),
+    };
 
     submitForm = values => {
         if ('domain' in values) {
@@ -239,6 +242,7 @@ export class Setting extends Component {
             subProject = subProjects.find(
                 subProject => subProject._id === projectId
             );
+
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -266,7 +270,10 @@ export class Setting extends Component {
                                         id="addMoreDomain"
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
-                                        onClick={this.props.addMoreDomain}
+                                        onClick={() => {
+                                            this.props.change('domain', ' ');
+                                            this.props.addMoreDomain();
+                                        }}
                                     >
                                         <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                             <div className="Box-root Margin-right--8">
@@ -285,113 +292,64 @@ export class Setting extends Component {
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                    {this.props.domains &&
-                                        this.props.domains.map(domain => {
-                                            return (
-                                                <fieldset
-                                                    key={domain._id}
-                                                    className="bs-Fieldset"
-                                                    style={{ padding: 0 }}
-                                                    name="added-domain"
-                                                >
-                                                    <div className="bs-Fieldset-rows">
-                                                        {IsAdminSubProject(
-                                                            subProject
-                                                        ) ||
-                                                        IsOwnerSubProject(
-                                                            subProject
-                                                        ) ? (
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
-                                                                    Your Status
-                                                                    Page is
-                                                                    hosted at
-                                                                </label>
+                                    <ShouldRender
+                                        if={
+                                            this.props.domains &&
+                                            this.props.domains.length > 0
+                                        }
+                                    >
+                                        {this.props.domains &&
+                                            this.props.domains.map(domain => {
+                                                return (
+                                                    <fieldset
+                                                        key={domain._id}
+                                                        className="bs-Fieldset"
+                                                        style={{ padding: 0 }}
+                                                        name="added-domain"
+                                                    >
+                                                        <div className="bs-Fieldset-rows">
+                                                            {IsAdminSubProject(
+                                                                subProject
+                                                            ) ||
+                                                            IsOwnerSubProject(
+                                                                subProject
+                                                            ) ? (
+                                                                <div className="bs-Fieldset-row">
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Your
+                                                                        Status
+                                                                        Page is
+                                                                        hosted
+                                                                        at
+                                                                    </label>
 
-                                                                <div className="bs-Fieldset-fields">
-                                                                    <Field
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        component={
-                                                                            RenderField
-                                                                        }
-                                                                        type="text"
-                                                                        name={
-                                                                            domain._id
-                                                                        }
-                                                                        id={
-                                                                            domain._id
-                                                                        }
-                                                                        disabled={
-                                                                            this
-                                                                                .props
-                                                                                .statusPage
-                                                                                .setting
-                                                                                .requesting
-                                                                        }
-                                                                        placeholder="domain"
-                                                                    />
-                                                                    <p
-                                                                        className="bs-Fieldset-explanation"
-                                                                        id="publicStatusPageUrl"
-                                                                    >
-                                                                        {IS_LOCALHOST && (
-                                                                            <span>
-                                                                                If
-                                                                                you
-                                                                                want
-                                                                                to
-                                                                                preview
-                                                                                your
-                                                                                status
-                                                                                page.
-                                                                                Please
-                                                                                check{' '}
-                                                                                <a
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    href={
-                                                                                        publicStatusPageUrl
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        publicStatusPageUrl
-                                                                                    }{' '}
-                                                                                </a>
-                                                                            </span>
-                                                                        )}
-                                                                        {IS_SAAS_SERVICE &&
-                                                                            !IS_LOCALHOST && (
-                                                                                <span>
-                                                                                    Add
-                                                                                    statuspage.fyipeapp.com
-                                                                                    to
-                                                                                    your
-                                                                                    CNAME.
-                                                                                    If
-                                                                                    you
-                                                                                    want
-                                                                                    to
-                                                                                    preview
-                                                                                    your
-                                                                                    status
-                                                                                    page.
-                                                                                    Please
-                                                                                    check{' '}
-                                                                                    <a
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        href={
-                                                                                            publicStatusPageUrl
-                                                                                        }
-                                                                                    >
-                                                                                        {
-                                                                                            publicStatusPageUrl
-                                                                                        }{' '}
-                                                                                    </a>
-                                                                                </span>
-                                                                            )}
-                                                                        {!IS_SAAS_SERVICE &&
-                                                                            !IS_LOCALHOST && (
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            type="text"
+                                                                            name={
+                                                                                domain._id
+                                                                            }
+                                                                            id={
+                                                                                domain._id
+                                                                            }
+                                                                            disabled={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    .setting
+                                                                                    .requesting
+                                                                            }
+                                                                            placeholder="domain"
+                                                                        />
+                                                                        <p
+                                                                            className="bs-Fieldset-explanation"
+                                                                            id="publicStatusPageUrl"
+                                                                        >
+                                                                            {IS_LOCALHOST && (
                                                                                 <span>
                                                                                     If
                                                                                     you
@@ -416,152 +374,229 @@ export class Setting extends Component {
                                                                                     </a>
                                                                                 </span>
                                                                             )}
-                                                                    </p>
-                                                                    <div
-                                                                        className="bs-Fieldset-row"
-                                                                        style={{
-                                                                            alignItems:
-                                                                                'center',
-                                                                            paddingLeft: 0,
-                                                                            paddingBottom: 0,
-                                                                        }}
+                                                                            {IS_SAAS_SERVICE &&
+                                                                                !IS_LOCALHOST && (
+                                                                                    <span>
+                                                                                        Add
+                                                                                        statuspage.fyipeapp.com
+                                                                                        to
+                                                                                        your
+                                                                                        CNAME.
+                                                                                        If
+                                                                                        you
+                                                                                        want
+                                                                                        to
+                                                                                        preview
+                                                                                        your
+                                                                                        status
+                                                                                        page.
+                                                                                        Please
+                                                                                        check{' '}
+                                                                                        <a
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            href={
+                                                                                                publicStatusPageUrl
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                publicStatusPageUrl
+                                                                                            }{' '}
+                                                                                        </a>
+                                                                                    </span>
+                                                                                )}
+                                                                            {!IS_SAAS_SERVICE &&
+                                                                                !IS_LOCALHOST && (
+                                                                                    <span>
+                                                                                        If
+                                                                                        you
+                                                                                        want
+                                                                                        to
+                                                                                        preview
+                                                                                        your
+                                                                                        status
+                                                                                        page.
+                                                                                        Please
+                                                                                        check{' '}
+                                                                                        <a
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            href={
+                                                                                                publicStatusPageUrl
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                publicStatusPageUrl
+                                                                                            }{' '}
+                                                                                        </a>
+                                                                                    </span>
+                                                                                )}
+                                                                        </p>
+                                                                        <div
+                                                                            className="bs-Fieldset-row"
+                                                                            style={{
+                                                                                alignItems:
+                                                                                    'center',
+                                                                                paddingLeft: 0,
+                                                                                paddingBottom: 0,
+                                                                            }}
+                                                                        >
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    domain &&
+                                                                                    domain.domainVerificationToken &&
+                                                                                    !domain
+                                                                                        .domainVerificationToken
+                                                                                        .verified
+                                                                                }
+                                                                            >
+                                                                                <div
+                                                                                    className="bs-Fieldset-row"
+                                                                                    style={{
+                                                                                        paddingLeft: 0,
+                                                                                        paddingRight: 0,
+                                                                                        marginRight:
+                                                                                            '15px',
+                                                                                    }}
+                                                                                >
+                                                                                    <button
+                                                                                        id="btnVerifyDomain"
+                                                                                        className="bs-Button"
+                                                                                        onClick={e => {
+                                                                                            this.handleVerifyDomain(
+                                                                                                e,
+                                                                                                domain
+                                                                                            );
+                                                                                        }}
+                                                                                    >
+                                                                                        <span>
+                                                                                            Verify
+                                                                                            domain
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </ShouldRender>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    this
+                                                                                        .props
+                                                                                        .domains &&
+                                                                                    this
+                                                                                        .props
+                                                                                        .domains
+                                                                                        .length >
+                                                                                        0
+                                                                                }
+                                                                            >
+                                                                                <div
+                                                                                    className="bs-Fieldset-row"
+                                                                                    style={{
+                                                                                        paddingLeft: 0,
+                                                                                        paddingRight: 0,
+                                                                                        paddingBottom: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    <button
+                                                                                        className="btnDeleteDomain bs-Button"
+                                                                                        onClick={e => {
+                                                                                            //Todo: handle delete here
+                                                                                            this.handleDeleteDomain(
+                                                                                                e,
+                                                                                                domain
+                                                                                            );
+                                                                                        }}
+                                                                                    >
+                                                                                        <span className="bs-Button--icon bs-Button--delete"></span>
+                                                                                        <span>
+                                                                                            Delete
+                                                                                            Domain
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </ShouldRender>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            domain
+                                                                        }
                                                                     >
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                !domain
-                                                                                    .domainVerificationToken
-                                                                                    .verified
-                                                                            }
+                                                                        <div
+                                                                            className="bs-Fieldset-fields"
+                                                                            style={{
+                                                                                marginTop: 5,
+                                                                            }}
                                                                         >
-                                                                            <div
-                                                                                className="bs-Fieldset-row"
-                                                                                style={{
-                                                                                    paddingLeft: 0,
-                                                                                    paddingRight: 0,
-                                                                                    marginRight:
-                                                                                        '15px',
-                                                                                }}
-                                                                            >
-                                                                                <button
-                                                                                    id="btnVerifyDomain"
-                                                                                    className="bs-Button"
-                                                                                    onClick={e => {
-                                                                                        this.handleVerifyDomain(
-                                                                                            e,
-                                                                                            domain
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    <span>
-                                                                                        Verify
-                                                                                        domain
+                                                                            {domain &&
+                                                                            domain.domainVerificationToken &&
+                                                                            !domain
+                                                                                .domainVerificationToken
+                                                                                .verified ? (
+                                                                                <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <span
+                                                                                        className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer"
+                                                                                        onClick={e => {
+                                                                                            this.handleVerifyDomain(
+                                                                                                e,
+                                                                                                domain
+                                                                                            );
+                                                                                        }}
+                                                                                    >
+                                                                                        Not
+                                                                                        verified
                                                                                     </span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </ShouldRender>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                this
-                                                                                    .props
-                                                                                    .domains &&
-                                                                                this
-                                                                                    .props
-                                                                                    .domains
-                                                                                    .length >
-                                                                                    1
-                                                                            }
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                        Verified
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </ShouldRender>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="bs-Fieldset-row">
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Your
+                                                                        Status
+                                                                        Page is
+                                                                        hosted
+                                                                        at
+                                                                    </label>
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <span
+                                                                            className="value"
+                                                                            style={{
+                                                                                marginTop:
+                                                                                    '6px',
+                                                                            }}
                                                                         >
-                                                                            <div
-                                                                                className="bs-Fieldset-row"
-                                                                                style={{
-                                                                                    paddingLeft: 0,
-                                                                                    paddingRight: 0,
-                                                                                    paddingBottom: 0,
-                                                                                }}
-                                                                            >
-                                                                                <button
-                                                                                    className="btnDeleteDomain bs-Button"
-                                                                                    onClick={e => {
-                                                                                        //Todo: handle delete here
-                                                                                        this.handleDeleteDomain(
-                                                                                            e,
-                                                                                            domain
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    <span className="bs-Button--icon bs-Button--delete"></span>
-                                                                                    <span>
-                                                                                        Delete
-                                                                                        Domain
-                                                                                    </span>
-                                                                                </button>
-                                                                            </div>
-                                                                        </ShouldRender>
+                                                                            {
+                                                                                hosted
+                                                                            }
+                                                                        </span>
                                                                     </div>
                                                                 </div>
-                                                                <ShouldRender
-                                                                    if={domain}
-                                                                >
-                                                                    <div
-                                                                        className="bs-Fieldset-fields"
-                                                                        style={{
-                                                                            marginTop: 5,
-                                                                        }}
-                                                                    >
-                                                                        {!domain
-                                                                            .domainVerificationToken
-                                                                            .verified ? (
-                                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span
-                                                                                    className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap pointer"
-                                                                                    onClick={e => {
-                                                                                        this.handleVerifyDomain(
-                                                                                            e,
-                                                                                            domain
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    Not
-                                                                                    verified
-                                                                                </span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                                    Verified
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </ShouldRender>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
-                                                                    Your Status
-                                                                    Page is
-                                                                    hosted at
-                                                                </label>
-                                                                <div className="bs-Fieldset-fields">
-                                                                    <span
-                                                                        className="value"
-                                                                        style={{
-                                                                            marginTop:
-                                                                                '6px',
-                                                                        }}
-                                                                    >
-                                                                        {hosted}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </fieldset>
-                                            );
-                                        })}
-
-                                    {(this.props.domains.length < 1 ||
-                                        this.props.showDomainField) && (
+                                                            )}
+                                                        </div>
+                                                    </fieldset>
+                                                );
+                                            })}
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            this.props.domains &&
+                                            this.props.domains.length === 0 &&
+                                            !this.props.showDomainField
+                                        }
+                                    >
+                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2 Padding-all--16 Text-align--center">
+                                            <span>No domains added</span>
+                                        </div>
+                                    </ShouldRender>
+                                    {this.props.showDomainField && (
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 {IsAdminSubProject(
@@ -802,12 +837,7 @@ export class Setting extends Component {
                                     subProjectId={projectId}
                                 >
                                     <ShouldRender
-                                        if={
-                                            this.props.showDomainField ||
-                                            this.props.domains.length < 1
-                                                ? true
-                                                : false
-                                        }
+                                        if={this.props.showDomainField}
                                     >
                                         <button
                                             id="btnCancelAddDomain"
@@ -816,10 +846,9 @@ export class Setting extends Component {
                                                 this.props.statusPage.setting
                                                     .requesting
                                             }
-                                            onClick={e => {
-                                                e.preventDefault();
-                                                this.props.cancelAddMoreDomain();
-                                            }}
+                                            onClick={
+                                                this.props.cancelAddMoreDomain
+                                            }
                                         >
                                             {!this.props.statusPage.setting
                                                 .requesting && (
@@ -829,29 +858,38 @@ export class Setting extends Component {
                                                 .requesting && <FormLoader />}
                                         </button>
                                     </ShouldRender>
-
-                                    <button
-                                        id="btnAddDomain"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={
-                                            this.props.statusPage.setting
-                                                .requesting
+                                    <ShouldRender
+                                        if={
+                                            this.props.showDomainField ||
+                                            (this.props.domains &&
+                                                this.props.domains.length > 0)
                                         }
-                                        type="submit"
                                     >
-                                        {(!this.props.statusPage.setting
-                                            .requesting ||
-                                            !this.props
-                                                .updateDomainRequesting) && (
-                                            <span>Save Domain Settings </span>
-                                        )}
-                                        {(this.props.statusPage.setting
-                                            .requesting ||
-                                            this.props
-                                                .updateDomainRequesting) && (
-                                            <FormLoader />
-                                        )}
-                                    </button>
+                                        <button
+                                            id="btnAddDomain"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            disabled={
+                                                this.props.statusPage.setting
+                                                    .requesting
+                                            }
+                                            type="submit"
+                                        >
+                                            {(!this.props.statusPage.setting
+                                                .requesting ||
+                                                !this.props
+                                                    .updateDomainRequesting) && (
+                                                <span>
+                                                    Save Domain Settings{' '}
+                                                </span>
+                                            )}
+                                            {(this.props.statusPage.setting
+                                                .requesting ||
+                                                this.props
+                                                    .updateDomainRequesting) && (
+                                                <FormLoader />
+                                            )}
+                                        </button>
+                                    </ShouldRender>
                                 </RenderIfSubProjectAdmin>
                             </div>
                         </div>
