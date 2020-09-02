@@ -134,9 +134,9 @@ describe('Incident Priority API', () => {
                     e => e.textContent
                 );
                 expect(incidentsCountBeforeDeletion).toEqual('3 Priorities');
-                const deleteButtonFirstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:nth-child(2)>button';
-                await page.click(deleteButtonFirstRowIndentifier);
+                const deleteButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.click(deleteButtonLastRowIndentifier);
                 await page.waitForSelector('#RemoveIncidentPriority');
                 await page.click('#RemoveIncidentPriority');
                 await page.waitFor(3000);
