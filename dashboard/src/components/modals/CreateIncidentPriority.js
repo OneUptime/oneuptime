@@ -70,7 +70,6 @@ class CreateIncidentPriority extends Component {
         const { displayColorPicker } = this.state;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
