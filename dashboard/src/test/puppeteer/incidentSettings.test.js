@@ -191,8 +191,8 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector(`#createIncident_${monitorName}`);
-                await page.click(`#createIncident_${monitorName}`);
+                await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+                await page.click(`#monitorCreateIncident_${monitorName}`);
                 await page.waitForSelector('#title');
                 await page.waitFor(3000);
                 const priorityFieldValue = await page.$eval(
