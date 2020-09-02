@@ -17,7 +17,7 @@ const {
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
-let token, userId, projectId;
+let token, userId, projectId, defaultIncidentPriorityId;
 
 describe('Incident Priority API', function() {
     this.timeout(500000);
@@ -70,9 +70,52 @@ describe('Incident Priority API', function() {
         expect(res.body.count).to.eql(2);
         expect(res.body.data).to.be.an('array');
         expect(res.body.data.length).to.eql(2);
+        expect(res.body.data[0]).to.have.property('_id');
+        defaultIncidentPriorityId = res.body.data[0]._id;
         expect(res.body.data[0]).to.have.property('name');
         expect(res.body.data[0].name).to.eql('High');
         expect(res.body.data[1]).to.have.property('name');
         expect(res.body.data[1].name).to.eql('Low');
+    });
+
+    it('Should not remove the default incident priority.', (done) => {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization)
+            .send({_id: defaultIncidentPriorityId})
+            .end((error,res) => {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
+    it('Should create a new incident priority.', async () => {
+        const authorization = `Basic ${token}`;
+        let res = await request
+            .post(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+              name:'Intermediate',
+              color:{
+                r: 255,
+                g: 255,
+                b: 0,
+                a:1,
+              }
+            });
+        expect(res).to.have.status(200);
+        res = await request
+            .get(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.eql(3);
+        expect(res.body.data).to.be.an('array');
+        expect(res.body.data.length).to.eql(3);
+        expect(res.body.data[2]).to.have.property('_id');
+        newIncidentPriorityId= res.body.data[2]._id;
+        expect(res.body.data[2]).to.have.property('name');
+        expect(res.body.data[2].name).to.eql('Intermediate');
     });
 });
