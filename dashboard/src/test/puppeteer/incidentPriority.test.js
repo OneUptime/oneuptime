@@ -47,6 +47,7 @@ describe('Incident Priority API', () => {
         'Should create incident priority.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
+                const priorityName = utils.generateRandomString();
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -57,20 +58,20 @@ describe('Incident Priority API', () => {
                 await page.waitForSelector('#addNewPriority');
                 await page.click('#addNewPriority');
                 await page.waitForSelector('#CreateIncidentPriority');
-                await page.type('input[name=name]', 'High');
+                await page.type('input[name=name]', priorityName);
                 await page.click('#CreateIncidentPriority');
                 await page.waitFor(3000);
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
-                const firstRowFirstColumnIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:first-child';
-                await page.waitForSelector(firstRowFirstColumnIndentifier);
+                const lastRowFirstColumnIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:first-child';
+                await page.waitForSelector(lastRowFirstColumnIndentifier);
                 const content = await page.$eval(
-                    firstRowFirstColumnIndentifier,
+                    lastRowFirstColumnIndentifier,
                     e => e.textContent
                 );
-                expect(content).toEqual('High');
+                expect(content).toEqual(priorityName);
             });
         },
         operationTimeOut
