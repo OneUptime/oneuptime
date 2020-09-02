@@ -11,6 +11,11 @@ const subscriberAlertSchema = new Schema({
         required: true,
     },
     alertStatus: String,
+    eventType: {
+        type: String,
+        enum: ['identified', 'acknowledged', 'resolved'],
+        required: true,
+    },
     createdAt: { type: Date, default: Date.now },
     error: { type: Boolean, default: false },
     errorMessage: String,

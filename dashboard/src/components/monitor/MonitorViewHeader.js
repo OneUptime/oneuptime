@@ -174,19 +174,30 @@ export class MonitorViewHeader extends Component {
                 className="db-Trends bs-ContentSection Card-root Card-shadow--medium"
                 onKeyDown={this.handleKeyBoard}
             >
-                {currentProject._id === subProjectId ? (
-                    subProjects.length > 0 ? (
+                <div className="Flex-flex Flex-direction--row">
+                    {currentProject._id === subProjectId ? (
+                        subProjects.length > 0 ? (
+                            <div className="Box-root Padding-top--20 Padding-left--20">
+                                <Badge color={'red'}>Project</Badge>
+                            </div>
+                        ) : null
+                    ) : (
                         <div className="Box-root Padding-top--20 Padding-left--20">
-                            <Badge color={'red'}>Project</Badge>
+                            <Badge color={'blue'}>
+                                {subProject && subProject.name}
+                            </Badge>
                         </div>
-                    ) : null
-                ) : (
-                    <div className="Box-root Padding-top--20 Padding-left--20">
-                        <Badge color={'blue'}>
-                            {subProject && subProject.name}
-                        </Badge>
-                    </div>
-                )}
+                    )}
+                    <ShouldRender if={monitor && monitor.monitorCategoryId}>
+                        <div className="Box-root Padding-top--20 Padding-left--4">
+                            <Badge color={'slate5'}>
+                                {monitor && monitor.monitorCategoryId
+                                    ? monitor.monitorCategoryId.name
+                                    : ''}
+                            </Badge>
+                        </div>
+                    </ShouldRender>
+                </div>
                 <div className="Box-root">
                     <div className="db-Trends-header">
                         <MonitorTitle

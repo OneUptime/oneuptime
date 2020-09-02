@@ -343,18 +343,7 @@ module.exports = {
                         { seats: projectSeats.toString() }
                     );
                 }
-                const incidents = await IncidentService.findBy({
-                    monitorId: monitor._id,
-                });
 
-                await Promise.all(
-                    incidents.map(async incident => {
-                        await IncidentService.deleteBy(
-                            { _id: incident._id },
-                            userId
-                        );
-                    })
-                );
                 const alerts = await AlertService.findBy({
                     query: { monitorId: monitor._id },
                 });
@@ -366,6 +355,8 @@ module.exports = {
                 );
                 await StatusPageService.removeMonitor(monitor._id);
                 await ScheduleService.removeMonitor(monitor._id);
+                await ScheduledEventService.removeMonitor(monitor._id, userId);
+                await IncidentService.removeMonitor(monitor._id, userId);
                 await IntegrationService.removeMonitor(monitor._id, userId);
                 await NotificationService.create(
                     monitor.projectId,
@@ -1014,3 +1005,4 @@ const ErrorService = require('./errorService');
 const moment = require('moment');
 const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
+const ScheduledEventService = require('./scheduledEventService');

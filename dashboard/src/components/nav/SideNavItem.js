@@ -354,7 +354,10 @@ export class SidebarNavItem extends Component {
                                                                 : ''
                                                         }
                                                     >
-                                                        {child.title}
+                                                        {child.title ===
+                                                        'Incident Settings'
+                                                            ? 'Incidents'
+                                                            : child.title}
                                                     </span>
                                                 </span>
                                                 {child.shortcut && (
