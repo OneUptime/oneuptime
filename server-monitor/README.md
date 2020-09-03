@@ -70,7 +70,7 @@ monitor.start();
 
 In some cases you may need to install the linux `sensors` package to be able to measure temperature e.g. on DEBIAN based systems run `sudo apt-get install lm-sensors`.
 
-See [system information](https://www.npmjs.com/package/systeminformation) to learn more.
+See [system information](https://www.npmjs.com/package/systeminformation#known-issues) to learn more.
 
 ## API Documentation
 
