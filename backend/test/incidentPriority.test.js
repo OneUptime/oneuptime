@@ -11,9 +11,6 @@ const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const IncidentSettings = require('../backend/services/incidentSettingsService');
 const ProjectService = require('../backend/services/projectService');
-const {
-    incidentDefaultSettings,
-} = require('../backend/config/incidentDefaultSettings');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
