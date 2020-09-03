@@ -259,10 +259,15 @@ describe('Monitor Detail API', () => {
                 await page.click('#react-tabs-2');
 
                 await page.waitFor(5000);
-                const selector = 'tr.incidentListItem';
+                const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
-                await page.$eval(selector, e => e.click());
+                await page.click(selector);
                 await page.waitFor(5000);
+
+                // click on advance option tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
+
                 await page.waitForSelector('button[id=deleteIncidentButton]');
                 await page.$eval('#deleteIncidentButton', e => e.click());
                 await page.waitFor(5000);
