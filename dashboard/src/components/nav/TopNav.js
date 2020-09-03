@@ -118,10 +118,10 @@ class TopContent extends Component {
                 id="ongoingEvents"
             >
                 <span
-                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                    className="db-SideNav-icon db-SideNav-icon--connect db-SideNav-icon--selected"
                     style={{
                         filter: 'brightness(0) invert(1)',
-                        marginTop: '1px',
+                        marginTop: '-1px',
                         marginRight: '5px',
                     }}
                 />
