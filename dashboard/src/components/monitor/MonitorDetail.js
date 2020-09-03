@@ -273,7 +273,7 @@ export class MonitorDetail extends Component {
                     <ShouldRender if={monitor && monitor.monitorCategoryId}>
                         <div
                             className={`Box-root Padding-top--20 ${
-                                !this.props.shouldRenderProjectType
+                                this.props.shouldRenderProjectType
                                     ? 'Padding-left--4'
                                     : 'Padding-left--20'
                             }`}
