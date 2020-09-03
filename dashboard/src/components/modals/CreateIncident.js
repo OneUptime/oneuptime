@@ -72,6 +72,67 @@ class CreateIncident extends Component {
         }
     };
 
+    substituteVariables = (value, name) => {
+        const { titleEdited, descriptionEdited } = this.state;
+
+        if (titleEdited && descriptionEdited) return;
+
+        const {
+            monitors,
+            incidentBasicSettings,
+            data,
+            change,
+            selectedIncidentType,
+            projectName,
+        } = this.props;
+
+        let monitorName = this.state.monitorName;
+
+        const subProjectMonitor = monitors.find(
+            subProjectMonitor => subProjectMonitor._id === data.subProjectId
+        );
+
+        if (
+            name === 'monitorId' &&
+            subProjectMonitor &&
+            subProjectMonitor.monitors
+        ) {
+            monitorName = '';
+            for (const monitor of subProjectMonitor.monitors) {
+                if (value === monitor._id) {
+                    monitorName = monitor.name;
+                    this.setState({ monitorName });
+                }
+            }
+        }
+
+        const values = {
+            incidentType: selectedIncidentType,
+            monitorName,
+            projectName,
+            time: moment().format('h:mm:ss a'),
+            date: moment().format('MMM Do YYYY'),
+        };
+
+        if (name === 'incidentType') values[name] = value;
+
+        if (values['monitorName'] === '')
+            values['monitorName'] = '{{Monitor Name}}';
+
+        if (!titleEdited) {
+            const titleTemplate = handlebars.compile(
+                incidentBasicSettings.title
+            );
+            change('title', titleTemplate(values));
+        }
+        if (!descriptionEdited) {
+            const descriptionTemplate = handlebars.compile(
+                incidentBasicSettings.description
+            );
+            change('description', descriptionTemplate(values));
+        }
+    };
+
     render() {
         const {
             handleSubmit,
@@ -166,6 +227,17 @@ class CreateIncident extends Component {
                                                                       )
                                                                     : []),
                                                             ]}
+                                                            onChange={(
+                                                                event,
+                                                                newValue,
+                                                                previousValue,
+                                                                name
+                                                            ) =>
+                                                                this.substituteVariables(
+                                                                    newValue,
+                                                                    name
+                                                                )
+                                                            }
                                                         />
                                                     </div>
                                                     <div className="bs-Fieldset-row Margin-bottom--12">
@@ -192,12 +264,6 @@ class CreateIncident extends Component {
                                                                 options={[
                                                                     {
                                                                         value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select type',
-                                                                    },
-                                                                    {
-                                                                        value:
                                                                             'online',
                                                                         label:
                                                                             'Online',
@@ -215,6 +281,17 @@ class CreateIncident extends Component {
                                                                             'Degraded',
                                                                     },
                                                                 ]}
+                                                                onChange={(
+                                                                    event,
+                                                                    newValue,
+                                                                    previousValue,
+                                                                    name
+                                                                ) =>
+                                                                    this.substituteVariables(
+                                                                        newValue,
+                                                                        name
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -243,12 +320,6 @@ class CreateIncident extends Component {
                                                                             .requesting
                                                                     }
                                                                     options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Incident Priority',
-                                                                        },
                                                                         ...incidentPriorities.map(
                                                                             incidentPriority => ({
                                                                                 value:
@@ -258,6 +329,17 @@ class CreateIncident extends Component {
                                                                             })
                                                                         ),
                                                                     ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        newValue,
+                                                                        previousValue,
+                                                                        name
+                                                                    ) =>
+                                                                        this.substituteVariables(
+                                                                            newValue,
+                                                                            name
+                                                                        )
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
