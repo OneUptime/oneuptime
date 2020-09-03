@@ -255,20 +255,37 @@ export class MonitorDetail extends Component {
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
             >
-                <ShouldRender if={this.props.shouldRenderProjectType}>
-                    <div className="Box-root Padding-top--20 Padding-left--20">
-                        <Badge
-                            id={`badge_${this.props.projectName}`}
-                            color={
-                                this.props.projectType === 'project'
-                                    ? 'red'
-                                    : 'blue'
-                            }
+                <div className="Flex-flex Flex-direction--row">
+                    <ShouldRender if={this.props.shouldRenderProjectType}>
+                        <div className="Box-root Padding-top--20 Padding-left--20">
+                            <Badge
+                                id={`badge_${this.props.projectName}`}
+                                color={
+                                    this.props.projectType === 'project'
+                                        ? 'red'
+                                        : 'blue'
+                                }
+                            >
+                                {this.props.projectName}
+                            </Badge>
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender if={monitor && monitor.monitorCategoryId}>
+                        <div
+                            className={`Box-root Padding-top--20 ${
+                                !this.props.shouldRenderProjectType
+                                    ? 'Padding-left--4'
+                                    : 'Padding-left--20'
+                            }`}
                         >
-                            {this.props.projectName}
-                        </Badge>
-                    </div>
-                </ShouldRender>
+                            <Badge color={'slate5'}>
+                                {monitor && monitor.monitorCategoryId
+                                    ? monitor.monitorCategoryId.name
+                                    : ''}
+                            </Badge>
+                        </div>
+                    </ShouldRender>
+                </div>
                 <div className="db-Trends-header">
                     <div className="db-Trends-title">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
