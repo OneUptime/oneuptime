@@ -35,11 +35,12 @@ const ping = (projectId, monitorId, apiUrl, apiKey, interval = '* * * * *') => {
                 si.mem(),
                 si.fsSize(),
                 si.cpuTemperature(),
+                si.cpu(),
             ])
                 .then(data => ({
                     cpuLoad: data[0].currentload,
                     avgCpuLoad: data[0].avgload,
-                    cpuCores: data[0].cpus.length,
+                    cpuCores: data[4].physicalCores,
                     memoryUsed: data[1].used,
                     totalMemory: data[1].total,
                     swapUsed: data[1].swapused,

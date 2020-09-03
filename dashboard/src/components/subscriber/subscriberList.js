@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import countryTelephoneCode from 'country-telephone-code';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -246,7 +247,12 @@ export class SubscriberList extends Component {
                                                                 <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                     {subscriber.contactWebhook ||
                                                                         subscriber.contactEmail ||
-                                                                        subscriber.contactPhone ||
+                                                                        (subscriber.contactPhone &&
+                                                                            `+${countryTelephoneCode(
+                                                                                subscriber.countryCode.toUpperCase()
+                                                                            )}${
+                                                                                subscriber.contactPhone
+                                                                            }`) ||
                                                                         ''}
                                                                 </div>
                                                             </div>

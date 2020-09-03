@@ -165,10 +165,7 @@ class ApplicationLogDetailView extends Component {
                                     rel="noopener noreferrer"
                                     href="https://github.com/Fyipe/feature-docs/blob/master/log.md"
                                     target="_blank"
-                                    style={{
-                                        color: 'white',
-                                        textDecoration: 'underline',
-                                    }}
+                                    className="Border-bottom--white Text-fontWeight--bold Text-color--white"
                                 >
                                     {' '}
                                     here

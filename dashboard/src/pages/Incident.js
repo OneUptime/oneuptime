@@ -29,6 +29,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class Incident extends React.Component {
@@ -153,6 +154,10 @@ class Incident extends React.Component {
             );
         }
     };
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+    };
 
     ready = () => {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
@@ -235,45 +240,102 @@ class Incident extends React.Component {
         if (this.props.incident) {
             variable = (
                 <div>
-                    <IncidentStatus
-                        incident={this.props.incident}
-                        count={0}
-                        route={pathname}
-                    />
-                    <IncidentAlert
-                        next={this.nextAlerts}
-                        previous={this.previousAlerts}
-                    />
-                    <div className="Box-root Margin-bottom--12">
-                        <MonitorViewLogsBox
-                            incidentId={this.props.incident._id}
-                            monitorId={monitorId}
-                            monitorName={monitorName}
-                        />
-                    </div>
-                    <div className="Box-root Margin-bottom--12">
-                        <IncidentTimelineBox
-                            next={this.nextTimeline}
-                            previous={this.previousTimeline}
-                            incident={this.props.incident}
-                        />
-                    </div>
-                    <SubscriberAlert
-                        next={this.nextSubscribers}
-                        previous={this.previousSubscribers}
-                        incident={this.props.incident}
-                    />
-                    <IncidentInvestigation incident={this.props.incident} />
-                    <IncidentInternal incident={this.props.incident} />
-                    <RenderIfSubProjectAdmin>
-                        <IncidentDeleteBox
-                            incident={this.props.incident}
-                            deleting={this.props.deleting}
-                            currentProject={this.props.currentProject}
-                            component={this.props.component}
-                            componentId={this.props.componentId}
-                        />
-                    </RenderIfSubProjectAdmin>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Basic
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Logs
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Timeline
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Notes
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Advanced Options
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-5"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentStatus
+                                    incident={this.props.incident}
+                                    count={0}
+                                    route={pathname}
+                                />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentAlert
+                                    next={this.nextAlerts}
+                                    previous={this.previousAlerts}
+                                />
+                                <div className="Box-root Margin-bottom--12">
+                                    <MonitorViewLogsBox
+                                        incidentId={this.props.incident._id}
+                                        monitorId={monitorId}
+                                        monitorName={monitorName}
+                                    />
+                                </div>
+                                <SubscriberAlert
+                                    next={this.nextSubscribers}
+                                    previous={this.previousSubscribers}
+                                    incident={this.props.incident}
+                                />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <div className="Box-root Margin-bottom--12">
+                                    <IncidentTimelineBox
+                                        next={this.nextTimeline}
+                                        previous={this.previousTimeline}
+                                        incident={this.props.incident}
+                                    />
+                                </div>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentInvestigation
+                                    incident={this.props.incident}
+                                />
+                                <IncidentInternal
+                                    incident={this.props.incident}
+                                />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <RenderIfSubProjectAdmin>
+                                    <IncidentDeleteBox
+                                        incident={this.props.incident}
+                                        deleting={this.props.deleting}
+                                        currentProject={
+                                            this.props.currentProject
+                                        }
+                                        component={this.props.component}
+                                        componentId={this.props.componentId}
+                                    />
+                                </RenderIfSubProjectAdmin>
+                            </Fade>
+                        </TabPanel>
+                    </Tabs>
                 </div>
             );
         } else {

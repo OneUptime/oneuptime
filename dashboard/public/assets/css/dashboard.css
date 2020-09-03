@@ -3658,6 +3658,7 @@ figure.bs-Number > figcaption {
   .Flex-direction--row.bs-Container {
     -ms-flex-direction: column;
     flex-direction: column;
+    text-align: left;
   }
   .Flex-direction--row.bs-Carousel {
     -ms-flex-direction: column;
