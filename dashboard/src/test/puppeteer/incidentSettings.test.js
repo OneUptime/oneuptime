@@ -215,13 +215,13 @@ describe('Incident Settings API', () => {
                     '#title',
                     e => e.value
                 );
-                expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
+                expect(titleFieldValue).toEqual(inctidentTitleAfterSubstitution);
                 const descriptionFieldValue = await page.$eval(
                     '.ace_layer.ace_text-layer',
                     e => e.textContent
                 );
                 expect(descriptionFieldValue).toEqual(
-                    newDefaultIncidentDescription
+                    inctidentDescriptionAfterSubstitution
                 );
                 await init.selectByText('#incidentType', incidentType, page);
                 await page.click('#createIncident');
