@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, change, formValueSelector } from 'redux-form';
+import moment from 'moment';
+import handlebars from 'handlebars';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { createNewIncident, createIncidentReset } from '../../actions/incident';
@@ -61,6 +63,37 @@ class CreateManualIncident extends Component {
             default:
                 return false;
         }
+    };
+
+    substituteVariables = (value, name) => {
+        const { titleEdited, descriptionEdited } = this.state;
+        const {
+            incidentBasicSettings,
+            change,
+            data: { monitor },
+            currentProject,
+            selectedIncidentType,
+        } = this.props;
+
+        const titleTemplate = handlebars.compile(incidentBasicSettings.title);
+        const descriptionTemplate = handlebars.compile(
+            incidentBasicSettings.description
+        );
+
+        const values = {
+            incidentType: selectedIncidentType,
+            monitorName: monitor.name,
+            projectName: currentProject.name,
+            time: moment().format('h:mm:ss a'),
+            date: moment().format('MMM Do YYYY'),
+        };
+
+        values[name] = value;
+
+        if (!titleEdited) change('title', titleTemplate(values));
+
+        if (!descriptionEdited)
+            change('description', descriptionTemplate(values));
     };
 
     render() {
@@ -145,6 +178,17 @@ class CreateManualIncident extends Component {
                                                                     'Degraded',
                                                             },
                                                         ]}
+                                                        onChange={(
+                                                            event,
+                                                            newValue,
+                                                            previousValue,
+                                                            name
+                                                        ) =>
+                                                            this.substituteVariables(
+                                                                newValue,
+                                                                name
+                                                            )
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -187,6 +231,17 @@ class CreateManualIncident extends Component {
                                                                     })
                                                                 ),
                                                             ]}
+                                                            onChange={(
+                                                                event,
+                                                                newValue,
+                                                                previousValue,
+                                                                name
+                                                            ) =>
+                                                                this.substituteVariables(
+                                                                    newValue,
+                                                                    name
+                                                                )
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
