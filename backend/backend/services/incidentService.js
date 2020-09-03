@@ -66,7 +66,6 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
-                incident.incidentPriority = data.incidentPriority;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
                     incidentsCountInProject + deletedIncidentsCountInProject;
@@ -95,6 +94,7 @@ module.exports = {
 
                     incident.title = titleTemplate(templatesInput);
                     incident.description = descriptionTemplate(templatesInput);
+                    incident.incidentPriority = incidentSettings.incidentPriority;
 
                     incident.probes = [
                         {
@@ -107,6 +107,7 @@ module.exports = {
                 } else {
                     incident.title = data.title;
                     incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
                 }
 
                 incident = await incident.save();
