@@ -71,32 +71,29 @@ module.exports = {
                 incident.idNumber =
                     incidentsCountInProject + deletedIncidentsCountInProject;
 
-                const incidentSettings = data.probeId
-                    ? await IncidentSettingsService.findOne({
-                          projectId: data.projectId,
-                      })
-                    : {
-                          title: data.title,
-                          description: data.description,
-                      };
+                if(data.probeId){
+                    const incidentSettings = await IncidentSettingsService.findOne({
+                              projectId: data.projectId,
+                    });
+    
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        monitorName: monitor.name,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                    };
 
-                const templatesInput = {
-                    incidentType: data.incidentType,
-                    monitorName: monitor.name,
-                    projectName: project.name,
-                    time: Moment().format('h:mm:ss a'),
-                    date: Moment().format('MMM Do YYYY'),
-                };
-                const titleTemplate = Handlebars.compile(
-                    incidentSettings.title
-                );
-                const descriptionTemplate = Handlebars.compile(
-                    incidentSettings.description
-                );
-                incident.title = titleTemplate(templatesInput);
-                incident.description = descriptionTemplate(templatesInput);
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
 
-                if (data.probeId) {
+                    incident.title = titleTemplate(templatesInput);
+                    incident.description = descriptionTemplate(templatesInput);
+
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -105,7 +102,11 @@ module.exports = {
                             reportedStatus: data.incidentType,
                         },
                     ];
-                }
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                };
+
 
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
