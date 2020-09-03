@@ -78,13 +78,13 @@ describe('Incident Priority API', function() {
         expect(res.body.data[1].name).to.eql('Low');
     });
 
-    it('Should not remove the default incident priority.', (done) => {
+    it('Should not remove the default incident priority.', done => {
         const authorization = `Basic ${token}`;
         request
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
-            .send({_id: defaultIncidentPriorityId})
-            .end((error,res) => {
+            .send({ _id: defaultIncidentPriorityId })
+            .end((error, res) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -96,13 +96,13 @@ describe('Incident Priority API', function() {
             .post(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({
-              name:'Intermediate',
-              color:{
-                r: 255,
-                g: 255,
-                b: 0,
-                a:1,
-              }
+                name: 'Intermediate',
+                color: {
+                    r: 255,
+                    g: 255,
+                    b: 0,
+                    a: 1,
+                },
             });
         expect(res).to.have.status(200);
         res = await request
@@ -114,52 +114,52 @@ describe('Incident Priority API', function() {
         expect(res.body.data).to.be.an('array');
         expect(res.body.data.length).to.eql(3);
         expect(res.body.data[2]).to.have.property('_id');
-        newIncidentPriorityId= res.body.data[2]._id;
+        newIncidentPriorityId = res.body.data[2]._id;
         expect(res.body.data[2]).to.have.property('name');
         expect(res.body.data[2].name).to.eql('Intermediate');
     });
 
     it('Should update incident priority.', async () => {
-      const newIncidentPriorityName = 'Intermediate Updated';
-      const authorization = `Basic ${token}`;
+        const newIncidentPriorityName = 'Intermediate Updated';
+        const authorization = `Basic ${token}`;
 
-      let res = await request
-          .put(`/incidentPriorities/${projectId}`)
-          .set('Authorization', authorization)
-          .send({
-            _id: newIncidentPriorityId,
-            name: newIncidentPriorityName,
-            color:{
-              r: 255,
-              g: 255,
-              b: 0,
-              a:1,
-            }
-          });
-      expect(res).to.have.status(200);
+        let res = await request
+            .put(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: newIncidentPriorityId,
+                name: newIncidentPriorityName,
+                color: {
+                    r: 255,
+                    g: 255,
+                    b: 0,
+                    a: 1,
+                },
+            });
+        expect(res).to.have.status(200);
 
-      res = await request
-          .get(`/incidentPriorities/${projectId}`)
-          .set('Authorization', authorization);
-      expect(res).to.have.status(200);
-      expect(res.body).to.be.an('object');
-      expect(res.body.count).to.eql(3);
-      expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
+        res = await request
+            .get(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.eql(3);
+        expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
     });
 
     it('Should delete incident priority.', async () => {
-      const authorization = `Basic ${token}`;
-      let res = await request
-        .delete(`/incidentPriorities/${projectId}`)
-        .set('Authorization', authorization)
-        .send({_id: newIncidentPriorityId});
-      expect(res).to.have.status(200);
+        const authorization = `Basic ${token}`;
+        let res = await request
+            .delete(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization)
+            .send({ _id: newIncidentPriorityId });
+        expect(res).to.have.status(200);
 
-      res = await request
-          .get(`/incidentPriorities/${projectId}`)
-          .set('Authorization', authorization);
-      expect(res).to.have.status(200);
-      expect(res.body).to.be.an('object');
-      expect(res.body.count).to.eql(2);
+        res = await request
+            .get(`/incidentPriorities/${projectId}`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.count).to.eql(2);
     });
 });
