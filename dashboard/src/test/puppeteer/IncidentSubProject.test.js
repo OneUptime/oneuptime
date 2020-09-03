@@ -252,6 +252,10 @@ describe('Incident API With SubProjects', () => {
                 );
                 await page.waitFor(2000);
 
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
+
                 let type = 'internal';
                 // fill internal message thread form
                 await page.waitForSelector(`#add-${type}-message`);
@@ -336,6 +340,9 @@ describe('Incident API With SubProjects', () => {
                 await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                     e.click()
                 );
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
                 await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {
