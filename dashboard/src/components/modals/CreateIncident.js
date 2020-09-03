@@ -15,6 +15,14 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateIncident extends Component {
+    constructor() {
+        super();
+        this.state = {
+            monitorName: '',
+            titleEdited: false,
+            descriptionEdited: false,
+        };
+    }
     submitForm = values => {
         const {
             createNewIncident,
@@ -275,6 +283,13 @@ class CreateIncident extends Component {
                                                                 validate={[
                                                                     ValidateField.required,
                                                                 ]}
+                                                                onChange={() =>
+                                                                    this.setState(
+                                                                        {
+                                                                            titleEdited: true,
+                                                                        }
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -294,6 +309,13 @@ class CreateIncident extends Component {
                                                                 placeholder="This can be markdown"
                                                                 wrapEnabled={
                                                                     true
+                                                                }
+                                                                onChange={() =>
+                                                                    this.setState(
+                                                                        {
+                                                                            descriptionEdited: true,
+                                                                        }
+                                                                    )
                                                                 }
                                                             />
                                                         </div>
