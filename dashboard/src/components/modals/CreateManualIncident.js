@@ -389,6 +389,10 @@ CreateManualIncident.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     monitorId: PropTypes.string,
     newIncident: PropTypes.object,
+    change: PropTypes.func.isRequired,
+    incidentBasicSettings: PropTypes.object.isRequired,
+    selectedIncidentType: PropTypes.string.isRequired,
+    currentProject: PropTypes.object.isRequired,
 };
 
 const formName = 'CreateManualIncident';
