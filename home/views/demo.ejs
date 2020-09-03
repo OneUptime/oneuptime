@@ -11,9 +11,9 @@
     <link rel="stylesheet" href="/css/demo.css"  >
     <link rel="stylesheet" href="/css/demo.css">
     <script defer src="/js/demo.js"></script>
-    <script src="/js/emaildomains.js"></script>
-    <script src="/js/amplitude.js"></script>
-    <script async>
+    <script defer src="/js/emaildomains.js"></script>
+    <script async src="/js/amplitude.js"></script>
+    <script type="module">
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > REQUEST DEMO');
@@ -78,7 +78,7 @@
                                     <p id="error-text"><img src="/img/information.svg" alt="i">Please enter a business
                                         email address.</p>
                                     <div class="form-row text Phone">
-                                        <label class="Phone" for="phone">Your Phone number</label>
+                                        <label class="Phone" for="Phone">Your Phone number</label>
                                         <input id="Phone" name="phone" type="text" placeholder="+1-123-456-7890"
                                             required="">
                                     </div>
@@ -980,8 +980,8 @@
         </main>
 
     </div>
-
-    <script type="text/javascript" async>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script>
         window.onload = function () {
             var apiURL = "";
             if (window.location.href.indexOf('localhost') > -1) {
@@ -994,7 +994,7 @@
             document.getElementById('demoform').action = `${apiURL}/lead/add/demo`;
         }
     </script>
-    <script type="text/javascript" async>
+    <script>
         $(document).ready(function (e) {
             $('#request-demo-btn').click(function () {
                 var email = $('#email').val();
@@ -1017,7 +1017,7 @@
             });
         });
     </script>
-    <script type="text/javascript" async>
+    <script>
         $(document).ready(function (e) {
             document.getElementById('demoform').addEventListener('click', function () {
                 var queryString = $('#demoform').serialize();

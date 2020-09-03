@@ -13,18 +13,18 @@
     <link rel="stylesheet" href="/css/sdlc.css">
     <link rel="stylesheet" href="/css/comparision.css">
 
+    <script defer src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script src="/js/crm.js" type="text/javascript" async></script>
     <link rel="stylesheet" href="/css/home.css">
-
     <script defer src="/js/home.js"></script>
-    <script src="/js/amplitude.js"></script>
-    <script>
+    <script async src="/js/amplitude.js"></script>
+    <script type="module">
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME');
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"
         type="text/javascript"></script>
 </head>
 
@@ -43,7 +43,7 @@
                                 <div>
                                     <div style="display: flex;
                                 justify-content: center;">
-                                        <img width="100" src="img/stars.svg">
+                                        <img width="100" src="img/stars.svg" alt="star rating">
                                     </div>
                                     <div style="margin-top: 8px;
                                 color: black;">
@@ -62,7 +62,7 @@
                                 <div>
                                     <div style="display: flex;
                                 justify-content: center;">
-                                        <img width="100" src="img/stars.svg">
+                                        <img width="100" src="img/stars.svg" alt="star rating">
                                     </div>
                                     <div style="margin-top: 8px;
                                 color: black;">
@@ -83,7 +83,7 @@
                                 <div>
                                     <div style="display: flex;
                                 justify-content: center;">
-                                        <img width="100" src="img/stars.svg">
+                                        <img width="100" src="img/stars.svg" alt="star rating">
                                     </div>
                                     <div style="margin-top: 8px;
                                 color: black;">
@@ -112,7 +112,7 @@
 
                             <ul style="margin-left: calc(50% - 150px); margin-top: 70px;">
                                 <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
+                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top_0"
                                         data-analytics-action="create_account" data-analytics-source="header_cta">
                                         Try Free for 14 days
                                     </a>
@@ -219,7 +219,7 @@
                                 <ul style="margin-left: calc(50% - 200px);">
                                     <li>
                                         <a href="#" onclick="registerUrl()" class="common-Button"
-                                            id="create-account-top" data-analytics-action="create_account"
+                                            id="create-account-top_1" data-analytics-action="create_account"
                                             data-analytics-source="header_cta">
                                             Try Free for 14 days
                                         </a>
@@ -291,7 +291,7 @@
 
                             <ul style="margin-left: calc(50% - 200px);">
                                 <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
+                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top_2"
                                         data-analytics-action="create_account" data-analytics-source="header_cta">
                                         Try Free for 14 days
                                     </a>
@@ -361,7 +361,7 @@
 
                             <ul style="margin-left: calc(50% - 200px);">
                                 <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top"
+                                    <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top_3"
                                         data-analytics-action="create_account" data-analytics-source="header_cta">
                                         Try Free for 14 days
                                     </a>
@@ -389,7 +389,7 @@
     <div class="sectionBorderTop" style="padding-top:50px">
         <% include ./footer %>
     </div>
-    <script defer type="text/javascript">
+    <script>
         $(document).ready(function () {
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
@@ -451,12 +451,12 @@
             return accountsUrl;
         }
     </script>
-    <script type="text/javascript" async>
+    <script>
         _linkedin_partner_id = "706292";
         window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
         window._linkedin_data_partner_ids.push(_linkedin_partner_id);
     </script>
-    <script type="text/javascript" async>
+    <script>
         (function () {
             var s = document.getElementsByTagName("script")[0];
             var b = document.createElement("script");
