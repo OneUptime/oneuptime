@@ -249,24 +249,27 @@ class Incident extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Logs
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Monitor Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Timeline
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Alert Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Notes
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Incident Timeline
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Incident Notes
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5"
+                                    className="custom-tab-6"
                                 ></div>
                             </TabList>
                         </div>
@@ -281,10 +284,6 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <IncidentAlert
-                                    next={this.nextAlerts}
-                                    previous={this.previousAlerts}
-                                />
                                 <div className="Box-root Margin-bottom--12">
                                     <MonitorViewLogsBox
                                         incidentId={this.props.incident._id}
@@ -292,6 +291,15 @@ class Incident extends React.Component {
                                         monitorName={monitorName}
                                     />
                                 </div>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentAlert
+                                    next={this.nextAlerts}
+                                    previous={this.previousAlerts}
+                                />
+
                                 <SubscriberAlert
                                     next={this.nextSubscribers}
                                     previous={this.previousSubscribers}
