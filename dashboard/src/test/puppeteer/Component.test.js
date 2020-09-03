@@ -487,7 +487,6 @@ describe('Components', () => {
                 await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
                 await monitorPage.waitFor(2000);
-                
 
                 await componentPage.bringToFront();
                 // check that the monitor is offline on component page
