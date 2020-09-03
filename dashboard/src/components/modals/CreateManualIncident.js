@@ -17,6 +17,8 @@ class CreateManualIncident extends Component {
         super(props);
         this.state = {
             incidentType: '',
+            titleEdited: false,
+            descriptionEdited: false,
         };
     }
 
@@ -208,6 +210,11 @@ class CreateManualIncident extends Component {
                                                         validate={[
                                                             ValidateField.required,
                                                         ]}
+                                                        onChange={() =>
+                                                            this.setState({
+                                                                titleEdited: true,
+                                                            })
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -226,6 +233,11 @@ class CreateManualIncident extends Component {
                                                         width="100%"
                                                         placeholder="This can be markdown"
                                                         wrapEnabled={true}
+                                                        onChange={() =>
+                                                            this.setState({
+                                                                descriptionEdited: true,
+                                                            })
+                                                        }
                                                     />
                                                 </div>
                                             </div>
