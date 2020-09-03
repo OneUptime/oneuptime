@@ -157,11 +157,6 @@ class CreateManualIncident extends Component {
                                                         }
                                                         options={[
                                                             {
-                                                                value: '',
-                                                                label:
-                                                                    'Select type',
-                                                            },
-                                                            {
                                                                 value: 'online',
                                                                 label: 'Online',
                                                             },
@@ -217,11 +212,6 @@ class CreateManualIncident extends Component {
                                                                     .requesting
                                                             }
                                                             options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Incident Priority',
-                                                                },
                                                                 ...incidentPriorities.map(
                                                                     incidentPriority => ({
                                                                         value:
