@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { Field, reduxForm } from 'redux-form';
+import { Field, reduxForm, change, formValueSelector } from 'redux-form';
+import handlebars from 'handlebars';
+import moment from 'moment';
 import { createNewIncident } from '../../actions/incident';
 import { ValidateField, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
@@ -407,32 +409,6 @@ class CreateIncident extends Component {
 }
 
 CreateIncident.displayName = 'CreateIncidentFormModal';
-
-const CreateIncidentForm = reduxForm({
-    form: 'CreateNewIncident', // a unique identifier for this form
-})(CreateIncident);
-
-const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        {
-            createNewIncident,
-        },
-        dispatch
-    );
-};
-
-function mapStateToProps(state) {
-    return {
-        monitors: state.monitor.monitorsList.monitors,
-        subProjects: state.subProject.subProjects.subProjects,
-        currentProject: state.project.currentProject,
-        newIncident: state.incident.newIncident,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
-        initialValues: state.incidentBasicSettings.incidentBasicSettings,
-    };
-}
-
 CreateIncident.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     createNewIncident: PropTypes.func.isRequired,
@@ -445,6 +421,80 @@ CreateIncident.propTypes = {
     requesting: PropTypes.bool,
     data: PropTypes.object,
     incidentPriorities: PropTypes.array.isRequired,
+    change: PropTypes.func.isRequired,
+    selectedIncidentType: PropTypes.string.isRequired,
+    projectName: PropTypes.string.isRequired,
+    incidentBasicSettings: PropTypes.object.isRequired,
+};
+
+const formName = 'CreateNewIncident';
+
+const CreateIncidentForm = reduxForm({
+    form: formName, // a unique identifier for this form
+})(CreateIncident);
+
+const selector = formValueSelector(formName);
+
+function mapStateToProps(state, props) {
+    const { data } = props;
+    const { subProjectId } = data;
+    const { projects } = state.project.projects;
+    const { subProjects } = state.subProject.subProjects;
+    let projectName = '';
+    for (const project of projects) {
+        if (project._id === subProjectId) projectName = project.name;
+    }
+    if (projectName === '') {
+        for (const subProject of subProjects) {
+            if (subProject._id === subProjectId) projectName = subProject.name;
+        }
+    }
+    const incidentType = 'offline';
+    const values = {
+        incidentType,
+        monitorName: '{{Monitor Name}}',
+        projectName,
+        time: moment().format('h:mm:ss a'),
+        date: moment().format('MMM Do YYYY'),
+    };
+    const titleTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.title
+    );
+    const descriptionTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.description
+    );
+    const initialValues = {
+        incidentType,
+        title: titleTemplate(values),
+        description: descriptionTemplate(values),
+        incidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
+    };
+
+    const selectedIncidentType = selector(state, 'incidentType');
+    return {
+        monitors: state.monitor.monitorsList.monitors,
+        subProjects: state.subProject.subProjects.subProjects,
+        currentProject: state.project.currentProject,
+        newIncident: state.incident.newIncident,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentBasicSettings:
+            state.incidentBasicSettings.incidentBasicSettings,
+        selectedIncidentType,
+        initialValues,
+        projectName,
+    };
+}
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            createNewIncident,
+            change,
+        },
+        dispatch
+    );
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateIncidentForm);
