@@ -336,33 +336,6 @@ class CreateManualIncident extends Component {
 CreateManualIncident.displayName = 'CreateManualIncident';
 CreateManualIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
-};
-const CreateManualIncidentForm = reduxForm({
-    form: 'CreateManualIncident',
-})(CreateManualIncident);
-
-const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        {
-            createNewIncident,
-            closeModal,
-            createIncidentReset,
-        },
-        dispatch
-    );
-};
-
-function mapStateToProps(state) {
-    return {
-        newIncident: state.incident.newIncident,
-        createIncidentModalId: state.modal.modals[0].id,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
-        initialValues: state.incidentBasicSettings.incidentBasicSettings,
-    };
-}
-
-CreateManualIncident.propTypes = {
     closeModal: PropTypes.func.isRequired,
     createIncidentModalId: PropTypes.string,
     createIncidentReset: PropTypes.func.isRequired,
@@ -372,6 +345,64 @@ CreateManualIncident.propTypes = {
     monitorId: PropTypes.string,
     newIncident: PropTypes.object,
 };
+
+const formName = 'CreateManualIncident';
+const selector = formValueSelector(formName);
+
+function mapStateToProps(state, props) {
+    const { data } = props;
+    const { monitor } = data;
+    const { currentProject } = state.project;
+    const incidentType = 'offline';
+    const values = {
+        incidentType,
+        monitorName: monitor.name,
+        projectName: currentProject.name,
+        time: moment().format('h:mm:ss a'),
+        date: moment().format('MMM Do YYYY'),
+    };
+    const titleTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.title
+    );
+    const descriptionTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.description
+    );
+    const initialValues = {
+        incidentType,
+        title: titleTemplate(values),
+        description: descriptionTemplate(values),
+        incidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
+    };
+    const selectedIncidentType = selector(state, 'incidentType');
+    return {
+        newIncident: state.incident.newIncident,
+        createIncidentModalId: state.modal.modals[0].id,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentBasicSettings:
+            state.incidentBasicSettings.incidentBasicSettings,
+        initialValues,
+        currentProject,
+        selectedIncidentType,
+    };
+}
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            createNewIncident,
+            closeModal,
+            createIncidentReset,
+            change,
+        },
+        dispatch
+    );
+};
+
+const CreateManualIncidentForm = reduxForm({
+    form: formName,
+})(CreateManualIncident);
 
 export default connect(
     mapStateToProps,
