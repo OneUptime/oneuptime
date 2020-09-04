@@ -1067,6 +1067,7 @@ margin-left:10px;
 .sp__icon--back {
   background-image: url('../images/back-light.svg');
   background-repeat: no-repeat;
+  padding-left: 30px;
 }
 
 .sp__icon--forward {
