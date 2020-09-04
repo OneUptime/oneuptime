@@ -8,24 +8,19 @@
   <meta name="description"
     content="Here's a more detailed comparision between <%= productConfig.productName %> and Fyipe.">
   <% include ./head %>
-  <script src="/js/amplitude.js"></script>
-  <script async>
+  <script async src="/js/amplitude.js"></script>
+  <script type="module">
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > COMPARE PRODUCT > <%= productConfig.productName %>');
     }
   </script>
   <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/pricing.css">
   <link rel="stylesheet" href="/css/pricing.css">
   <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/comparision.css">
   <link rel="stylesheet" href="/css/comparision.css">
   <link rel="stylesheet" href="/css/crm.css">
   <link rel="stylesheet" href="/css/sdlc.css">
-  <link rel="stylesheet" href="/css/comparision.css">
 
   <style>
     /* DIRTY Responsive pricing table CSS */
@@ -202,7 +197,7 @@
             </h1>
             <p style="padding-top:15px;margin-bottom:0px" class="Header-subTitle common-IntroText black">
               <%= productConfig.description %></p>
-            <p style="margin-bottom:40px; margin" class="Header-subTitle common-IntroText black">
+            <p style="margin-bottom:40px;" class="Header-subTitle common-IntroText black">
               <%= productConfig.descriptionLine2 %></p>
           </div>
           <% } %>
@@ -213,7 +208,7 @@
         
                 <div class='common-ButtonGroup buttons' style="display: flex; justify-content: center;">
         
-                    <a class='common-Button common-Button--default' id="create-account-footer-cta" href="#"
+                    <a class='common-Button common-Button--default' id="create-account-footer-cta-0" href="#"
                         onclick="registerUrl()" data-analytics-action="sign_up" data-analytics-source="footer_cta">
                         Try Free for 14 days
                     </a>
@@ -242,7 +237,7 @@
     
             <div class='common-ButtonGroup buttons' style="display: flex; justify-content: center;">
     
-                <a class='common-Button common-Button--default' id="create-account-footer-cta" href="#"
+                <a class='common-Button common-Button--default' id="create-account-footer-cta-1" href="#"
                     onclick="registerUrl()" data-analytics-action="sign_up" data-analytics-source="footer_cta">
                     Try Free for 14 days
                 </a>
@@ -377,6 +372,7 @@
   </div>
 
   <%include ./footer%>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
   <script src="/js/switch.js"></script>
   <script>
     var el = document.querySelector('.checkbox-switch');
@@ -496,12 +492,12 @@
     else window.addEventListener('load', loadDeferredStyles);
   </script>
 
-  <script type="text/javascript" async>
+  <script>
     _linkedin_partner_id = "706292";
     window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
     window._linkedin_data_partner_ids.push(_linkedin_partner_id);
   </script>
-  <script type="text/javascript" async>
+  <script>
     (function () {
       var s = document.getElementsByTagName("script")[0];
       var b = document.createElement("script");

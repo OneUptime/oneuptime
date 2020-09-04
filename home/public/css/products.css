@@ -64,12 +64,21 @@ ul.columns>li{
         margin-right:44px
     }
 }
+.gif-container {
+    display:flex; 
+    justify-content:center; 
+    margin: 30px auto;
+    width: 900px;
+}
 @media screen and (max-width:479px){
     ul.columns>li{
         float:none;
         width:auto;
         padding-left:70px;
         margin:0 0 25px
+    }
+    .gif-container {
+        width: 330px;
     }
 }
 @media screen and (max-width:379px){
@@ -145,7 +154,7 @@ section.marquee{
 @media screen and (max-width:479px){
     section.marquee{
         height:320px;
-        margin-bottom: 90px;
+        /* margin-bottom: 90px; */
     }
 }
 section.marquee #bubble-overlay{

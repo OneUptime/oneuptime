@@ -4,8 +4,8 @@
 
     <p>To support delivery of our Services we engage and use
         data processors with access to certain Customer Data.</p>
-    <script src="/js/amplitude.js"></script>
-    <script async>
+    <script async src="/js/amplitude.js"></script>
+    <script type="module">
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > SUB-PROCESSORS');

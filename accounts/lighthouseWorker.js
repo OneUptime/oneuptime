@@ -2,6 +2,34 @@ const lighthouse = require('lighthouse');
 const chromeLauncher = require('chrome-launcher');
 const ora = require('ora');
 
+/**
+ * Adjustments needed for DevTools network throttling to simulate
+ * more realistic network conditions.
+ * @see https://crbug.com/721112
+ * @see https://docs.google.com/document/d/10lfVdS1iDWCRKQXPfbxEn4Or99D64mvNlugP1AQuFlE/edit
+ */
+const DEVTOOLS_RTT_ADJUSTMENT_FACTOR = 3.75;
+const DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR = 0.9;
+
+const config = {
+    extends: 'lighthouse:default',
+    settings: {
+        maxWaitForFcp: 15 * 1000,
+        maxWaitForLoad: 35 * 1000,
+        throttling: {
+            rttMs: 40,
+            throughputKbps: 10 * 1024,
+            requestLatencyMs: 150 * DEVTOOLS_RTT_ADJUSTMENT_FACTOR,
+            downloadThroughputKbps:
+                1.6 * 1024 * DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR,
+            uploadThroughputKbps: 750 * DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR,
+            cpuSlowdownMultiplier: 4,
+        },
+        // Skip the h2 audit so it doesn't lie to us. See https://github.com/GoogleChrome/lighthouse/issues/6539
+        skipAudits: ['uses-http2'],
+    },
+};
+
 function launchChromeAndRunLighthouse(url, flags = {}, config = null) {
     return chromeLauncher.launch(flags).then(chrome => {
         flags.port = chrome.port;
@@ -18,7 +46,7 @@ process.on('message', function(data) {
     const scores = {};
     const spinner = ora(`Running lighthouse on ${data.url}`).start();
     spinner.color = 'green';
-    launchChromeAndRunLighthouse(data.url, flags)
+    launchChromeAndRunLighthouse(data.url, flags, config)
         .then(results => {
             results.artifacts = 'ignore';
             results.reportGroups = 'ignore';
