@@ -29,13 +29,16 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class Incident extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
+    }
+    componentWillMount() {
+        resetIdCounter();
     }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -264,7 +267,10 @@ class Incident extends React.Component {
                                 <Tab className={'custom-tab custom-tab-6'}>
                                     Incident Notes
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-6'}>
+                                <Tab
+                                    id="tab-advance"
+                                    className={'custom-tab custom-tab-6'}
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
