@@ -180,13 +180,13 @@ export class IncidentList extends Component {
                                             }}
                                         >
                                             <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord Text-fontWeight--medium Text-fontSize--18 Padding-top--4"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord Text-fontWeight--medium Text-fontSize--16 Padding-top--4 Text-font"
                                                 style={{
                                                     height: '1px',
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {incident.idNumber}
+                                                    {'#' + incident.idNumber}
                                                 </div>
                                             </td>
                                             <td

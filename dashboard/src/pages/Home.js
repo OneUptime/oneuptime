@@ -531,6 +531,17 @@ class Home extends Component {
                                                                                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                                                                         <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
                                                                                                             <span
+                                                                                                                className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                                style={{
+                                                                                                                    filter:
+                                                                                                                        'brightness(0) invert(1)',
+                                                                                                                    marginTop:
+                                                                                                                        '1px',
+                                                                                                                    marginRight:
+                                                                                                                        '5px',
+                                                                                                                }}
+                                                                                                            />
+                                                                                                            <span
                                                                                                                 id="component-content-header"
                                                                                                                 className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
                                                                                                             >
