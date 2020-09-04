@@ -11,7 +11,7 @@ import {
     resolveIncident,
     closeIncident,
 } from '../../actions/incident';
-import { FormLoader, ListLoader } from '../basic/Loader';
+import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 import { logEvent } from '../../analytics';
@@ -560,45 +560,50 @@ export class IncidentStatus extends Component {
                                                     >
                                                         <div className="Box-root Flex-flex Flex-alignItems--center">
                                                             <div>
-                                                                <label
-                                                                    id={`btnAcknowledge_${this.props.count}`}
-                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--circle"
-                                                                    type="button"
-                                                                    onClick={
+                                                                <ShouldRender
+                                                                    if={
                                                                         this
-                                                                            .acknowledge
+                                                                            .props
+                                                                            .incidentRequest &&
+                                                                        !this
+                                                                            .props
+                                                                            .incidentRequest
+                                                                            .requesting
                                                                     }
                                                                 >
-                                                                    <ShouldRender
-                                                                        if={
+                                                                    <label
+                                                                        id={`btnAcknowledge_${this.props.count}`}
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--circle"
+                                                                        type="button"
+                                                                        onClick={
                                                                             this
-                                                                                .props
-                                                                                .incidentRequest &&
-                                                                            this
-                                                                                .props
-                                                                                .incidentRequest
-                                                                                .requesting
-                                                                        }
-                                                                    >
-                                                                        <ListLoader />
-                                                                    </ShouldRender>
-                                                                    <ShouldRender
-                                                                        if={
-                                                                            this
-                                                                                .props
-                                                                                .incidentRequest &&
-                                                                            !this
-                                                                                .props
-                                                                                .incidentRequest
-                                                                                .requesting
+                                                                                .acknowledge
                                                                         }
                                                                     >
                                                                         <span>
                                                                             Acknowledge
                                                                             Incident
                                                                         </span>
-                                                                    </ShouldRender>
-                                                                </label>
+                                                                    </label>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .props
+                                                                            .incidentRequest &&
+                                                                        this
+                                                                            .props
+                                                                            .incidentRequest
+                                                                            .requesting
+                                                                    }
+                                                                >
+                                                                    <Spinner
+                                                                        style={{
+                                                                            stroke:
+                                                                                '#000000',
+                                                                        }}
+                                                                    />
+                                                                </ShouldRender>
                                                             </div>
                                                         </div>
                                                         <p className="bs-Fieldset-explanation">
@@ -740,45 +745,50 @@ export class IncidentStatus extends Component {
                                                             title="Let your team know you've fixed this incident."
                                                         >
                                                             <div>
-                                                                <label
-                                                                    id={`btnResolve_${this.props.count}`}
-                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
-                                                                    type="button"
-                                                                    onClick={
+                                                                <ShouldRender
+                                                                    if={
                                                                         this
-                                                                            .resolve
+                                                                            .props
+                                                                            .incidentRequest &&
+                                                                        !this
+                                                                            .props
+                                                                            .incidentRequest
+                                                                            .requesting
                                                                     }
                                                                 >
-                                                                    <ShouldRender
-                                                                        if={
+                                                                    <label
+                                                                        id={`btnResolve_${this.props.count}`}
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
+                                                                        type="button"
+                                                                        onClick={
                                                                             this
-                                                                                .props
-                                                                                .incidentRequest &&
-                                                                            this
-                                                                                .props
-                                                                                .incidentRequest
-                                                                                .requesting
-                                                                        }
-                                                                    >
-                                                                        <ListLoader />
-                                                                    </ShouldRender>
-                                                                    <ShouldRender
-                                                                        if={
-                                                                            this
-                                                                                .props
-                                                                                .incidentRequest &&
-                                                                            !this
-                                                                                .props
-                                                                                .incidentRequest
-                                                                                .requesting
+                                                                                .resolve
                                                                         }
                                                                     >
                                                                         <span>
                                                                             Resolve
                                                                             Incident
                                                                         </span>
-                                                                    </ShouldRender>
-                                                                </label>
+                                                                    </label>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        this
+                                                                            .props
+                                                                            .incidentRequest &&
+                                                                        this
+                                                                            .props
+                                                                            .incidentRequest
+                                                                            .requesting
+                                                                    }
+                                                                >
+                                                                    <Spinner
+                                                                        style={{
+                                                                            stroke:
+                                                                                '#000000',
+                                                                        }}
+                                                                    />
+                                                                </ShouldRender>
                                                             </div>
                                                         </div>
                                                         <p className="bs-Fieldset-explanation">
