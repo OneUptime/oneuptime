@@ -69,7 +69,7 @@ module.exports = {
                 incident.incidentPriority = data.incidentPriority;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
-                    incidentsCountInProject + deletedIncidentsCountInProject;
+                    incidentsCountInProject + deletedIncidentsCountInProject + 1;
 
                 const incidentSettings = data.probeId
                     ? await IncidentSettingsService.findOne({
