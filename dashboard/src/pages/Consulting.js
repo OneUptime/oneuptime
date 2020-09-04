@@ -75,7 +75,7 @@ class Consulting extends Component {
                                         </div>
                                     </div>
                                     <div className="Flex-flex Flex-direction--row">
-                                        <div className="Flex-flex Flex-direction--row Flex-flex--1 Text-align--center Flex-wrap--wrap bs-Container">
+                                        <div className="Flex-flex Flex-direction--row Flex-flex--1 Text-align--center Flex-wrap--wrap bs-Container Text-fontWeight--medium">
                                             <span className="Margin-bottom--12 Flex-flex--1">
                                                 <span className="db-ListItem-icon db-SideNav-icon--tick" />
                                                 <span>
