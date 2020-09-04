@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/contact.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
   <script async src="/js/amplitude.js"></script>
-  <script type="module">
+  <script type="module" async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > SUPPORT');
