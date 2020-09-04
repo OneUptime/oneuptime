@@ -9,7 +9,7 @@
     content="Here's a more detailed comparision between <%= productConfig.productName %> and Fyipe.">
   <% include ./head %>
   <script async src="/js/amplitude.js"></script>
-  <script type="module">
+  <script type="module" async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > COMPARE PRODUCT > <%= productConfig.productName %>');
@@ -372,7 +372,6 @@
   </div>
 
   <%include ./footer%>
-  <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
   <script src="/js/switch.js"></script>
   <script>
     var el = document.querySelector('.checkbox-switch');
@@ -476,8 +475,9 @@
     doSomething(mediaQuery);
   </script>
 
+  <!-- Uncomment the script below if there's a style to defer -->
   <!-- Defer loading of style sheets -->
-  <script>
+  <!-- <script>
     var loadDeferredStyles = function () {
       var addStylesNode = document.getElementById("deferred-styles");
       var replacement = document.createElement("div");
@@ -490,7 +490,7 @@
       window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
     if (raf) raf(function () { window.setTimeout(loadDeferredStyles, 0); });
     else window.addEventListener('load', loadDeferredStyles);
-  </script>
+  </script> -->
 
   <script>
     _linkedin_partner_id = "706292";
