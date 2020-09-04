@@ -476,8 +476,9 @@
     doSomething(mediaQuery);
   </script>
 
+  <!-- Uncomment the script below if there's a style to defer -->
   <!-- Defer loading of style sheets -->
-  <script>
+  <!-- <script>
     var loadDeferredStyles = function () {
       var addStylesNode = document.getElementById("deferred-styles");
       var replacement = document.createElement("div");
@@ -490,7 +491,7 @@
       window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
     if (raf) raf(function () { window.setTimeout(loadDeferredStyles, 0); });
     else window.addEventListener('load', loadDeferredStyles);
-  </script>
+  </script> -->
 
   <script>
     _linkedin_partner_id = "706292";
