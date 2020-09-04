@@ -25,7 +25,6 @@ You can use on the CLI:
 
 ```bash
 $ fyipe-server-monitor
-
 ```
 
 -   Run `fyipe-server-monitor`.
@@ -64,7 +63,7 @@ monitor.start();
 
 #### Windows Temperature
 
-`wmic` - which is used to determine temperature and sometimes needs to be run with admin privileges. So if you do not get any values, try to run it again with according privileges. If you still do not get any values, your system might not support this feature.
+`wmic` - is used to determine temperature and sometimes needs to be run with admin privileges. So if you do not get any values, try to run it again with according privileges. If you still do not get any values, your system might not support this feature.
 
 #### Linux Temperature
 
@@ -147,7 +146,3 @@ Stop server monitor.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_api--module.exports)
 **Returns**: <code>Object</code> - The ping server cron job.
-
-```
-
-```
