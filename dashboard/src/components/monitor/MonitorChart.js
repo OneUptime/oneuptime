@@ -392,12 +392,9 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs
-                                                    ? formatBytes({
-                                                          value:
-                                                              data[0]
-                                                                  .totalStorage,
-                                                          decimalPlaces: 0,
-                                                      })
+                                                    ? formatBytes(
+                                                          data[0].totalStorage
+                                                      )
                                                     : '0 Bytes'}
                                             </span>
                                         </span>

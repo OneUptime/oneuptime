@@ -36,43 +36,48 @@ const ping = (projectId, monitorId, apiUrl, apiKey, interval = '* * * * *') => {
                 si.fsSize(),
                 si.cpuTemperature(),
                 si.cpu(),
-                si.diskLayout(),
             ])
-                .then(data => ({
-                    cpuLoad: data[0].currentload,
-                    avgCpuLoad: data[0].avgload * 100,
-                    cpuCores: data[4].physicalCores,
-                    memoryUsed: data[1].active,
-                    totalMemory: data[1].total,
-                    swapUsed: data[1].swapused,
-                    storageUsed:
+                .then(data => {
+                    const storage =
                         data[2] && data[2].length > 0
-                            ? data[2]
-                                  .map(partition => partition.used)
-                                  .reduce(
-                                      (used, partitionUsed) =>
-                                          used + partitionUsed
-                                  )
-                            : data[2].used,
-                    totalStorage:
-                        data[5] && data[5].length > 0
-                            ? data[5]
-                                  .map(storage => storage.size)
-                                  .reduce(
-                                      (size, storageSize) => size + storageSize
-                                  )
-                            : data[5].size,
-                    storageUsage:
-                        data[2] && data[2].length > 0
-                            ? data[2]
-                                  .map(partition => partition.use)
-                                  .reduce(
-                                      (use, partitionUse) => use + partitionUse
-                                  )
-                            : data[2].use,
-                    mainTemp: data[3].main,
-                    maxTemp: data[3].max,
-                }))
+                            ? data[2].filter(
+                                  partition =>
+                                      partition.size === data[2][0].size
+                              )
+                            : data[2];
+                    return {
+                        cpuLoad: data[0].currentload,
+                        avgCpuLoad: data[0].avgload * 100,
+                        cpuCores: data[4].physicalCores,
+                        memoryUsed: data[1].active,
+                        totalMemory: data[1].total,
+                        swapUsed: data[1].swapused,
+                        storageUsed:
+                            storage && storage.length > 0
+                                ? storage
+                                      .map(partition => partition.used)
+                                      .reduce(
+                                          (used, partitionUsed) =>
+                                              used + partitionUsed
+                                      )
+                                : storage.used,
+                        totalStorage:
+                            storage && storage.length > 0
+                                ? storage[0].size
+                                : storage.size,
+                        storageUsage:
+                            storage && storage.length > 0
+                                ? storage
+                                      .map(partition => partition.use)
+                                      .reduce(
+                                          (use, partitionUse) =>
+                                              use + partitionUse
+                                      )
+                                : storage.use,
+                        mainTemp: data[3].main,
+                        maxTemp: data[3].max,
+                    };
+                })
                 .then(data => {
                     post(
                         apiUrl,
