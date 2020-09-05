@@ -125,6 +125,10 @@ describe('Incident Timeline API', () => {
                 );
                 await page.waitFor(5000);
 
+                // click on timeline tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
+
                 const incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
                 );
