@@ -87,6 +87,7 @@ export class MonitorViewDeleteBox extends Component {
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
                                         disabled={deleting}
+                                        id={`delete_${this.props.monitor.name}`}
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: deleteModalId,
