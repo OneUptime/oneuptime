@@ -36,14 +36,16 @@ import VerifyDomainModal from './VerifyDomainModal';
 import DeleteDomainModal from './DeleteDomainModal';
 
 //Client side validation
-function validate(values) {
-    const errors = {};
-    if (!Validate.text(values.domain)) {
-        errors.domain = 'Domain is required.';
-    } else if (!Validate.isDomain(values.domain)) {
-        errors.domain = 'Domain is not valid.';
+function validate(value, allValues, props, name) {
+    let error = undefined;
+
+    if (name === 'domain' && !value) {
+        error = 'Domain is required';
     }
-    return errors;
+    if (name === 'domain' && value && !Validate.isDomain(value)) {
+        error = 'Domain is not valid.';
+    }
+    return error;
 }
 
 export class Setting extends Component {
@@ -270,10 +272,7 @@ export class Setting extends Component {
                                         id="addMoreDomain"
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
-                                        onClick={() => {
-                                            this.props.change('domain', ' ');
-                                            this.props.addMoreDomain();
-                                        }}
+                                        onClick={this.props.addMoreDomain}
                                     >
                                         <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                             <div className="Box-root Margin-right--8">
@@ -628,6 +627,9 @@ export class Setting extends Component {
                                                                         .requesting
                                                                 }
                                                                 placeholder="domain"
+                                                                validate={
+                                                                    validate
+                                                                }
                                                             />
                                                             <ShouldRender
                                                                 if={
