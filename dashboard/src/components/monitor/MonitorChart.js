@@ -301,9 +301,13 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs
-                                                    ? formatBytes(
-                                                          data[0].totalMemory
-                                                      )
+                                                    ? formatBytes({
+                                                          value:
+                                                              data[0]
+                                                                  .totalMemory,
+                                                          decimalPlaces: 0,
+                                                          roundType: 'down',
+                                                      })
                                                     : '0 Bytes'}
                                             </span>
                                         </span>

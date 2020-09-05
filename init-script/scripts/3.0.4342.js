@@ -20,8 +20,8 @@ async function run() {
     });
 
     const projectIds = new Set();
-    for (let incident of incidentsWithoutIdNumber){
-        projectIds.add(incident.projectId)
+    for (const incident of incidentsWithoutIdNumber) {
+        projectIds.add(incident.projectId);
     }
 
     //Update the incidents idNumber
