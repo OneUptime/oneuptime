@@ -276,6 +276,10 @@ describe('Monitor Detail API', () => {
                 await page.$eval('#confirmDeleteIncident', e => e.click());
                 await page.waitForNavigation();
 
+                // click on Incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
                 const incidentList = 'tr.incidentListItem';
                 await page.waitForSelector(incidentList);
                 await page.waitFor(35000);
