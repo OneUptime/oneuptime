@@ -11,7 +11,7 @@ metadata:
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
         {{- end }}
 spec:
@@ -34,6 +34,21 @@ spec:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
                             key: encryptionkey
+                      - name: ENCRYPTION_ALGORITHM
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionAlgorithm
+                      - name: ENCRYPTION_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionkey
+                      - name: ENCRYPTION_IV
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionIV
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: REDIS_HOST
@@ -124,7 +139,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
     namespace: {{ .Release.Namespace }}
 spec:

@@ -15,7 +15,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
@@ -49,7 +49,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
     namespace: {{ .Release.Namespace }}
 spec:

@@ -6,7 +6,7 @@ metadata:
     namespace: {{ .Release.Namespace }}
     labels:
       app.kubernetes.io/part-of: fyipe
-      app.kubernetes.io/managed-by: helm
+      app.kubernetes.io/managed-by: Helm
 spec:
     template:
         spec:
@@ -19,6 +19,21 @@ spec:
                         value:  {{ template "fyipe.mongodbConnectionString" . }}
                       - name: NODE_ENV
                         value: 'production'
+                      - name: ENCRYPTION_ALGORITHM
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionAlgorithm
+                      - name: ENCRYPTION_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionkey
+                      - name: ENCRYPTION_IV
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionIV
             restartPolicy: Never
 ---
 ####################################

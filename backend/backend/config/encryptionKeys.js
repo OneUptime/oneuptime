@@ -1,5 +1,5 @@
 module.exports = {
-    algorithm: process.env['ENCRYPTION_ALGORYTHM'] || 'aes-256-cbc',
+    algorithm: process.env['ENCRYPTION_ALGORITHM'] || 'aes-256-cbc',
     key: process.env['ENCRYPTION_KEY'] || 'pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7',
     iv:
         process.env['ENCRYPTION_IV'] ||
