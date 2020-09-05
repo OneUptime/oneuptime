@@ -359,6 +359,10 @@ describe('Incident API With SubProjects', () => {
                     await page.click(`#${type}-addButton`);
                     await page.waitFor(2000);
                 }
+                // click on incident timeline tab
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
+                await page.waitFor(2000);
 
                 await page.waitForSelector(
                     '#incidentTimeline tr.incidentListItem'

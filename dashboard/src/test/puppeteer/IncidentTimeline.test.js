@@ -220,9 +220,10 @@ describe('Incident Timeline API', () => {
                 await page.click(
                     `#monitorCreateIncident_${projectMonitorName}`
                 );
-                await page.waitForSelector('#createIncident');
+                await page.waitFor(2000);
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('#title', 'new incident');
+                await page.waitForSelector('#createIncident');
                 await page.click('#createIncident');
 
                 await page.waitFor(2000);
