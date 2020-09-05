@@ -280,9 +280,6 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
 
-                const incidentList = 'tr.incidentListItem';
-                await page.waitForSelector(incidentList);
-
                 let incidentCountSpanElement = await page.waitForSelector(
                     `#incident_count`
                 );
