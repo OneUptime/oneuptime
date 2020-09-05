@@ -2,6 +2,7 @@
 deploy_staging_log-php:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - sudo apt-get update
         - sudo lsb_release -a
@@ -34,6 +35,7 @@ deploy_staging_log-php:
 deploy_production_log-php:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - sudo apt-get update
         - sudo lsb_release -a

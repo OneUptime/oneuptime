@@ -2,6 +2,7 @@
 deploy_staging_log-java:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
@@ -40,6 +41,7 @@ deploy_staging_log-java:
 deploy_poduction_log-java:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
