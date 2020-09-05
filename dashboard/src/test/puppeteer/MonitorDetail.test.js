@@ -282,9 +282,16 @@ describe('Monitor Detail API', () => {
 
                 const incidentList = 'tr.incidentListItem';
                 await page.waitForSelector(incidentList);
-                await page.waitFor(35000);
 
-                expect((await page.$$(incidentList)).length).toEqual(0);
+                let incidentCountSpanElement = await page.waitForSelector(
+                    `#incident_count`
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.getProperty(
+                    'innerText'
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
+
+                expect(incidentCountSpanElement).toMatch('0 Incident');
             });
         },
         operationTimeOut
