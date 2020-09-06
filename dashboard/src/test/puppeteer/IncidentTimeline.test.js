@@ -282,6 +282,11 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
@@ -332,6 +337,12 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
+
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
 
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
@@ -385,6 +396,12 @@ describe('Incident Timeline API', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
 
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
@@ -437,6 +454,12 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
+
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
@@ -479,6 +502,10 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             await page.waitFor(2000);
+
+            // navigate to monitor details
+            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await page.click(`#more-details-${projectMonitorName}`);
 
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
