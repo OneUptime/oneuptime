@@ -208,6 +208,17 @@ export class Setting extends Component {
         }
     };
 
+    renderAddDomainBButton = () => (
+        <button
+            id="addMoreDomain"
+            className="bs-Button bs-Button--icon bs-Button--new"
+            type="button"
+            onClick={this.props.addMoreDomain}
+        >
+            <span>Add Domain</span>
+        </button>
+    );
+
     render() {
         let statusPageId = '';
         let hosted = '';
@@ -268,21 +279,7 @@ export class Setting extends Component {
                             </div>
                             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                 <div className="Box-root">
-                                    <button
-                                        id="addMoreDomain"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                        onClick={this.props.addMoreDomain}
-                                    >
-                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                            </div>
-                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>Add Domain</span>
-                                            </span>
-                                        </div>
-                                    </button>
+                                    {this.renderAddDomainBButton()}
                                 </div>
                             </div>
                         </div>
@@ -838,28 +835,7 @@ export class Setting extends Component {
                                 <RenderIfSubProjectAdmin
                                     subProjectId={projectId}
                                 >
-                                    <ShouldRender
-                                        if={this.props.showDomainField}
-                                    >
-                                        <button
-                                            id="btnCancelAddDomain"
-                                            className="bs-Button bs-DeprecatedButton"
-                                            disabled={
-                                                this.props.statusPage.setting
-                                                    .requesting
-                                            }
-                                            onClick={
-                                                this.props.cancelAddMoreDomain
-                                            }
-                                        >
-                                            {!this.props.statusPage.setting
-                                                .requesting && (
-                                                <span>Cancel</span>
-                                            )}
-                                            {this.props.statusPage.setting
-                                                .requesting && <FormLoader />}
-                                        </button>
-                                    </ShouldRender>
+                                    {this.renderAddDomainBButton()}
                                     <ShouldRender
                                         if={
                                             this.props.showDomainField ||
@@ -869,7 +845,7 @@ export class Setting extends Component {
                                     >
                                         <button
                                             id="btnAddDomain"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-Button--blue"
                                             disabled={
                                                 this.props.statusPage.setting
                                                     .requesting
@@ -914,7 +890,6 @@ Setting.propTypes = {
     reset: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
     addMoreDomain: PropTypes.func,
-    cancelAddMoreDomain: PropTypes.func,
     domains: PropTypes.array,
     showDomainField: PropTypes.bool,
     openModal: PropTypes.func.isRequired,
