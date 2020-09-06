@@ -131,6 +131,7 @@ const placeholders = {
     },
     jsExpression: {
         responseBody: 'response.data === {}',
+        evals: "typeof response === 'object'",
     },
     executesIn: {
         executes: '2000',
@@ -218,6 +219,11 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
+                                },
+                                {
+                                    value: 'evals',
+                                    label: 'Evals',
+                                    show: type === 'api',
                                 },
                                 {
                                     value: 'ssl',
@@ -459,8 +465,10 @@ export class RenderOption extends Component {
                                         label: 'Javascript Expression',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody',
+                                            (bodyfield.responseType ===
+                                                'responseBody' ||
+                                                bodyfield.responseType ===
+                                                    'evals'),
                                     },
                                     {
                                         value: 'empty',
