@@ -235,7 +235,7 @@ module.exports = {
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
                         { _id: log._id },
-                        { incidentIdsOrRetry }
+                        { incidentIds: incidentIdsOrRetry }
                     );
                 }
             }

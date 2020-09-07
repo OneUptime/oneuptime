@@ -34,21 +34,11 @@ spec:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
                             key: encryptionkey
-                      - name: ENCRYPTION_ALGORITHM
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
-                            key: encryptionAlgorithm
                       - name: ENCRYPTION_KEY
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
                             key: encryptionkey
-                      - name: ENCRYPTION_IV
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
-                            key: encryptionIV
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: REDIS_HOST

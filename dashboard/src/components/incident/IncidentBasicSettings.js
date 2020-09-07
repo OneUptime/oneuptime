@@ -75,11 +75,6 @@ class IncidentBasicSettings extends React.Component {
                                                             id="incidentPriority"
                                                             name="incidentPriority"
                                                             options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Incident Priority',
-                                                                },
                                                                 ...this.props.incidentPriorities.map(
                                                                     incidentPriority => ({
                                                                         value:

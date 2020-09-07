@@ -178,16 +178,9 @@ class Main extends Component {
                 monitorData,
                 'monitorCategoryId'
             );
-            const monitorCategoryGroupContainerStyle = {
-                marginBottom: 40,
-            };
             return groupedMonitorData.map((groupedMonitors, i) => {
                 return (
-                    <div
-                        key={i}
-                        style={monitorCategoryGroupContainerStyle}
-                        className="uptime-graph-header"
-                    >
+                    <div key={i} className="uptime-graph-header">
                         {groupedMonitors.map((monitor, i) => {
                             return (
                                 <>
@@ -564,7 +557,14 @@ class Main extends Component {
                                     style={contentBackground}
                                 >
                                     <div className="inner-gradient"></div>
-                                    <div className="uptime-graphs box-inner">
+                                    <div
+                                        className="uptime-graphs box-inner"
+                                        style={
+                                            isGroupedByMonitorCategory
+                                                ? { paddingBottom: 0 }
+                                                : { paddingBottom: 35 }
+                                        }
+                                    >
                                         {isGroupedByMonitorCategory ? (
                                             this.groupedMonitors()
                                         ) : this.props.statusData &&

@@ -151,6 +151,7 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+
     test(
         'should show an error message and not submit the form if the users select the same monitor twice.',
         async () => {
@@ -192,6 +193,7 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
+
     test(
         'should add a new monitor.',
         async () => {
@@ -289,8 +291,6 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await gotoTheFirstStatusPage(page);
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
                 await page.waitForSelector('#publicStatusPageUrl');
 
                 let link = await page.$('#publicStatusPageUrl > span > a');
@@ -379,6 +379,8 @@ describe('Status Page', () => {
                 await page.waitForNavigation({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
                 await page.waitForSelector('#domain', { visible: true });
                 await page.type('#domain', 'fyipeapp.com');
                 await page.click('#btnAddDomain');
@@ -465,22 +467,6 @@ describe('Status Page', () => {
                     visible: true,
                 });
                 expect(elem).toBeTruthy();
-            });
-        },
-        operationTimeOut
-    );
-
-    test(
-        'should not have option of deleting a domain, if there is only one domain in the status page',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await gotoTheFirstStatusPage(page);
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-                await page.waitFor(3000);
-                const elem = await page.$('.btnDeleteDomain');
-                expect(elem).toBeNull();
             });
         },
         operationTimeOut
@@ -647,6 +633,50 @@ describe('Status Page', () => {
                     script => script.innerHTML
                 );
                 expect(code).toEqual(javascript);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add a domain when the field is empty',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#btnAddDomain');
+                await page.click('#btnAddDomain');
+                let elem = await page.$('#field-error');
+                elem = await elem.getProperty('innerText');
+                elem = await elem.jsonValue();
+                expect(elem).toEqual('Domain is required');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add an invalid domain',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain', { visible: true });
+                await page.type('#domain', 'fyipeapp');
+                await page.waitForSelector('#btnAddDomain');
+                await page.click('#btnAddDomain');
+                let elem = await page.$('#field-error');
+                elem = await elem.getProperty('innerText');
+                elem = await elem.jsonValue();
+                expect(elem).toEqual('Domain is not valid.');
             });
         },
         operationTimeOut
