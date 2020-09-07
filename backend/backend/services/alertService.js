@@ -578,7 +578,7 @@ module.exports = {
         }
 
         try {
-            MailService.sendIncidentCreatedMail({
+            await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
                 email: user.email,
