@@ -96,7 +96,8 @@ module.exports = {
 
                     incident.title = titleTemplate(templatesInput);
                     incident.description = descriptionTemplate(templatesInput);
-                    incident.incidentPriority = incidentSettings.incidentPriority;
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
 
                     incident.probes = [
                         {

@@ -215,7 +215,9 @@ describe('Incident Settings API', () => {
                     '#title',
                     e => e.value
                 );
-                expect(titleFieldValue).toEqual(inctidentTitleAfterSubstitution);
+                expect(titleFieldValue).toEqual(
+                    inctidentTitleAfterSubstitution
+                );
                 const descriptionFieldValue = await page.$eval(
                     '.ace_layer.ace_text-layer',
                     e => e.textContent
