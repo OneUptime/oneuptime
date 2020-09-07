@@ -127,6 +127,14 @@ export class IncidentStatus extends Component {
               '/incidents/' +
               this.props.incident._id
             : '';
+        const showAcknowledgeButton = this.props.multipleIncidentRequest
+            ? !this.props.multipleIncidentRequest.requesting
+            : this.props.incidentRequest &&
+              !this.props.incidentRequest.requesting;
+        const showResolveButton = this.props.multipleIncidentRequest
+            ? !this.props.multipleIncidentRequest.resolving
+            : this.props.incidentRequest &&
+              !this.props.incidentRequest.resolving;
 
         return (
             <div
@@ -562,13 +570,7 @@ export class IncidentStatus extends Component {
                                                             <div>
                                                                 <ShouldRender
                                                                     if={
-                                                                        this
-                                                                            .props
-                                                                            .incidentRequest &&
-                                                                        !this
-                                                                            .props
-                                                                            .incidentRequest
-                                                                            .requesting
+                                                                        showAcknowledgeButton
                                                                     }
                                                                 >
                                                                     <label
@@ -588,13 +590,20 @@ export class IncidentStatus extends Component {
                                                                 </ShouldRender>
                                                                 <ShouldRender
                                                                     if={
-                                                                        this
+                                                                        (this
                                                                             .props
                                                                             .incidentRequest &&
-                                                                        this
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .requesting) ||
+                                                                        (this
                                                                             .props
-                                                                            .incidentRequest
-                                                                            .requesting
+                                                                            .multipleIncidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .multipleIncidentRequest
+                                                                                .requesting)
                                                                     }
                                                                 >
                                                                     <Spinner
@@ -747,13 +756,7 @@ export class IncidentStatus extends Component {
                                                             <div>
                                                                 <ShouldRender
                                                                     if={
-                                                                        this
-                                                                            .props
-                                                                            .incidentRequest &&
-                                                                        !this
-                                                                            .props
-                                                                            .incidentRequest
-                                                                            .resolving
+                                                                        showResolveButton
                                                                     }
                                                                 >
                                                                     <label
@@ -773,13 +776,20 @@ export class IncidentStatus extends Component {
                                                                 </ShouldRender>
                                                                 <ShouldRender
                                                                     if={
-                                                                        this
+                                                                        (this
                                                                             .props
                                                                             .incidentRequest &&
-                                                                        this
+                                                                            this
+                                                                                .props
+                                                                                .incidentRequest
+                                                                                .resolving) ||
+                                                                        (this
                                                                             .props
-                                                                            .incidentRequest
-                                                                            .resolving
+                                                                            .multipleIncidentRequest &&
+                                                                            this
+                                                                                .props
+                                                                                .multipleIncidentRequest
+                                                                                .resolving)
                                                                     }
                                                                 >
                                                                     <Spinner
@@ -929,6 +939,7 @@ IncidentStatus.propTypes = {
     componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
+    multipleIncidentRequest: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
