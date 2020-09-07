@@ -169,7 +169,7 @@ class CreateIncident extends Component {
                                                                     RenderSelect
                                                                 }
                                                                 name="incidentType"
-                                                                id="incidentType"
+                                                                id="incidentTypeId"
                                                                 placeholder="Incident type"
                                                                 disabled={
                                                                     this.props
