@@ -3,6 +3,7 @@ const { find, update } = require('../util/db');
 const EncryptDecrypt = require('../util/encryptDecrypt');
 
 const globalconfigsCollection = 'globalconfigs';
+const twiliosCollection = 'twilios';
 
 async function run() {
     //Get all globalConfig having authToken not encrypted.
@@ -54,6 +55,27 @@ async function run() {
             globalconfigsCollection,
             { _id: globalConfig._id },
             { value }
+        );
+    }
+    //Get All the custom twilio settings not having a IV
+    const customTwilioSettingsArray = await find(twiliosCollection, {
+        iv: { $exists: false },
+    });
+    for (let i = 0; i < customTwilioSettingsArray.length; i++) {
+        const customTwilioSettings = customTwilioSettingsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedToken = await EncryptDecrypt.decrypt(
+            customTwilioSettings.authToken
+        );
+        customTwilioSettings.authToken = await EncryptDecrypt.encrypt(
+            decryptedToken,
+            iv
+        );
+        customTwilioSettings.iv = iv;
+        await update(
+            twiliosCollection,
+            { _id: customTwilioSettings._id },
+            { ...customTwilioSettings }
         );
     }
 }
