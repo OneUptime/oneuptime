@@ -753,7 +753,7 @@ export class IncidentStatus extends Component {
                                                                         !this
                                                                             .props
                                                                             .incidentRequest
-                                                                            .requesting
+                                                                            .resolving
                                                                     }
                                                                 >
                                                                     <label
@@ -779,7 +779,7 @@ export class IncidentStatus extends Component {
                                                                         this
                                                                             .props
                                                                             .incidentRequest
-                                                                            .requesting
+                                                                            .resolving
                                                                     }
                                                                 >
                                                                     <Spinner
