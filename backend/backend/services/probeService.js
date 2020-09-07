@@ -1621,6 +1621,14 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                     validity = false;
                 }
             }
+        } else if (con[i] && con[i].responseType === 'evals') {
+            // eslint-disable-next-line no-unused-vars
+            const response = body;
+            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                if (!(con[i] && con[i].field1 && body && eval(con[i].field1))) {
+                    validity = false;
+                }
+            }
         }
         if (
             con[i] &&
@@ -2242,6 +2250,14 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 con[i].filter === 'notEmpty'
             ) {
                 if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
+                    validity = true;
+                }
+            }
+        } else if (con[i] && con[i].responseType === 'evals') {
+            // eslint-disable-next-line no-unused-vars
+            const response = body;
+            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                if (con[i] && con[i].field1 && body && eval(con[i].field1)) {
                     validity = true;
                 }
             }
