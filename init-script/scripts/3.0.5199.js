@@ -62,10 +62,7 @@ async function run() {
         const iv = Crypto.randomBytes(16);
         const globalConfig = globalConfigsWithPlainTextPassword[i];
         const { value } = globalConfig;
-        value['password'] = await EncryptDecrypt.encrypt(
-            value['password'],
-            iv
-        );
+        value['password'] = await EncryptDecrypt.encrypt(value['password'], iv);
         value['iv'] = iv;
         await update(
             globalconfigsCollection,

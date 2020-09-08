@@ -1,24 +1,16 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            if (name === 'twilio' &&
-                value['authentication-token']
-            ) {
+            if (name === 'twilio' && value['authentication-token']) {
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'authentication-token'
-                ] = await EncryptDecrypt.encrypt(
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
                     value['authentication-token'],
                     iv
                 );
                 value['iv'] = iv;
-            } else if ( name === 'smtp' &&
-                value['password']
-            ) {
+            } else if (name === 'smtp' && value['password']) {
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'password'
-                ] = await EncryptDecrypt.encrypt(
+                value['password'] = await EncryptDecrypt.encrypt(
                     value['password'],
                     iv
                 );
@@ -38,10 +30,9 @@ module.exports = {
                     globalConfig.value['iv']
                 );
                 delete globalConfig.value['iv'];
-            }  if (globalConfig.name === 'smtp') {
-                globalConfig.value[
-                    'password'
-                ] = await EncryptDecrypt.decrypt(
+            }
+            if (globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv']
                 );
@@ -69,9 +60,7 @@ module.exports = {
             ) {
                 const { value } = data;
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'authentication-token'
-                ] = await EncryptDecrypt.encrypt(
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
                     value['authentication-token'],
                     iv
                 );
@@ -81,12 +70,10 @@ module.exports = {
                 data &&
                 data.value &&
                 data.value['password']
-            ){
+            ) {
                 const { value } = data;
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'password'
-                ] = await EncryptDecrypt.encrypt(
+                value['password'] = await EncryptDecrypt.encrypt(
                     value['password'],
                     iv
                 );
@@ -110,9 +97,7 @@ module.exports = {
                 );
                 delete globalConfig.value['iv'];
             } else if (globalConfig.name === 'smtp') {
-                globalConfig.value[
-                    'password'
-                ] = await EncryptDecrypt.decrypt(
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv'].buffer
                 );
@@ -204,10 +189,8 @@ module.exports = {
                     globalConfig.value['iv'].buffer
                 );
                 delete globalConfig.value['iv'];
-            } else  if (globalConfig && globalConfig.name === 'smtp') {
-                globalConfig.value[
-                    'password'
-                ] = await EncryptDecrypt.decrypt(
+            } else if (globalConfig && globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
                     globalConfig.value['password'],
                     globalConfig.value['iv'].buffer
                 );
