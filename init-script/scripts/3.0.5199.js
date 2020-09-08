@@ -50,6 +50,29 @@ async function run() {
             { ...customTwilioSettings }
         );
     }
+    //Get all globalConfig having smtp password not encrypted.
+    const globalConfigsWithPlainTextPassword = await find(
+        globalconfigsCollection,
+        {
+            name: 'smtp',
+            'value.iv': { $exists: false },
+        }
+    );
+    for (let i = 0; i < globalConfigsWithPlainTextPassword.length; i++) {
+        const iv = Crypto.randomBytes(16);
+        const globalConfig = globalConfigsWithPlainTextPassword[i];
+        const { value } = globalConfig;
+        value['password'] = await EncryptDecrypt.encrypt(
+            value['password'],
+            iv
+        );
+        value['iv'] = iv;
+        await update(
+            globalconfigsCollection,
+            { _id: globalConfig._id },
+            { value }
+        );
+    }
 }
 
 module.exports = run;
