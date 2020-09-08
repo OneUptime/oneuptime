@@ -1381,11 +1381,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                 activeProbe: action.payload,
             });
 
-        case GET_MONITOR_LOGS_SUCCESS:
+        case GET_MONITOR_LOGS_SUCCESS: {
+            const monitorId = action.payload.monitorId
+                ? action.payload.monitorId
+                : action.payload.logs && action.payload.logs.length > 0
+                ? action.payload.logs[0].monitorId
+                : null;
             return Object.assign({}, state, {
                 monitorLogs: {
                     ...state.monitorLogs,
-                    [action.payload.monitorId]: {
+                    [monitorId]: {
                         logs: action.payload.logs,
                         error: null,
                         requesting: false,
@@ -1396,6 +1401,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     },
                 },
             });
+        }
 
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {

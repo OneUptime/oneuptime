@@ -238,6 +238,21 @@ module.exports = {
                         { incidentIds: incidentIdsOrRetry }
                     );
                 }
+            } else {
+                const incidents = await IncidentService.findBy({
+                    monitorId: data.monitorId,
+                    incidentType: data.status,
+                    resolved: false,
+                });
+
+                const incidentIds = incidents.map(incident => incident._id);
+
+                if (incidentIds && incidentIds.length) {
+                    log = await MonitorLogService.updateOneBy(
+                        { _id: log._id },
+                        { incidentIds }
+                    );
+                }
             }
             return log;
         } catch (error) {
