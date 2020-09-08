@@ -30,14 +30,15 @@ class ApplicationLogDetailView extends Component {
             projectId,
             isDetails,
             stats,
-            logs,
             logOptions,
             handleLogTypeChange,
             handleNavigationButtonClick,
         } = this.props;
         return (
             <div>
-                <ShouldRender if={!(logs && logs.length > 0)}>
+                <ShouldRender
+                    if={!(stats && !stats.requesting && stats.stats.all > 0)}
+                >
                     <AlertPanel
                         id={`${applicationLog.name}-no-log-warning`}
                         message={
@@ -220,16 +221,6 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ fetchLogs }, dispatch);
 };
 
-function mapStateToProps(state, ownProps) {
-    const applicationLogId = ownProps.applicationLog._id;
-    const logs = state.applicationLog.logs[applicationLogId]
-        ? state.applicationLog.logs[applicationLogId].logs
-        : null;
-    return {
-        logs,
-    };
-}
-
 ApplicationLogDetailView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
@@ -237,13 +228,9 @@ ApplicationLogDetailView.propTypes = {
     isDetails: PropTypes.bool,
     fetchLogs: PropTypes.func,
     stats: PropTypes.object,
-    logs: PropTypes.object,
     logOptions: PropTypes.array,
     handleLogTypeChange: PropTypes.func,
     handleNavigationButtonClick: PropTypes.func,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(ApplicationLogDetailView);
+export default connect(null, mapDispatchToProps)(ApplicationLogDetailView);
