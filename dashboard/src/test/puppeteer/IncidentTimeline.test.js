@@ -247,9 +247,9 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(2000);
                 await page.click(`#add-${type}-message`);
                 await page.waitFor(2000);
-                await page.waitForSelector(
-                    `#form-new-incident-${type}-message`
-                );
+                // await page.waitForSelector(
+                //     `#form-new-incident-${type}-message`
+                // );
                 await page.click(`textarea[id=new-${type}]`);
                 await page.type(`textarea[id=new-${type}]`, `${message}`);
                 await init.selectByText(
