@@ -16,7 +16,7 @@ const theme = createMuiTheme({
     },
 });
 
-let styles = (props) => ({
+const styles = () => ({
     input: {
         flex: '0 0 auto',
         padding: '4px 7px 2px',
@@ -48,17 +48,7 @@ const CustomDateTimeSelector = ({
     id,
     label,
     maxDate,
-    isCustom,
 }) => {
-    if (!isCustom) {
-        styles().input = {
-            // ...styles().input,
-            backgroundColor: '#fff',
-            borderRadius: '4px',
-            boxShadow:
-                '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-        };
-    }
     if (!input.value) {
         input.value = null;
     }
