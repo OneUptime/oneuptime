@@ -11,19 +11,18 @@ async function run() {
         globalconfigsCollection,
         {
             name: 'twilio',
-            'value.authentication-token': { $exists: true },
+            'value.iv': { $exists: false },
         }
     );
     for (let i = 0; i < globalConfigsWithPlainTextAuthTokens.length; i++) {
         const iv = Crypto.randomBytes(16);
         const globalConfig = globalConfigsWithPlainTextAuthTokens[i];
         const { value } = globalConfig;
-        value['encrypted-authentication-token'] = await EncryptDecrypt.encrypt(
+        value['authentication-token'] = await EncryptDecrypt.encrypt(
             value['authentication-token'],
             iv
         );
         value['iv'] = iv;
-        delete value['authentication-token'];
         await update(
             globalconfigsCollection,
             { _id: globalConfig._id },
