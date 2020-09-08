@@ -14,7 +14,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
@@ -53,7 +53,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "licensing"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "licensing"  }}
 spec:
     ports:

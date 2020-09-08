@@ -172,7 +172,7 @@ export class DashboardApp extends Component {
                                     </div>
                                 </div>
 
-                                <TopNav />
+                                <TopNav projectId={projectId} />
                             </div>
                         </ShouldRender>
 
@@ -219,7 +219,7 @@ export class DashboardApp extends Component {
                                     </div>
                                 </ShouldRender>
 
-                                <TopNav />
+                                <TopNav projectId={projectId} />
                             </div>
                         </ShouldRender>
 

@@ -2,20 +2,16 @@
 <html lang="en" id="contact">
 
 <head>
-    <meta charset="utf-8">
     <title>Fyipe | Docker Container Security</title>
 
     <meta name="description"
         content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
-    <link rel="stylesheet" href="/css/shared-site.css"  >
     <link rel="stylesheet" href="/css/shared-site.css">
-    <link rel="stylesheet" href="/css/home.css"  >
     <link rel="stylesheet" href="/css/home.css">
-    <link rel="stylesheet" href="/css/products.css"  >
     <link rel="stylesheet" href="/css/products.css">
     <script src="/js/amplitude.js"></script>
-    <script async>
+    <script type="module" async>
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > DOCKER CONTAINER SECURITY');
@@ -46,8 +42,8 @@
 
             </section>
 
-            <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
-                <img src="/img/animated-gif/docker-security.gif" width="900" class="imageshadow" alt="Docker Container Security" id="uptime-monitoring-gif" style="border-radius: 5px;" />
+            <div class="gif-container">
+                <img src="/img/animated-gif/docker-security.gif" class="imageshadow" alt="Docker Container Security" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
             </div>
 
             <section class="main basics" style="padding:0px">

@@ -18,7 +18,7 @@ module.exports = {
         return promise;
     },
 
-    decrypt: (encText, iv) => {
+    decrypt: (encText, iv = EncryptionKeys.iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);

@@ -91,7 +91,7 @@ class IncidentSettings extends React.Component {
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="Incident Settings" />
+                    <BreadCrumbItem route={pathname} name="Incidents" />
                     <IncidentBasicSettings />
                     <div className="Box-root Margin-vertical--12">
                         <div className="Box-root Margin-bottom--12">
@@ -147,6 +147,10 @@ class IncidentSettings extends React.Component {
                                         <IncidentPrioritiesList
                                             incidentPrioritiesList={
                                                 this.props.incidentPriorities
+                                            }
+                                            selectedIncidentPriority={
+                                                this.props
+                                                    .selectedIncidentPriority
                                             }
                                             handleEditIncidentPriority={id =>
                                                 this.handleEditIncidentPriority(
@@ -260,6 +264,7 @@ IncidentSettings.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
+    selectedIncidentPriority: PropTypes.string.isRequired,
 };
 const mapStateToProps = state => {
     return {
@@ -267,6 +272,8 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
+        selectedIncidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
     };
 };
 const mapDispatchToProps = dispatch =>

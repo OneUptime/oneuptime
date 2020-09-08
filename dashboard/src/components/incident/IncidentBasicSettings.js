@@ -75,11 +75,6 @@ class IncidentBasicSettings extends React.Component {
                                                             id="incidentPriority"
                                                             name="incidentPriority"
                                                             options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Incident Priority',
-                                                                },
                                                                 ...this.props.incidentPriorities.map(
                                                                     incidentPriority => ({
                                                                         value:
@@ -261,53 +256,49 @@ class IncidentBasicSettings extends React.Component {
                                             </div>
                                         </ShouldRender>
                                     </span>
-                                    <div className="Box-root Padding-horizontal--20">
-                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                            <div className="Box-root Margin-right--8">
-                                                <button
-                                                    id="resetButton"
-                                                    className={`Button bs-ButtonLegacy`}
-                                                    type="button"
-                                                    disabled={
-                                                        this.props
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                        <div className="Box-root Margin-right--8">
+                                            <button
+                                                id="resetButton"
+                                                className={`Button bs-ButtonLegacy`}
+                                                type="button"
+                                                disabled={
+                                                    this.props
+                                                        .updateIncidentBasicSettings
+                                                        .requesting
+                                                }
+                                                onClick={reset}
+                                            >
+                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                        <span>Reset</span>
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div className="Box-root">
+                                            <button
+                                                id="saveButton"
+                                                className={`Button bs-ButtonLegacy`}
+                                                type="submit"
+                                                disabled={
+                                                    this.props
+                                                        .updateIncidentBasicSettings
+                                                        .requesting
+                                                }
+                                            >
+                                                <div className="Box-root bs-Button bs-DeprecatedButton bs-Button--blue Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                        {this.props
                                                             .updateIncidentBasicSettings
-                                                            .requesting
-                                                    }
-                                                    onClick={reset}
-                                                >
-                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                            <span>Reset</span>
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                            <div className="Box-root">
-                                                <button
-                                                    id="saveButton"
-                                                    className={`Button bs-ButtonLegacy`}
-                                                    type="submit"
-                                                    disabled={
-                                                        this.props
-                                                            .updateIncidentBasicSettings
-                                                            .requesting
-                                                    }
-                                                >
-                                                    <div className="Box-root bs-Button bs-DeprecatedButton bs-Button--blue Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                            {this.props
-                                                                .updateIncidentBasicSettings
-                                                                .requesting ? (
-                                                                <FormLoader />
-                                                            ) : (
-                                                                <span>
-                                                                    Save
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            </div>
+                                                            .requesting ? (
+                                                            <FormLoader />
+                                                        ) : (
+                                                            <span>Save</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

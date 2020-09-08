@@ -58,6 +58,8 @@ import {
     FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
     FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
     FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
+    SHOW_EVENT_CARD,
+    SHOW_INCIDENT_CARD,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -152,6 +154,8 @@ const INITIAL_STATE = {
         error: null,
         timelines: [],
     },
+    showEventCard: false,
+    showIncidentCard: false,
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -758,6 +762,7 @@ export default (state = INITIAL_STATE, action) => {
                     error: null,
                     show: true,
                 },
+                showEventCard: false,
             };
 
         case INDIVIDUAL_EVENTS_SUCCESS:
@@ -1346,6 +1351,10 @@ export default (state = INITIAL_STATE, action) => {
                     count: action.payload.count,
                     skip: action.payload.skip || 0,
                 },
+                individualEvents: {
+                    // reset individualEvents state
+                    ...INITIAL_STATE.individualEvents,
+                },
             };
 
         case FUTURE_EVENTS_FAILURE:
@@ -1470,6 +1479,18 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     error: action.payload,
                 },
+            };
+
+        case SHOW_EVENT_CARD:
+            return {
+                ...state,
+                showEventCard: action.payload,
+            };
+
+        case SHOW_INCIDENT_CARD:
+            return {
+                ...state,
+                showIncidentCard: action.payload,
             };
 
         default:

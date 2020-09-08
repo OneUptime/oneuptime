@@ -166,11 +166,11 @@ export function createMonitor(data) {
     };
 }
 
-export function deleteMonitor(data) {
+export function deleteincidentbysocket(incident) {
     return function(dispatch) {
         dispatch({
-            type: 'DELETE_MONITOR',
-            payload: data,
+            type: 'DELETE_INCIDENT',
+            payload: incident,
         });
     };
 }

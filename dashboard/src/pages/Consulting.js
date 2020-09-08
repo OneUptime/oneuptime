@@ -61,17 +61,39 @@ class Consulting extends Component {
                         <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                             <div className="Box-root Card-shadow--medium Border-radius--4">
                                 <div className="bs-ContentSection-content Box-root Padding-horizontal--32 Padding-vertical--32">
-                                    <div className="Flex-direction--row Text-align--center Text-fontSize--32 Text-fontWeight--bold">
+                                    <div className="Flex-direction--row Text-align--center Text-fontSize--24 Text-fontWeight--bold">
                                         <div className="Padding-top--24 Text-color--inherit Text-display--inline Text-fontSize--48 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                            Who we are
+                                            We make products happen.
                                         </div>
                                     </div>
-                                    <div className="Flex-direction--row Padding-bottom--48 Padding-top--12">
+                                    <div className="Flex-direction--row Padding-bottom--32 Padding-top--12 Text-align--center">
                                         <div className="Text-display--inline Text-fontSize--16 Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             We&#39;ve helped everyone from tiny
                                             startups to enterprises and helped
                                             them build products that are simple,
                                             beautiful and easy to use.
+                                        </div>
+                                    </div>
+                                    <div className="Flex-flex Flex-direction--row">
+                                        <div className="Flex-flex Flex-direction--row Flex-flex--1 Text-align--center Flex-wrap--wrap bs-Container Text-fontWeight--medium">
+                                            <span className="Margin-bottom--12 Flex-flex--1">
+                                                <span className="db-ListItem-icon db-SideNav-icon--tick" />
+                                                <span>
+                                                    Web and Mobile app
+                                                    development
+                                                </span>
+                                            </span>
+                                            <span className="Margin-bottom--12 Flex-flex--1">
+                                                <span className="db-ListItem-icon db-SideNav-icon--tick" />
+                                                <span>
+                                                    Software &amp; DevOps
+                                                    Consulting
+                                                </span>
+                                            </span>
+                                            <span className="Margin-bottom--12 Flex-flex--1">
+                                                <span className="db-ListItem-icon db-SideNav-icon--tick" />
+                                                <span>UI/UX Design</span>
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="Flex-flex Flex-direction--row Text-align--center Margin-top--32 Flex-wrap--wrap">

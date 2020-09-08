@@ -7,19 +7,15 @@
     content="Simple, transparent pricing. Compare different pricing plans. Choose the one which suits your buisness best.">
   <% include ./head %>
   <script src="/js/amplitude.js"></script>
-  <script async>
+  <script type="module" async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
     if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRICING');
     }
   </script>
   <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/pricing.css">
   <link rel="stylesheet" href="/css/pricing.css">
   <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/comparision.css">
   <link rel="stylesheet" href="/css/comparision.css">
 
   <style>
@@ -1376,8 +1372,9 @@
     doSomething(mediaQuery);
   </script>
 
+  <!-- uncomment the script below if there's any deffered styles -->
   <!-- Defer loading of style sheets -->
-  <script>
+  <!-- <script>
     var loadDeferredStyles = function () {
       var addStylesNode = document.getElementById("deferred-styles");
       var replacement = document.createElement("div");
@@ -1390,14 +1387,14 @@
       window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
     if (raf) raf(function () { window.setTimeout(loadDeferredStyles, 0); });
     else window.addEventListener('load', loadDeferredStyles);
-  </script>
+  </script> -->
 
-  <script type="text/javascript" async>
+  <script type="text/javascript">
     _linkedin_partner_id = "706292";
     window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
     window._linkedin_data_partner_ids.push(_linkedin_partner_id);
   </script>
-  <script type="text/javascript" async>
+  <script type="text/javascript">
     (function () {
       var s = document.getElementsByTagName("script")[0];
       var b = document.createElement("script");

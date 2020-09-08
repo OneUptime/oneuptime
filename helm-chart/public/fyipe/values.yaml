@@ -85,6 +85,7 @@ rateLimitter:
 ## Fyipe official image version on Docker Hub
 ## ref: https://hub.docker.com/u/fyipeproject
 ##
+
 image:
   registry: docker.io
   repository: fyipeproject

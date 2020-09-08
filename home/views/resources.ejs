@@ -1,46 +1,35 @@
 <!DOCTYPE html>
 <html lang="en" id="guides" class="guides">
 
-<head>
+  <head>
 
+    <title>Fyipe | Resources and Whitepapers</title>
 
-
-  <title>Fyipe | Resources and Whitepapers</title>
-
-  <meta name="description"
+    <meta name="description"
     content="Fyipe is an enterprise grade status page, monitoring and oncall management platform. Learn more from resources and whitepapers.">
 
 
-  <% include ./head %>
+    <% include ./head %>
 
 
-  <link rel="stylesheet" href="/css/default.css">
-  <link rel="stylesheet" href="/css/colors.css">
-  <link rel="stylesheet" href="/css/resources.css">
+    <link rel="stylesheet" href="/css/default.css">
+    <link rel="stylesheet" href="/css/colors.css">
+    <link rel="stylesheet" href="/css/resources.css">
 
-  <script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
-    crossorigin="anonymous"></script>
+    <script defer src="/js/animate.js"></script>
+    <script defer src="/js/stickyfill.js"></script>
 
-
-
-  <script defer src="/js/animate.js"></script>
-  <script defer src="/js/stickyfill.js"></script>
-
-  <script defer src="/js/default.js"></script>
-  <script defer src="/js/resources.js"></script>
-  <script src="/js/amplitude.js"></script>
-  <script async>
-    var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-    if (IS_SAAS_SERVICE) {
+    <script defer src="/js/default.js"></script>
+    <script defer src="/js/resources.js"></script>
+    <script src="/js/amplitude.js"></script>
+    <script type="module" async>
+      var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+      if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > RESOURCES');
-    }
-  </script>
+      }
+    </script>
 
-
-
-
-
-</head>
+  </head>
 
 <body>
 
