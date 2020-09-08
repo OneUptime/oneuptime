@@ -512,10 +512,15 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => {
-    const monitors =
-        state.monitor.monitorsList.monitors.length > 0
-            ? state.monitor.monitorsList.monitors[0].monitors
-            : [];
+    const monitors = [];
+    state.monitor.monitorsList.monitors.map(data => {
+        data.monitors.map(monitor => {
+            monitors.push(monitor);
+            return monitor;
+        });
+        return data;
+    });
+
     return {
         currentProject: state.project.currentProject,
         scheduledEvents:
