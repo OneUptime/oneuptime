@@ -333,6 +333,12 @@ function mapStateToProps(state, ownProps) {
     const currentDateRange = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
+    const startDate = state.form.applicationLogDateTimeForm
+        ? state.form.applicationLogDateTimeForm.values.startDate
+        : '';
+    const endDate = state.form.applicationLogDateTimeForm
+        ? state.form.applicationLogDateTimeForm.values.endDate
+        : '';
     return {
         currentProject: state.project.currentProject,
         applicationLog: applicationLogFromRedux[0],
@@ -340,6 +346,8 @@ function mapStateToProps(state, ownProps) {
         stats,
         initialValues: currentDateRange,
         currentDateRange,
+        startDate,
+        endDate,
     };
 }
 
