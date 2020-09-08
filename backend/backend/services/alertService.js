@@ -511,7 +511,7 @@ module.exports = {
                 continue;
             }
 
-            if (escalation.sms && shouldSendCallReminder) {
+            if (escalation.sms && shouldSendSMSReminder) {
                 _this.sendSMSAlert({
                     incident,
                     user,
@@ -535,7 +535,7 @@ module.exports = {
                 });
             }
 
-            if (escalation.call && shouldSendSMSReminder) {
+            if (escalation.call && shouldSendCallReminder) {
                 _this.sendCallAlert({
                     incident,
                     user,
