@@ -273,6 +273,7 @@ class ApplicationLogHeader extends Component {
                                                 width: '250px',
                                                 border: '#CCCCCC 1px solid',
                                                 borderRadius: '5px',
+                                                fontSize: '14px',
                                             }}
                                         />
                                     </div>
