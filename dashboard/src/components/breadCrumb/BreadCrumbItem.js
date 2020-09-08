@@ -4,7 +4,7 @@ import { PropTypes } from 'prop-types';
 import { history } from '../../store';
 import pageTitles from '../../utils/pageTitles';
 
-function BreadCrumbItem({ route, name, projectId, pageTitle, type }) {
+function BreadCrumbItem({ route, name, projectId, pageTitle, type, status }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
 
@@ -32,7 +32,7 @@ function BreadCrumbItem({ route, name, projectId, pageTitle, type }) {
                 pages[pageTitle ?? name]
             } db-SideNav-icon--selected`
         );
-        if (!type) {
+        if (!type && !status) {
             typeContainer.setAttribute('class', 'display-none');
         } else {
             typeContainer.setAttribute(
@@ -41,7 +41,11 @@ function BreadCrumbItem({ route, name, projectId, pageTitle, type }) {
             );
         }
         titleText.innerHTML = name;
-        resourceType.innerHTML = type;
+        resourceType.innerHTML = type
+            ? type + ' Monitor'
+            : status
+            ? ' Status Page'
+            : null;
     }
 
     return (
@@ -63,6 +67,7 @@ BreadCrumbItem.propTypes = {
     projectId: PropTypes.string,
     pageTitle: PropTypes.string,
     type: PropTypes.string,
+    status: PropTypes.string,
 };
 
 export default BreadCrumbItem;
