@@ -10,6 +10,17 @@ function BreadCrumbs({ styles }) {
                 <span id="titleText" className="page-title-text">
                     Page Title
                 </span>
+                <span
+                    className="Badge Badge--color--blue Box-background--blue bg-blue-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-left--4"
+                    id="typeContainer"
+                >
+                    <span
+                        className="Badge-text bg-blue-700 Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap Text-color--white"
+                        id="resourceType"
+                    >
+                        URL
+                    </span>
+                </span>
             </div>
             <Breadcrumbs
                 separator={<span className="db-breadcrumb-seperator" />}

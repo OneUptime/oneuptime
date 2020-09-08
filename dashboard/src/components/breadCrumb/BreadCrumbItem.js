@@ -4,7 +4,7 @@ import { PropTypes } from 'prop-types';
 import { history } from '../../store';
 import pageTitles from '../../utils/pageTitles';
 
-function BreadCrumbItem({ route, name, projectId, pageTitle }) {
+function BreadCrumbItem({ route, name, projectId, pageTitle, type }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
 
@@ -24,13 +24,24 @@ function BreadCrumbItem({ route, name, projectId, pageTitle }) {
     if (titleElement) {
         const titleIcon = titleElement.querySelector('#titleIcon');
         const titleText = titleElement.querySelector('#titleText');
+        const resourceType = titleElement.querySelector('#resourceType');
+        const typeContainer = titleElement.querySelector('#typeContainer');
         titleIcon.setAttribute(
             'class',
             `page-title-icon db-SideNav-icon--${
                 pages[pageTitle ?? name]
             } db-SideNav-icon--selected`
         );
+        if (!type) {
+            typeContainer.setAttribute('class', 'display-none');
+        } else {
+            typeContainer.setAttribute(
+                'class',
+                'Badge Badge--color--blue Box-background--blue bg-blue-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-left--4'
+            );
+        }
         titleText.innerHTML = name;
+        resourceType.innerHTML = type;
     }
 
     return (
@@ -51,6 +62,7 @@ BreadCrumbItem.propTypes = {
     name: PropTypes.string.isRequired,
     projectId: PropTypes.string,
     pageTitle: PropTypes.string,
+    type: PropTypes.string,
 };
 
 export default BreadCrumbItem;
