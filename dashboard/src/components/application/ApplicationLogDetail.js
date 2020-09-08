@@ -334,10 +334,14 @@ function mapStateToProps(state, ownProps) {
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
     const startDate = state.form.applicationLogDateTimeForm
-        ? state.form.applicationLogDateTimeForm.values.startDate
+        ? state.form.applicationLogDateTimeForm.values
+            ? state.form.applicationLogDateTimeForm.values.startDate
+            : ''
         : '';
     const endDate = state.form.applicationLogDateTimeForm
-        ? state.form.applicationLogDateTimeForm.values.endDate
+        ? state.form.applicationLogDateTimeForm.values
+            ? state.form.applicationLogDateTimeForm.values.endDate
+            : ''
         : '';
     return {
         currentProject: state.project.currentProject,
