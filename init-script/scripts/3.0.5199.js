@@ -4,6 +4,7 @@ const EncryptDecrypt = require('../util/encryptDecrypt');
 
 const globalconfigsCollection = 'globalconfigs';
 const twiliosCollection = 'twilios';
+const smtpsCollection = 'smtps';
 
 async function run() {
     //Get all globalConfig having authToken not encrypted.
@@ -70,6 +71,28 @@ async function run() {
             { value }
         );
     }
+    //Get All the custom SMTP settings not having a IV
+    const customSmtpSettingsArray = await find(smtpsCollection, {
+        iv: { $exists: false },
+    });
+    for (let i = 0; i < customSmtpSettingsArray.length; i++) {
+        const customSmtpSettings = customSmtpSettingsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedToken = await EncryptDecrypt.decrypt(
+            customSmtpSettings.pass
+        );
+        customSmtpSettings.pass = await EncryptDecrypt.encrypt(
+            decryptedToken,
+            iv
+        );
+        customSmtpSettings.iv = iv;
+        await update(
+            smtpsCollection,
+            { _id: customSmtpSettings._id },
+            { ...customSmtpSettings }
+        );
+    }
+
 }
 
 module.exports = run;
