@@ -219,6 +219,7 @@ describe('Incident Timeline API', () => {
                 await page.click(`#create_incident_${projectMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
+                await page.type('#title', 'new incident');
                 await page.waitForSelector('#createIncident');
                 await page.click('#createIncident');
 
@@ -229,6 +230,7 @@ describe('Incident Timeline API', () => {
                 );
                 await page.click(`#more-details-${projectMonitorName}`);
 
+                await page.waitFor(2000);
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
