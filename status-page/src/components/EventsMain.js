@@ -5,7 +5,11 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import Events from './Events';
 import ShouldRender from './ShouldRender';
-import { fetchMoreFutureEvents, fetchFutureEvents } from '../actions/status';
+import {
+    fetchMoreFutureEvents,
+    fetchFutureEvents,
+    showEventCard,
+} from '../actions/status';
 
 class EventsMain extends Component {
     constructor(props) {
@@ -24,6 +28,7 @@ class EventsMain extends Component {
     }
 
     getAll = () => {
+        this.props.showEventCard(true);
         this.props.fetchFutureEvents(
             this.props.projectId,
             this.props.statusPageId,
@@ -93,7 +98,8 @@ class EventsMain extends Component {
 
         return (!this.props.individualEvents.show &&
             this.props.futureEvents.events.length > 0) ||
-            this.props.individualEvents.show ? (
+            this.props.individualEvents.show ||
+            this.props.showEventCardState ? (
             <div
                 id="scheduledEvents"
                 className="twitter-feed white box"
@@ -200,6 +206,40 @@ class EventsMain extends Component {
                                     </li>
                                 </ul>
                             </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.showEventCardState &&
+                                    this.props.futureEvents.events.length ===
+                                        0 &&
+                                    this.props.individualEvents.events
+                                        .length === 0
+                                }
+                            >
+                                <ul className="feed-contents plain">
+                                    <li
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                ...secondaryTextColor,
+                                            }}
+                                        >
+                                            No Scheduled Events
+                                        </span>
+                                    </li>
+                                </ul>
+                            </ShouldRender>
                         </div>
 
                         <ShouldRender
@@ -298,6 +338,7 @@ const mapStateToProps = state => {
         futureEvents: state.status.futureEvents,
         individualEvents: state.status.individualEvents,
         monitorState: state.status.statusPage.monitorsData,
+        showEventCardState: state.status.showEventCard,
     };
 };
 
@@ -306,6 +347,7 @@ const mapDispatchToProps = dispatch =>
         {
             fetchMoreFutureEvents,
             fetchFutureEvents,
+            showEventCard,
         },
         dispatch
     );
@@ -322,6 +364,8 @@ EventsMain.propTypes = {
     futureEvents: PropTypes.object,
     individualEvents: PropTypes.object,
     monitorState: PropTypes.array,
+    showEventCardState: PropTypes.bool,
+    showEventCard: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EventsMain);

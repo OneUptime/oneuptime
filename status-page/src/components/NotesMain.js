@@ -11,6 +11,7 @@ import {
     getStatusPageIndividualNote,
     getMoreNote,
     fetchLastIncidentTimelines,
+    showIncidentCard,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
 
@@ -50,6 +51,7 @@ class NotesMain extends Component {
     }
 
     getAll = () => {
+        this.props.showIncidentCard(true);
         this.props.getStatusPageNote(
             this.props.projectId,
             this.props.statusPageId,
@@ -242,7 +244,8 @@ class NotesMain extends Component {
         return (this.props.noteData &&
             this.props.noteData.notes &&
             this.props.noteData.notes.length > 0) ||
-            this.props.individualnote ? (
+            this.props.individualnote ||
+            this.props.showIncidentCardState ? (
             <div
                 className="twitter-feed white box"
                 style={{ overflow: 'visible', ...contentBackground }}
@@ -335,10 +338,12 @@ class NotesMain extends Component {
 
                             <ShouldRender
                                 if={
-                                    this.props.noteData &&
-                                    !this.props.noteData.requesting &&
-                                    this.props.noteData.notes &&
-                                    !this.props.noteData.notes.length
+                                    (this.props.noteData &&
+                                        !this.props.noteData.requesting &&
+                                        this.props.noteData.notes &&
+                                        !this.props.noteData.notes.length) ||
+                                    (this.props.showIncidentCardState &&
+                                        !this.props.noteData.notes.length)
                                 }
                             >
                                 <ul className="feed-contents plain">
@@ -490,6 +495,7 @@ const mapStateToProps = state => {
         lastIncidentTimelines: state.status.lastIncidentTimelines.timelines,
         fetchingIncidentTimelines:
             state.status.lastIncidentTimelines.requesting,
+        showIncidentCardState: state.status.showIncidentCard,
     };
 };
 
@@ -501,6 +507,7 @@ const mapDispatchToProps = dispatch =>
             getMoreNote,
             openSubscribeMenu,
             fetchLastIncidentTimelines,
+            showIncidentCard,
         },
         dispatch
     );
@@ -524,6 +531,8 @@ NotesMain.propTypes = {
     fetchLastIncidentTimelines: PropTypes.func,
     lastIncidentTimelines: PropTypes.array,
     fetchingIncidentTimelines: PropTypes.bool,
+    showIncidentCard: PropTypes.func,
+    showIncidentCardState: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);

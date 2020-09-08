@@ -66,37 +66,39 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
-                incident.incidentPriority = data.incidentPriority;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
-                    incidentsCountInProject + deletedIncidentsCountInProject + 1;
-
-                const incidentSettings = data.probeId
-                    ? await IncidentSettingsService.findOne({
-                          projectId: data.projectId,
-                      })
-                    : {
-                          title: data.title,
-                          description: data.description,
-                      };
-
-                const templatesInput = {
-                    incidentType: data.incidentType,
-                    monitorName: monitor.name,
-                    projectName: project.name,
-                    time: Moment().format('h:mm:ss a'),
-                    date: Moment().format('MMM Do YYYY'),
-                };
-                const titleTemplate = Handlebars.compile(
-                    incidentSettings.title
-                );
-                const descriptionTemplate = Handlebars.compile(
-                    incidentSettings.description
-                );
-                incident.title = titleTemplate(templatesInput);
-                incident.description = descriptionTemplate(templatesInput);
+                    incidentsCountInProject +
+                    deletedIncidentsCountInProject +
+                    1;
 
                 if (data.probeId) {
+                    const incidentSettings = await IncidentSettingsService.findOne(
+                        {
+                            projectId: data.projectId,
+                        }
+                    );
+
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        monitorName: monitor.name,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                    };
+
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
+
+                    incident.title = titleTemplate(templatesInput);
+                    incident.description = descriptionTemplate(templatesInput);
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
+
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -105,6 +107,10 @@ module.exports = {
                             reportedStatus: data.incidentType,
                         },
                     ];
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
                 }
 
                 incident = await incident.save();

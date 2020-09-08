@@ -1,5 +1,6 @@
 deploy_production_api-docs:
     stage: Deploy
+    retry: 2
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
@@ -29,6 +30,7 @@ deploy_production_api-docs:
 deploy_staging_api-docs:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh

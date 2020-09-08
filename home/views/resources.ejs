@@ -16,14 +16,13 @@
     <link rel="stylesheet" href="/css/colors.css">
     <link rel="stylesheet" href="/css/resources.css">
 
-    <script defer src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <script defer src="/js/animate.js"></script>
     <script defer src="/js/stickyfill.js"></script>
 
     <script defer src="/js/default.js"></script>
     <script defer src="/js/resources.js"></script>
-    <script async src="/js/amplitude.js"></script>
-    <script type="module">
+    <script src="/js/amplitude.js"></script>
+    <script type="module" async>
       var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
       if (IS_SAAS_SERVICE) {
       amplitude.getInstance().logEvent('PAGE VIEW: HOME > RESOURCES');

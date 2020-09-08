@@ -475,7 +475,7 @@ module.exports = {
             request.continue();
         }
     },
-    addProject: async function(page, projectName = null) {
+    addProject: async function(page, projectName = null, checkCard = false) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -489,6 +489,34 @@ module.exports = {
             { visible: true }
         );
         startupOption.click();
+        if (checkCard) {
+            await page.waitFor(5000);
+            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
+
+            const elementHandle = await page.$(
+                'iframe[name=__privateStripeFrame5]'
+            );
+            const frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cardnumber]');
+            await frame.type('input[name=cardnumber]', '4242424242424242', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=cvc]');
+            await frame.type('input[name=cvc]', '123', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=exp-date]');
+            await frame.type('input[name=exp-date]', '11/23', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=postal]');
+            await frame.type('input[name=postal]', '12345', {
+                delay: 150,
+            });
+        }
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
