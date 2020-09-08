@@ -9,8 +9,8 @@ import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import Select from '../../components/basic/react-select-fyipe';
 import SearchBox from '../basic/SearchBox';
-import DateTimeSelector from '../basic/DateTimeSelector';
 import * as moment from 'moment';
+import CustomDateTimeSelector from '../basic/CustomDateTimeSelector';
 
 class ApplicationLogHeader extends Component {
     constructor(props) {
@@ -195,7 +195,7 @@ class ApplicationLogHeader extends Component {
                                                             type="text"
                                                             name="startDate"
                                                             component={
-                                                                DateTimeSelector
+                                                                CustomDateTimeSelector
                                                             }
                                                             id="startDate"
                                                             style={{
@@ -224,7 +224,7 @@ class ApplicationLogHeader extends Component {
                                                             type="text"
                                                             name="endDate"
                                                             component={
-                                                                DateTimeSelector
+                                                                CustomDateTimeSelector
                                                             }
                                                             id="endDate"
                                                             style={{
