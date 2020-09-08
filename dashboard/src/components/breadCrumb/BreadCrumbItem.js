@@ -4,7 +4,15 @@ import { PropTypes } from 'prop-types';
 import { history } from '../../store';
 import pageTitles from '../../utils/pageTitles';
 
-function BreadCrumbItem({ route, name, projectId, pageTitle, type, status }) {
+function BreadCrumbItem({
+    route,
+    name,
+    projectId,
+    pageTitle,
+    type,
+    status,
+    containerType,
+}) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
 
@@ -32,7 +40,7 @@ function BreadCrumbItem({ route, name, projectId, pageTitle, type, status }) {
                 pages[pageTitle ?? name]
             } db-SideNav-icon--selected`
         );
-        if (!type && !status) {
+        if (!type && !status && !containerType) {
             typeContainer.setAttribute('class', 'display-none');
         } else {
             typeContainer.setAttribute(
@@ -45,6 +53,8 @@ function BreadCrumbItem({ route, name, projectId, pageTitle, type, status }) {
             ? type + ' Monitor'
             : status
             ? ' Status Page'
+            : containerType
+            ? containerType
             : null;
     }
 
@@ -68,6 +78,7 @@ BreadCrumbItem.propTypes = {
     pageTitle: PropTypes.string,
     type: PropTypes.string,
     status: PropTypes.string,
+    containerType: PropTypes.string,
 };
 
 export default BreadCrumbItem;
