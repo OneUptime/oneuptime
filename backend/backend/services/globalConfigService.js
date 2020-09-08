@@ -2,9 +2,14 @@ module.exports = {
     create: async function({ name, value }) {
         try {
             if (name === 'twilio') {
+                const iv = Crypto.randomBytes(16);
                 value[
                     'encrypted-authentication-token'
-                ] = await EncryptDecrypt.encrypt(value['authentication-token']);
+                ] = await EncryptDecrypt.encrypt(
+                    value['authentication-token'],
+                    iv
+                );
+                value['iv'] = iv;
                 delete value['authentication-token'];
             }
 
@@ -17,9 +22,11 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    value['encrypted-authentication-token']
+                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['iv']
                 );
                 delete value['encrypted-authentication-token'];
+                delete value['iv'];
             }
 
             return globalConfig;
@@ -42,9 +49,14 @@ module.exports = {
                 data.value['authentication-token']
             ) {
                 const { value } = data;
+                const iv = Crypto.randomBytes(16);
                 value[
                     'encrypted-authentication-token'
-                ] = await EncryptDecrypt.encrypt(value['authentication-token']);
+                ] = await EncryptDecrypt.encrypt(
+                    value['authentication-token'],
+                    iv
+                );
+                value['iv'] = iv;
                 delete value['authentication-token'];
             }
 
@@ -60,9 +72,11 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['encrypted-authentication-token']
+                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['iv'].buffer
                 );
                 delete globalConfig.value['encrypted-authentication-token'];
+                delete globalConfig.value['iv'];
             }
 
             return globalConfig;
@@ -112,9 +126,11 @@ module.exports = {
                     globalConfig.value[
                         'authentication-token'
                     ] = await EncryptDecrypt.decrypt(
-                        globalConfig.value['encrypted-authentication-token']
+                        globalConfig.value['encrypted-authentication-token'],
+                        globalConfig.value['iv'].buffer
                     );
                     delete globalConfig.value['encrypted-authentication-token'];
+                    delete globalConfig.value['iv'];
                 }
             }
 
@@ -137,9 +153,11 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['encrypted-authentication-token']
+                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['iv'].buffer
                 );
                 delete globalConfig.value['encrypted-authentication-token'];
+                delete globalConfig.value['iv'];
             }
 
             return globalConfig;
@@ -175,6 +193,7 @@ module.exports = {
     },
 };
 
+const Crypto = require('crypto');
 const GlobalConfigModel = require('../models/globalConfig');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');

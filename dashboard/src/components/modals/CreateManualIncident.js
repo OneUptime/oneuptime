@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, change, formValueSelector } from 'redux-form';
+import moment from 'moment';
+import handlebars from 'handlebars';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { createNewIncident, createIncidentReset } from '../../actions/incident';
@@ -17,6 +19,8 @@ class CreateManualIncident extends Component {
         super(props);
         this.state = {
             incidentType: '',
+            titleEdited: false,
+            descriptionEdited: false,
         };
     }
 
@@ -59,6 +63,37 @@ class CreateManualIncident extends Component {
             default:
                 return false;
         }
+    };
+
+    substituteVariables = (value, name) => {
+        const { titleEdited, descriptionEdited } = this.state;
+        const {
+            incidentBasicSettings,
+            change,
+            data: { monitor },
+            currentProject,
+            selectedIncidentType,
+        } = this.props;
+
+        const titleTemplate = handlebars.compile(incidentBasicSettings.title);
+        const descriptionTemplate = handlebars.compile(
+            incidentBasicSettings.description
+        );
+
+        const values = {
+            incidentType: selectedIncidentType,
+            monitorName: monitor.name,
+            projectName: currentProject.name,
+            time: moment().format('h:mm:ss a'),
+            date: moment().format('MMM Do YYYY'),
+        };
+
+        values[name] = value;
+
+        if (!titleEdited) change('title', titleTemplate(values));
+
+        if (!descriptionEdited)
+            change('description', descriptionTemplate(values));
     };
 
     render() {
@@ -122,11 +157,6 @@ class CreateManualIncident extends Component {
                                                         }
                                                         options={[
                                                             {
-                                                                value: '',
-                                                                label:
-                                                                    'Select type',
-                                                            },
-                                                            {
                                                                 value: 'online',
                                                                 label: 'Online',
                                                             },
@@ -143,6 +173,17 @@ class CreateManualIncident extends Component {
                                                                     'Degraded',
                                                             },
                                                         ]}
+                                                        onChange={(
+                                                            event,
+                                                            newValue,
+                                                            previousValue,
+                                                            name
+                                                        ) =>
+                                                            this.substituteVariables(
+                                                                newValue,
+                                                                name
+                                                            )
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -171,11 +212,6 @@ class CreateManualIncident extends Component {
                                                                     .requesting
                                                             }
                                                             options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Incident Priority',
-                                                                },
                                                                 ...incidentPriorities.map(
                                                                     incidentPriority => ({
                                                                         value:
@@ -185,6 +221,17 @@ class CreateManualIncident extends Component {
                                                                     })
                                                                 ),
                                                             ]}
+                                                            onChange={(
+                                                                event,
+                                                                newValue,
+                                                                previousValue,
+                                                                name
+                                                            ) =>
+                                                                this.substituteVariables(
+                                                                    newValue,
+                                                                    name
+                                                                )
+                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -208,6 +255,11 @@ class CreateManualIncident extends Component {
                                                         validate={[
                                                             ValidateField.required,
                                                         ]}
+                                                        onChange={() =>
+                                                            this.setState({
+                                                                titleEdited: true,
+                                                            })
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -226,6 +278,11 @@ class CreateManualIncident extends Component {
                                                         width="100%"
                                                         placeholder="This can be markdown"
                                                         wrapEnabled={true}
+                                                        onChange={() =>
+                                                            this.setState({
+                                                                descriptionEdited: true,
+                                                            })
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -324,33 +381,6 @@ class CreateManualIncident extends Component {
 CreateManualIncident.displayName = 'CreateManualIncident';
 CreateManualIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
-};
-const CreateManualIncidentForm = reduxForm({
-    form: 'CreateManualIncident',
-})(CreateManualIncident);
-
-const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        {
-            createNewIncident,
-            closeModal,
-            createIncidentReset,
-        },
-        dispatch
-    );
-};
-
-function mapStateToProps(state) {
-    return {
-        newIncident: state.incident.newIncident,
-        createIncidentModalId: state.modal.modals[0].id,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
-        initialValues: state.incidentBasicSettings.incidentBasicSettings,
-    };
-}
-
-CreateManualIncident.propTypes = {
     closeModal: PropTypes.func.isRequired,
     createIncidentModalId: PropTypes.string,
     createIncidentReset: PropTypes.func.isRequired,
@@ -359,7 +389,69 @@ CreateManualIncident.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     monitorId: PropTypes.string,
     newIncident: PropTypes.object,
+    change: PropTypes.func.isRequired,
+    incidentBasicSettings: PropTypes.object.isRequired,
+    selectedIncidentType: PropTypes.string.isRequired,
+    currentProject: PropTypes.object.isRequired,
 };
+
+const formName = 'CreateManualIncident';
+const selector = formValueSelector(formName);
+
+function mapStateToProps(state, props) {
+    const { data } = props;
+    const { monitor } = data;
+    const { currentProject } = state.project;
+    const incidentType = 'offline';
+    const values = {
+        incidentType,
+        monitorName: monitor.name,
+        projectName: currentProject.name,
+        time: moment().format('h:mm:ss a'),
+        date: moment().format('MMM Do YYYY'),
+    };
+    const titleTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.title
+    );
+    const descriptionTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.description
+    );
+    const initialValues = {
+        incidentType,
+        title: titleTemplate(values),
+        description: descriptionTemplate(values),
+        incidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
+    };
+    const selectedIncidentType = selector(state, 'incidentType');
+    return {
+        newIncident: state.incident.newIncident,
+        createIncidentModalId: state.modal.modals[0].id,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentBasicSettings:
+            state.incidentBasicSettings.incidentBasicSettings,
+        initialValues,
+        currentProject,
+        selectedIncidentType,
+    };
+}
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            createNewIncident,
+            closeModal,
+            createIncidentReset,
+            change,
+        },
+        dispatch
+    );
+};
+
+const CreateManualIncidentForm = reduxForm({
+    form: formName,
+})(CreateManualIncident);
 
 export default connect(
     mapStateToProps,

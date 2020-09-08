@@ -5,7 +5,8 @@ kind: Ingress
 metadata:
   labels:
     app.kubernetes.io/part-of: fyipe
-    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/managed-by: Helm
+    meta.helm.sh/release-name: {{ printf "%s" $.Release.Name }}
   annotations:
     kubernetes.io/ingress.class: nginx
     ingress.kubernetes.io/ssl-redirect: "true"

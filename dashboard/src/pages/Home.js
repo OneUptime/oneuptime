@@ -197,6 +197,9 @@ class Home extends Component {
                             incident={incident}
                             multiple={true}
                             route={pathname}
+                            multipleIncidentRequest={
+                                this.props.multipleIncidentRequest
+                            }
                         />
                     </RenderIfUserInSubProject>
                 );
@@ -617,6 +620,7 @@ Home.propTypes = {
     monitors: PropTypes.array,
     components: PropTypes.array,
     monitorList: PropTypes.array,
+    multipleIncidentRequest: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -652,6 +656,7 @@ const mapStateToProps = (state, props) => {
         monitorList: state.monitor.monitorsList.monitors[0]
             ? state.monitor.monitorsList.monitors[0].monitors
             : [],
+        multipleIncidentRequest: state.incident.unresolvedincidents,
     };
 };
 

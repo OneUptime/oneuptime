@@ -44,9 +44,38 @@ describe('Incident Priority API', () => {
     });
 
     test(
+        'Should not remove the incident priority used by default.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#incidentSettings');
+                await page.click('#incidentSettings');
+                const deleteButtonFirstRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:first-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.waitForSelector(deleteButtonFirstRowIndentifier);
+                await page.click(deleteButtonFirstRowIndentifier);
+                await page.waitForSelector('#message-modal-message');
+                const warningMessage = await page.$eval(
+                    '#message-modal-message',
+                    e => e.textContent
+                );
+                expect(warningMessage).toEqual(
+                    'This incident priority is marked as default and cannot be deleted.'
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should create incident priority.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
+                const priorityName = utils.generateRandomString();
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -57,20 +86,20 @@ describe('Incident Priority API', () => {
                 await page.waitForSelector('#addNewPriority');
                 await page.click('#addNewPriority');
                 await page.waitForSelector('#CreateIncidentPriority');
-                await page.type('input[name=name]', 'High');
+                await page.type('input[name=name]', priorityName);
                 await page.click('#CreateIncidentPriority');
                 await page.waitFor(3000);
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
-                const firstRowFirstColumnIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:first-child';
-                await page.waitForSelector(firstRowFirstColumnIndentifier);
+                const lastRowFirstColumnIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:first-child';
+                await page.waitForSelector(lastRowFirstColumnIndentifier);
                 const content = await page.$eval(
-                    firstRowFirstColumnIndentifier,
+                    lastRowFirstColumnIndentifier,
                     e => e.textContent
                 );
-                expect(content).toEqual('High');
+                expect(content).toEqual(priorityName);
             });
         },
         operationTimeOut
@@ -80,6 +109,7 @@ describe('Incident Priority API', () => {
         'Should edit incident priority.',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
+                const newPriorityName = utils.generateRandomString();
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -87,27 +117,27 @@ describe('Incident Priority API', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
-                const editButtonFirstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:first-child>button';
-                await page.waitForSelector(editButtonFirstRowIndentifier);
-                await page.click(editButtonFirstRowIndentifier);
+                const editButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:first-child>button';
+                await page.waitForSelector(editButtonLastRowIndentifier);
+                await page.click(editButtonLastRowIndentifier);
                 await page.waitForSelector('#EditIncidentPriority');
                 await page.click('input[name=name]', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
-                await page.type('input[name=name]', 'Medium');
+                await page.type('input[name=name]', newPriorityName);
                 await page.click('#EditIncidentPriority');
                 await page.waitFor(3000);
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
-                const firstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:first-child';
-                await page.waitForSelector(firstRowIndentifier);
+                const lastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:first-child';
+                await page.waitForSelector(lastRowIndentifier);
                 const content = await page.$eval(
-                    firstRowIndentifier,
+                    lastRowIndentifier,
                     e => e.textContent
                 );
-                expect(content).toEqual('Medium');
+                expect(content).toEqual(newPriorityName);
             });
         },
         operationTimeOut
@@ -132,9 +162,9 @@ describe('Incident Priority API', () => {
                     e => e.textContent
                 );
                 expect(incidentsCountBeforeDeletion).toEqual('3 Priorities');
-                const deleteButtonFirstRowIndentifier =
-                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row>div:nth-child(2)>div>div:nth-child(2)>button';
-                await page.click(deleteButtonFirstRowIndentifier);
+                const deleteButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.click(deleteButtonLastRowIndentifier);
                 await page.waitForSelector('#RemoveIncidentPriority');
                 await page.click('#RemoveIncidentPriority');
                 await page.waitFor(3000);
@@ -176,7 +206,10 @@ describe('Incident Priority API', () => {
                     await page.waitForSelector('#addNewPriority');
                     await page.click('#addNewPriority');
                     await page.waitForSelector('#CreateIncidentPriority');
-                    await page.type('input[name=name]', 'High');
+                    await page.type(
+                        'input[name=name]',
+                        utils.generateRandomString()
+                    );
                     await page.click('#CreateIncidentPriority');
                 }
 

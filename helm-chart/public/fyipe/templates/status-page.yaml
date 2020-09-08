@@ -7,7 +7,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
@@ -43,7 +43,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "status"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "status"  }}
     namespace: {{ .Release.Namespace }}
 spec:

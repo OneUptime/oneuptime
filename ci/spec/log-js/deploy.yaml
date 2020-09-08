@@ -2,6 +2,7 @@
 deploy_staging_log-js:
     stage: Deploy
     allow_failure: true
+    retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
@@ -39,6 +40,7 @@ deploy_staging_log-js:
 
 deploy_production_log-js:
     stage: Deploy
+    retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc

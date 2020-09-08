@@ -6,6 +6,7 @@ const twilioSchema = new Schema({
     accountSid: String,
     authToken: String,
     phoneNumber: String,
+    iv: Schema.Types.Buffer,
     enabled: { type: Boolean, default: true },
     createdAt: {
         type: Date,

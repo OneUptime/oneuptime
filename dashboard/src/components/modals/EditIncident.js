@@ -192,12 +192,12 @@ class EditIncident extends Component {
     }
 }
 
-EditIncident.displayName = 'CreateManualIncident';
+EditIncident.displayName = 'EditIncident';
 EditIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
 };
-const CreateManualIncidentForm = reduxForm({
-    form: 'CreateManualIncident',
+const EditIncidentForm = reduxForm({
+    form: 'editIncident',
 })(EditIncident);
 
 const mapDispatchToProps = dispatch => {
@@ -237,7 +237,4 @@ EditIncident.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(CreateManualIncidentForm);
+export default connect(mapStateToProps, mapDispatchToProps)(EditIncidentForm);

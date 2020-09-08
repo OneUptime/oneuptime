@@ -39,7 +39,9 @@ const RenderField = ({
                 </div>
                 <div className="Box-root">
                     <span id="field-error" style={{ color: 'red' }}>
-                        {meta.error}
+                        {typeof meta.error === 'object'
+                            ? meta.error.domain
+                            : meta.error}
                     </span>
                 </div>
             </div>
