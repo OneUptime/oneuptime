@@ -89,28 +89,18 @@ const _this = {
         projectId
     ) {
         try {
-            const creds = await _this.getSettings();
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
+            const options = {
+                body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
+                to: number,
+            };
 
-            if (!creds['sms-enabled']) {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-            const alertLimit = await AlertService.checkPhoneAlertsLimit(
-                projectId
-            );
-            if (alertLimit) {
-                const options = {
-                    body: `Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
-                    from: creds.phone,
-                    to: number,
-                };
+            const customTwilioSettings = await _this.findByOne({
+                projectId,
+                enabled: true,
+            });
 
-                // create incidentSMSAction entry for matching sms from twilio.
+            if (customTwilioSettings) {
+                options.from = customTwilioSettings.phoneNumber;
                 const incidentSMSAction = new incidentSMSActionModel();
                 incidentSMSAction.incidentId = incidentId;
                 incidentSMSAction.userId = userId;
@@ -118,12 +108,45 @@ const _this = {
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
 
+                const twilioClient = _this.getClient(
+                    customTwilioSettings.accountSid,
+                    customTwilioSettings.authToken
+                );
                 const message = await twilioClient.messages.create(options);
                 return message;
             } else {
-                const error = new Error('Alerts limit reached for the day.');
-                error.code = 400;
-                return error;
+                const creds = await _this.getSettings();
+                const twilioClient = _this.getClient(
+                    creds['account-sid'],
+                    creds['authentication-token']
+                );
+
+                if (!creds['sms-enabled']) {
+                    const error = new Error('SMS Not Enabled');
+                    error.code = 400;
+                    return error;
+                }
+                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                    projectId
+                );
+                if (alertLimit) {
+                    options.from = creds.phone;
+                    // create incidentSMSAction entry for matching sms from twilio.
+                    const incidentSMSAction = new incidentSMSActionModel();
+                    incidentSMSAction.incidentId = incidentId;
+                    incidentSMSAction.userId = userId;
+                    incidentSMSAction.number = number;
+                    incidentSMSAction.name = name;
+                    await incidentSMSAction.save();
+                    const message = await twilioClient.messages.create(options);
+                    return message;
+                } else {
+                    const error = new Error(
+                        'Alerts limit reached for the day.'
+                    );
+                    error.code = 400;
+                    return error;
+                }
             }
         } catch (error) {
             ErrorService.log(
