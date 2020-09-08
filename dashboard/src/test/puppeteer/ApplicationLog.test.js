@@ -178,6 +178,10 @@ describe('Log Containers', () => {
                     page
                 );
 
+                // toggle the filter section
+                await page.waitForSelector(`#filter_${applicationLogName}`);
+                await page.click(`#filter_${applicationLogName}`);
+
                 // select the drop down and confirm the current value as all
                 let logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'
@@ -346,9 +350,7 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toEqual(
-                    'Click here to reveal Log Container key'
-                );
+                expect(spanElement).toEqual('Click here to reveal Log API key');
             });
         },
         operationTimeOut
