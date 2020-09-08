@@ -126,8 +126,8 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 // click on timeline tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
 
                 const incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
@@ -191,6 +191,10 @@ describe('Incident Timeline API', () => {
                     e.click()
                 );
                 await page.waitFor(5000);
+
+                // click on timeline tab
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
 
                 const incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
@@ -419,7 +423,7 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(5000);
 
                 // edit investigation message thread form
-                await page.waitForSelector(`#edit-${type}`);
+                await page.waitForSelector(`#${type}-editButton`);
                 await page.click(`textarea[id=edit-${type}]`);
                 await page.type(`textarea[id=edit-${type}]`, '-updated');
                 await init.selectByText(
