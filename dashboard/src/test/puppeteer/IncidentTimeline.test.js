@@ -223,6 +223,12 @@ describe('Incident Timeline API', () => {
                 await page.click('#createIncident');
 
                 await page.waitFor(2000);
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
                 // click on incident tab
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
