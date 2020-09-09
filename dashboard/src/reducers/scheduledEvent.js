@@ -35,6 +35,12 @@ import {
     FETCH_ONGOING_SCHEDULED_EVENTS_FAILURE,
     FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST,
     FETCH_ONGOING_SCHEDULED_EVENTS_SUCCESS,
+    FETCH_SUBPROJECT_SCHEDULED_EVENTS_FAILURE,
+    FETCH_SUBPROJECT_SCHEDULED_EVENTS_REQUEST,
+    FETCH_SUBPROJECT_SCHEDULED_EVENTS_SUCCESS,
+    FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_FAILURE,
+    FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_REQUEST,
+    FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_SUCCESS,
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
@@ -47,6 +53,12 @@ const INITIAL_STATE = {
         skip: null,
         limit: null,
         count: null,
+    },
+    subProjectScheduledEventList: {
+        requesting: false,
+        success: false,
+        error: null,
+        scheduledEvents: [],
     },
     newScheduledEvent: {
         scheduledEvent: null,
@@ -113,6 +125,12 @@ const INITIAL_STATE = {
         events: [],
         count: 0,
     },
+    subProjectOngoingScheduledEvent: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+    },
 };
 
 export default function scheduledEvent(state = INITIAL_STATE, action) {
@@ -132,25 +150,63 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
 
             const eventPayload = existingPayload ? [] : [action.payload];
 
-            let eventData = {
-                events: [...state.ongoingScheduledEvent.events],
-                count: state.ongoingScheduledEvent.count,
-            };
-            state.ongoingScheduledEvent.events.map(event => {
-                if (String(event._id) === String(action.payload._id)) {
-                    existingOngoingEvent = true;
+            let events = [...state.subProjectOngoingScheduledEvent.events];
+
+            state.subProjectOngoingScheduledEvent.events.forEach(eventData => {
+                if (
+                    String(eventData.project) ===
+                    String(action.payload.projectId._id)
+                ) {
+                    eventData.ongoingScheduledEvents.forEach(event => {
+                        if (String(event._id) === String(action.payload._id)) {
+                            existingOngoingEvent = true;
+                        }
+                    });
                 }
-                return event;
             });
 
             if (!existingOngoingEvent) {
                 if (startDate <= currentDate && endDate > currentDate) {
-                    eventData = {
-                        events: [action.payload, ...eventData.events],
-                        count: eventData.count + 1,
-                    };
+                    events = state.subProjectOngoingScheduledEvent.events.map(
+                        eventData => {
+                            if (
+                                String(eventData.project) ===
+                                String(action.payload.projectId._id)
+                            ) {
+                                eventData.ongoingScheduledEvents = [
+                                    action.payload,
+                                    ...eventData.ongoingScheduledEvents,
+                                ];
+                                eventData.count =
+                                    eventData.ongoingScheduledEvents.length;
+                            }
+                            return eventData;
+                        }
+                    );
                 }
             }
+
+            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
+                event => {
+                    if (
+                        String(event.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        const existingEvent = event.scheduledEvents.find(
+                            event =>
+                                String(event._id) === String(action.payload._id)
+                        );
+                        if (!existingEvent) {
+                            event.scheduledEvents = [
+                                action.payload,
+                                ...event.scheduledEvents,
+                            ];
+                            event.count = event.count + 1;
+                        }
+                    }
+                    return event;
+                }
+            );
 
             return Object.assign({}, state, {
                 newScheduledEvent: {
@@ -167,9 +223,13 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     ],
                     count: state.scheduledEventList.count + 1,
                 },
-                ongoingScheduledEvent: {
-                    ...state.ongoingScheduledEvent,
-                    ...eventData,
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    scheduledEvents,
+                },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
+                    events,
                 },
             });
         }
@@ -194,7 +254,21 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 },
             });
 
-        case FETCH_SCHEDULED_EVENTS_SUCCESS:
+        case FETCH_SCHEDULED_EVENTS_SUCCESS: {
+            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
+                event => {
+                    if (
+                        action.payload.data.length > 0 &&
+                        String(event.project) ===
+                            String(action.payload.data[0].projectId._id)
+                    ) {
+                        event.scheduledEvents = action.payload.data;
+                        event.skip = action.payload.skip;
+                    }
+
+                    return event;
+                }
+            );
             return Object.assign({}, state, {
                 ...state,
                 scheduledEventList: {
@@ -206,7 +280,12 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     limit: action.payload.limit,
                     skip: action.payload.skip,
                 },
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    scheduledEvents,
+                },
             });
+        }
         case FETCH_SCHEDULED_EVENTS_FAILURE:
             return Object.assign({}, state, {
                 ...state,
@@ -228,6 +307,39 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case FETCH_SUBPROJECT_SCHEDULED_EVENTS_REQUEST:
+            return {
+                ...state,
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_SUBPROJECT_SCHEDULED_EVENTS_SUCCESS:
+            return {
+                ...state,
+                subProjectScheduledEventList: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    scheduledEvents: action.payload,
+                },
+            };
+
+        case FETCH_SUBPROJECT_SCHEDULED_EVENTS_FAILURE:
+            return {
+                ...state,
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
 
         case FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST:
             return {
@@ -257,6 +369,39 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 ...state,
                 ongoingScheduledEvent: {
                     ...state.ongoingScheduledEvent,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_REQUEST:
+            return {
+                ...state,
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_SUCCESS:
+            return {
+                ...state,
+                subProjectOngoingScheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload,
+                },
+            };
+
+        case FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_FAILURE:
+            return {
+                ...state,
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -298,8 +443,51 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
 
         case DELETE_SCHEDULED_EVENT_SUCCESS: {
             let deleted = true;
-            const events = state.ongoingScheduledEvent.events.filter(
-                event => String(event._id) !== String(action.payload._id)
+
+            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
+                subEvent => {
+                    if (
+                        String(subEvent.project) ===
+                        String(action.payload.projectId)
+                    ) {
+                        subEvent.scheduledEvents = subEvent.scheduledEvents.filter(
+                            event => {
+                                if (
+                                    String(event._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    deleted = false;
+                                }
+
+                                return (
+                                    String(event._id) !==
+                                    String(action.payload._id)
+                                );
+                            }
+                        );
+                        subEvent.count = deleted
+                            ? subEvent.count
+                            : subEvent.count - 1;
+                    }
+                    return subEvent;
+                }
+            );
+
+            const events = state.subProjectOngoingScheduledEvent.events.map(
+                eventData => {
+                    if (
+                        String(eventData.project) ===
+                        String(action.payload.projectId)
+                    ) {
+                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
+                            event =>
+                                String(event._id) !== String(action.payload._id)
+                        );
+                        eventData.count =
+                            eventData.ongoingScheduledEvents.length;
+                    }
+                    return eventData;
+                }
             );
 
             return Object.assign({}, state, {
@@ -329,10 +517,13 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     success: true,
                     error: false,
                 },
-                ongoingScheduledEvent: {
-                    ...state.ongoingScheduledEvent,
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    scheduledEvents,
+                },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
                     events,
-                    count: events.length,
                 },
             });
         }
@@ -372,14 +563,55 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     return scheduledEvent;
                 }
             );
-
-            let events = state.ongoingScheduledEvent.events.filter(
-                event => String(event._id) !== String(action.payload._id)
+            const subEvents = state.subProjectScheduledEventList.scheduledEvents.map(
+                subEvent => {
+                    if (
+                        String(subEvent.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        subEvent.scheduledEvents = subEvent.scheduledEvents.map(
+                            event => {
+                                if (
+                                    String(event._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    event = action.payload;
+                                }
+                                return event;
+                            }
+                        );
+                    }
+                    return subEvent;
+                }
             );
 
-            if (startDate <= currentDate && endDate > currentDate) {
-                events = [action.payload, ...events];
-            }
+            const events = state.subProjectOngoingScheduledEvent.events.map(
+                eventData => {
+                    if (
+                        String(eventData.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
+                            event => {
+                                return (
+                                    String(event._id) !==
+                                    String(action.payload._id)
+                                );
+                            }
+                        );
+                        if (startDate <= currentDate && endDate > currentDate) {
+                            eventData.ongoingScheduledEvents = [
+                                action.payload,
+                                ...eventData.ongoingScheduledEvents,
+                            ];
+                        }
+                        eventData.count =
+                            eventData.ongoingScheduledEvents.length;
+                    }
+
+                    return eventData;
+                }
+            );
 
             return Object.assign({}, state, {
                 updatedScheduledEvent: {
@@ -398,10 +630,13 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     ...state.scheduledEventList,
                     scheduledEvents,
                 },
-                ongoingScheduledEvent: {
-                    ...state.ongoingScheduledEvent,
+                subProjectScheduledEventList: {
+                    ...state.subProjectScheduledEventList,
+                    scheduledEvents: subEvents,
+                },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
                     events,
-                    count: events.length,
                 },
             });
         }
