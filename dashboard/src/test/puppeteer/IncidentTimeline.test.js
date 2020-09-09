@@ -249,6 +249,7 @@ describe('Incident Timeline API', () => {
 
                 // fill investigation message thread form
                 await page.waitFor(2000);
+                await page.waitForSelector(`#add-${type}-message`);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
