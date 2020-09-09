@@ -378,29 +378,6 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         o()
     }(),
     function() {
-        function t() {
-            ! function(t, n, e, i, o, r, a) {
-                t.fbq || (o = t.fbq = function() {
-                    o.callMethod ? o.callMethod.apply(o, arguments) : o.queue.push(arguments)
-                }, t._fbq || (t._fbq = o), o.push = o, o.loaded = !0, o.version = '2.0', o.queue = [], r = n.createElement(e), r.async = !0, r.src = i, a = n.getElementsByTagName(e)[0], a.parentNode.insertBefore(r, a))
-            }(window, document, 'script', '../connect.facebook.net/en_US/fbevents.js')
-        }
-
-        function n() {
-            window.fbq && window.fbq('init', o)
-        }
-
-        function e(t) {
-            window.fbq && t && (window.fbq('track', t), window.siteAnalyticsUtil.debugActive() && console.log('FB track', t))
-        }
-
-        function i() {
-            t(), n(), window.siteAnalytics.trackFacebookEvent = e, e('PageView')
-        }
-        var o = '742650679237989';
-        i()
-    }(),
-    function() {
         function t(t) {
             return t.matches('form *')
         }
@@ -437,16 +414,6 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
             i = {};
         n()
     }(),
-    function(t, n, e, i, o) {
-        t[i] = t[i] || [], t[i].push({
-            'gtm.start': (new Date).getTime(),
-            event: 'gtm.js'
-        });
-        var r = n.getElementsByTagName(e)[0],
-            a = n.createElement(e),
-            s = 'dataLayer' != i ? '&l=' + i : '';
-        a.async = !0, a.src = '../www.googletagmanager.com/gtm5445.html?id=' + o + s, r.parentNode.insertBefore(a, r)
-    }(window, document, 'script', 'dataLayer', 'GTM-K8JKCBR'),
     function() {
         function t() {
             window.siteAnalyticsUtil.emitActionOnce(c)

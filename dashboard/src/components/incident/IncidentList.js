@@ -71,7 +71,7 @@ export class IncidentList extends Component {
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    style={{ height: '1px', minWidth: '100px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -101,7 +101,7 @@ export class IncidentList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    style={{ height: '1px', minWidth: '150px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -111,7 +111,7 @@ export class IncidentList extends Component {
                                 </td>
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    style={{ height: '1px', minWidth: '130px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -172,20 +172,21 @@ export class IncidentList extends Component {
                                                             .currentProject
                                                             ._id +
                                                         '/' +
-                                                        this.props.componentId +
+                                                        incident.monitorId
+                                                            .componentId._id +
                                                         '/incidents/' +
                                                         incident._id
                                                 );
                                             }}
                                         >
                                             <td
-                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord Text-fontWeight--medium Text-fontSize--16 Padding-top--4 Text-font"
                                                 style={{
                                                     height: '1px',
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {incident.idNumber}
+                                                    {'#' + incident.idNumber}
                                                 </div>
                                             </td>
                                             <td
@@ -752,6 +753,12 @@ export class IncidentList extends Component {
                                         </tr>
                                     );
                                 })
+                            ) : this.props.incidents &&
+                              (!this.props.incidents.incidents ||
+                                  !this.props.incidents.incidents.length) &&
+                              !this.props.incidents.requesting &&
+                              !this.props.incidents.error ? (
+                                <tr></tr>
                             ) : (
                                 <tr>
                                     <td
@@ -900,7 +907,6 @@ IncidentList.propTypes = {
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
-    componentId: PropTypes.string,
     isFiltered: PropTypes.bool,
 };
 

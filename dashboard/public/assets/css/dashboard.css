@@ -3658,6 +3658,7 @@ figure.bs-Number > figcaption {
   .Flex-direction--row.bs-Container {
     -ms-flex-direction: column;
     flex-direction: column;
+    text-align: left;
   }
   .Flex-direction--row.bs-Carousel {
     -ms-flex-direction: column;
@@ -51239,4 +51240,34 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .Responsive-image {
   max-height: 9vw;
   max-width: 75%;
+}
+
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 250px;
+  box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.16), 
+    0 0 0 1px rgba(50, 151, 211, 0), 
+    0 0 0 2px rgba(50, 151, 211, 0), 
+    0 1px 1px rgba(0, 0, 0, 0.08);
+  height: 28px;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.PhoneInputCountry {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    margin-right: var(--PhoneInputCountrySelect-marginRight);
+    padding-left: 8px;
+    border-right: solid thin hsl(0,0%,80%);
+    padding-right: 8px;
+}
+
+.PhoneInputInput {
+    flex: 1 1;
+    min-width: 0;
+    border: none;
 }

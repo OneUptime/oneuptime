@@ -11,7 +11,7 @@ metadata:
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
         {{- end }}
 spec:
@@ -30,6 +30,11 @@ spec:
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: JWT_SECRET
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionkey
+                      - name: ENCRYPTION_KEY
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
@@ -124,7 +129,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "backend"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "backend"  }}
     namespace: {{ .Release.Namespace }}
 spec:

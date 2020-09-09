@@ -472,6 +472,27 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 status,
             });
 
+        case 'DELETE_MONITOR_BY_SOCKET': {
+            if (state.status._id) {
+                const status = {
+                    ...state.status,
+                    monitors: state.status.monitors.filter(
+                        monitorData =>
+                            String(monitorData.monitor) !==
+                            String(action.payload)
+                    ),
+                };
+                return {
+                    ...state,
+                    status,
+                };
+            }
+
+            return {
+                ...state,
+            };
+        }
+
         case UPDATE_STATUSPAGE_MONITORS_FAILURE:
             return Object.assign({}, state, {
                 monitors: {

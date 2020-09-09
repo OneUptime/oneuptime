@@ -8,7 +8,7 @@ import NewIncidentMessage from '../modals/NewIncidentMessage';
 import { User } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx';
 import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
 export class IncidentMessageThread extends Component {
     render() {
@@ -153,7 +153,8 @@ export class IncidentMessageThread extends Component {
                                                                 }}
                                                             />
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {incidentMessage
+                                                                {incidentMessage.createdById &&
+                                                                incidentMessage
                                                                     .createdById
                                                                     .name
                                                                     ? incidentMessage
@@ -166,25 +167,29 @@ export class IncidentMessageThread extends Component {
                                                         <div className="Margin-left--30">
                                                             <span
                                                                 id={`content_${type}_incident_message_${i}`}
+                                                                style={{
+                                                                    display:
+                                                                        'block',
+                                                                }}
                                                             >
-                                                                <ReactMarkdown
-                                                                    source={
+                                                                <Markdown>
+                                                                    {
                                                                         incidentMessage.content
                                                                     }
-                                                                />
-                                                                <ShouldRender
-                                                                    if={
-                                                                        incidentMessage.updated
-                                                                    }
-                                                                >
-                                                                    <span
-                                                                        id={`edited_${type}_incident_message_${i}`}
-                                                                        className="Text-color--dark Margin-right--4"
-                                                                    >
-                                                                        (edited)
-                                                                    </span>
-                                                                </ShouldRender>
+                                                                </Markdown>
                                                             </span>
+                                                            <ShouldRender
+                                                                if={
+                                                                    incidentMessage.updated
+                                                                }
+                                                            >
+                                                                <span
+                                                                    id={`edited_${type}_incident_message_${i}`}
+                                                                    className="Text-color--dark Margin-right--4"
+                                                                >
+                                                                    (edited)
+                                                                </span>
+                                                            </ShouldRender>
                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                 <span
                                                                     style={{
@@ -257,9 +262,11 @@ export class IncidentMessageThread extends Component {
                                                 >
                                                     <ShouldRender
                                                         if={
+                                                            incidentMessage.createdById &&
                                                             User.getUserId() ===
-                                                            incidentMessage
-                                                                .createdById._id
+                                                                incidentMessage
+                                                                    .createdById
+                                                                    ._id
                                                         }
                                                     >
                                                         <div className="db-ListViewItem-link">

@@ -1,12 +1,43 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            let globalConfig = new GlobalConfigModel();
+            if (name === 'twilio' && value['authentication-token']) {
+                const iv = Crypto.randomBytes(16);
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
+                    value['authentication-token'],
+                    iv
+                );
+                value['iv'] = iv;
+            } else if (name === 'smtp' && value['password']) {
+                const iv = Crypto.randomBytes(16);
+                value['password'] = await EncryptDecrypt.encrypt(
+                    value['password'],
+                    iv
+                );
+                value['iv'] = iv;
+            }
 
+            let globalConfig = new GlobalConfigModel();
             globalConfig.name = name;
             globalConfig.value = value;
-
             globalConfig = await globalConfig.save();
+
+            if (globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['authentication-token'],
+                    globalConfig.value['iv']
+                );
+                delete globalConfig.value['iv'];
+            }
+            if (globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv']
+                );
+                delete globalConfig.value['iv'];
+            }
 
             return globalConfig;
         } catch (error) {
@@ -21,6 +52,34 @@ module.exports = {
                 query = {};
             }
 
+            if (
+                query.name === 'twilio' &&
+                data &&
+                data.value &&
+                data.value['authentication-token']
+            ) {
+                const { value } = data;
+                const iv = Crypto.randomBytes(16);
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
+                    value['authentication-token'],
+                    iv
+                );
+                value['iv'] = iv;
+            } else if (
+                query.name === 'smtp' &&
+                data &&
+                data.value &&
+                data.value['password']
+            ) {
+                const { value } = data;
+                const iv = Crypto.randomBytes(16);
+                value['password'] = await EncryptDecrypt.encrypt(
+                    value['password'],
+                    iv
+                );
+                value['iv'] = iv;
+            }
+
             const globalConfig = await GlobalConfigModel.findOneAndUpdate(
                 query,
                 { $set: data },
@@ -28,6 +87,22 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if (globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['authentication-token'],
+                    globalConfig.value['iv'].buffer
+                );
+                delete globalConfig.value['iv'];
+            } else if (globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv'].buffer
+                );
+                delete globalConfig.value['iv'];
+            }
 
             return globalConfig;
         } catch (error) {
@@ -71,6 +146,26 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
+            for (const globalConfig of globalConfigs) {
+                if (globalConfig.name === 'twilio') {
+                    globalConfig.value[
+                        'authentication-token'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['authentication-token'],
+                        globalConfig.value['iv'].buffer
+                    );
+                    delete globalConfig.value['iv'];
+                } else if (globalConfig.name === 'smtp') {
+                    globalConfig.value[
+                        'password'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['password'],
+                        globalConfig.value['iv'].buffer
+                    );
+                    delete globalConfig.value['iv'];
+                }
+            }
+
             return globalConfigs;
         } catch (error) {
             ErrorService.log('globalConfigService.findBy', error);
@@ -86,6 +181,21 @@ module.exports = {
 
             const globalConfig = await GlobalConfigModel.findOne(query);
 
+            if (globalConfig && globalConfig.name === 'twilio') {
+                globalConfig.value[
+                    'authentication-token'
+                ] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['authentication-token'],
+                    globalConfig.value['iv'].buffer
+                );
+                delete globalConfig.value['iv'];
+            } else if (globalConfig && globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv'].buffer
+                );
+                delete globalConfig.value['iv'];
+            }
             return globalConfig;
         } catch (error) {
             ErrorService.log('globalConfigService.findOneBy', error);
@@ -119,5 +229,7 @@ module.exports = {
     },
 };
 
+const Crypto = require('crypto');
 const GlobalConfigModel = require('../models/globalConfig');
 const ErrorService = require('./errorService');
+const EncryptDecrypt = require('../config/encryptDecrypt');

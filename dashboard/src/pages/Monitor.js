@@ -18,6 +18,7 @@ import {
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
     fetchLighthouseLogs,
+    createMonitorSuccess,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -27,7 +28,14 @@ import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import { API_URL } from '../config';
+import io from 'socket.io-client';
+import { history } from '../store';
 
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
@@ -82,6 +90,7 @@ class DashboardView extends Component {
 
     componentWillUnmount() {
         this.props.destroy('NewMonitor');
+        socket.removeListener(`createMonitor-${this.props.currentProject._id}`);
     }
 
     ready = () => {
@@ -89,6 +98,7 @@ class DashboardView extends Component {
             ? this.props.currentProject._id
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
+        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.monitor.monitorsList.monitors.forEach(subProject => {
             if (subProject.monitors.length > 0) {
                 subProject.monitors.forEach(monitor => {
@@ -129,7 +139,26 @@ class DashboardView extends Component {
     };
 
     render() {
+        if (this.props.currentProject) {
+            socket.on(
+                `createMonitor-${this.props.currentProject._id}`,
+                data => {
+                    this.props.createMonitorSuccess(data);
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring/${data._id}`
+                    );
+                }
+            );
+        }
+
         let incidentslist = null;
+        const {
+            componentId,
+            subProjects,
+            currentProject,
+            location: { pathname },
+            component,
+        } = this.props;
 
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -163,19 +192,12 @@ class DashboardView extends Component {
                                 count={i}
                                 incident={incident}
                                 multiple={true}
+                                route={pathname}
                             />
                         </RenderIfUserInSubProject>
                     );
                 });
         }
-
-        const {
-            componentId,
-            subProjects,
-            currentProject,
-            location: { pathname },
-            component,
-        } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
         // SubProject Monitors List
@@ -414,9 +436,11 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorsIncidents,
             fetchMonitorStatuses,
             fetchLighthouseLogs,
+            fetchIncidentPriorities,
             loadPage,
             fetchTutorial,
             getProbes,
+            createMonitorSuccess,
         },
         dispatch
     );
@@ -503,6 +527,8 @@ DashboardView.propTypes = {
             name: PropTypes.string,
         })
     ),
+    fetchIncidentPriorities: PropTypes.func.isRequired,
+    createMonitorSuccess: PropTypes.func.isRequired,
 };
 
 DashboardView.displayName = 'DashboardView';

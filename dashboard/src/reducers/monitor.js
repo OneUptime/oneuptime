@@ -97,68 +97,8 @@ const INITIAL_STATE = {
 };
 
 export default function monitor(state = INITIAL_STATE, action) {
-    let monitors, isExistingMonitor, monitorType, initialValue;
+    let monitors, monitorType, initialValue;
     switch (action.type) {
-        case CREATE_MONITOR_SUCCESS:
-            isExistingMonitor = state.monitorsList.monitors.find(
-                monitor => monitor._id === action.payload.projectId._id
-            );
-            return Object.assign({}, state, {
-                ...state,
-
-                newMonitor: {
-                    requesting: false,
-                    error: null,
-                    success: false,
-                    monitor: null,
-                },
-                monitorsList: {
-                    ...state.monitorsList,
-
-                    monitors: isExistingMonitor
-                        ? state.monitorsList.monitors.length > 0
-                            ? state.monitorsList.monitors.map(
-                                  subProjectMonitors => {
-                                      return subProjectMonitors._id ===
-                                          action.payload.projectId._id
-                                          ? {
-                                                _id:
-                                                    action.payload.projectId
-                                                        ._id,
-                                                monitors: [
-                                                    action.payload,
-                                                    ...subProjectMonitors.monitors,
-                                                ],
-                                                count:
-                                                    subProjectMonitors.count +
-                                                    1,
-                                                skip: subProjectMonitors.skip,
-                                                limit: subProjectMonitors.limit,
-                                            }
-                                          : subProjectMonitors;
-                                  }
-                              )
-                            : [
-                                  {
-                                      _id: action.payload.projectId,
-                                      monitors: [action.payload],
-                                      count: 1,
-                                      skip: 0,
-                                      limit: 0,
-                                  },
-                              ]
-                        : [
-                              {
-                                  _id: action.payload.projectId,
-                                  monitors: [action.payload],
-                                  count: 1,
-                                  skip: 0,
-                                  limit: 0,
-                              },
-                          ].concat(state.monitorsList.monitors),
-                },
-            });
-
         case CREATE_MONITOR_FAILURE:
             return Object.assign({}, state, {
                 newMonitor: {
@@ -181,6 +121,48 @@ export default function monitor(state = INITIAL_STATE, action) {
                     requesting: true,
                 },
             });
+
+        case CREATE_MONITOR_SUCCESS:
+        case 'CREATE_MONITOR': {
+            let monitorFound = false;
+            const monitors = state.monitorsList.monitors.map(monitorData => {
+                let output = {
+                    ...monitorData,
+                    monitors: monitorData.monitors.map(monitor => {
+                        if (
+                            String(monitor._id) === String(action.payload._id)
+                        ) {
+                            monitorFound = true;
+                            return action.payload;
+                        }
+                        return monitor;
+                    }),
+                };
+                if (!monitorFound) {
+                    output = {
+                        ...output,
+                        monitors: [action.payload, ...output.monitors],
+                        count: output.count + 1,
+                    };
+                }
+
+                return output;
+            });
+
+            return {
+                ...state,
+                monitorsList: {
+                    ...state.monitorsList,
+                    monitors,
+                },
+                newMonitor: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    monitor: null,
+                },
+            };
+        }
 
         case FETCH_MONITORS_SUCCESS:
             return Object.assign({}, state, {
@@ -1115,7 +1097,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
-        case DELETE_MONITOR_SUCCESS:
+        case DELETE_MONITOR_SUCCESS: {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
@@ -1125,14 +1107,18 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }) => _id !== action.payload
+                                ({ _id }) =>
+                                    String(_id) !== String(action.payload)
                             );
+                            subProjectMonitor.count =
+                                subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
                     ),
                 },
                 deleteMonitor: false,
             });
+        }
 
         case DELETE_MONITOR_FAILURE:
             return Object.assign({}, state, {
@@ -1305,8 +1291,11 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }) => _id !== action.payload
+                                ({ _id }) =>
+                                    String(_id) !== String(action.payload)
                             );
+                            subProjectMonitor.count =
+                                subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
                     ),
@@ -1392,11 +1381,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                 activeProbe: action.payload,
             });
 
-        case GET_MONITOR_LOGS_SUCCESS:
+        case GET_MONITOR_LOGS_SUCCESS: {
+            const monitorId = action.payload.monitorId
+                ? action.payload.monitorId
+                : action.payload.logs && action.payload.logs.length > 0
+                ? action.payload.logs[0].monitorId
+                : null;
             return Object.assign({}, state, {
                 monitorLogs: {
                     ...state.monitorLogs,
-                    [action.payload.monitorId]: {
+                    [monitorId]: {
                         logs: action.payload.logs,
                         error: null,
                         requesting: false,
@@ -1407,6 +1401,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     },
                 },
             });
+        }
 
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {

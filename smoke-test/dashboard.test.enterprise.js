@@ -46,6 +46,8 @@ describe('Enterprise Dashboard API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
+            await page.waitForSelector('#components');
+            await page.click('#components');
             await page.waitForSelector(`#more-details-${componentName}`);
             await page.click(`#more-details-${componentName}`);
             await page.waitForSelector(`#more-details-${monitorName}`);
@@ -60,6 +62,9 @@ describe('Enterprise Dashboard API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
+            await page.waitForSelector('#components');
+            await page.click('#components');
+
             await page.waitForSelector(`#delete-component-${componentName}`);
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
@@ -78,13 +83,25 @@ describe('Enterprise Dashboard API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
                 // Fill and submit New Component form
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
                 await page.click('button[type=submit]');
-                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                // Navigate to details page of component created in previous test
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.click(`#more-details-${componentName}`);
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
+                await page.waitFor(5000);
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
@@ -97,8 +114,7 @@ describe('Enterprise Dashboard API', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`,
-                    { visible: true }
+                    `#monitor-title-${monitorName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -116,6 +132,8 @@ describe('Enterprise Dashboard API', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle2',
                 });
+                await page.waitForSelector('#components');
+                await page.click('#components');
 
                 // Navigate to details page of component created in previous test
                 await page.waitForSelector(`#more-details-${componentName}`);
@@ -124,15 +142,17 @@ describe('Enterprise Dashboard API', () => {
                     visible: true,
                 });
 
-                // Fill and submit New Monitor form
-                await page.click('input[id=name]');
+                // Submit New Monitor form with incorrect details
+                await page.waitForSelector('#name');
                 await init.selectByText('#type', 'url', page);
                 await page.waitForSelector('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
 
                 let spanElement;
-                spanElement = await page.$('#field-error');
+                spanElement = await page.waitForSelector(
+                    '#form-new-monitor span#field-error'
+                );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(

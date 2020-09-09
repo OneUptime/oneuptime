@@ -1,8 +1,9 @@
-const { find, update } = require('../util/db');
+const { find, update, save } = require('../util/db');
 
 const monitorCollection = 'monitors';
 const projectsCollection = 'projects';
 const incidentsCollection = 'incidents';
+const incidentprioritiesCollection = 'incidentpriorities';
 
 async function run() {
     const monitors = await find(monitorCollection, {
@@ -14,13 +15,19 @@ async function run() {
         await update(monitorCollection, { _id: monitor._id }, { pollTime: [] });
     }
 
-    const projects = await find(projectsCollection, {
-        deleted: false,
+    const incidentsWithoutIdNumber = await find(incidentsCollection, {
+        idNumber: { $exists: false },
     });
 
-    for (const project of projects) {
+    const projectIds = new Set();
+    for (const incident of incidentsWithoutIdNumber) {
+        projectIds.add(incident.projectId);
+    }
+
+    //Update the incidents idNumber
+    for (const projectId of projectIds) {
         const query = {
-            projectId: project._id,
+            projectId,
         };
         const incidents = await global.db
             .collection(incidentsCollection)
@@ -31,8 +38,52 @@ async function run() {
             await update(
                 incidentsCollection,
                 { _id: incidents[i]._id },
-                { idNumber: i }
+                { idNumber: i + 1 }
             );
+        }
+    }
+
+    const allProjects = await find(projectsCollection, {
+        deleted: false,
+    });
+
+    //Add default incident priorities for existing
+    //projects not having any priority
+    for (const project of allProjects) {
+        const query = {
+            projectId: project._id,
+        };
+        const incidentPriorities = await global.db
+            .collection(incidentprioritiesCollection)
+            .find(query)
+            .toArray();
+        if (incidentPriorities.length === 0) {
+            await save(incidentprioritiesCollection, [
+                {
+                    deleted: false,
+                    createdAt: new Date(),
+                    projectId: project._id,
+                    name: 'High',
+                    color: {
+                        r: 255,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                },
+                {
+                    deleted: false,
+                    createdAt: new Date(),
+                    projectId: project._id,
+                    name: 'Low',
+                    color: {
+                        r: 255,
+                        g: 211,
+                        b: 0,
+                        a: 1,
+                    },
+                },
+            ]);
         }
     }
 }

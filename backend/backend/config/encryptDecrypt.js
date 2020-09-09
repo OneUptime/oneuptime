@@ -2,10 +2,9 @@ const crypto = require('crypto');
 const EncryptionKeys = require('./encryptionKeys');
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-const iv = EncryptionKeys.iv;
 
 module.exports = {
-    encrypt: plainText => {
+    encrypt: (plainText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
                 const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -19,7 +18,7 @@ module.exports = {
         return promise;
     },
 
-    decrypt: encText => {
+    decrypt: (encText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);

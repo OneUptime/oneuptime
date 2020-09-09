@@ -11153,11 +11153,16 @@ table {
 .custom-tab {
     padding: 15px;
     border-right: 2px solid #F7F7F7;
-    width: 25%;
     color: #878787;
     display: flex;
     justify-content: center;
     cursor: pointer;
+}
+.custom-tab-4 {
+    width: 25%;
+}
+.custom-tab-5 {
+    width: 20%;
 }
 .custom-tab-selected {
     color: #000;
@@ -11166,7 +11171,6 @@ table {
     position: absolute;
     border-bottom: 2px solid #000;
     transition: transform 0.35s;
-    width: 25%;
     transition-timing-function: ease-in-out;
 }
 @media only screen and (max-width: 594px) {

@@ -23,7 +23,11 @@ let token,
     scheduledEventId,
     statusPageId,
     privateStatusPageId,
-    userId;
+    userId,
+    futureEventId,
+    incidentId,
+    monitorCategoryName,
+    monitorName;
 const testData = require('./data/data');
 const VerificationTokenModel = require('../../../backend/backend/models/verificationToken');
 const UserService = require('../../../backend/backend/services/userService');
@@ -33,10 +37,19 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 const monitor = testData.monitor;
 const monitorCategory = testData.monitorCategory;
 const scheduledEvent = testData.scheduledEvent;
+const futureScheduledEvent = testData.futureScheduledEvent;
 const statusPage = testData.statusPage;
 const privateStatusPage = testData.privateStatusPage;
+const degradeIncident = testData.degradeIncident;
+const onlineIncident = testData.onlineIncident;
+const scheduledEventNote = testData.scheduledEventNote;
+const incidentNote = testData.incidentNote;
 
-const today = new Date().toISOString();
+let today = new Date().toISOString();
+today = moment(today).format();
+const tomorrow = moment(today)
+    .add(2, 'days')
+    .format();
 const dateId = moment(today)
     .format('LL')
     .replace(/, | /g, '');
@@ -92,6 +105,7 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitorCategory);
         monitorCategoryId = monitorCategoryRequest.body._id;
+        monitorCategoryName = monitorCategoryRequest.body.name;
         monitor.monitorCategoryId = monitorCategoryId;
 
         const monitorRequest = await request
@@ -99,16 +113,29 @@ describe('Status page monitors check', function() {
             .set('Authorization', authorization)
             .send(monitor);
         monitorId = monitorRequest.body._id;
+        monitorName = monitorRequest.body.name;
         scheduledEventMonitorId = monitorId;
 
         scheduledEvent.startDate = today;
-        scheduledEvent.endDate = today;
+        scheduledEvent.endDate = tomorrow;
+        scheduledEvent.monitors = [monitorId];
 
         const scheduledEventRequest = await request
-            .post(`/scheduledEvent/${projectId}/${monitorId}`)
+            .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send(scheduledEvent);
         scheduledEventId = scheduledEventRequest.body._id;
+
+        // scheduled event to happen in the future
+        futureScheduledEvent.startDate = tomorrow;
+        futureScheduledEvent.endDate = tomorrow;
+        futureScheduledEvent.monitors = [monitorId];
+
+        const futureEvent = await request
+            .post(`/scheduledEvent/${projectId}`)
+            .set('Authorization', authorization)
+            .send(futureScheduledEvent);
+        futureEventId = futureEvent._id;
 
         statusPage.projectId = projectId;
         statusPage.monitors = [
@@ -284,14 +311,26 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
-        const monitorCategoryNameSelector = '#monitorCategory1';
+        const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
         const monitorCategoryName = await page.$eval(
-            monitorCategoryNameSelector,
+            `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
         expect(monitorCategoryName).to.be.equal(
-            monitorCategory.monitorCategoryName.toUpperCase()
+            monitorCategory.monitorCategoryName
         );
+    });
+
+    it('should display monitor category on status page', async function() {
+        await page.goto(statusPageURL, { waitUntil: 'networkidle0' });
+        const categoryId = `#monitorCategory_${monitorName}`;
+
+        await page.waitForSelector(categoryId);
+        const categoryName = await page.$eval(
+            `${categoryId} > span`,
+            elem => elem.textContent
+        );
+        expect(categoryName).to.be.equal(monitorCategoryName);
     });
 
     it('should display "UNCATEGORIZED" when the monitor category associated with monitor is deleted', async function() {
@@ -301,31 +340,75 @@ describe('Status page monitors check', function() {
         await page.reload({
             waitUntil: 'networkidle0',
         });
-        const monitorCategoryNameSelector = '#monitorCategory0';
+        const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
         const monitorCategoryName = await page.$eval(
-            monitorCategoryNameSelector,
+            `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
-        expect(monitorCategoryName).to.be.equal('UNCATEGORIZED');
+        expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
     it('should display scheduled events when enabled on status page', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
         await page.waitForSelector('#scheduledEvents');
 
+        await page.waitForSelector('li.scheduledEvent');
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        expect(countScheduledEvents).to.be.equal(1);
-
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent > div > div > span:nth-child(2)',
+            'li.scheduledEvent .feed-title',
             el => el.textContent
         );
 
-        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+        expect(countScheduledEvents).to.be.equal(1);
+        expect(scheduledEventName).to.be.equal(`${futureScheduledEvent.name}`);
+    });
+
+    it('should display ongoing scheduled event on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.ongoing__schedulebox');
+        const ongoingEvents = await page.$$('.ongoing__schedulebox');
+
+        expect(ongoingEvents.length).to.be.equal(1);
+    });
+
+    it('should navigate to scheduled event page on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#scheduledEvents');
+        await page.waitForSelector('li.scheduledEvent');
+        const events = await page.$$('li.scheduledEvent');
+        await events[0].click();
+
+        await page.waitForSelector('#scheduledEventPage');
+        const backnavigation = await page.$eval(
+            '#scheduledEventPage .sp__icon--back',
+            elem => elem.textContent
+        );
+        expect(backnavigation).to.be.equal('Back to status page');
+    });
+
+    it('should show scheduled event notes on scheduled event page', async function() {
+        await request
+            .post(`/scheduledEvent/${projectId}/${futureEventId}/notes`)
+            .set('Authorization', authorization)
+            .send(scheduledEventNote);
+
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.messages li.feed-item');
+        const notes = await page.$$('.messages li.feed-item');
+        expect(notes.length).to.be.equal(1);
     });
 
     it('should display monitor scheduled events when date is selected', async function() {
+        await page.goto(statusPageURL, {
+            waitUntil: 'networkidle0',
+        });
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
         const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
         await page.waitForSelector(monitorDaySelector);
@@ -334,17 +417,17 @@ describe('Status page monitors check', function() {
 
         await page.waitForSelector('#scheduledEvents');
 
+        await page.waitForSelector('li.scheduledEvent');
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        expect(countScheduledEvents).to.be.equal(1);
-
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent > div > div > span:nth-child(2)',
+            'li.scheduledEvent .feed-title',
             el => el.textContent
         );
 
-        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}.`);
+        expect(countScheduledEvents).to.be.equal(1);
+        expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}`);
     });
 
     it('should not display scheduled events when disabled on status page', async function() {
@@ -365,27 +448,65 @@ describe('Status page monitors check', function() {
         expect(scheduledEvents).to.be.equal(null);
     });
 
-    it('should display Some services are degraded', async function() {
-        await chai
-            .request('http://localhost:3010/')
-            .post('api/settings')
-            .send({
-                responseTime: 6000,
-                statusCode: 200,
-                responseType: 'json',
-                header: {},
-                body: { status: 'ok' },
-            });
+    it('should display incident on status page', async function() {
+        // add an online incident
+        const incident = await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(onlineIncident);
+        incidentId = incident.body._id;
 
-        page.waitForSelector('.largestatus > .status-up');
-        //wait for 2 min approximatively
-        await page.waitFor(125000);
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.incidentlist');
+        const incidentTitle = await page.$eval(
+            '.incidentlist .message > .text > span:nth-child(1)',
+            elem => elem.textContent
+        );
+        expect(incidentTitle).to.be.equal(onlineIncident.title);
+    });
+
+    it('should navigate to incident page on status page', async function() {
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.incidentlist');
+        const incidents = await page.$$('.incidentlist');
+        await incidents[0].click();
+
+        await page.waitForSelector('#incident');
+        const backnavigation = await page.$eval(
+            '#footer .sp__icon--back',
+            elem => elem.textContent
+        );
+        expect(backnavigation).to.be.equal('Back to status page');
+    });
+
+    it('should show incident notes on incident page', async function() {
+        await request
+            .post(`/incident/${projectId}/incident/${incidentId}/message`)
+            .set('Authorization', authorization)
+            .send(incidentNote);
+
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#incidentNotes li.feed-item');
+        const notes = await page.$$('#incidentNotes li.feed-item');
+        expect(notes.length).to.be.equal(1);
+    });
+
+    it('should display Some services are degraded', async function() {
+        // add a degraded incident
+        await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(degradeIncident);
+
+        await page.goto(statusPageURL, {
+            waitUntil: 'networkidle0',
+        });
         await page.reload({
             waitUntil: 'networkidle0',
         });
+        await page.waitForSelector('.largestatus > .status-paused');
         const textHeader = await page.$eval('.title', e => e.textContent);
         expect(textHeader).to.be.eql('Some services are degraded');
-        await page.waitForSelector('.largestatus > .status-paused');
     });
 });
 

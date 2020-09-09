@@ -3,10 +3,19 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
+import { openModal, closeModal } from '../../actions/modal';
+import ProbeDetail from '../modals/ProbeDetail';
+import DataPathHoC from '../DataPathHoC';
 
 export class ProbeList extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { ProbeDetailModalId: uuid.v4() };
+    }
+
     render() {
         if (
             this.props.probesList &&
@@ -120,110 +129,135 @@ export class ProbeList extends Component {
                             {this.props.probesList &&
                             this.props.probesList.data &&
                             this.props.probesList.data.length ? (
-                                this.props.probesList.data.map(probesData => (
-                                    <tr
-                                        className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                        key={probesData._id}
-                                    >
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '270px',
-                                            }}
+                                this.props.probesList.data.map(
+                                    (probesData, index) => (
+                                        <tr
+                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                            key={probesData._id}
+                                            id={`probe_${index}`}
+                                            onClick={() =>
+                                                this.props.openModal({
+                                                    id: this.state
+                                                        .ProbeDetailModalId,
+                                                    onClose: () => '',
+                                                    content: DataPathHoC(
+                                                        ProbeDetail,
+                                                        {
+                                                            ProbeDetailModalId: this
+                                                                .state
+                                                                .ProbeDetailModalId,
+                                                            closeModal: this
+                                                                .props
+                                                                .closeModal,
+                                                            probesData,
+                                                        }
+                                                    ),
+                                                })
+                                            }
                                         >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root Margin-right--16">
-                                                        <span>
-                                                            {probesData.probeName
-                                                                ? probesData.probeName
-                                                                : 'Unknown Location'}
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div className="db-ListViewItem-link">
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{
+                                                    height: '1px',
+                                                    minWidth: '270px',
+                                                }}
+                                            >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root">
+                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Margin-right--16">
                                                             <span>
-                                                                {probesData.lastAlive
-                                                                    ? moment(
-                                                                          probesData.lastAlive
-                                                                      ).format(
-                                                                          'dddd, MMMM Do YYYY, h:mm a'
-                                                                      )
-                                                                    : ''}
+                                                                {probesData.probeName
+                                                                    ? probesData.probeName
+                                                                    : 'Unknown Location'}
                                                             </span>
                                                         </div>
                                                     </span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td
-                                            aria-hidden="true"
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{
-                                                height: '1px',
-                                                maxWidth: '48px',
-                                                minWidth: '48px',
-                                                width: '48px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-link">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    ⁣
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <div className="Box-root">
+                                                                <span>
+                                                                    {probesData.lastAlive
+                                                                        ? moment(
+                                                                              probesData.lastAlive
+                                                                          ).format(
+                                                                              'dddd, MMMM Do YYYY, h:mm a'
+                                                                          )
+                                                                        : ''}
+                                                                </span>
+                                                            </div>
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div className="db-ListViewItem-link">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Flex-flex">
+                                            </td>
+                                            <td
+                                                aria-hidden="true"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    maxWidth: '48px',
+                                                    minWidth: '48px',
+                                                    width: '48px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        ⁣
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Flex-flex">
-                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                    <ProbeStatus
-                                                                        lastAlive={
-                                                                            probesData &&
-                                                                            probesData.lastAlive
-                                                                        }
-                                                                    />
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <ProbeStatus
+                                                                            lastAlive={
+                                                                                probesData &&
+                                                                                probesData.lastAlive
+                                                                            }
+                                                                            id={
+                                                                                index
+                                                                            }
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </span>
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
+                                            </td>
 
-                                        <td
-                                            aria-hidden="true"
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{
-                                                height: '1px',
-                                                maxWidth: '48px',
-                                                minWidth: '48px',
-                                                width: '48px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-link">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    ⁣
+                                            <td
+                                                aria-hidden="true"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    maxWidth: '48px',
+                                                    minWidth: '48px',
+                                                    width: '48px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        ⁣
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                        </tr>
+                                    )
+                                )
                             ) : (
                                 <tr></tr>
                             )}
@@ -313,7 +347,7 @@ export class ProbeList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -334,6 +368,8 @@ ProbeList.propTypes = {
     error: PropTypes.object,
     prevClicked: PropTypes.func,
     nextClicked: PropTypes.func,
+    openModal: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProbeList);

@@ -7,6 +7,7 @@ import {
     getStatusPageIndividualNote,
     getIndividualEvent,
     notmonitoredDays,
+    showIncidentCard,
 } from '../actions/status';
 
 class BlockChart extends Component {
@@ -17,6 +18,7 @@ class BlockChart extends Component {
     }
 
     requestday = (need, date) => {
+        this.props.showIncidentCard(false);
         if (need) {
             this.props.getStatusPageIndividualNote(
                 this.props.statusData.projectId._id,
@@ -99,6 +101,7 @@ class BlockChart extends Component {
                 bar = 'bar';
                 title = moment(this.props.time.date).format('LL');
                 title1 = 'No downtime';
+                need = true;
                 if (colors)
                     backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
             }
@@ -135,6 +138,7 @@ const mapDispatchToProps = dispatch =>
             getStatusPageIndividualNote,
             getIndividualEvent,
             notmonitoredDays,
+            showIncidentCard,
         },
         dispatch
     );
@@ -147,6 +151,7 @@ BlockChart.propTypes = {
     notmonitoredDays: PropTypes.func,
     monitorName: PropTypes.any,
     monitorId: PropTypes.any,
+    showIncidentCard: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BlockChart);

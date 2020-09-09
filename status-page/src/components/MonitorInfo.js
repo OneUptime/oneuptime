@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchMonitorStatuses } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
+import ShouldRender from './ShouldRender';
 
 const calculateTime = (statuses, start, range) => {
     const timeBlock = [];
@@ -190,6 +191,8 @@ class MonitorInfo extends Component {
             activeProbe,
             colors,
             selectedCharts,
+            monitorCategory,
+            isGroupedByMonitorCategory,
         } = this.props;
         const now = Date.now();
         const range = 90;
@@ -211,8 +214,8 @@ class MonitorInfo extends Component {
         const monitorStatus = getMonitorStatus(statuses);
 
         const uptime =
-            uptimePercent || uptimePercent === 0
-                ? uptimePercent.toString().slice(0, 4)
+            uptimePercent !== 100 && !isNaN(uptimePercent)
+                ? uptimePercent.toFixed(3)
                 : '100';
         const upDays = timeBlock.length;
 
@@ -236,6 +239,14 @@ class MonitorInfo extends Component {
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
+        };
+        const monitorCategoryStyle = {
+            display: 'inline-block',
+            marginBottom: 10,
+            fontSize: 10,
+            color: '#8898aa',
+            fontWeight: 'Bold',
+            textTransform: 'uppercase',
         };
 
         const subheading = {};
@@ -265,29 +276,43 @@ class MonitorInfo extends Component {
                         justifyContent: 'space-between',
                     }}
                 >
-                    <div style={{ display: 'flex' }}>
-                        <div>
-                            <span style={status}></span>
-                        </div>
-                        <div>
-                            <span
-                                className="uptime-stat-name"
-                                style={subheading}
-                            >
-                                {monitor.name}
-                            </span>
-                            <br />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <ShouldRender if={isGroupedByMonitorCategory}>
                             <div
-                                style={{
-                                    color: '#8898aa',
-                                    textDecoration: 'none',
-                                    paddingLeft: '0px',
-                                    fontSize: '12px',
-                                    width: '300px',
-                                    wordWrap: 'break-word',
-                                }}
+                                id={`monitorCategory_${monitor.name}`}
+                                style={monitorCategoryStyle}
                             >
-                                {selectedCharts.description}
+                                <span>
+                                    {monitorCategory
+                                        ? monitorCategory.name
+                                        : 'Uncategorized'}
+                                </span>
+                            </div>
+                        </ShouldRender>
+                        <div style={{ display: 'flex' }}>
+                            <div>
+                                <span style={status}></span>
+                            </div>
+                            <div>
+                                <span
+                                    className="uptime-stat-name"
+                                    style={subheading}
+                                >
+                                    {monitor.name}
+                                </span>
+                                <br />
+                                <div
+                                    style={{
+                                        color: '#8898aa',
+                                        textDecoration: 'none',
+                                        paddingLeft: '0px',
+                                        fontSize: '12px',
+                                        width: '300px',
+                                        wordWrap: 'break-word',
+                                    }}
+                                >
+                                    {selectedCharts.description}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -346,6 +371,11 @@ MonitorInfo.propTypes = {
     monitorState: PropTypes.array,
     probes: PropTypes.array,
     selectedCharts: PropTypes.object,
+    monitorCategory: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    isGroupedByMonitorCategory: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

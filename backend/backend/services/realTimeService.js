@@ -428,6 +428,28 @@ module.exports = {
         }
     },
 
+    deleteMonitor: async monitor => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: monitor.projectId._id,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : monitor.projectId._id;
+
+            global.io.emit(`deleteMonitor-${projectId}`, monitor);
+        } catch (error) {
+            ErrorService.log('realTimeService.deleteMonitor', error);
+            throw error;
+        }
+    },
+
     sendComponentDelete: async component => {
         try {
             if (!global || !global.io) {
@@ -823,6 +845,44 @@ module.exports = {
             );
         } catch (error) {
             ErrorService.log('realTimeService.applicationLogKeyReset', error);
+            throw error;
+        }
+    },
+    sendContainerSecurityCreated: async containerSecurity => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = containerSecurity.componentId;
+
+            global.io.emit(
+                `createContainerSecurity-${componentId}`,
+                containerSecurity
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendContainerSecurityCreated',
+                error
+            );
+            throw error;
+        }
+    },
+    sendApplicationSecurityCreated: async applicationSecurity => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = applicationSecurity.componentId;
+
+            global.io.emit(
+                `createApplicationSecurity-${componentId}`,
+                applicationSecurity
+            );
+        } catch (error) {
+            ErrorService.log(
+                'realTimeService.sendApplicationSecurityCreated',
+                error
+            );
             throw error;
         }
     },

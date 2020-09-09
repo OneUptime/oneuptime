@@ -14,7 +14,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "home"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
@@ -47,7 +47,7 @@ metadata:
     labels:
         app: {{ printf "%s-%s" .Release.Name "home"  }}
         app.kubernetes.io/part-of: fyipe
-        app.kubernetes.io/managed-by: helm
+        app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "home"  }}
     namespace: {{ .Release.Namespace }}
 spec:

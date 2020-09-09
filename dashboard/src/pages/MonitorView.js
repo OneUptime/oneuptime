@@ -31,6 +31,8 @@ import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class MonitorView extends React.Component {
     // eslint-disable-next-line
@@ -80,10 +82,15 @@ class MonitorView extends React.Component {
             ); //0 -> skip, 5-> limit.
         }
     }
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+    };
 
     ready = () => {
         const { monitor } = this.props;
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const subProjectId = monitor.projectId._id || monitor.projectId;
         this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
         if (monitor.type === 'url') {
@@ -140,250 +147,316 @@ class MonitorView extends React.Component {
                         route={pathname}
                         name={monitorName}
                         pageTitle="Monitor View"
+                        type={monitor ? monitor.type : null}
                     />
-                    <div className="Box-root">
-                        <div>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Basic
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Incidents
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Subscribers
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Integrations
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-5'}>
+                                    Advanced Options
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-5"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <div className="Box-root">
                             <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span data-reactroot="">
-                                            <div>
+                                <div>
+                                    <div className="db-BackboneViewContainer">
+                                        <div className="react-settings-view react-view">
+                                            <span data-reactroot="">
                                                 <div>
-                                                    {this.props.monitor &&
-                                                    this.props.monitor._id &&
-                                                    this.props.monitor.type &&
-                                                    (((this.props.monitor
-                                                        .type === 'url' ||
+                                                    <div>
+                                                        {this.props.monitor &&
                                                         this.props.monitor
-                                                            .type === 'api') &&
-                                                        !this.props.probeList
-                                                            .requesting) ||
-                                                        (this.props.monitor
-                                                            .type !== 'url' &&
+                                                            ._id &&
+                                                        this.props.monitor
+                                                            .type &&
+                                                        (((this.props.monitor
+                                                            .type === 'url' ||
                                                             this.props.monitor
+                                                                .type ===
+                                                                'api') &&
+                                                            !this.props
+                                                                .probeList
+                                                                .requesting) ||
+                                                            (this.props.monitor
                                                                 .type !==
-                                                                'api')) ? (
-                                                        <Fragment>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <ShouldRender
-                                                                    if={
-                                                                        !this
-                                                                            .props
-                                                                            .monitor
-                                                                            .editMode
-                                                                    }
-                                                                >
-                                                                    <MonitorViewHeader
-                                                                        componentId={
-                                                                            this
-                                                                                .props
-                                                                                .componentId
-                                                                        }
-                                                                        monitor={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                        }
-                                                                        index={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                ._id
-                                                                        }
-                                                                    />
-                                                                </ShouldRender>
-                                                                <ShouldRender
-                                                                    if={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            .editMode
-                                                                    }
-                                                                >
-                                                                    <NewMonitor
-                                                                        {...this
-                                                                            .props}
-                                                                        editMonitorProp={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                        }
-                                                                        index={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                ._id
-                                                                        }
-                                                                        edit={
-                                                                            true
-                                                                        }
-                                                                        key={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                ._id
-                                                                        }
-                                                                        formKey={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                ._id
-                                                                        }
-                                                                        initialValues={
-                                                                            initialValues
-                                                                        }
-                                                                    />
-                                                                </ShouldRender>
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <MonitorViewIncidentBox
-                                                                    componentId={
-                                                                        this
-                                                                            .props
-                                                                            .componentId
-                                                                    }
-                                                                    monitor={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <ShouldRender
-                                                                if={
-                                                                    this.props
-                                                                        .monitor &&
-                                                                    this.props
-                                                                        .monitor
-                                                                        .type &&
-                                                                    this.props
-                                                                        .monitor
-                                                                        .type ===
-                                                                        'url'
-                                                                }
-                                                            >
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    <MonitorViewLighthouseLogsBox
-                                                                        componentId={
-                                                                            this
-                                                                                .props
-                                                                                .componentId
-                                                                        }
-                                                                        monitor={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={
-                                                                    this.props
-                                                                        .monitor &&
-                                                                    this.props
-                                                                        .monitor
-                                                                        .type &&
-                                                                    (this.props
-                                                                        .monitor
-                                                                        .type ===
-                                                                        'url' ||
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            .type ===
-                                                                            'api')
-                                                                }
-                                                            >
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    <MonitorViewLogsBox
-                                                                        monitorId={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                ._id
-                                                                        }
-                                                                        monitorName={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                                .name
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </ShouldRender>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <MonitorViewSubscriberBox
-                                                                    monitorId={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            ._id
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <MSTeamsBox
-                                                                    monitorId={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            ._id
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <SlackBox
-                                                                    monitorId={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            ._id
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="Box-root Margin-bottom--12">
-                                                                <WebHookBox
-                                                                    monitorId={
-                                                                        this
-                                                                            .props
-                                                                            .monitor
-                                                                            ._id
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <RenderIfSubProjectAdmin
-                                                                subProjectId={
-                                                                    subProjectId
-                                                                }
-                                                            >
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    <MonitorViewDeleteBox
-                                                                        componentId={
-                                                                            this
-                                                                                .props
-                                                                                .componentId
-                                                                        }
-                                                                        monitor={
-                                                                            this
-                                                                                .props
-                                                                                .monitor
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </RenderIfSubProjectAdmin>
-                                                        </Fragment>
-                                                    ) : (
-                                                        <LoadingState />
-                                                    )}
+                                                                'url' &&
+                                                                this.props
+                                                                    .monitor
+                                                                    .type !==
+                                                                    'api')) ? (
+                                                            <Fragment>
+                                                                <TabPanel>
+                                                                    <Fade>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    !this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .editMode
+                                                                                }
+                                                                            >
+                                                                                <MonitorViewHeader
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                    index={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            ._id
+                                                                                    }
+                                                                                />
+                                                                            </ShouldRender>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .editMode
+                                                                                }
+                                                                            >
+                                                                                <NewMonitor
+                                                                                    {...this
+                                                                                        .props}
+                                                                                    editMonitorProp={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                    index={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            ._id
+                                                                                    }
+                                                                                    edit={
+                                                                                        true
+                                                                                    }
+                                                                                    key={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            ._id
+                                                                                    }
+                                                                                    formKey={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            ._id
+                                                                                    }
+                                                                                    initialValues={
+                                                                                        initialValues
+                                                                                    }
+                                                                                />
+                                                                            </ShouldRender>
+                                                                        </div>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .monitor &&
+                                                                                this
+                                                                                    .props
+                                                                                    .monitor
+                                                                                    .type &&
+                                                                                this
+                                                                                    .props
+                                                                                    .monitor
+                                                                                    .type ===
+                                                                                    'url'
+                                                                            }
+                                                                        >
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewLighthouseLogsBox
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .props
+                                                                                    .monitor &&
+                                                                                this
+                                                                                    .props
+                                                                                    .monitor
+                                                                                    .type &&
+                                                                                (this
+                                                                                    .props
+                                                                                    .monitor
+                                                                                    .type ===
+                                                                                    'url' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'api')
+                                                                            }
+                                                                        >
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewLogsBox
+                                                                                    monitorId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            ._id
+                                                                                    }
+                                                                                    monitorName={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                            .name
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </ShouldRender>
+                                                                    </Fade>
+                                                                </TabPanel>
+                                                                <TabPanel>
+                                                                    <Fade>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <MonitorViewIncidentBox
+                                                                                componentId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .componentId
+                                                                                }
+                                                                                monitor={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+                                                                <TabPanel>
+                                                                    <Fade>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <MonitorViewSubscriberBox
+                                                                                monitorId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+
+                                                                <TabPanel>
+                                                                    <Fade>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <MSTeamsBox
+                                                                                monitorId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <SlackBox
+                                                                                monitorId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <WebHookBox
+                                                                                monitorId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        ._id
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </Fade>
+                                                                </TabPanel>
+
+                                                                <TabPanel>
+                                                                    <Fade>
+                                                                        <RenderIfSubProjectAdmin
+                                                                            subProjectId={
+                                                                                subProjectId
+                                                                            }
+                                                                        >
+                                                                            <div className="Box-root Margin-bottom--12">
+                                                                                <MonitorViewDeleteBox
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </RenderIfSubProjectAdmin>
+                                                                    </Fade>
+                                                                </TabPanel>
+                                                            </Fragment>
+                                                        ) : (
+                                                            <LoadingState />
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Tabs>
                 </Fade>
             </Dashboard>
         );
@@ -506,6 +579,7 @@ const mapDispatchToProps = dispatch => {
             fetchLighthouseLogs,
             getProbes,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
         },
         dispatch
     );
@@ -529,6 +603,7 @@ MonitorView.propTypes = {
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
 };
 
 MonitorView.displayName = 'MonitorView';

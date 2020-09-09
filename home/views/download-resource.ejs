@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/css/demo.css">
     <link rel="stylesheet" href="/css/demo.css">
     <script defer src="/js/demo.js"></script>
-    <script src="/js/emaildomains.js" async></script>
+    <script defer src="/js/emaildomains.js" async></script>
     <script src="/js/amplitude.js"></script>
 </head>
 
@@ -72,7 +72,7 @@
                                         email address.</p>
                                     <div class="form-row text Phone">
                                         <label class="Phone" for="phone">Your Phone number</label>
-                                        <input id="Phone" name="phone" type="text" placeholder="+1-123-456-7890"
+                                        <input id="phone" name="phone" type="text" placeholder="+1-123-456-7890"
                                             required="">
                                     </div>
                                     <div class="form-row text website">
@@ -83,7 +83,7 @@
                                     <div class="form-row select country">
                                         <label class="country" for="country">Country</label>
                                         <div class="select-wrapper">
-                                            <select id="country" name="country" required=""
+                                            <select name="country" required=""
                                                 data-searchable-select-input-placeholder="Search..."
                                                 data-searchable-select-no-results-message="No countries found."
                                                 class="has-value">
@@ -340,7 +340,7 @@
                                             </select>
                                             <div class="searchable-select-container">
                                                 <div class="searchable-select-dropdown">
-                                                    <input class="searchable-select-input" placeholder="Search..."
+                                                    <input id="country" class="searchable-select-input" placeholder="Search..."
                                                         autocorrect="off" autocomplete="off" spellcheck="false">
                                                     <ul class="searchable-select-results">
                                                         <li class="searchable-select-result" data-value="AF">Afghanistan
@@ -961,7 +961,6 @@
 
     </div>
     <script>
-
         $(document).ready(function () {
             var index = window.location.href.split('/')[window.location.href.split('/').length - 1];
             $("#whitepaper_name").val(index);
@@ -1024,7 +1023,7 @@
         });
 
     </script>
-    <script type="text/javascript">
+    <script>
         $(document).ready(function (e) {
             $('#request-resource-btn').click(function () {
                 var email = $('#email').val();

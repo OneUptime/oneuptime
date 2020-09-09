@@ -53,6 +53,73 @@ describe('Components', () => {
     });
 
     test(
+        'Should show indicator on how to invite new Team members since no other member exist, then goto team page ',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitFor(15000);
+                const componentBoxElement = await page.waitForSelector(
+                    '#info-teamMember'
+                );
+                expect(componentBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    `span#box-header-teamMember`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Invite your Team');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage-teamMember');
+                await page.click('#gotoPage-teamMember');
+
+                const componentFormElement = await page.waitForSelector(
+                    `#teamMemberPage`
+                );
+                expect(componentFormElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should show indicator on how to create a component since no component exist, then goto component creation ',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                const componentBoxElement = await page.waitForSelector(
+                    '#info-component'
+                );
+                expect(componentBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    `span#box-header-component`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create your first Component');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage-component');
+                await page.click('#gotoPage-component');
+
+                const componentFormElement = await page.waitForSelector(
+                    '#form-new-component'
+                );
+                expect(componentFormElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
         'Should create new component',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -79,6 +146,42 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(componentName);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should show indicator on how to create a monitor since a component exist, then goto monitor creation',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to home page
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                const monitorBoxElement = await page.waitForSelector(
+                    '#info-monitor'
+                );
+                expect(monitorBoxElement).toBeDefined();
+
+                let spanElement;
+                spanElement = await page.waitForSelector(
+                    `span#box-header-monitor`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Create a Monitor');
+
+                // click on the call to action button
+                await page.waitForSelector('#gotoPage-monitor');
+                await page.click('#gotoPage-monitor');
+
+                // Navigate to Component details
+                await page.waitForSelector(`#more-details-${componentName}`);
+                await page.$eval(`#more-details-${componentName}`, e =>
+                    e.click()
+                );
+                await page.waitForSelector('#form-new-monitor');
             });
         },
         operationTimeOut
@@ -172,6 +275,39 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should create a new monitor in component and goto the details page after creating',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+                const newMonitorName = `another-${monitorName}`;
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', newMonitorName);
+                await init.selectByText('#type', 'url', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', 'https://google.com');
+                await page.click('button[type=submit]');
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${newMonitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(newMonitorName);
+
+                // check if the tabs on the details page are defined
+                const monitorTabsComponent = await page.waitForSelector(
+                    `#customTabList`
+                );
+                expect(monitorTabsComponent).toBeDefined();
             });
         },
         operationTimeOut
@@ -299,7 +435,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one log container and one monitor
+                expect(countResources).toEqual(3); // one log container and two monitor
             });
         },
         operationTimeOut
@@ -334,6 +470,10 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
+                // click on Incident tab
+                await monitorPage.waitForSelector('#react-tabs-2');
+                await monitorPage.click('#react-tabs-2');
+
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`
                 );
@@ -347,16 +487,6 @@ describe('Components', () => {
                 await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
                 await monitorPage.waitFor(2000);
-                let monitorSpanElement = await monitorPage.waitForSelector(
-                    `#monitor-status-${monitorName}`
-                );
-                monitorSpanElement = await monitorSpanElement.getProperty(
-                    'innerText'
-                );
-                monitorSpanElement = await monitorSpanElement.jsonValue();
-                // check that monitor status on monitor page is online
-                expect(monitorSpanElement).toMatch('Online');
-                await monitorPage.waitFor(2000);
 
                 await componentPage.bringToFront();
                 // check that the monitor is offline on component page
@@ -368,7 +498,7 @@ describe('Components', () => {
                 );
                 componentSpanElement = await componentSpanElement.jsonValue();
 
-                expect(componentSpanElement).toMatch('Online');
+                expect(componentSpanElement).toMatch('Offline');
                 await componentPage.waitFor(2000);
                 // bring monitor window to the front so as to resolve incident
                 await monitorPage.bringToFront();
@@ -422,7 +552,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one log container and one monitor
+                expect(countResources).toEqual(3); // one log container and two monitor
 
                 let spanElement = await page.waitForSelector(
                     `#resource_type_${monitorName}`
@@ -438,7 +568,7 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                expect(spanElement).toMatch('Log Containers');
+                expect(spanElement).toMatch('Log Container');
 
                 spanElement = await page.waitForSelector(
                     `#resource_status_${applicationLogName}`
@@ -469,7 +599,7 @@ describe('Components', () => {
                 const resourceRows = await page.$$(componentSelector);
                 const countResources = resourceRows.length;
 
-                expect(countResources).toEqual(2); // one log container and one monitor
+                expect(countResources).toEqual(3); // one log container and two monitor
 
                 await page.click(`#view-resource-${applicationLogName}`);
 

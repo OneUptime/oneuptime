@@ -235,7 +235,22 @@ module.exports = {
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
                         { _id: log._id },
-                        { incidentIdsOrRetry }
+                        { incidentIds: incidentIdsOrRetry }
+                    );
+                }
+            } else {
+                const incidents = await IncidentService.findBy({
+                    monitorId: data.monitorId,
+                    incidentType: data.status,
+                    resolved: false,
+                });
+
+                const incidentIds = incidents.map(incident => incident._id);
+
+                if (incidentIds && incidentIds.length) {
+                    log = await MonitorLogService.updateOneBy(
+                        { _id: log._id },
+                        { incidentIds }
                     );
                 }
             }
@@ -270,6 +285,7 @@ module.exports = {
                 monitorId: data.monitorId,
                 incidentType: data.status,
                 resolved: false,
+                manuallyCreated: false,
             });
             let incidentIds = [];
 
@@ -426,6 +442,7 @@ module.exports = {
                 monitorId: data.monitorId,
                 incidentType: lastStatus,
                 resolved: false,
+                manuallyCreated: false,
             });
             const incidentsV1 = [];
             const incidentsV2 = [];

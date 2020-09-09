@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { Field, reduxForm } from 'redux-form';
+import { Field, reduxForm, change, formValueSelector } from 'redux-form';
+import handlebars from 'handlebars';
+import moment from 'moment';
 import { createNewIncident } from '../../actions/incident';
 import { ValidateField, renderIfUserInSubProject } from '../../config';
 import { FormLoader } from '../basic/Loader';
@@ -13,6 +15,14 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateIncident extends Component {
+    constructor() {
+        super();
+        this.state = {
+            monitorName: '',
+            titleEdited: false,
+            descriptionEdited: false,
+        };
+    }
     submitForm = values => {
         const {
             createNewIncident,
@@ -26,7 +36,7 @@ class CreateIncident extends Component {
             incidentType,
             title,
             description,
-            incidentPriorities,
+            incidentPriority,
         } = values;
         let projectId = currentProject._id;
         const subProjectMonitor = monitors.find(
@@ -42,7 +52,7 @@ class CreateIncident extends Component {
             incidentType,
             title,
             description,
-            incidentPriorities
+            incidentPriority === '' ? null : incidentPriority
         ).then(
             function() {
                 closeThisDialog();
@@ -59,6 +69,67 @@ class CreateIncident extends Component {
                 return this.props.closeThisDialog();
             default:
                 return false;
+        }
+    };
+
+    substituteVariables = (value, name) => {
+        const { titleEdited, descriptionEdited } = this.state;
+
+        if (titleEdited && descriptionEdited) return;
+
+        const {
+            monitors,
+            incidentBasicSettings,
+            data,
+            change,
+            selectedIncidentType,
+            projectName,
+        } = this.props;
+
+        let monitorName = this.state.monitorName;
+
+        const subProjectMonitor = monitors.find(
+            subProjectMonitor => subProjectMonitor._id === data.subProjectId
+        );
+
+        if (
+            name === 'monitorId' &&
+            subProjectMonitor &&
+            subProjectMonitor.monitors
+        ) {
+            monitorName = '';
+            for (const monitor of subProjectMonitor.monitors) {
+                if (value === monitor._id) {
+                    monitorName = monitor.name;
+                    this.setState({ monitorName });
+                }
+            }
+        }
+
+        const values = {
+            incidentType: selectedIncidentType,
+            monitorName,
+            projectName,
+            time: moment().format('h:mm:ss a'),
+            date: moment().format('MMM Do YYYY'),
+        };
+
+        if (name === 'incidentType') values[name] = value;
+
+        if (values['monitorName'] === '')
+            values['monitorName'] = '{{Monitor Name}}';
+
+        if (!titleEdited) {
+            const titleTemplate = handlebars.compile(
+                incidentBasicSettings.title
+            );
+            change('title', titleTemplate(values));
+        }
+        if (!descriptionEdited) {
+            const descriptionTemplate = handlebars.compile(
+                incidentBasicSettings.description
+            );
+            change('description', descriptionTemplate(values));
         }
     };
 
@@ -156,6 +227,17 @@ class CreateIncident extends Component {
                                                                       )
                                                                     : []),
                                                             ]}
+                                                            onChange={(
+                                                                event,
+                                                                newValue,
+                                                                previousValue,
+                                                                name
+                                                            ) =>
+                                                                this.substituteVariables(
+                                                                    newValue,
+                                                                    name
+                                                                )
+                                                            }
                                                         />
                                                     </div>
                                                     <div className="bs-Fieldset-row Margin-bottom--12">
@@ -182,12 +264,6 @@ class CreateIncident extends Component {
                                                                 options={[
                                                                     {
                                                                         value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select type',
-                                                                    },
-                                                                    {
-                                                                        value:
                                                                             'online',
                                                                         label:
                                                                             'Online',
@@ -205,6 +281,17 @@ class CreateIncident extends Component {
                                                                             'Degraded',
                                                                     },
                                                                 ]}
+                                                                onChange={(
+                                                                    event,
+                                                                    newValue,
+                                                                    previousValue,
+                                                                    name
+                                                                ) =>
+                                                                    this.substituteVariables(
+                                                                        newValue,
+                                                                        name
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -226,7 +313,6 @@ class CreateIncident extends Component {
                                                                     }
                                                                     name="incidentPriority"
                                                                     id="incidentPriority"
-                                                                    placeholder="Incident Priority"
                                                                     disabled={
                                                                         this
                                                                             .props
@@ -234,12 +320,6 @@ class CreateIncident extends Component {
                                                                             .requesting
                                                                     }
                                                                     options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select type',
-                                                                        },
                                                                         ...incidentPriorities.map(
                                                                             incidentPriority => ({
                                                                                 value:
@@ -249,6 +329,17 @@ class CreateIncident extends Component {
                                                                             })
                                                                         ),
                                                                     ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        newValue,
+                                                                        previousValue,
+                                                                        name
+                                                                    ) =>
+                                                                        this.substituteVariables(
+                                                                            newValue,
+                                                                            name
+                                                                        )
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -274,6 +365,13 @@ class CreateIncident extends Component {
                                                                 validate={[
                                                                     ValidateField.required,
                                                                 ]}
+                                                                onChange={() =>
+                                                                    this.setState(
+                                                                        {
+                                                                            titleEdited: true,
+                                                                        }
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -291,6 +389,16 @@ class CreateIncident extends Component {
                                                                 height="150px"
                                                                 width="100%"
                                                                 placeholder="This can be markdown"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
+                                                                onChange={() =>
+                                                                    this.setState(
+                                                                        {
+                                                                            descriptionEdited: true,
+                                                                        }
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -405,31 +513,6 @@ class CreateIncident extends Component {
 }
 
 CreateIncident.displayName = 'CreateIncidentFormModal';
-
-const CreateIncidentForm = reduxForm({
-    form: 'CreateNewIncident', // a unique identifier for this form
-})(CreateIncident);
-
-const mapDispatchToProps = dispatch => {
-    return bindActionCreators(
-        {
-            createNewIncident,
-        },
-        dispatch
-    );
-};
-
-function mapStateToProps(state) {
-    return {
-        monitors: state.monitor.monitorsList.monitors,
-        subProjects: state.subProject.subProjects.subProjects,
-        currentProject: state.project.currentProject,
-        newIncident: state.incident.newIncident,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
-    };
-}
-
 CreateIncident.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     createNewIncident: PropTypes.func.isRequired,
@@ -442,6 +525,80 @@ CreateIncident.propTypes = {
     requesting: PropTypes.bool,
     data: PropTypes.object,
     incidentPriorities: PropTypes.array.isRequired,
+    change: PropTypes.func.isRequired,
+    selectedIncidentType: PropTypes.string.isRequired,
+    projectName: PropTypes.string.isRequired,
+    incidentBasicSettings: PropTypes.object.isRequired,
+};
+
+const formName = 'CreateNewIncident';
+
+const CreateIncidentForm = reduxForm({
+    form: formName, // a unique identifier for this form
+})(CreateIncident);
+
+const selector = formValueSelector(formName);
+
+function mapStateToProps(state, props) {
+    const { data } = props;
+    const { subProjectId } = data;
+    const { projects } = state.project.projects;
+    const { subProjects } = state.subProject.subProjects;
+    let projectName = '';
+    for (const project of projects) {
+        if (project._id === subProjectId) projectName = project.name;
+    }
+    if (projectName === '') {
+        for (const subProject of subProjects) {
+            if (subProject._id === subProjectId) projectName = subProject.name;
+        }
+    }
+    const incidentType = 'offline';
+    const values = {
+        incidentType,
+        monitorName: '{{Monitor Name}}',
+        projectName,
+        time: moment().format('h:mm:ss a'),
+        date: moment().format('MMM Do YYYY'),
+    };
+    const titleTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.title
+    );
+    const descriptionTemplate = handlebars.compile(
+        state.incidentBasicSettings.incidentBasicSettings.description
+    );
+    const initialValues = {
+        incidentType,
+        title: titleTemplate(values),
+        description: descriptionTemplate(values),
+        incidentPriority:
+            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
+    };
+
+    const selectedIncidentType = selector(state, 'incidentType');
+    return {
+        monitors: state.monitor.monitorsList.monitors,
+        subProjects: state.subProject.subProjects.subProjects,
+        currentProject: state.project.currentProject,
+        newIncident: state.incident.newIncident,
+        incidentPriorities:
+            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
+        incidentBasicSettings:
+            state.incidentBasicSettings.incidentBasicSettings,
+        selectedIncidentType,
+        initialValues,
+        projectName,
+    };
+}
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            createNewIncident,
+            change,
+        },
+        dispatch
+    );
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(CreateIncidentForm);

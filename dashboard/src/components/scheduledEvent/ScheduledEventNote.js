@@ -4,10 +4,10 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
+import Markdown from 'markdown-to-jsx';
 import ShouldRender from '../basic/ShouldRender';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import DataPathHoC from '../DataPathHoC';
-import ReactMarkdown from 'react-markdown';
 import { openModal } from '../../actions/modal';
 import DeleteNoteModal from './DeleteNoteModal';
 import AddNoteModal from './AddNoteModal';
@@ -250,25 +250,25 @@ export class ScheduledEventNote extends Component {
                                                     <div className="Margin-left--30">
                                                         <span
                                                             id={`content_${type}_incident_message_${i}`}
+                                                            style={{
+                                                                display:
+                                                                    'block',
+                                                            }}
                                                         >
-                                                            <ReactMarkdown
-                                                                source={
-                                                                    note.content
-                                                                }
-                                                            />
-                                                            <ShouldRender
-                                                                if={
-                                                                    note.updated
-                                                                }
-                                                            >
-                                                                <span
-                                                                    id={`edited_${type}_incident_message_${i}`}
-                                                                    className="Text-color--dark Margin-right--4"
-                                                                >
-                                                                    (edited)
-                                                                </span>
-                                                            </ShouldRender>
+                                                            <Markdown>
+                                                                {note.content}
+                                                            </Markdown>
                                                         </span>
+                                                        <ShouldRender
+                                                            if={note.updated}
+                                                        >
+                                                            <span
+                                                                id={`edited_${type}_incident_message_${i}`}
+                                                                className="Text-color--dark Margin-right--4"
+                                                            >
+                                                                (edited)
+                                                            </span>
+                                                        </ShouldRender>
                                                         <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                             <span
                                                                 style={{
@@ -276,8 +276,10 @@ export class ScheduledEventNote extends Component {
                                                                         '500',
                                                                     fontStyle:
                                                                         'italic',
+                                                                    fontSize: 11,
                                                                 }}
                                                             >
+                                                                Posted on{' '}
                                                                 {currentTimeZone
                                                                     ? momentTz(
                                                                           note.createdAt
@@ -309,7 +311,7 @@ export class ScheduledEventNote extends Component {
                                                     minWidth: '150px',
                                                 }}
                                             >
-                                                {note.incident_state ? (
+                                                {note.event_state ? (
                                                     <div className="db-ListViewItem-link">
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
                                                             <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -320,7 +322,7 @@ export class ScheduledEventNote extends Component {
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     <span>
                                                                                         {
-                                                                                            note.incident_state
+                                                                                            note.event_state
                                                                                         }
                                                                                     </span>
                                                                                 </span>

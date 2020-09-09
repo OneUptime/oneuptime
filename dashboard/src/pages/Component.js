@@ -170,7 +170,14 @@ class DashboardView extends Component {
             <Dashboard ready={this.ready}>
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Components" />
-                    <AlertDisabledWarning page="Component" />
+                    <ShouldRender
+                        if={
+                            this.props.monitors &&
+                            this.props.monitors.length > 0
+                        }
+                    >
+                        <AlertDisabledWarning page="Component" />
+                    </ShouldRender>
                     <div className="Box-root">
                         <div>
                             <div>
@@ -318,6 +325,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
+    let monitors = [];
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
@@ -328,6 +336,10 @@ const mapStateToProps = state => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
+    state.monitor.monitorsList.monitors.map(monitor => {
+        monitors = monitors.concat(...monitor.monitors);
+        return monitor;
+    });
 
     return {
         component,
@@ -339,6 +351,7 @@ const mapStateToProps = state => {
         monitor: state.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
+        monitors,
     };
 };
 
@@ -368,6 +381,7 @@ DashboardView.propTypes = {
     monitor: PropTypes.object,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
+    monitors: PropTypes.array,
 };
 
 DashboardView.displayName = 'DashboardView';

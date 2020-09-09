@@ -5,28 +5,17 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import {
-    fetchscheduledEvents,
-    createScheduledEventSuccess,
-    updateScheduledEventSuccess,
-    deleteScheduledEventSuccess,
-} from '../../actions/scheduledEvent';
+import { fetchscheduledEvents } from '../../actions/scheduledEvent';
 import { openModal, closeModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import { history } from '../../store';
-import { API_URL, capitalize } from '../../config';
-import io from 'socket.io-client';
+import { capitalize } from '../../config';
 import { fetchMonitors } from '../../actions/monitor';
 import { ListLoader } from '../basic/Loader';
 import { Link } from 'react-router-dom';
-
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
-});
 
 class ScheduledEventBox extends Component {
     constructor(props) {
@@ -38,29 +27,10 @@ class ScheduledEventBox extends Component {
     }
 
     componentDidMount() {
-        const {
-            projectId,
-            fetchscheduledEvents,
-            createScheduledEventSuccess,
-            updateScheduledEventSuccess,
-            deleteScheduledEventSuccess,
-            fetchMonitors,
-        } = this.props;
+        const { projectId, fetchscheduledEvents, fetchMonitors } = this.props;
         fetchscheduledEvents(projectId, 0, this.limit);
 
         fetchMonitors(projectId);
-
-        socket.on(`addScheduledEvent-${projectId}`, event =>
-            createScheduledEventSuccess(event)
-        );
-
-        socket.on(`deleteScheduledEvent-${projectId}`, event =>
-            deleteScheduledEventSuccess(event)
-        );
-
-        socket.on(`updateScheduledEvent-${projectId}`, event =>
-            updateScheduledEventSuccess(event)
-        );
     }
 
     prevClicked = () => {
@@ -132,11 +102,13 @@ class ScheduledEventBox extends Component {
             openModal,
             fetchingMonitors,
             monitors,
+            currentProject,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
+        const projectName = currentProject ? currentProject.name : '';
 
         return (
             <div
@@ -150,7 +122,12 @@ class ScheduledEventBox extends Component {
                                 <span>Scheduled Events</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                <span>Scheduled events for this project.</span>
+                                <span>
+                                    Scheduled events show up on status pages and
+                                    dashboard to let your team or customers know
+                                    of any planned maintenance activity you have
+                                    for {projectName}
+                                </span>
                             </span>
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
@@ -227,6 +204,14 @@ class ScheduledEventBox extends Component {
                                                 className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                                 style={{
                                                     backgroundColor: 'white',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    this.handleScheduledEventDetail(
+                                                        scheduledEvent._id
+                                                    );
                                                 }}
                                             >
                                                 <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
@@ -293,11 +278,13 @@ class ScheduledEventBox extends Component {
                                                             title="view"
                                                             className="bs-Button bs-DeprecatedButton"
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 this.handleScheduledEventDetail(
                                                                     scheduledEvent._id
-                                                                )
-                                                            }
+                                                                );
+                                                            }}
                                                         >
                                                             <span>View</span>
                                                         </button>
@@ -309,13 +296,15 @@ class ScheduledEventBox extends Component {
                                                                 marginLeft: 20,
                                                             }}
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 openModal({
                                                                     id: createScheduledEventModalId,
                                                                     content: EditSchedule,
                                                                     event: scheduledEvent,
-                                                                })
-                                                            }
+                                                                });
+                                                            }}
                                                         >
                                                             <span>Edit</span>
                                                         </button>
@@ -327,7 +316,9 @@ class ScheduledEventBox extends Component {
                                                                 marginLeft: 20,
                                                             }}
                                                             type="button"
-                                                            onClick={() =>
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
                                                                 openModal({
                                                                     id:
                                                                         scheduledEvent._id,
@@ -339,8 +330,8 @@ class ScheduledEventBox extends Component {
                                                                                 scheduledEvent._id,
                                                                         }
                                                                     ),
-                                                                })
-                                                            }
+                                                                });
+                                                            }}
                                                         >
                                                             <span>Delete</span>
                                                         </button>
@@ -503,12 +494,10 @@ ScheduledEventBox.propTypes = {
     error: PropTypes.object,
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
-    createScheduledEventSuccess: PropTypes.func,
-    updateScheduledEventSuccess: PropTypes.func,
-    deleteScheduledEventSuccess: PropTypes.func,
     fetchMonitors: PropTypes.func,
     fetchingMonitors: PropTypes.bool,
     monitors: PropTypes.array,
+    currentProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -517,9 +506,6 @@ const mapDispatchToProps = dispatch =>
             fetchscheduledEvents,
             openModal,
             closeModal,
-            createScheduledEventSuccess,
-            updateScheduledEventSuccess,
-            deleteScheduledEventSuccess,
             fetchMonitors,
         },
         dispatch

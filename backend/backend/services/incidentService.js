@@ -47,11 +47,11 @@ module.exports = {
                 project && project.users && project.users.length
                     ? project.users.map(({ userId }) => userId)
                     : [];
-            const monitorCount = await MonitorService.countBy({
+            const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
 
-            if (monitorCount > 0) {
+            if (monitor) {
                 let incident = new IncidentModel();
                 const incidentsCountInProject = await _this.countBy({
                     projectId: data.projectId,
@@ -66,14 +66,39 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
-                incident.incidentPriority = data.incidentPriority;
-                incident.title = data.title;
-                incident.description = data.description;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
-                    incidentsCountInProject + deletedIncidentsCountInProject;
+                    incidentsCountInProject +
+                    deletedIncidentsCountInProject +
+                    1;
 
                 if (data.probeId) {
+                    const incidentSettings = await IncidentSettingsService.findOne(
+                        {
+                            projectId: data.projectId,
+                        }
+                    );
+
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        monitorName: monitor.name,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                    };
+
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
+
+                    incident.title = titleTemplate(templatesInput);
+                    incident.description = descriptionTemplate(templatesInput);
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
+
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -82,11 +107,17 @@ module.exports = {
                             reportedStatus: data.incidentType,
                         },
                     ];
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
                 }
 
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
                 await _this._sendIncidentCreatedAlert(incident);
+
+                await RealTimeService.sendCreatedIncident(incident);
 
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
@@ -248,7 +279,7 @@ module.exports = {
             await AlertService.sendCreatedIncident(incident);
             await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
-            await RealTimeService.sendCreatedIncident(incident);
+            // await RealTimeService.sendCreatedIncident(incident);
 
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
@@ -367,6 +398,16 @@ module.exports = {
                         acknowledgedByZapier: zapier,
                     }
                 );
+
+                // automatically create acknowledgement incident note
+                await IncidentMessageService.create({
+                    content: 'This incident has been acknowledged',
+                    incidentId,
+                    createdById: userId,
+                    type: 'investigation',
+                    incident_state: 'Acknowledged',
+                });
+
                 const downtime =
                     (new Date().getTime() -
                         new Date(incident.createdAt).getTime()) /
@@ -513,6 +554,15 @@ module.exports = {
                     status: 'online',
                 });
             }
+
+            // automatically create resolved incident note
+            await IncidentMessageService.create({
+                content: 'This incident has been resolved',
+                incidentId,
+                createdById: userId,
+                type: 'investigation',
+                incident_state: 'Resolved',
+            });
 
             await IncidentTimelineService.create({
                 incidentId: incidentId,
@@ -760,6 +810,39 @@ module.exports = {
             return incident;
         }
     },
+
+    /**
+     * @description removes a particular monitor from incident and deletes the incident
+     * @param {string} monitorId the id of the monitor
+     * @param {string} userId the id of the user
+     */
+    removeMonitor: async function(monitorId, userId) {
+        try {
+            const incidents = await this.findBy({ monitorId: monitorId });
+
+            await Promise.all(
+                incidents.map(async incident => {
+                    // only delete the incident, since the monitor can be restored
+                    const deletedIncident = await IncidentModel.findOneAndUpdate(
+                        { _id: incident._id },
+                        {
+                            $set: {
+                                deleted: true,
+                                deletedAt: Date.now(),
+                                deletedById: userId,
+                            },
+                        },
+                        { new: true }
+                    );
+
+                    await RealTimeService.deleteIncident(deletedIncident);
+                })
+            );
+        } catch (error) {
+            ErrorService.log('incidentService.removeMonitor', error);
+            throw error;
+        }
+    },
 };
 
 const IncidentModel = require('../models/incident');
@@ -776,3 +859,7 @@ const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const MonitorStatusService = require('./monitorStatusService');
 const ComponentService = require('./componentService');
+const IncidentSettingsService = require('./incidentSettingsService');
+const Handlebars = require('handlebars');
+const Moment = require('moment');
+const IncidentMessageService = require('./incidentMessageService');

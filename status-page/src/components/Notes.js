@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Link } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
 
@@ -26,6 +26,14 @@ class Notes extends Component {
                     <span className="note_status">Identified</span>
                 );
             }
+            if (
+                !incidentTimeline.incident_state &&
+                incidentTimeline.status === 'investigation notes deleted'
+            ) {
+                timelineStatus = (
+                    <span className="note_status">Deleted a note</span>
+                );
+            }
             if (incidentTimeline.status === 'resolved') {
                 timelineStatus = <span className="note_status">Resolved</span>;
             }
@@ -45,6 +53,12 @@ class Notes extends Component {
 
         return timelineStatus;
     };
+    handleNavigation = (statusPageId, noteId) => {
+        const { history } = this.props;
+
+        history.push(`/status-page/${statusPageId}/incident/${noteId}`);
+    };
+
     render() {
         const {
             statusPageId,
@@ -60,7 +74,13 @@ class Notes extends Component {
                     if (!note) return <div>No note</div>;
 
                     return (
-                        <li className="incidentlist feed-item clearfix" key={i}>
+                        <li
+                            className="incidentlist feed-item clearfix"
+                            key={i}
+                            onClick={() =>
+                                this.handleNavigation(statusPageId, note._id)
+                            }
+                        >
                             <div
                                 className="incident-status-bubble"
                                 style={{
@@ -94,7 +114,7 @@ class Notes extends Component {
                                         style={{
                                             fontWeight: 'Bold',
                                             ...this.props.primaryTextColor,
-                                            color: 'rgb(76, 76, 76)',
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                             marginLeft: 25,
                                         }}
                                     >
@@ -108,7 +128,7 @@ class Notes extends Component {
                                             textAlign: 'justify',
                                         }}
                                     >
-                                        {note.description}.
+                                        {note.description}
                                     </span>
                                 </div>
                             </div>
@@ -122,7 +142,7 @@ class Notes extends Component {
                             >
                                 <span
                                     className="ongoing__affectedmonitor--title"
-                                    style={{ color: 'rgb(76, 76, 76)' }}
+                                    style={{ color: 'rgba(76, 76, 76, 0.8)' }}
                                 >
                                     Resource Affected:
                                 </span>{' '}
@@ -138,16 +158,24 @@ class Notes extends Component {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
+                                    marginTop: 5,
+                                    marginBottom: 5,
                                 }}
                             >
-                                <span>
+                                <span
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                    }}
+                                >
                                     <span
                                         className="time"
                                         style={{
                                             ...this.props.secondaryTextColor,
                                             marginLeft: 0,
-                                            paddingBottom: 10,
                                             display: 'inline-block',
+                                            padding: 0,
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                         }}
                                     >
                                         {moment(note.createdAt).format(
@@ -164,13 +192,14 @@ class Notes extends Component {
                                             className="resolved__incident"
                                         ></span>
                                     )}
+                                    {!note.resolved && note.acknowledged && (
+                                        <span
+                                            title="Resolved"
+                                            className="acknowledged__incident"
+                                        ></span>
+                                    )}
                                 </span>
-                                <Link
-                                    to={`/status-page/${statusPageId}/incident/${note._id}`}
-                                    className="more-link"
-                                >
-                                    More
-                                </Link>
+                                <span className="sp__icon sp__icon--forward"></span>
                             </div>
                         </li>
                     );
@@ -192,6 +221,7 @@ Notes.propTypes = {
     uptimeColor: PropTypes.object,
     downtimeColor: PropTypes.object,
     incidentTimelines: PropTypes.array,
+    history: PropTypes.object,
 };
 
-export default Notes;
+export default withRouter(Notes);

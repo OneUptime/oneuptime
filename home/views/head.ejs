@@ -1,6 +1,6 @@
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-115085157-1"></script>
-<script async>
+<script type="module">
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
@@ -11,7 +11,7 @@
 
 
 <!-- Optimize Plugin -->
-<script async>
+<script type="module">
     (function (i, s, o, g, r, a, m) {
         i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
             (i[r].q = i[r].q || []).push(arguments)
@@ -29,13 +29,12 @@
         opacity: 0 !important
     }
 </style>
-<script async>(function (a, s, y, n, c, h, i, d, e) {
+<script type="module">(function (a, s, y, n, c, h, i, d, e) {
         s.className += ' ' + y; h.start = 1 * new Date;
         h.end = i = function () { s.className = s.className.replace(RegExp(' ?' + y), '') };
         (a[n] = a[n] || []).hide = h; setTimeout(function () { i(); h.end = null }, c); h.timeout = c;
     })(window, document.documentElement, 'async-hide', 'dataLayer', 4000,
         { 'GTM-KSC3HMH': true });</script>
-
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -57,17 +56,16 @@
 <meta property="og:description"
     content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime. ">
 <meta property="og:image" content="https://fyipe.com/img/Fyipe-full-logo.png">
-<link rel="preload" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap"  >
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap">
 <meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#000000">
 <meta name="twitter:image" content="/img/Fyipe-Icon.png">
 <meta name="twitter:site" content="@fyipeinc">
 <meta name="twitter:title" content="Fyipe - One Complete SRE and DevOps platform.">
 <meta name="twitter:description"
     content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-<link rel="stylesheet" href="/css/default.css"  >
 <link rel="stylesheet" href="/css/default.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
 <script async src="/js/default.js"></script>
 <script defer src="/js/switchUrl.js"></script>
 <link rel="preconnect" href="https://script.hotjar.com" crossorigin="">
@@ -87,7 +85,7 @@
 <link rel="preconnect" href="https://www.google-analytics.com" crossorigin="">
 
 <!-- Google Tag Manager -->
-<script defer>(function (w, d, s, l, i) {
+<script type="module">(function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
             'gtm.start':
                 new Date().getTime(), event: 'gtm.js'
@@ -98,7 +96,7 @@
 <!-- End Google Tag Manager -->
 
 <!-- Hotjar Tracking Code for fyipe.com -->
-<script async>
+<script type="module">
     (function (h, o, t, j, a, r) {
         h.hj = h.hj || function () { (h.hj.q = h.hj.q || []).push(arguments) };
         h._hjSettings = { hjid: 801593, hjsv: 6 };
@@ -111,7 +109,7 @@
 <!-- Hotjar Tracking Code for fyipe.com end-->
 
 <!-- Facebook Pixel Code -->
-<script async>
+<script type="module">
     !function (f, b, e, v, n, t, s) {
         if (f.fbq) return; n = f.fbq = function () {
             n.callMethod ?
@@ -126,7 +124,7 @@
     fbq('init', '244894116420899');
     fbq('track', 'PageView');
 </script>
-<script defer>
+<script type="module">
     if('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js', {scope: '.'})
             .then(function(registration) {

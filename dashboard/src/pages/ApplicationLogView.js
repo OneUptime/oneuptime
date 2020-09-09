@@ -66,6 +66,7 @@ class ApplicationLogView extends Component {
                         route={pathname}
                         name={applicationLogName}
                         pageTitle="Logs"
+                        containerType="Log Container"
                     />
                     <ShouldRender if={!this.props.applicationLog[0]}>
                         <LoadingState />

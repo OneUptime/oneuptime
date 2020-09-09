@@ -128,6 +128,10 @@ app.use(
     ['/incidentPriorities', '/api/incidentPriorities'],
     require('./backend/api/incidentPriorities')
 );
+app.use(
+    ['/incidentSettings', '/api/incidentSettings'],
+    require('./backend/api/incidentSettings')
+);
 app.use(['/reports', '/api/reports'], require('./backend/api/report'));
 app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
 app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
@@ -224,11 +228,14 @@ const server = http.listen(app.get('port'), function() {
 });
 
 app.get(['/', '/api'], function(req, res) {
-    res.render('index', {
-        status: 200,
-        message: 'Service Status - OK',
-        serviceType: 'fyipe-api',
-    });
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-api',
+        })
+    );
 });
 
 app.use('/*', function(req, res) {

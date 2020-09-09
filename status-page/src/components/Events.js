@@ -1,71 +1,15 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
-import { capitalize } from '../config';
+import AffectedResources from './basic/AffectedResources';
 
 class Events extends Component {
-    handleResources = event => {
-        const { monitorState } = this.props;
-        const affectedMonitors = [];
-        let monitorCount = 0;
+    handleNavigation = (statusPageId, eventId) => {
+        const { history } = this.props;
 
-        const eventMonitors = [];
-        // populate the ids of the event monitors in an array
-        event.monitors.map(monitor => {
-            eventMonitors.push(String(monitor.monitorId._id));
-            return monitor;
-        });
-
-        monitorState.map(monitor => {
-            if (eventMonitors.includes(String(monitor._id))) {
-                affectedMonitors.push(monitor);
-                monitorCount += 1;
-            }
-            return monitor;
-        });
-
-        // check if the length of monitors on status page equals the monitor count
-        // if they are equal then all the monitors in status page is in a particular scheduled event
-        if (monitorCount === monitorState.length) {
-            return (
-                <>
-                    <span
-                        className="ongoing__affectedmonitor--title"
-                        style={{ color: 'rgb(76, 76, 76)' }}
-                    >
-                        Resources Affected:{' '}
-                    </span>
-                    <span
-                        className="ongoing__affectedmonitor--content"
-                        style={{ color: 'rgba(0, 0, 0, 0.5)' }}
-                    >
-                        All resources are affected
-                    </span>
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span
-                        className="ongoing__affectedmonitor--title"
-                        style={{ color: 'rgb(76, 76, 76)' }}
-                    >
-                        Resources Affected:{' '}
-                    </span>
-                    <span
-                        className="ongoing__affectedmonitor--content"
-                        style={{ color: 'rgba(0, 0, 0, 0.5)' }}
-                    >
-                        {affectedMonitors
-                            .map(monitor => capitalize(monitor.name))
-                            .join(', ')
-                            .replace(/, ([^,]*)$/, ' and $1')}
-                    </span>
-                </>
-            );
-        }
+        history.push(`/status-page/${statusPageId}/scheduledEvent/${eventId}`);
     };
 
     render() {
@@ -78,6 +22,9 @@ class Events extends Component {
                         <li
                             className="scheduledEvent feed-item clearfix"
                             key={i}
+                            onClick={() =>
+                                this.handleNavigation(statusPageId, event._id)
+                            }
                         >
                             <div
                                 className="message"
@@ -101,7 +48,7 @@ class Events extends Component {
                                         className="feed-title"
                                         style={{
                                             ...this.props.secondaryTextColor,
-                                            color: 'rgb(76, 76, 76)',
+                                            color: 'rgba(76, 76, 76, 0.8)',
                                             fontWeight: 'bold',
                                             fontSize: 14,
                                         }}
@@ -128,7 +75,11 @@ class Events extends Component {
                                         : { marginTop: 0 }
                                 }
                             >
-                                {this.handleResources(event)}
+                                <AffectedResources
+                                    monitorState={this.props.monitorState}
+                                    event={event}
+                                    colorStyle="grey"
+                                />
                             </div>
                             <div
                                 style={{
@@ -143,6 +94,7 @@ class Events extends Component {
                                         marginLeft: 0,
                                         ...this.props.secondaryTextColor,
                                         paddingBottom: 10,
+                                        color: 'rgba(76, 76, 76, 0.8)',
                                     }}
                                 >
                                     {moment(event.startDate).format(
@@ -153,12 +105,7 @@ class Events extends Component {
                                         'MMMM Do YYYY, h:mm a'
                                     )}
                                 </span>
-                                <Link
-                                    to={`/status-page/${statusPageId}/scheduledEvent/${event._id}`}
-                                    className="more-link"
-                                >
-                                    More
-                                </Link>
+                                <span className="sp__icon sp__icon--forward"></span>
                             </div>
                         </li>
                     );
@@ -177,6 +124,7 @@ Events.propTypes = {
     noteBackgroundColor: PropTypes.object,
     statusPageId: PropTypes.string,
     monitorState: PropTypes.array,
+    history: PropTypes.object,
 };
 
-export default Events;
+export default withRouter(Events);
