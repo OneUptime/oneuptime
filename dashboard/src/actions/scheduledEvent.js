@@ -175,6 +175,40 @@ export const fetchOngoingScheduledEvents = projectId => async dispatch => {
     }
 };
 
+export const fetchSubProjectOngoingScheduledEventsRequest = () => ({
+    type: types.FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_REQUEST,
+});
+
+export const fetchSubProjectOngoingScheduledEventsSuccess = payload => ({
+    type: types.FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_SUCCESS,
+    payload,
+});
+
+export const fetchSubProjectOngoingScheduledEventsFailure = error => ({
+    type: types.FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchSubProjectOngoingScheduledEvents = projectId => async dispatch => {
+    try {
+        dispatch(fetchSubProjectOngoingScheduledEventsRequest());
+        const response = await getApi(
+            `scheduledEvent/${projectId}/ongoingEvent/all`
+        );
+        dispatch(fetchSubProjectOngoingScheduledEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchSubProjectOngoingScheduledEventsFailure(errorMsg));
+    }
+};
+
 export const createScheduledEvent = (projectId, values) => async dispatch => {
     try {
         dispatch(createScheduledEventRequest());
