@@ -186,8 +186,13 @@ module.exports = {
     },
     decryptPassword: async function(security) {
         try {
+            const values = [];
+            for (let i = 0; i <= 15; i++)
+                values.push(security.dockerCredential.iv[i]);
+            const iv = Buffer.from(values);
             security.dockerCredential.dockerPassword = await decrypt(
-                security.dockerCredential.dockerPassword
+                security.dockerCredential.dockerPassword,
+                iv
             );
             return security;
         } catch (error) {
