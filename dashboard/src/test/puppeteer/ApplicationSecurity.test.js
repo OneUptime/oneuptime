@@ -48,7 +48,7 @@ describe('Application Security Page', () => {
     });
 
     test(
-        'should create an application security',
+        'should create an application security and ensure it redirects to the details page',
         async done => {
             const gitUsername = utils.gitCredential.gitUsername;
             const gitPassword = utils.gitCredential.gitPassword;
@@ -93,6 +93,12 @@ describe('Application Security Page', () => {
                     { visible: true }
                 );
                 expect(applicationSecurity).toBeDefined();
+
+                // find the edit button which appears only on the details page
+                const editApplicationElement = await page.waitForSelector(
+                    `#edit_${applicationSecurityName}`
+                );
+                expect(editApplicationElement).toBeDefined();
             });
             done();
         },

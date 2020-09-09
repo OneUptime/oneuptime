@@ -20,6 +20,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
+import { history } from '../store';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -66,6 +67,11 @@ class Application extends Component {
             getApplicationSecuritySuccess,
         } = this.props;
 
+        socket.on(`createApplicationSecurity-${componentId}`, data => {
+            history.push(
+                `/dashboard/project/${projectId}/${componentId}/security/application/${data._id}`
+            );
+        });
         const applicationSecurities = appSecurities
             ? sortByName(appSecurities)
             : [];

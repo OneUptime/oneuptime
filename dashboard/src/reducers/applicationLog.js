@@ -427,11 +427,12 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             });
         case GET_LOG_SUCCESS:
             requestLogs = state.logs[action.payload.applicationLogId._id].logs; // current logs
-            logCount = state.logs[action.payload.applicationLogId._id].count; // current count of all logs
+            logCount =
+                state.stats[action.payload.applicationLogId._id].stats.all || 0; // current count of all logs
             typeCount =
                 state.stats[action.payload.applicationLogId._id].stats[
                     action.payload.type
-                ]; // current count of all logs of that type
+                ] || 0; // current count of all logs of that type
             if (
                 requestLogs.filter(log => log._id === action.payload._id)
                     .length > 0
