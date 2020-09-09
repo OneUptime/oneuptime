@@ -185,12 +185,7 @@ class ApplicationLogHeader extends Component {
                                                         cursor: 'pointer',
                                                     }}
                                                 >
-                                                    <span
-                                                        className="db-DateRangeInput-start"
-                                                        style={{
-                                                            padding: '3px',
-                                                        }}
-                                                    >
+                                                    <span className="db-DateRangeInput-start">
                                                         <Field
                                                             type="text"
                                                             name="startDate"
@@ -198,11 +193,6 @@ class ApplicationLogHeader extends Component {
                                                                 CustomDateTimeSelector
                                                             }
                                                             id="startDate"
-                                                            style={{
-                                                                marginTop:
-                                                                    '0px',
-                                                                width: '180px',
-                                                            }}
                                                             maxDate={
                                                                 currentDate
                                                             }
@@ -211,15 +201,11 @@ class ApplicationLogHeader extends Component {
                                                     <span
                                                         className="db-DateRangeInput-input-arrow"
                                                         style={{
-                                                            padding: '3px',
+                                                            height: '14px',
+                                                            width: '14px',
                                                         }}
                                                     />
-                                                    <span
-                                                        className="db-DateRangeInput-end"
-                                                        style={{
-                                                            padding: '3px',
-                                                        }}
-                                                    >
+                                                    <span className="db-DateRangeInput-end">
                                                         <Field
                                                             type="text"
                                                             name="endDate"
@@ -227,11 +213,6 @@ class ApplicationLogHeader extends Component {
                                                                 CustomDateTimeSelector
                                                             }
                                                             id="endDate"
-                                                            style={{
-                                                                marginTop:
-                                                                    '0px',
-                                                                width: '180px',
-                                                            }}
                                                             maxDate={
                                                                 currentDate
                                                             }
