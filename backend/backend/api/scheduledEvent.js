@@ -308,7 +308,6 @@ router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
 
         const scheduledEvent = await ScheduledEventService.findOneBy({
             _id: eventId,
-            projectId,
         });
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
