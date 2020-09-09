@@ -100,6 +100,46 @@ export function fetchscheduledEventsFailure(error) {
     };
 }
 
+export function fetchSubProjectScheduledEventsRequest() {
+    return {
+        type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_REQUEST,
+    };
+}
+
+export function fetchSubProjectScheduledEventsSuccess(payload) {
+    return {
+        type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchSubProjectScheduledEventsFailure(error) {
+    return {
+        type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_FAILURE,
+        payload: error,
+    };
+}
+
+export const fetchSubProjectScheduledEvents = projectId => async dispatch => {
+    try {
+        dispatch(fetchSubProjectScheduledEventsRequest());
+        const response = await getApi(
+            `scheduledEvent/${projectId}/scheduledEvents/all`
+        );
+        dispatch(fetchSubProjectScheduledEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchSubProjectScheduledEventsFailure(errorMsg));
+    }
+};
+
 export const fetchOngoingScheduledEventsRequest = () => ({
     type: types.FETCH_ONGOING_SCHEDULED_EVENTS_REQUEST,
 });
