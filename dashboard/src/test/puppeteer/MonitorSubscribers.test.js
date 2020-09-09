@@ -66,6 +66,10 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
+
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -99,7 +103,9 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -131,7 +137,9 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -164,7 +172,9 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);

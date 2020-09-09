@@ -5,6 +5,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
 const ProbeService = require('../services/probeService');
+const RealTimeService = require('../services/realTimeService');
 
 const router = express.Router();
 
@@ -53,6 +54,7 @@ router.post(
             const containerSecurity = await ContainerSecurityService.create(
                 data
             );
+            RealTimeService.sendContainerSecurityCreated(containerSecurity);
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
