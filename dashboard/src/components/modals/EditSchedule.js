@@ -791,14 +791,12 @@ const selector = formValueSelector('newUpdateSchedule');
 
 const mapStateToProps = state => {
     const scheduledEventToBeUpdated = state.modal.modals[0].event;
-    const monitors = [];
-    state.monitor.monitorsList.monitors.map(data => {
-        data.monitors.map(monitor => {
-            monitors.push(monitor);
-            return monitor;
-        });
-        return data;
-    });
+
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(state.modal.modals[0].projectId)
+    );
+    const monitors = monitorData.monitors;
+
     const initialValues = {};
     const startDate = selector(state, 'startDate');
 

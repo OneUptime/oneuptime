@@ -842,17 +842,14 @@ const mapDispatchToProps = dispatch =>
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
-    const monitors = [];
-    state.monitor.monitorsList.monitors.map(data => {
-        data.monitors.map(monitor => {
-            monitors.push(monitor);
-            return monitor;
-        });
-        return data;
-    });
+
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(ownProps.data.projectId)
+    );
+    const monitors = monitorData.monitors;
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
