@@ -48,7 +48,7 @@ include:
   - '/ci/spec/dashboard/deploy.yaml'
   - '/ci/spec/dashboard/rollback.yaml'
 
-  HELM-CHART
+  # HELM-CHART
   - '/ci/spec/helm-chart/audit.yaml'
   - '/ci/spec/helm-chart/build-n-test.yaml'
   - '/ci/spec/helm-chart/deploy.yaml'
