@@ -229,6 +229,52 @@ module.exports = {
         }
     },
 
+    getSubProjectScheduledEvents: async function(subProjectIds) {
+        const subProjectScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const scheduledEvents = await this.findBy(
+                    { projectId: id },
+                    10,
+                    0
+                );
+                const count = await this.countBy({ projectId: id });
+                return {
+                    scheduledEvents,
+                    count,
+                    project: id,
+                    skip: 0,
+                    limit: 10,
+                };
+            })
+        );
+        return subProjectScheduledEvents;
+    },
+
+    getSubProjectOngoingScheduledEvents: async function(
+        subProjectIds,
+        timeQuery
+    ) {
+        const subProjectOngoingScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const ongoingScheduledEvents = await this.findBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                const count = await this.countBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                return {
+                    ongoingScheduledEvents,
+                    count,
+                    project: id,
+                };
+            })
+        );
+
+        return subProjectOngoingScheduledEvents;
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
