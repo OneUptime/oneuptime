@@ -6,7 +6,7 @@ const RealTimeService = require('./realTimeService');
 module.exports = {
     create: async function({ projectId }, data) {
         try {
-            if (data.monitors.length === 0) {
+            if (!data.monitors || data.monitors.length === 0) {
                 const error = new Error(
                     'You need at least one monitor to create a scheduled event'
                 );
@@ -56,7 +56,7 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            if (data.monitors.length === 0) {
+            if (!data.monitors || data.monitors.length === 0) {
                 const error = new Error(
                     'You need at least one monitor to update a scheduled event'
                 );
