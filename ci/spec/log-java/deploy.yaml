@@ -18,8 +18,6 @@ deploy_staging_log-java:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-java
-        - git status
-        - git checkout -f staging
         - gpg --list-keys
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
         - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 57BE7B2EC10D7338212093C8D8460AB6E05CD41E
@@ -30,8 +28,9 @@ deploy_staging_log-java:
         - git init
         - git add .
         - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
-        # - mvn versions:set -DnewVersion=1.0.0
+        # - mvn versions:set -DnewVersion=3.0.$CI_PIPELINE_IID-SNAPSHOT
         # - mvn clean deploy -P release
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
