@@ -21,6 +21,8 @@ deploy_staging_log-java:
         - git status
         - git checkout -f staging
         - gpg --list-keys
+        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        - gpg --list-keys
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - mvn clean deploy
