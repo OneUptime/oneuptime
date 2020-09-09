@@ -17,6 +17,13 @@ import { ApplicationLogList } from '../components/application/ApplicationLogList
 import { LoadingState } from '../components/basic/Loader';
 import LibraryList from '../components/application/LibraryList';
 import sortByName from '../utils/sortByName';
+import { API_URL } from '../config';
+import io from 'socket.io-client';
+import { history } from '../store';
+
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ApplicationLog extends Component {
     componentDidMount() {
@@ -37,11 +44,21 @@ class ApplicationLog extends Component {
 
         this.props.fetchApplicationLogs(projectId, componentId);
     };
+    componentWillUnmount() {
+        socket.removeListener(`createApplicationLog-${this.props.componentId}`);
+    }
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
+            socket.on(
+                `createApplicationLog-${this.props.componentId}`,
+                data => {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-logs/${data._id}`
+                    );
+                }
+            );
         }
-
         const {
             location: { pathname },
             component,
