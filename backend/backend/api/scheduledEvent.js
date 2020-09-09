@@ -272,6 +272,34 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
     }
 });
 
+// this will handle getting for both projects and subProjects
+router.get(
+    '/:projectId/ongoingEvent/all',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            const currentDate = moment();
+            // this contains both projectIds and subProjectIds
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+
+            const ongoingScheduledEvents = await ScheduledEventService.getSubProjectOngoingScheduledEvents(
+                subProjectIds,
+                {
+                    startDate: { $lte: currentDate },
+                    endDate: { $gt: currentDate },
+                }
+            );
+            return sendItemResponse(req, res, ongoingScheduledEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
