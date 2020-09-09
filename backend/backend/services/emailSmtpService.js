@@ -1,7 +1,8 @@
 module.exports = {
     create: async function(data) {
         try {
-            data.pass = await EncryptDecrypt.encrypt(data.pass);
+            const iv = Crypto.randomBytes(16);
+            data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
             const emailSmtpModel = new EmailSmtpModel();
             emailSmtpModel.projectId = data.projectId;
             emailSmtpModel.user = data.user;
@@ -10,13 +11,18 @@ module.exports = {
             emailSmtpModel.port = data.port;
             emailSmtpModel.from = data.from;
             emailSmtpModel.secure = false;
+            emailSmtpModel.iv = iv;
             if (data.secure) {
                 emailSmtpModel.secure = data.secure;
             }
             emailSmtpModel.enabled = true;
             const emailSmtp = await emailSmtpModel.save();
-            if (emailSmtp && emailSmtp.pass) {
-                emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
+            if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
+                emailSmtp.pass = await EncryptDecrypt.decrypt(
+                    emailSmtp.pass,
+                    emailSmtp.iv
+                );
+                delete emailSmtp.iv;
             }
             return emailSmtp;
         } catch (error) {
@@ -34,7 +40,9 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             if (data.pass) {
-                data.pass = await EncryptDecrypt.encrypt(data.pass);
+                const iv = Crypto.randomBytes(16);
+                data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
+                data.iv = iv;
             }
 
             const updatedEmailSmtp = await EmailSmtpModel.findOneAndUpdate(
@@ -46,10 +54,16 @@ module.exports = {
                     new: true,
                 }
             ).lean();
-            if (updatedEmailSmtp && updatedEmailSmtp.pass) {
+            if (
+                updatedEmailSmtp &&
+                updatedEmailSmtp.pass &&
+                updatedEmailSmtp.iv
+            ) {
                 updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(
-                    updatedEmailSmtp.pass
+                    updatedEmailSmtp.pass,
+                    updatedEmailSmtp.iv.buffer
                 );
+                delete updatedEmailSmtp.iv;
             }
             return updatedEmailSmtp;
         } catch (error) {
@@ -69,6 +83,19 @@ module.exports = {
                 $set: data,
             });
             updatedData = await this.findBy(query);
+            for (const updatedEmailSmtp of updatedData) {
+                if (
+                    updatedEmailSmtp &&
+                    updatedEmailSmtp.pass &&
+                    updatedEmailSmtp.iv
+                ) {
+                    updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(
+                        updatedEmailSmtp.pass,
+                        updatedEmailSmtp.iv.buffer
+                    );
+                    delete updatedEmailSmtp.iv;
+                }
+            }
             return updatedData;
         } catch (error) {
             ErrorService.log('emailSmtpService.updateMany', error);
@@ -123,11 +150,19 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .lean();
-            emailSmtp.map(async es => {
-                if (es && es.pass) {
-                    es.pass = await EncryptDecrypt.decrypt(es.pass);
+            for (const updatedEmailSmtp of emailSmtp) {
+                if (
+                    updatedEmailSmtp &&
+                    updatedEmailSmtp.pass &&
+                    updatedEmailSmtp.iv
+                ) {
+                    updatedEmailSmtp.pass = await EncryptDecrypt.decrypt(
+                        updatedEmailSmtp.pass,
+                        updatedEmailSmtp.iv.buffer
+                    );
+                    delete updatedEmailSmtp.iv;
                 }
-            });
+            }
             return emailSmtp;
         } catch (error) {
             ErrorService.log('emailSmtpService.findBy', error);
@@ -146,8 +181,12 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
-            if (emailSmtp && emailSmtp.pass) {
-                emailSmtp.pass = await EncryptDecrypt.decrypt(emailSmtp.pass);
+            if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
+                emailSmtp.pass = await EncryptDecrypt.decrypt(
+                    emailSmtp.pass,
+                    emailSmtp.iv.buffer
+                );
+                delete emailSmtp.iv;
             }
             if (!emailSmtp) {
                 emailSmtp = {};
@@ -186,6 +225,7 @@ module.exports = {
     },
 };
 
+const Crypto = require('crypto');
 const EmailSmtpModel = require('../models/smtp');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');

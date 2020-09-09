@@ -101,6 +101,7 @@ class ContainerSecurityDetail extends Component {
                     route={pathname}
                     name={containerSecurity.name || 'loading...'}
                     pageTitle="Container Detail"
+                    containerType="Container Security"
                 />
                 <ShouldRender
                     if={

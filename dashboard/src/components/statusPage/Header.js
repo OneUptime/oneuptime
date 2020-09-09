@@ -35,7 +35,7 @@ export class StatusHeader extends Component {
                                     </span>
                                 </span>
                             </p>
-                            <p>
+                            <p id="publicStatusPageUrl">
                                 <span>
                                     Status page lets your customers and your
                                     team see the current status of your

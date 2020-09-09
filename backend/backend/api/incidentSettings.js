@@ -5,6 +5,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const IncidentSettingsService = require('../services/incidentSettingsService');
+const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
 const { variables } = require('../config/incidentDefaultSettings');
 
 router.get('/variables', async function(req, res) {
@@ -38,15 +39,33 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     if (!projectId)
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Project Id must be present',
+            message: 'Project Id must be present.',
         });
+
     if (!title)
         return sendErrorResponse(req, res, {
             code: 400,
-            message: 'Title must be present',
+            message: 'Title must be present.',
+        });
+
+    if (!incidentPriority)
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Incident priority must be present.',
         });
 
     try {
+        //Update should not happen if the incident priority is remove and doesn't exist.
+        const priority = await IncidentPrioritiesService.findOne({
+            _id: incidentPriority,
+        });
+
+        if (!priority)
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Incident priority doesn't exist.",
+            });
+
         const incidentSettings = await IncidentSettingsService.updateOne(
             {
                 projectId,
