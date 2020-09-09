@@ -150,6 +150,7 @@ class MonitorView extends React.Component {
                         route={pathname}
                         name={monitorName}
                         pageTitle="Monitor View"
+                        type={monitor ? monitor.type : null}
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}

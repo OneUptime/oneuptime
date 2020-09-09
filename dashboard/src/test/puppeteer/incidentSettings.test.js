@@ -90,6 +90,57 @@ describe('Incident Settings API', () => {
     );
 
     test(
+        'Should not set the default incident priority to a removed value.',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                //Create a new priority
+                const priorityName = utils.generateRandomString();
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#incidentSettings');
+                await page.click('#incidentSettings');
+                await page.waitForSelector('#addNewPriority');
+                await page.click('#addNewPriority');
+                await page.waitForSelector('#CreateIncidentPriority');
+                await page.type('input[name=name]', priorityName);
+                await page.click('#CreateIncidentPriority');
+                await page.waitFor(3000);
+                await page.reload({
+                    waitUntil: 'networkidle0',
+                });
+
+                //Select the priority in incidentSettings form
+                await init.selectByText(
+                    '#incidentPriority',
+                    priorityName,
+                    page
+                );
+                //Delete the new incident priority.
+                const deleteButtonLastRowIndentifier =
+                    '#incidentPrioritiesList>div>div>div>div.bs-ObjectList-row:last-of-type>div:nth-child(2)>div>div:nth-child(2)>button';
+                await page.click(deleteButtonLastRowIndentifier);
+                await page.waitForSelector('#RemoveIncidentPriority');
+                await page.click('#RemoveIncidentPriority');
+                await page.waitFor(3000);
+                //Try to save the incident settings
+                await page.click('#saveButton');
+                await page.waitForSelector('#errorInfo');
+                const errorMessage = await page.$eval(
+                    '#errorInfo',
+                    e => e.textContent
+                );
+                expect(errorMessage).toEqual(
+                    `Incident priority doesn't exist.`
+                );
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'Should update default title, description and priority fields',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
@@ -164,13 +215,15 @@ describe('Incident Settings API', () => {
                     '#title',
                     e => e.value
                 );
-                expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
+                expect(titleFieldValue).toEqual(
+                    inctidentTitleAfterSubstitution
+                );
                 const descriptionFieldValue = await page.$eval(
                     '.ace_layer.ace_text-layer',
                     e => e.textContent
                 );
                 expect(descriptionFieldValue).toEqual(
-                    newDefaultIncidentDescription
+                    inctidentDescriptionAfterSubstitution
                 );
                 await init.selectByText('#incidentType', incidentType, page);
                 await page.click('#createIncident');
@@ -190,6 +243,8 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
@@ -237,6 +292,9 @@ describe('Incident Settings API', () => {
                 await page.waitForSelector('#incidentSettings');
                 await page.click('#incidentSettings');
                 await page.waitForSelector('#incidentPrioritiesList');
+                //change default priority before remove the priority
+                await init.selectByText('#incidentPriority', 'high', page);
+                await page.click('#saveButton');
                 await page.waitFor(3000);
                 const lowPriorityDeleteButton =
                     '#incidentPrioritiesList .bs-ObjectList-row.db-UserListRow.db-UserListRow--withName:nth-of-type(2) .bs-ObjectList-cell.bs-u-v-middle:nth-of-type(2)>div>div:last-child>button';
@@ -249,6 +307,8 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 await page.waitForSelector(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );

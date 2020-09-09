@@ -60,7 +60,7 @@ const IncidentProjectBox = props => {
                                         : props.subProjects.length > 0
                                         ? 'Project'
                                         : ''}{' '}
-                                    Incident Log
+                                    Incidents
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

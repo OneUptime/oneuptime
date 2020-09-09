@@ -8,7 +8,7 @@ namespace Fyipe;
 
 
 
-class Logger
+class FyipeLogger
 {
     /**
      * @var string
@@ -26,7 +26,7 @@ class Logger
     private $applicationLogKey;
 
     /**
-     * Logger constructor.
+     * FyipeLogger constructor.
      * @param string $apiUrl
      * @param string $applicationLogId
      * @param string $applicationLogKey

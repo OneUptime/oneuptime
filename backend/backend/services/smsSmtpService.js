@@ -1,20 +1,28 @@
 module.exports = {
     create: async function(data) {
         try {
-            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
-            const smsSmtpModel = new SmsSmtpModel();
-            smsSmtpModel.projectId = data.projectId;
-            smsSmtpModel.accountSid = data.accountSid;
-            smsSmtpModel.authToken = data.authToken;
-            smsSmtpModel.phoneNumber = data.phoneNumber;
-            smsSmtpModel.enabled = true;
-            const smsSmtp = await smsSmtpModel.save();
-            if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(
-                    smsSmtp.authToken
+            const iv = Crypto.randomBytes(16);
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
+            const twilioModel = new TwilioModel();
+            twilioModel.projectId = data.projectId;
+            twilioModel.accountSid = data.accountSid;
+            twilioModel.authToken = data.authToken;
+            twilioModel.phoneNumber = data.phoneNumber;
+            twilioModel.iv = iv;
+            twilioModel.enabled = true;
+            const twilioSettings = await twilioModel.save();
+            if (
+                twilioSettings &&
+                twilioSettings.authToken &&
+                twilioSettings.iv
+            ) {
+                twilioSettings.authToken = await EncryptDecrypt.decrypt(
+                    twilioSettings.authToken,
+                    twilioSettings.iv
                 );
+                delete twilioSettings.iv;
             }
-            return smsSmtp;
+            return twilioSettings;
         } catch (error) {
             ErrorService.log('smsSmtpService.create', error);
             throw error;
@@ -29,10 +37,12 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         if (data.authToken) {
-            data.authToken = await EncryptDecrypt.encrypt(data.authToken);
+            const iv = Crypto.randomBytes(16);
+            data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
+            data.iv = iv;
         }
         try {
-            const updatedSmsSmtp = await SmsSmtpModel.findOneAndUpdate(
+            const updatedTwilioSettings = await TwilioModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -41,12 +51,18 @@ module.exports = {
                     new: true,
                 }
             ).lean();
-            if (updatedSmsSmtp && updatedSmsSmtp.authToken) {
-                updatedSmsSmtp.authToken = await EncryptDecrypt.decrypt(
-                    updatedSmsSmtp.authToken
+            if (
+                updatedTwilioSettings &&
+                updatedTwilioSettings.authToken &&
+                updatedTwilioSettings.iv
+            ) {
+                updatedTwilioSettings.authToken = await EncryptDecrypt.decrypt(
+                    updatedTwilioSettings.authToken,
+                    updatedTwilioSettings.iv.buffer
                 );
+                delete updatedTwilioSettings.iv;
             }
-            return updatedSmsSmtp;
+            return updatedTwilioSettings;
         } catch (error) {
             ErrorService.log('smsSmtpService.updateOneBy', error);
             throw error;
@@ -60,7 +76,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            let updatedData = await SmsSmtpModel.updateMany(query, {
+            let updatedData = await TwilioModel.updateMany(query, {
                 $set: data,
             });
             updatedData = await this.findBy(query);
@@ -73,7 +89,7 @@ module.exports = {
 
     deleteBy: async function(query, userId) {
         try {
-            const smsSmtp = await SmsSmtpModel.findOneAndUpdate(
+            const deletedData = await TwilioModel.findOneAndUpdate(
                 query,
                 {
                     $set: {
@@ -86,7 +102,14 @@ module.exports = {
                     new: true,
                 }
             );
-            return smsSmtp;
+            if (deletedData && deletedData.authToken && deletedData.iv) {
+                deletedData.authToken = await EncryptDecrypt.decrypt(
+                    deletedData.authToken,
+                    deletedData.iv.buffer
+                );
+                delete deletedData.iv;
+            }
+            return deletedData;
         } catch (error) {
             ErrorService.log('smsSmtpService.deleteBy', error);
             throw error;
@@ -112,19 +135,23 @@ module.exports = {
             }
 
             query.deleted = false;
-            const smsSmtp = await SmsSmtpModel.find(query)
+            const twilioSettings = await TwilioModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
                 .lean();
-            if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(
-                    smsSmtp.authToken
-                );
-            }
 
-            return smsSmtp;
+            for (const config of twilioSettings) {
+                if (config && config.authToken && config.iv) {
+                    config.authToken = await EncryptDecrypt.decrypt(
+                        config.authToken,
+                        config.iv.buffer
+                    );
+                    delete config.iv;
+                }
+            }
+            return twilioSettings;
         } catch (error) {
             ErrorService.log('smsSmtpService.findBy', error);
             throw error;
@@ -138,20 +165,22 @@ module.exports = {
             }
 
             query.deleted = false;
-            let smsSmtp = await SmsSmtpModel.findOne(query)
+            let twilio = await TwilioModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
-            if (smsSmtp && smsSmtp.authToken) {
-                smsSmtp.authToken = await EncryptDecrypt.decrypt(
-                    smsSmtp.authToken
+            if (twilio && twilio.authToken && twilio.iv) {
+                twilio.authToken = await EncryptDecrypt.decrypt(
+                    twilio.authToken,
+                    twilio.iv.buffer
                 );
+                delete twilio.iv;
             }
-            if (!smsSmtp) {
-                smsSmtp = {};
+            if (!twilio) {
+                twilio = {};
             }
 
-            return smsSmtp;
+            return twilio;
         } catch (error) {
             ErrorService.log('smsSmtpService.findOneBy', error);
             throw error;
@@ -165,7 +194,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await SmsSmtpModel.countDocuments(query);
+            const count = await TwilioModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('smsSmtpService.countBy', error);
@@ -175,7 +204,7 @@ module.exports = {
 
     hardDeleteBy: async function(query) {
         try {
-            await SmsSmtpModel.deleteMany(query);
+            await TwilioModel.deleteMany(query);
             return 'SMS Smtp(s) removed successfully';
         } catch (error) {
             ErrorService.log('smsSmtpService.hardDeleteBy', error);
@@ -184,6 +213,7 @@ module.exports = {
     },
 };
 
-const SmsSmtpModel = require('../models/twilio');
+const Crypto = require('crypto');
+const TwilioModel = require('../models/twilio');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');

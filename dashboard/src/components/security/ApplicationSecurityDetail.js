@@ -100,6 +100,7 @@ class ApplicationSecurityDetail extends Component {
                     route={pathname}
                     name={applicationSecurity.name || 'loading...'}
                     pageTitle="Application Detail"
+                    containerType="Application Security"
                 />
                 <ShouldRender
                     if={

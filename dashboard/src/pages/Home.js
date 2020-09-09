@@ -197,6 +197,9 @@ class Home extends Component {
                             incident={incident}
                             multiple={true}
                             route={pathname}
+                            multipleIncidentRequest={
+                                this.props.multipleIncidentRequest
+                            }
                         />
                     </RenderIfUserInSubProject>
                 );
@@ -531,6 +534,17 @@ class Home extends Component {
                                                                                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                                                                         <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
                                                                                                             <span
+                                                                                                                className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                                style={{
+                                                                                                                    filter:
+                                                                                                                        'brightness(0) invert(1)',
+                                                                                                                    marginTop:
+                                                                                                                        '1px',
+                                                                                                                    marginRight:
+                                                                                                                        '5px',
+                                                                                                                }}
+                                                                                                            />
+                                                                                                            <span
                                                                                                                 id="component-content-header"
                                                                                                                 className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
                                                                                                             >
@@ -606,6 +620,7 @@ Home.propTypes = {
     monitors: PropTypes.array,
     components: PropTypes.array,
     monitorList: PropTypes.array,
+    multipleIncidentRequest: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -641,6 +656,7 @@ const mapStateToProps = (state, props) => {
         monitorList: state.monitor.monitorsList.monitors[0]
             ? state.monitor.monitorsList.monitors[0].monitors
             : [],
+        multipleIncidentRequest: state.incident.unresolvedincidents,
     };
 };
 

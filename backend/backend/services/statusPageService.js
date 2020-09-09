@@ -267,13 +267,27 @@ module.exports = {
 
     removeMonitor: async function(monitorId) {
         try {
-            const statusPage = await StatusPageModel.findOneAndUpdate(
-                { monitorIds: monitorId },
-                {
-                    $pull: { monitorIds: monitorId },
-                }
+            const statusPages = await this.findBy({
+                'monitors.monitor': monitorId,
+            });
+
+            await Promise.all(
+                statusPages.map(async statusPage => {
+                    const monitors = statusPage.monitors.filter(
+                        monitorData =>
+                            String(monitorData.monitor) !== String(monitorId)
+                    );
+
+                    if (monitors.length !== statusPage.monitors.length) {
+                        statusPage = await this.updateOneBy(
+                            { _id: statusPage._id },
+                            { monitors }
+                        );
+                    }
+
+                    return statusPage;
+                })
             );
-            return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.removeMonitor', error);
             throw error;

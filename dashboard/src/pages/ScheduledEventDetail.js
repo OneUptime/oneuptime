@@ -96,6 +96,7 @@ class ScheduledEvent extends Component {
             investigationNotesList,
             internalNotesList,
             match,
+            monitorList,
         } = this.props;
         const { projectId, scheduledEventId } = match.params;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
@@ -126,6 +127,7 @@ class ScheduledEvent extends Component {
                                                     scheduledEvent={
                                                         scheduledEvent
                                                     }
+                                                    monitorList={monitorList}
                                                 />
                                             </div>
                                         </span>
@@ -230,6 +232,7 @@ ScheduledEvent.propTypes = {
     updateScheduledEventNoteInternalSuccess: PropTypes.func,
     deleteScheduledEventNoteSuccess: PropTypes.func,
     createScheduledEventNoteSuccess: PropTypes.func,
+    monitorList: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -241,6 +244,9 @@ const mapStateToProps = state => {
         internalNotesList: state.scheduledEvent.scheduledEventInternalList,
         investigationNotesList:
             state.scheduledEvent.scheduledEventInvestigationList,
+        monitorList: state.monitor.monitorsList.monitors[0]
+            ? state.monitor.monitorsList.monitors[0].monitors
+            : [],
     };
 };
 

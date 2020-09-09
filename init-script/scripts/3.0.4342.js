@@ -15,14 +15,19 @@ async function run() {
         await update(monitorCollection, { _id: monitor._id }, { pollTime: [] });
     }
 
-    const projects = await find(projectsCollection, {
-        deleted: false,
+    const incidentsWithoutIdNumber = await find(incidentsCollection, {
+        idNumber: { $exists: false },
     });
 
+    const projectIds = new Set();
+    for (const incident of incidentsWithoutIdNumber) {
+        projectIds.add(incident.projectId);
+    }
+
     //Update the incidents idNumber
-    for (const project of projects) {
+    for (const projectId of projectIds) {
         const query = {
-            projectId: project._id,
+            projectId,
         };
         const incidents = await global.db
             .collection(incidentsCollection)
@@ -33,14 +38,18 @@ async function run() {
             await update(
                 incidentsCollection,
                 { _id: incidents[i]._id },
-                { idNumber: i }
+                { idNumber: i + 1 }
             );
         }
     }
 
+    const allProjects = await find(projectsCollection, {
+        deleted: false,
+    });
+
     //Add default incident priorities for existing
     //projects not having any priority
-    for (const project of projects) {
+    for (const project of allProjects) {
         const query = {
             projectId: project._id,
         };

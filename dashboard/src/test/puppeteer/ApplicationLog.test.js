@@ -184,6 +184,10 @@ describe('Log Containers', () => {
                     page
                 );
 
+                // toggle the filter section
+                await page.waitForSelector(`#filter_${applicationLogName}`);
+                await page.click(`#filter_${applicationLogName}`);
+
                 // select the drop down and confirm the current value as all
                 let logTypeElement = await page.waitForSelector(
                     'input[name=log_type_selector]'

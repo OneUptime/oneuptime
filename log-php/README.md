@@ -18,10 +18,10 @@ $ composer require fyipe/log-php
 ## Basic Usage
 
 ```php
-use Fyipe\Logger;
+use Fyipe\FyipeLogger;
 
 // constructor
-$logger = new Fyipe\Logger(
+$logger = new Fyipe\FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
@@ -71,15 +71,15 @@ Main API to send logs to the server.
         -   [Composer Install](#composer-install)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
-        -   [new Logger($apiUrl, $applicationId, \$applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
-            -   [$logger->log($log, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomilmimiomimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-logannotationsemanticsmathloggerloglog-tags)
-            -   [$logger->warning($warning, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomiwmimiamimirmiminmimiimiminmimigmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-warningannotationsemanticsmathloggerwarningwarning-tags)
-            -   [$logger->error($error, \$tags)](#math-xmlnshttpwwww3org1998mathmathmlsemanticsmrowmilmimiomimigmimigmimiemimirmimomomomomiemimirmimirmimiomimirmimo-stretchyfalsemomrowannotation-encodingapplicationx-texlogger-errorannotationsemanticsmathloggererrorerror-tags)
+        -   [new FyipeLogger($apiUrl, $applicationId, \$applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
+            -   [$logger->log($log, \$tags)](#logger-loglog-tags)
+            -   [$logger->warning($warning, \$tags)](#logger-warningwarning-tags)
+            -   [$logger->error($error, \$tags)](#logger-errorerror-tags)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
 
-### new Logger($apiUrl, $applicationId, \$applicationKey)
+### new FyipeLogger($apiUrl, $applicationId, \$applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -96,7 +96,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new Fyipe\Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param  | Type                                       | Description                                                 |
@@ -108,7 +108,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new FyiLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param     | Type                                       | Description                                                 |
@@ -120,7 +120,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new Fyipe\Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new Fyipe\FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param   | Type                                       | Description                                                 |

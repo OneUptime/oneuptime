@@ -9,13 +9,10 @@
         content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
     <link rel="stylesheet" href="/css/shared-site.css">
-    <link rel="stylesheet" href="/css/shared-site.css">
     <link rel="stylesheet" href="/css/home.css">
-    <link rel="stylesheet" href="/css/home.css">
-    <link rel="stylesheet" href="/css/products.css">
     <link rel="stylesheet" href="/css/products.css">
     <script src="/js/amplitude.js"></script>
-    <script async>
+    <script type="module" async>
         var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
         if (IS_SAAS_SERVICE) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > LOGS MANAGEMENT');

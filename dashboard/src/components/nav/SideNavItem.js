@@ -231,7 +231,9 @@ export class SidebarNavItem extends Component {
                                             id={`${route.title}-text`}
                                             style={route.textStyle}
                                         >
-                                            {route.title}
+                                            {route.title === 'Incident Log'
+                                                ? 'Incidents'
+                                                : route.title}
                                         </span>
                                     </span>
                                     {route.shortcut && (
@@ -354,7 +356,10 @@ export class SidebarNavItem extends Component {
                                                                 : ''
                                                         }
                                                     >
-                                                        {child.title}
+                                                        {child.title ===
+                                                        'Incident Settings'
+                                                            ? 'Incidents'
+                                                            : child.title}
                                                     </span>
                                                 </span>
                                                 {child.shortcut && (

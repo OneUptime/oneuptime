@@ -452,7 +452,15 @@ app.get('/css/comparision.css', async function(req, res) {
     res.send(data);
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
+// cache policy for static contents
+// loads up the site faster
+app.use(
+    express.static(path.join(__dirname, 'public'), {
+        setHeaders(res) {
+            res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
+        },
+    })
+);
 
 app.get('/*', function(req, res) {
     res.status(404);

@@ -8,13 +8,13 @@ A fyipe shell package that monitor's server resources - disk, memory and CPU per
 
 You can install to use on the CLI:
 
-```
+```bash
 $ npm install -g fyipe-server-monitor
 ```
 
 You can install to use in your project:
 
-```
+```bash
 $ cd project
 $ npm install fyipe-server-monitor
 ```
@@ -23,9 +23,8 @@ $ npm install fyipe-server-monitor
 
 You can use on the CLI:
 
-```
+```bash
 $ fyipe-server-monitor
-
 ```
 
 -   Run `fyipe-server-monitor`.
@@ -35,7 +34,7 @@ $ fyipe-server-monitor
 
 You can also use it like this:
 
-```
+```bash
 $ fyipe-server-monitor -p 5d64d59cae46131619708309 -u https://fyipe.com/api -a b02798c0-c898-11e9-9f14-4963dc67e2ab -m 5d7775e9f14a531364ba6917
 ```
 
@@ -59,6 +58,18 @@ const monitor = serverMonitor({
 
 monitor.start();
 ```
+
+## Known Issues
+
+#### Windows Temperature
+
+`wmic` - is used to determine temperature and sometimes needs to be run with admin privileges. So if you do not get any values, try to run it again with according privileges. If you still do not get any values, your system might not support this feature.
+
+#### Linux Temperature
+
+In some cases you may need to install the linux `sensors` package to be able to measure temperature e.g. on DEBIAN based systems run `sudo apt-get install lm-sensors`.
+
+See [system information](https://www.npmjs.com/package/systeminformation#known-issues) to learn more.
 
 ## API Documentation
 
@@ -135,7 +146,3 @@ Stop server monitor.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_api--module.exports)
 **Returns**: <code>Object</code> - The ping server cron job.
-
-```
-
-```

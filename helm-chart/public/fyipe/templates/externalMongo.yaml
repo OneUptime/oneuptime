@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/part-of: fyipe
-    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/managed-by: Helm
 data:
   27017: {{ printf "%s/$s" $.Release.Namespace "fi-mongodb:27017" }}
 ---
@@ -17,7 +17,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/part-of: fyipe
-    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/managed-by: Helm
 spec:
   type: LoadBalancer
   ports:

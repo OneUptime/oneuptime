@@ -127,10 +127,10 @@ class TopContent extends Component {
                 id="ongoingEvents"
             >
                 <span
-                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                    className="db-SideNav-icon db-SideNav-icon--connect db-SideNav-icon--selected"
                     style={{
                         filter: 'brightness(0) invert(1)',
-                        marginTop: '1px',
+                        marginTop: '-1px',
                         marginRight: '5px',
                     }}
                 />
@@ -174,6 +174,9 @@ class TopContent extends Component {
                 incident => !incident.resolved
             ).length;
         }
+        const monitorCount = this.props.monitors
+            ? this.props.monitors.count
+            : 0;
 
         return (
             <div
@@ -200,7 +203,9 @@ class TopContent extends Component {
                     </ClickOutside>
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                        {this.renderActiveIncidents(incidentCounter)}
+                        {monitorCount > 0
+                            ? this.renderActiveIncidents(incidentCounter)
+                            : null}
                         {this.renderOngoingScheduledEvents()}
                         <div className="Box-root Margin-right--16">
                             <div
@@ -302,9 +307,15 @@ class TopContent extends Component {
 
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
+    const { projectId } = props;
+    const monitors = projectId
+        ? state.monitor.monitorsList.monitors.find(project => {
+              return project._id === projectId;
+          })
+        : [];
 
     return {
         profilePic,
@@ -314,6 +325,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         ongoingScheduledEvents:
             state.scheduledEvent.ongoingScheduledEvent.events,
+        monitors,
     };
 };
 
@@ -355,6 +367,7 @@ TopContent.propTypes = {
     currentProject: PropTypes.shape({ _id: PropTypes.string }),
     fetchOngoingScheduledEvents: PropTypes.func,
     ongoingScheduledEvents: PropTypes.array,
+    monitors: PropTypes.shape({ count: PropTypes.number }),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

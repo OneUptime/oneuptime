@@ -26,7 +26,7 @@ import {
     teamMemberDelete,
     addIncidentNote,
     createMonitor,
-    deleteMonitor,
+    deleteincidentbysocket,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 import {
@@ -94,9 +94,6 @@ class SocketApp extends Component {
                     `createMonitor-${this.props.project._id}`
                 );
                 socket.removeListener(
-                    `deleteMonitor-${this.props.project._id}`
-                );
-                socket.removeListener(
                     `addScheduledEvent-${this.props.project._id}`
                 );
                 socket.removeListener(
@@ -104,6 +101,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `updateScheduledEvent-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteIncident-${this.props.project._id}`
                 );
             }
             return true;
@@ -558,11 +558,6 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.createMonitor(data);
             });
-            socket.on(`deleteMonitor-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.deleteMonitor(data);
-            });
             socket.on(`addScheduledEvent-${this.props.project._id}`, event =>
                 thisObj.props.createScheduledEventSuccess(event)
             );
@@ -574,6 +569,10 @@ class SocketApp extends Component {
             socket.on(`updateScheduledEvent-${this.props.project._id}`, event =>
                 thisObj.props.updateScheduledEventSuccess(event)
             );
+
+            socket.on(`deleteIncident-${this.props.project._id}`, incident => {
+                thisObj.props.deleteincidentbysocket(incident);
+            });
         }
         return null;
     }
@@ -620,10 +619,10 @@ const mapDispatchToProps = dispatch =>
             closeModal,
             addIncidentNote,
             createMonitor,
-            deleteMonitor,
             createScheduledEventSuccess,
             updateScheduledEventSuccess,
             deleteScheduledEventSuccess,
+            deleteincidentbysocket,
         },
         dispatch
     );

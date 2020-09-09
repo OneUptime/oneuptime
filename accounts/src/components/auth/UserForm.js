@@ -74,7 +74,7 @@ class UserForm extends Component {
                                     marginTop: 0,
                                 }}
                             >
-                                <span id="email">
+                                <span>
                                     <label htmlFor="email">Email</label>
                                     <Field
                                         type="email"
