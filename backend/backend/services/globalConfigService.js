@@ -3,6 +3,7 @@ module.exports = {
         try {
             if (name === 'twilio' && value['authentication-token']) {
                 const iv = Crypto.randomBytes(16);
+                console.log('iv : ',iv);
                 value['authentication-token'] = await EncryptDecrypt.encrypt(
                     value['authentication-token'],
                     iv
