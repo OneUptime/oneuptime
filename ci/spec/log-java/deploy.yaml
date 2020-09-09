@@ -19,8 +19,8 @@ deploy_staging_log-java:
         - sudo docker ps
         - cd log-java
         - gpg --list-keys
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 57BE7B2EC10D7338212093C8D8460AB6E05CD41E
+        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key test@fyipe.com default default 2020-09-10
+        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys test@fyipe.com
         # - gpg --list-keys
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
@@ -43,7 +43,7 @@ deploy_staging_log-java:
     environment:
         name: staging
 
-deploy_poduction_log-java:
+deploy_production_log-java:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -78,6 +78,5 @@ deploy_poduction_log-java:
         refs:
             - release
             - hotfix-release
-            - feature-log-java
     environment:
         name: production
