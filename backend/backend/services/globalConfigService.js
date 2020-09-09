@@ -1,16 +1,20 @@
 module.exports = {
     create: async function({ name, value }) {
         try {
-            if (name === 'twilio') {
+            if (name === 'twilio' && value['authentication-token']) {
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'encrypted-authentication-token'
-                ] = await EncryptDecrypt.encrypt(
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
                     value['authentication-token'],
                     iv
                 );
                 value['iv'] = iv;
-                delete value['authentication-token'];
+            } else if (name === 'smtp' && value['password']) {
+                const iv = Crypto.randomBytes(16);
+                value['password'] = await EncryptDecrypt.encrypt(
+                    value['password'],
+                    iv
+                );
+                value['iv'] = iv;
             }
 
             let globalConfig = new GlobalConfigModel();
@@ -22,11 +26,17 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['authentication-token'],
                     globalConfig.value['iv']
                 );
-                delete value['encrypted-authentication-token'];
-                delete value['iv'];
+                delete globalConfig.value['iv'];
+            }
+            if (globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv']
+                );
+                delete globalConfig.value['iv'];
             }
 
             return globalConfig;
@@ -50,14 +60,24 @@ module.exports = {
             ) {
                 const { value } = data;
                 const iv = Crypto.randomBytes(16);
-                value[
-                    'encrypted-authentication-token'
-                ] = await EncryptDecrypt.encrypt(
+                value['authentication-token'] = await EncryptDecrypt.encrypt(
                     value['authentication-token'],
                     iv
                 );
                 value['iv'] = iv;
-                delete value['authentication-token'];
+            } else if (
+                query.name === 'smtp' &&
+                data &&
+                data.value &&
+                data.value['password']
+            ) {
+                const { value } = data;
+                const iv = Crypto.randomBytes(16);
+                value['password'] = await EncryptDecrypt.encrypt(
+                    value['password'],
+                    iv
+                );
+                value['iv'] = iv;
             }
 
             const globalConfig = await GlobalConfigModel.findOneAndUpdate(
@@ -72,10 +92,15 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['authentication-token'],
                     globalConfig.value['iv'].buffer
                 );
-                delete globalConfig.value['encrypted-authentication-token'];
+                delete globalConfig.value['iv'];
+            } else if (globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv'].buffer
+                );
                 delete globalConfig.value['iv'];
             }
 
@@ -126,10 +151,17 @@ module.exports = {
                     globalConfig.value[
                         'authentication-token'
                     ] = await EncryptDecrypt.decrypt(
-                        globalConfig.value['encrypted-authentication-token'],
+                        globalConfig.value['authentication-token'],
                         globalConfig.value['iv'].buffer
                     );
-                    delete globalConfig.value['encrypted-authentication-token'];
+                    delete globalConfig.value['iv'];
+                } else if (globalConfig.name === 'smtp') {
+                    globalConfig.value[
+                        'password'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['password'],
+                        globalConfig.value['iv'].buffer
+                    );
                     delete globalConfig.value['iv'];
                 }
             }
@@ -153,13 +185,17 @@ module.exports = {
                 globalConfig.value[
                     'authentication-token'
                 ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['encrypted-authentication-token'],
+                    globalConfig.value['authentication-token'],
                     globalConfig.value['iv'].buffer
                 );
-                delete globalConfig.value['encrypted-authentication-token'];
+                delete globalConfig.value['iv'];
+            } else if (globalConfig && globalConfig.name === 'smtp') {
+                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
+                    globalConfig.value['password'],
+                    globalConfig.value['iv'].buffer
+                );
                 delete globalConfig.value['iv'];
             }
-
             return globalConfig;
         } catch (error) {
             ErrorService.log('globalConfigService.findOneBy', error);

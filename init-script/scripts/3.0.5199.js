@@ -4,6 +4,7 @@ const EncryptDecrypt = require('../util/encryptDecrypt');
 
 const globalconfigsCollection = 'globalconfigs';
 const twiliosCollection = 'twilios';
+const smtpsCollection = 'smtps';
 
 async function run() {
     //Get all globalConfig having authToken not encrypted.
@@ -11,43 +12,15 @@ async function run() {
         globalconfigsCollection,
         {
             name: 'twilio',
-            'value.authentication-token': { $exists: true },
+            'value.iv': { $exists: false },
         }
     );
     for (let i = 0; i < globalConfigsWithPlainTextAuthTokens.length; i++) {
         const iv = Crypto.randomBytes(16);
         const globalConfig = globalConfigsWithPlainTextAuthTokens[i];
         const { value } = globalConfig;
-        value['encrypted-authentication-token'] = await EncryptDecrypt.encrypt(
+        value['authentication-token'] = await EncryptDecrypt.encrypt(
             value['authentication-token'],
-            iv
-        );
-        value['iv'] = iv;
-        delete value['authentication-token'];
-        await update(
-            globalconfigsCollection,
-            { _id: globalConfig._id },
-            { value }
-        );
-    }
-    //Get all global configs that have the authTokens encrypted with the old IV stored in the ENV.
-    const globalconfigsWithOldIVEncryptedAuthTokens = await find(
-        globalconfigsCollection,
-        {
-            name: 'twilio',
-            'value.encrypted-authentication-token': { $exists: true },
-            'value.iv': { $exists: false },
-        }
-    );
-    for (let i = 0; i < globalconfigsWithOldIVEncryptedAuthTokens.length; i++) {
-        const iv = Crypto.randomBytes(16);
-        const globalConfig = globalconfigsWithOldIVEncryptedAuthTokens[i];
-        const { value } = globalConfig;
-        const decryptedToken = await EncryptDecrypt.decrypt(
-            value['encrypted-authentication-token']
-        );
-        value['encrypted-authentication-token'] = await EncryptDecrypt.encrypt(
-            decryptedToken,
             iv
         );
         value['iv'] = iv;
@@ -78,6 +51,48 @@ async function run() {
             { ...customTwilioSettings }
         );
     }
+    //Get all globalConfig having smtp password not encrypted.
+    const globalConfigsWithPlainTextPassword = await find(
+        globalconfigsCollection,
+        {
+            name: 'smtp',
+            'value.iv': { $exists: false },
+        }
+    );
+    for (let i = 0; i < globalConfigsWithPlainTextPassword.length; i++) {
+        const iv = Crypto.randomBytes(16);
+        const globalConfig = globalConfigsWithPlainTextPassword[i];
+        const { value } = globalConfig;
+        value['password'] = await EncryptDecrypt.encrypt(value['password'], iv);
+        value['iv'] = iv;
+        await update(
+            globalconfigsCollection,
+            { _id: globalConfig._id },
+            { value }
+        );
+    }
+    //Get All the custom SMTP settings not having a IV
+    const customSmtpSettingsArray = await find(smtpsCollection, {
+        iv: { $exists: false },
+    });
+    for (let i = 0; i < customSmtpSettingsArray.length; i++) {
+        const customSmtpSettings = customSmtpSettingsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedToken = await EncryptDecrypt.decrypt(
+            customSmtpSettings.pass
+        );
+        customSmtpSettings.pass = await EncryptDecrypt.encrypt(
+            decryptedToken,
+            iv
+        );
+        customSmtpSettings.iv = iv;
+        await update(
+            smtpsCollection,
+            { _id: customSmtpSettings._id },
+            { ...customSmtpSettings }
+        );
+    }
+
 }
 
 module.exports = run;

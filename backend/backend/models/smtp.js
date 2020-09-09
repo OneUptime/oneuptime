@@ -8,6 +8,7 @@ const smtpSchema = new Schema({
     host: String,
     port: String,
     from: String,
+    iv: Schema.Types.Buffer,
     secure: { type: Boolean, default: true },
     enabled: { type: Boolean, default: true },
     createdAt: {
