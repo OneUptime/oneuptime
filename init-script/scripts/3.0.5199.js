@@ -92,7 +92,6 @@ async function run() {
             { ...customSmtpSettings }
         );
     }
-
 }
 
 module.exports = run;
