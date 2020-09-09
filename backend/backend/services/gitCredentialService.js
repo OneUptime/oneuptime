@@ -61,12 +61,9 @@ module.exports = {
                 ErrorService.log('gitCredentialService.create', error);
                 throw error;
             }
-            
+
             const iv = Crypto.randomBytes(16);
-            const encryptedPassword = await encrypt(
-                gitPassword,
-                iv
-            );
+            const encryptedPassword = await encrypt(gitPassword, iv);
 
             const response = await GitCredentialModel.create({
                 gitUsername,
@@ -88,10 +85,7 @@ module.exports = {
 
             if (data.gitPassword) {
                 const iv = Crypto.randomBytes(16);
-                data.gitPassword = await encrypt(
-                    data.gitPassword,
-                    iv
-                );
+                data.gitPassword = await encrypt(data.gitPassword, iv);
                 data.iv = iv;
             }
 
