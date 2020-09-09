@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, SubmissionError } from 'redux-form';
 import uuid from 'uuid';
 import {
     updateStatusPageSetting,
@@ -36,15 +36,9 @@ import VerifyDomainModal from './VerifyDomainModal';
 import DeleteDomainModal from './DeleteDomainModal';
 
 //Client side validation
-function validate(value, allValues, props, name) {
-    let error = undefined;
-
-    if (name === 'domain' && !value) {
-        error = 'Domain is required';
-    }
-    if (name === 'domain' && value && !Validate.isDomain(value)) {
-        error = 'Domain is not valid.';
-    }
+// eslint-disable-next-line no-unused-vars
+function validate(_values) {
+    const error = undefined;
     return error;
 }
 
@@ -56,10 +50,28 @@ export class Setting extends Component {
     };
 
     submitForm = values => {
-        // console.log(values, '>>>>>>>>>>>>>>>>');
-        // if ('domain' in values) {
-        //     return this.handleCreateDomain({ domain: values.domain });
-        // }
+        const { fields } = this.state;
+        const domains = [];
+        for (const [key, value] of Object.entries(values)) {
+            if (key.includes('domain') && !Validate.isDomain(value)) {
+                throw new SubmissionError({ [key]: 'Domain is not valid.' });
+            }
+            if (key.includes('domain') && Validate.isDomain(value)) {
+                domains.push({ domain: value });
+            }
+        }
+        if (fields.length > 0) {
+            fields.forEach((_field, index) => {
+                if (!Object.keys(values).includes(`domain_${index + 1}`)) {
+                    throw new SubmissionError({
+                        [`domain_${index + 1}`]: 'Domain is required.',
+                    });
+                }
+            });
+        }
+        if (fields.length > 0 && domains.length > 0) {
+            return this.handleCreateDomain(domains);
+        }
 
         const isChanged =
             JSON.stringify(this.props.initialFormValues) ===
@@ -74,19 +86,18 @@ export class Setting extends Component {
                     data = { domain: values[property], _id: property };
                 }
             }
-            // this.handleUpdateDomain(data);
+            this.handleUpdateDomain(data);
         }
     };
 
     handleCreateDomain = values => {
         const { reset } = this.props;
-        const { domain } = values;
         const { _id, projectId } = this.props.statusPage.status;
 
-        if (!domain) return;
+        if (values.length === 0) return;
 
         const data = {
-            domain,
+            domain: values,
             projectId: projectId._id || projectId,
             statusPageId: _id,
         };
@@ -211,7 +222,7 @@ export class Setting extends Component {
     };
 
     renderNewDomainField = (publicStatusPageUrl, index) => (
-        <div className="bs-Fieldset-row">
+        <div className="bs-Fieldset-row" key={index}>
             <label className="bs-Fieldset-label">
                 {' '}
                 Your Status Page is hosted at{' '}
@@ -226,7 +237,6 @@ export class Setting extends Component {
                     id={`domain_${index}`}
                     disabled={this.props.statusPage.setting.requesting}
                     placeholder="domain"
-                    validate={validate}
                 />
                 <ShouldRender
                     if={
