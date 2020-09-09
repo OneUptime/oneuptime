@@ -5,6 +5,7 @@ const EncryptDecrypt = require('../util/encryptDecrypt');
 const globalconfigsCollection = 'globalconfigs';
 const twiliosCollection = 'twilios';
 const smtpsCollection = 'smtps';
+const dockercredentialsCollection = 'dockercredentials';
 
 async function run() {
     //Get all globalConfig having authToken not encrypted.
@@ -90,6 +91,28 @@ async function run() {
             smtpsCollection,
             { _id: customSmtpSettings._id },
             { ...customSmtpSettings }
+        );
+    }
+    //Get all docker credentials encrypted without a unique IV.
+    const dockerCredentialsArray = await find(dockercredentialsCollection, {
+        iv: { $exists: false },
+    });
+
+    for (let i = 0; i < dockerCredentialsArray.length; i++) {
+        const dockerCredentials = dockerCredentialsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedDockerPassword = await EncryptDecrypt.decrypt(
+            dockerCredentials.dockerPassword
+        );
+        dockerCredentials.dockerPassword = await EncryptDecrypt.encrypt(
+            decryptedDockerPassword,
+            iv
+        );
+        dockerCredentials.iv = iv;
+        await update(
+            dockercredentialsCollection,
+            { _id: dockerCredentials._id },
+            { ...dockerCredentials }
         );
     }
 }
