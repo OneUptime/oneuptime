@@ -2,13 +2,13 @@
 
 ## Contents
 
--   Introduction [docs/introduction](/docs/introduction.md)
--   Concept [docs/concept](/docs/concept.md)
--   Architecture [docs/architecture](/docs/architecture.md)
--   Subproject Description [docs/project-description](/docs/project-description.md)
--   Running Fyipe [docs/run](/docs/run.md)
--   Running tests [docs/running-test](/docs/running-tests.md)
--   Deployment [docs/deployment](/docs/deployment.md)
+-   [Introduction](/docs/introduction.md)
+-   [Concept](/docs/concept.md)
+-   [Architecture](/docs/architecture.md)
+-   [Subproject Description](/docs/project-description.md)
+-   [Running Fyipe](/docs/run.md)
+-   [Running tests](/docs/running-tests.md)
+-   [Deployment](/docs/deployment.md)
 
 ## LISENCE
 
