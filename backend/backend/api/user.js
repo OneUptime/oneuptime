@@ -554,12 +554,13 @@ router.post('/verify/backupCode', async function(req, res) {
         const backupCode = user.backupCodes.filter(
             code => code.code === data.code
         );
-        user = await UserService.verifyUserBackupCode(
-            data.code,
-            user.twoFactorSecretCode,
-            backupCode[0].counter
-        );
-        if (!user || !user._id) {
+        if(backupCode.length > 0)
+            user = await UserService.verifyUserBackupCode(
+                data.code,
+                user.twoFactorSecretCode,
+                backupCode[0].counter
+            );
+        if (backupCode.length === 0 || !user || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Invalid backup code.',
