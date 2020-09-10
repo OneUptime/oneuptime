@@ -212,7 +212,7 @@ module.exports = {
         }
     },
 
-    closeTutorialBy: async function(query, type, data) {
+    closeTutorialBy: async function(query, type, data, projectId = null) {
         try {
             if (!query) query = {};
             if (!data) data = {};
@@ -220,7 +220,14 @@ module.exports = {
             type = type.replace(/-([a-z])/g, function(g) {
                 return g[1].toUpperCase();
             });
-            data[type] = { show: false };
+            if (projectId) {
+                // if projectID is passed, get the current tutorial status
+                const currentStatus = data[projectId] || {};
+                currentStatus[type] = { show: false }; // overwrite that current type under that project
+                data[projectId] = currentStatus; // update the data object then
+            } else {
+                data[type] = { show: false };
+            }
 
             const tutorial = await UserModel.findOneAndUpdate(
                 query,
