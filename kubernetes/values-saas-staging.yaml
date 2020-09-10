@@ -50,4 +50,6 @@ image:
   restartPolicy: Always
 
 replicaCount: 1
+
+# This should be 32 chars in length. 
 encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7
