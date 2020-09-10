@@ -5,6 +5,8 @@ const EncryptDecrypt = require('../util/encryptDecrypt');
 const globalconfigsCollection = 'globalconfigs';
 const twiliosCollection = 'twilios';
 const smtpsCollection = 'smtps';
+const dockercredentialsCollection = 'dockercredentials';
+const gitcredentialsCollection = 'gitcredentials';
 
 async function run() {
     //Get all globalConfig having authToken not encrypted.
@@ -90,6 +92,50 @@ async function run() {
             smtpsCollection,
             { _id: customSmtpSettings._id },
             { ...customSmtpSettings }
+        );
+    }
+    //Get all git credentials encrypted without a unique IV.
+    const gitCredentialsArray = await find(gitcredentialsCollection, {
+        iv: { $exists: false },
+    });
+
+    for (let i = 0; i < gitCredentialsArray.length; i++) {
+        const gitCredentials = gitCredentialsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedGitPassword = await EncryptDecrypt.decrypt(
+            gitCredentials.gitPassword
+        );
+        gitCredentials.gitPassword = await EncryptDecrypt.encrypt(
+            decryptedGitPassword,
+            iv
+        );
+        gitCredentials.iv = iv;
+        await update(
+            gitcredentialsCollection,
+            { _id: gitCredentials._id },
+            { ...gitCredentials }
+        );
+    }
+    //Get all docker credentials encrypted without a unique IV.
+    const dockerCredentialsArray = await find(dockercredentialsCollection, {
+        iv: { $exists: false },
+    });
+
+    for (let i = 0; i < dockerCredentialsArray.length; i++) {
+        const dockerCredentials = dockerCredentialsArray[i];
+        const iv = Crypto.randomBytes(16);
+        const decryptedDockerPassword = await EncryptDecrypt.decrypt(
+            dockerCredentials.dockerPassword
+        );
+        dockerCredentials.dockerPassword = await EncryptDecrypt.encrypt(
+            decryptedDockerPassword,
+            iv
+        );
+        dockerCredentials.iv = iv;
+        await update(
+            dockercredentialsCollection,
+            { _id: dockerCredentials._id },
+            { ...dockerCredentials }
         );
     }
 }
