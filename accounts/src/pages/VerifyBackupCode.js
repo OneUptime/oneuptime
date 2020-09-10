@@ -8,7 +8,7 @@ import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
 import { logEvent, setUserId, identify } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, ACCOUNTS_URL } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
@@ -27,7 +27,8 @@ export class VerifyBackupCode extends Component {
     }
 
     submitForm = values => {
-        this.props.verifyBackupCode(values).then(user => {
+        const email = this.props.login.user.email;
+        this.props.verifyBackupCode({...values, email}).then(user => {
             if (user && user.data && user.data.id) {
                 if (SHOULD_LOG_ANALYTICS) {
                     setUserId(user.data.id);
@@ -39,6 +40,8 @@ export class VerifyBackupCode extends Component {
     };
 
     render() {
+        if(!this.props.login.user.email)
+            window.location = ACCOUNTS_URL + '/login';
         const { backupCode } = this.props.login;
         let header;
 

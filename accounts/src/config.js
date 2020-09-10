@@ -8,6 +8,7 @@ import { emaildomains } from './constants/emaildomains';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let adminDashboardUrl = window.location.origin + '/admin';
+let accountsUrl = window.location.origin + '/accounts';
 
 if (
     window &&
@@ -25,6 +26,7 @@ if (
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
+    accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
 }
 
 export function env(value) {
@@ -40,6 +42,8 @@ export const API_URL = apiUrl;
 export const DASHBOARD_URL = dashboardUrl;
 
 export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+
+export const ACCOUNTS_URL = accountsUrl;
 
 export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
 

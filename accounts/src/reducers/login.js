@@ -120,6 +120,7 @@ export default function register(state = initialState, action) {
                     error: null,
                     success: true,
                 },
+                user:{...state.user}
             });
         case AUTH_VERIFICATION_SUCCESS:
             return Object.assign({}, state, {
@@ -140,6 +141,7 @@ export default function register(state = initialState, action) {
                     error: action.payload,
                     success: false,
                 },
+                user:{...state.user}
             });
 
         case RESET_AUTH_VERIFICATION:
@@ -156,6 +158,7 @@ export default function register(state = initialState, action) {
                     error: null,
                     success: true,
                 },
+                user:{...state.user}
             });
         case BACKUP_CODE_VERIFICATION_SUCCESS:
             return Object.assign({}, state, {
@@ -176,6 +179,7 @@ export default function register(state = initialState, action) {
                     error: action.payload,
                     success: false,
                 },
+                user:{...state.user}
             });
 
         case RESET_BACKUP_CODE_VERIFICATION:
