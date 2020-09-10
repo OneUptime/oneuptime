@@ -96,7 +96,7 @@ class BackupCodesModal extends React.Component {
                                                                                 }
                                                                             >
                                                                                 <td
-                                                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                                                                                     style={{
                                                                                         height:
                                                                                             '1px',
