@@ -27,7 +27,8 @@ export class VerifyAuthToken extends Component {
     }
 
     submitForm = values => {
-        this.props.verifyAuthToken(values).then(user => {
+        const email = this.props.login.user.email;
+        this.props.verifyAuthToken({...values,email}).then(user => {
             if (user && user.data && user.data.id) {
                 if (SHOULD_LOG_ANALYTICS) {
                     identify(user.data.id);
