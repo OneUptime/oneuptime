@@ -120,6 +120,7 @@ export default function register(state = initialState, action) {
                     error: null,
                     success: true,
                 },
+                user:{...state.user}
             });
         case AUTH_VERIFICATION_SUCCESS:
             return Object.assign({}, state, {
