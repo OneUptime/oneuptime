@@ -335,7 +335,11 @@ class Home extends Component {
                                                                     this.props
                                                                         .components
                                                                         .length <
-                                                                        1 ? (
+                                                                        1 &&
+                                                                    this.props
+                                                                        .customTutorialStat
+                                                                        .component
+                                                                        .show ? (
                                                                         <div>
                                                                             {/* No Component Notifier */}
                                                                             <QuickTipBox
@@ -351,6 +355,14 @@ class Home extends Component {
                                                                                         'component'
                                                                                     )[0]
                                                                                         .icon
+                                                                                }
+                                                                                projectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .currentProjectId
+                                                                                }
+                                                                                type={
+                                                                                    'component'
                                                                                 }
                                                                                 content={
                                                                                     <div>
@@ -390,7 +402,11 @@ class Home extends Component {
                                                                       this.props
                                                                           .monitors
                                                                           .length <
-                                                                          1 ? (
+                                                                          1 &&
+                                                                      this.props
+                                                                          .customTutorialStat
+                                                                          .monitor
+                                                                          .show ? (
                                                                         <div>
                                                                             {/* No Monitor Notifier */}
                                                                             <QuickTipBox
@@ -406,6 +422,14 @@ class Home extends Component {
                                                                                         'monitor'
                                                                                     )[0]
                                                                                         .icon
+                                                                                }
+                                                                                projectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .currentProjectId
+                                                                                }
+                                                                                type={
+                                                                                    'monitor'
                                                                                 }
                                                                                 content={
                                                                                     <div>
@@ -453,7 +477,12 @@ class Home extends Component {
                                                                                     .props
                                                                                     .projectTeamMembers
                                                                                     .length ===
-                                                                                    1
+                                                                                    1 &&
+                                                                                this
+                                                                                    .props
+                                                                                    .customTutorialStat
+                                                                                    .teamMember
+                                                                                    .show
                                                                             }
                                                                         >
                                                                             <QuickTipBox
@@ -469,6 +498,14 @@ class Home extends Component {
                                                                                         'teamMember'
                                                                                     )[0]
                                                                                         .icon
+                                                                                }
+                                                                                projectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .currentProjectId
+                                                                                }
+                                                                                type={
+                                                                                    'teamMember'
                                                                                 }
                                                                                 content={
                                                                                     <div>
@@ -622,6 +659,7 @@ Home.propTypes = {
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
+    customTutorialStat: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -643,6 +681,29 @@ const mapStateToProps = (state, props) => {
         );
         return subProjectTeamMember;
     });
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the 3 custom tutorials
+    const customTutorialStat = {
+        component: { show: true },
+        monitor: { show: true },
+        teamMember: { show: true },
+    };
+    // if custom component tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.component) {
+        customTutorialStat.component.show =
+            projectCustomTutorial.component.show;
+    }
+    // if custom monitor tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.monitor) {
+        customTutorialStat.monitor.show = projectCustomTutorial.monitor.show;
+    }
+    // if custom invite team member tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.teamMember) {
+        customTutorialStat.teamMember.show =
+            projectCustomTutorial.teamMember.show;
+    }
 
     return {
         currentProjectId: projectId,
@@ -657,6 +718,7 @@ const mapStateToProps = (state, props) => {
         subProjectOngoingScheduledEvents:
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
         multipleIncidentRequest: state.incident.unresolvedincidents,
+        customTutorialStat,
     };
 };
 
