@@ -50,3 +50,4 @@ image:
   restartPolicy: Always
 
 replicaCount: 1
+encryptionKey: pg#K^C$-)IGOg6DYXDGq2jdmfws0MiR7

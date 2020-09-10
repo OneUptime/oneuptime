@@ -8,4 +8,4 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 data:
   clusterkey: {{ randAlphaNum 15 | quote }}
-  encryptionkey: {{ randAlphaNum 15 | quote }}
+  encryptionkey: {{ .Values.encryptionKey | quote }}
