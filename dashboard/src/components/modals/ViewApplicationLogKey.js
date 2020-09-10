@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import TooltipMini from '../basic/TooltipMini';
+import { API_URL } from '../../config';
 
 class ViewApplicationLogKey extends Component {
     constructor(props) {
@@ -87,6 +88,24 @@ class ViewApplicationLogKey extends Component {
                                                             ? this.props.data
                                                                   .applicationLog
                                                                   ._id
+                                                            : 'LOADING...'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row Flex-flex Flex-direction--column">
+                                                <label className="bs-Fieldset-label">
+                                                    Log API URL
+                                                </label>
+                                                <div>
+                                                    <span
+                                                        className="value"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                            fontWeight: 'bold',
+                                                        }}
+                                                    >
+                                                        {API_URL !== null
+                                                            ? API_URL
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
