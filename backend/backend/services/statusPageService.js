@@ -22,7 +22,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('domains.domainVerificationToken')
                 .lean();
             return statusPages;
@@ -303,7 +303,7 @@ module.exports = {
             query.deleted = false;
             const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken');
             return statusPage;
@@ -679,7 +679,7 @@ module.exports = {
 
             const statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken')
                 .lean();
