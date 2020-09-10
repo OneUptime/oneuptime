@@ -44,11 +44,12 @@ To install the chart with the release name `fyipe`:
 ```console
 helm repo add fyipe https://fyipe.com/chart
 helm repo update
-helm install fyipe fyipe/Fyipe
+helm install fyipe --set encryptionKey=ThisEncryptionKeyLengthIs32Size. fyipe/Fyipe
 ```
 
 The command deploys Fyipe on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
 
+Please Note: Encyption Key should be 32 lenth in size. Please change it to any random string you like. you need to keep the encryption key safe, ideally in an encrypted vault.
 
 ## Uninstalling the Chart
 

@@ -5,6 +5,14 @@ import { withRouter } from 'react-router-dom';
 import AffectedResources from '../basic/AffectedResources';
 
 const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
+    let monitorState = [];
+    monitorList.forEach(list => {
+        if (
+            String(list._id) === String(event.projectId._id || event.projectId)
+        ) {
+            monitorState = list.monitors;
+        }
+    });
     return (
         <div
             className="Box-root Margin-bottom--12 box box__yellow--dark"
@@ -35,7 +43,7 @@ const OngoingScheduledEvent = ({ event, monitorList, history, projectId }) => {
                 <div className="ongoing__affectedmonitor">
                     <AffectedResources
                         event={event}
-                        monitorState={monitorList}
+                        monitorState={monitorState}
                     />
                 </div>
 

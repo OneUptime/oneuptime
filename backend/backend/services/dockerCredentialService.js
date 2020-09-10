@@ -1,3 +1,4 @@
+const Crypto = require('crypto');
 const DockerCredentialModel = require('../models/dockerCredential');
 const ErrorService = require('./errorService');
 const { encrypt, decrypt } = require('../config/encryptDecrypt');
@@ -62,7 +63,9 @@ module.exports = {
                 throw error;
             }
 
-            data.dockerPassword = await encrypt(data.dockerPassword);
+            const iv = Crypto.randomBytes(16);
+            data.dockerPassword = await encrypt(data.dockerPassword, iv);
+            data.iv = iv;
 
             const response = await DockerCredentialModel.create(data);
             return response;
@@ -86,10 +89,16 @@ module.exports = {
                         username: data.dockerUsername,
                         password: data.dockerPassword,
                     });
-                    data.dockerPassword = await encrypt(data.dockerPassword);
+                    const iv = Crypto.randomBytes(16);
+                    data.dockerPassword = await encrypt(
+                        data.dockerPassword,
+                        iv
+                    );
+                    data.iv = iv;
                 } else {
                     const password = await decrypt(
-                        dockerCredential.dockerPassword
+                        dockerCredential.dockerPassword,
+                        dockerCredential.iv.buffer
                     );
                     await this.validateDockerCredential({
                         username: data.dockerUsername,

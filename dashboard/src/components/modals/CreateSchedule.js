@@ -40,6 +40,7 @@ class CreateSchedule extends React.Component {
             createScheduledEventModalId,
             fetchscheduledEvents,
             data,
+            monitors,
         } = this.props;
         const projectId = data.projectId;
         const postObj = {};
@@ -50,7 +51,7 @@ class CreateSchedule extends React.Component {
             );
             postObj.monitors = monitors;
         } else {
-            postObj.monitors = [];
+            postObj.monitors = monitors.map(monitor => monitor._id);
         }
 
         postObj.name = values.name;
@@ -841,9 +842,14 @@ const mapDispatchToProps = dispatch =>
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
+
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(ownProps.data.projectId)
+    );
+    const monitors = monitorData.monitors;
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
@@ -851,7 +857,7 @@ const mapStateToProps = state => {
         scheduledEventError: state.scheduledEvent.newScheduledEvent.error,
         createScheduledEventModalId: state.modal.modals[0].id,
         minStartDate,
-        monitors: state.monitor.monitorsList.monitors[0].monitors,
+        monitors,
         initialValues: {
             monitorDuringEvent: true,
             alertSubscriber: true,
