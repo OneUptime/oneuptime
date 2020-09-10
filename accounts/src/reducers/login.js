@@ -141,6 +141,7 @@ export default function register(state = initialState, action) {
                     error: action.payload,
                     success: false,
                 },
+                user:{...state.user}
             });
 
         case RESET_AUTH_VERIFICATION:
