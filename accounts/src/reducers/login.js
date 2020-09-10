@@ -156,6 +156,7 @@ export default function register(state = initialState, action) {
                     error: null,
                     success: true,
                 },
+                user:{...state.user}
             });
         case BACKUP_CODE_VERIFICATION_SUCCESS:
             return Object.assign({}, state, {
