@@ -35,7 +35,7 @@ const _this = {
             error.code = 400;
             return error;
         }
-        return twilio(accountSid, authToken);
+        return new twilio(accountSid, authToken);
     },
 
     getSettings: async () => {
