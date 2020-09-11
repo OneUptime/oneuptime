@@ -1,3 +1,4 @@
+const Crypto = require('crypto');
 const GitCredentialModel = require('../models/gitCredential');
 const ErrorService = require('./errorService');
 const { encrypt } = require('../config/encryptDecrypt');
@@ -61,12 +62,14 @@ module.exports = {
                 throw error;
             }
 
-            const encryptedPassword = await encrypt(gitPassword);
+            const iv = Crypto.randomBytes(16);
+            const encryptedPassword = await encrypt(gitPassword, iv);
 
             const response = await GitCredentialModel.create({
                 gitUsername,
                 gitPassword: encryptedPassword,
                 projectId,
+                iv,
             });
             return response;
         } catch (error) {
@@ -81,7 +84,9 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             if (data.gitPassword) {
-                data.gitPassword = await encrypt(data.gitPassword);
+                const iv = Crypto.randomBytes(16);
+                data.gitPassword = await encrypt(data.gitPassword, iv);
+                data.iv = iv;
             }
 
             const gitCredential = await GitCredentialModel.findOneAndUpdate(
