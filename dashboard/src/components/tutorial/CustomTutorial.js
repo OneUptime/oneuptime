@@ -56,6 +56,7 @@ const CustomTutorial = ({
                     }
                     callToActionLink={`/dashboard/project/${currentProjectId}/components`}
                     callToAction="Create Component"
+                    hideActionButton={hideActionButton}
                 />
             </div>
         ) : monitors &&

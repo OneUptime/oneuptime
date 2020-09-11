@@ -207,6 +207,9 @@ class DashboardView extends Component {
                                                             currentProjectId={
                                                                 currentProjectId
                                                             }
+                                                            hideActionButton={
+                                                                true
+                                                            }
                                                         />
                                                         <ShouldRender
                                                             if={
