@@ -107,6 +107,15 @@ export class VerifyBackupCode extends Component {
                         </form>
                     </div>
                 </div>
+                <div className="below-box">
+                    <p>
+                        Have a google app authenticator?{' '}
+                        <Link to="/accounts/user-auth/token">
+                            Enter auth token
+                        </Link>
+                        .
+                    </p>
+                </div>
                 <div id="footer_spacer" />
                 <div id="bottom">
                     <ul>

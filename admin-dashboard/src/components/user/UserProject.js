@@ -69,7 +69,7 @@ const mapStateToProps = state => {
 UserProject.propTypes = {
     fetchUserProjects: PropTypes.func.isRequired,
     userId: PropTypes.string,
-    projects: PropTypes.array,
+    projects: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserProject);

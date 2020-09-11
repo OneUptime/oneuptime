@@ -548,3 +548,139 @@ export const searchUsers = (filter, skip, limit) => async dispatch => {
         dispatch(searchUsersError(errors(errorMsg)));
     }
 };
+
+// Update user twoFactorAuthToken
+export function twoFactorAuthTokenRequest() {
+    return {
+        type: types.UPDATE_TWO_FACTOR_AUTH_REQUEST,
+    };
+}
+
+export function twoFactorAuthTokenSuccess(payload) {
+    return {
+        type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
+        payload: payload,
+    };
+}
+
+export function twoFactorAuthTokenError(error) {
+    return {
+        type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateTwoFactorAuthToken(data) {
+    return function(dispatch) {
+        const promise = putApi('user/profile', data);
+        dispatch(twoFactorAuthTokenRequest());
+        promise.then(
+            function(response) {
+                const payload = response.data;
+                dispatch(twoFactorAuthTokenSuccess(payload));
+                return payload;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(twoFactorAuthTokenError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function setTwoFactorAuth(enabled) {
+    return {
+        type: types.SET_TWO_FACTOR_AUTH,
+        payload: enabled,
+    };
+}
+
+export function verifyTwoFactorAuthToken(values) {
+    return function(dispatch) {
+        const promise = postApi('user/totp/verifyToken', values);
+        dispatch(twoFactorAuthTokenRequest());
+        promise.then(
+            function(response) {
+                const payload = response.data;
+                dispatch(twoFactorAuthTokenSuccess(payload));
+                return payload;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(twoFactorAuthTokenError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+// Generate user's QR code
+export function generateTwoFactorQRCodeRequest() {
+    return {
+        type: types.GENERATE_TWO_FACTOR_QR_REQUEST,
+    };
+}
+
+export function generateTwoFactorQRCodeSuccess(payload) {
+    return {
+        type: types.GENERATE_TWO_FACTOR_QR_SUCCESS,
+        payload: payload,
+    };
+}
+
+export function generateTwoFactorQRCodeError(error) {
+    return {
+        type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
+        payload: error,
+    };
+}
+
+export function generateTwoFactorQRCode(userId) {
+    return function(dispatch) {
+        const promise = postApi(`user/totp/token/${userId}`);
+        dispatch(generateTwoFactorQRCodeRequest());
+        promise.then(
+            function(response) {
+                const payload = response.data;
+                dispatch(generateTwoFactorQRCodeSuccess(payload));
+                return payload;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(generateTwoFactorQRCodeError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}

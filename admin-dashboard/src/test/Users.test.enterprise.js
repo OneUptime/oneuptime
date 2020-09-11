@@ -91,4 +91,82 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should not activate google authenticator if the verification code field is empty',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // visit the dashboard
+                await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector(
+                    '.bs-ObjectList-rows > a:nth-child(2)'
+                );
+                await page.click('.bs-ObjectList-rows > a:nth-child(2)');
+                await page.waitFor(5000);
+
+                // toggle the google authenticator
+                await page.$eval('input[name=twoFactorAuthEnabled]', e =>
+                    e.click()
+                );
+
+                // click on the next button
+                await page.waitForSelector('#nextFormButton');
+                await page.click('#nextFormButton');
+
+                // click the verification button
+                await page.waitForSelector('#enableTwoFactorAuthButton');
+                await page.click('#enableTwoFactorAuthButton');
+
+                // verify there is an error message
+                let spanElement = await page.waitForSelector('.field-error');
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Auth token is required.');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should not activate google authenticator if the verification code is invalid',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // visit the dashboard
+                await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+                await page.waitForSelector(
+                    '.bs-ObjectList-rows > a:nth-child(2)'
+                );
+                await page.click('.bs-ObjectList-rows > a:nth-child(2)');
+                await page.waitFor(5000);
+
+                // toggle the google authenticator
+                await page.$eval('input[name=twoFactorAuthEnabled]', e =>
+                    e.click()
+                );
+
+                // click on the next button
+                await page.waitForSelector('#nextFormButton');
+                await page.click('#nextFormButton');
+
+                // enter a random verification code
+                await page.waitForSelector('input[name=token]');
+                await page.type('input[name=token]', '021196');
+
+                // click the verification button
+                await page.waitForSelector('#enableTwoFactorAuthButton');
+                await page.click('#enableTwoFactorAuthButton');
+
+                // verify there is an error message
+                let spanElement = await page.waitForSelector('#modal-message');
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly('Invalid token.');
+            });
+        },
+        operationTimeOut
+    );
 });
