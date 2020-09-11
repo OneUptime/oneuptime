@@ -13,7 +13,6 @@ function QuickTipBox({
     callToActionLink,
     callToAction,
     projectId,
-    type,
     closeTutorial,
 }) {
     return (
@@ -36,10 +35,9 @@ function QuickTipBox({
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
                                 <span
+                                    id={`close-${id}`}
                                     className="incident-close-button"
-                                    onClick={() =>
-                                        closeTutorial(type, projectId)
-                                    }
+                                    onClick={() => closeTutorial(id, projectId)}
                                 ></span>
                             </div>
                         </div>
@@ -94,7 +92,6 @@ QuickTipBox.propTypes = {
     callToActionLink: PropTypes.string,
     callToAction: PropTypes.string,
     projectId: PropTypes.string,
-    type: PropTypes.string,
     closeTutorial: PropTypes.func,
 };
 

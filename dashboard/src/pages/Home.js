@@ -361,9 +361,6 @@ class Home extends Component {
                                                                                         .props
                                                                                         .currentProjectId
                                                                                 }
-                                                                                type={
-                                                                                    'component'
-                                                                                }
                                                                                 content={
                                                                                     <div>
                                                                                         {
@@ -427,9 +424,6 @@ class Home extends Component {
                                                                                     this
                                                                                         .props
                                                                                         .currentProjectId
-                                                                                }
-                                                                                type={
-                                                                                    'monitor'
                                                                                 }
                                                                                 content={
                                                                                     <div>
@@ -503,9 +497,6 @@ class Home extends Component {
                                                                                     this
                                                                                         .props
                                                                                         .currentProjectId
-                                                                                }
-                                                                                type={
-                                                                                    'teamMember'
                                                                                 }
                                                                                 content={
                                                                                     <div>
