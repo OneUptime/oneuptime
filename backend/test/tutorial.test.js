@@ -1,7 +1,7 @@
 /* eslint-disable linebreak-style, no-undef */
 
 process.env.PORT = 3020;
-process.env.ENCRYPTION_KEY = '01234567890123456789012345678901';
+process.env.ENCRYPTION_KEY = 01234567890123456789012345678901;
 const expect = require('chai').expect;
 const userData = require('./data/user');
 const chai = require('chai');
