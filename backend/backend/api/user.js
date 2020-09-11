@@ -554,6 +554,12 @@ router.post('/verify/backupCode', async function(req, res) {
         const backupCode = user.backupCodes.filter(
             code => code.code === data.code
         );
+        if (backupCode.length > 0 && backupCode[0].used) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'This backup code was used once, show another code.',
+            });
+        }
         if (backupCode.length > 0)
             user = await UserService.verifyUserBackupCode(
                 data.code,
