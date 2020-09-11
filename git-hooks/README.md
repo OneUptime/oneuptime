@@ -10,5 +10,5 @@ Run these command in your terminal from the root of this project.
 
 ```
 root="$(pwd)"
-ln -s "$root/hooks" "$root/.git/hooks"
+ln -s "$root/git-hooks" "$root/.git/hooks"
 ```

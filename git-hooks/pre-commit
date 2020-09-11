@@ -4,7 +4,7 @@
 
 #     ```
 #     root="$(pwd)"
-#     ln -s "$root/hooks" "$root/.git/hooks"
+#     ln -s "$root/git-hooks" "$root/.git/hooks"
 #     ```
 
 function jslint {
