@@ -92,19 +92,27 @@ router.put(
 
         try {
             if (Array.isArray(subDomain)) {
-                subDomain.forEach(async domain => {
+                const response = [];
+                for (const domain of subDomain) {
                     const belongsToProject = await DomainVerificationService.doesDomainBelongToProject(
                         projectId,
                         domain.domain
                     );
                     if (!belongsToProject) {
-                        await StatusPageService.createDomain(
-                            domain.domain,
-                            projectId,
-                            statusPageId
+                        response.push(
+                            await StatusPageService.createDomain(
+                                domain.domain,
+                                projectId,
+                                statusPageId
+                            )
                         );
                     }
-                });
+                }
+                return sendItemResponse(
+                    req,
+                    res,
+                    response[response.length - 1]
+                );
             } else {
                 const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
                     projectId,
@@ -118,17 +126,13 @@ router.put(
                         code: 400,
                     });
                 }
-                await StatusPageService.createDomain(
+                const resp = await StatusPageService.createDomain(
                     subDomain,
                     projectId,
                     statusPageId
                 );
+                return sendItemResponse(req, res, resp);
             }
-            const response = await StatusPageService.findOneBy({
-                _id: statusPageId,
-            });
-
-            return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

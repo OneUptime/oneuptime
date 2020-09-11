@@ -30,6 +30,7 @@ import {
     createDomain,
     deleteDomain,
     updateDomain,
+    createDomainFailure,
 } from '../../actions/domain';
 import { openModal, closeModal } from '../../actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
@@ -103,6 +104,7 @@ export class Setting extends Component {
         };
         this.props.createDomain(data).then(
             () => {
+                this.setState({ fields: [] });
                 reset();
             },
             function() {}
@@ -322,6 +324,7 @@ export class Setting extends Component {
             className="bs-Button bs-Button--icon bs-Button--new"
             type="button"
             onClick={() => {
+                this.props.createDomainFailure();
                 this.props.addMoreDomain();
                 this.setState(prevState => {
                     return {
@@ -761,8 +764,7 @@ export class Setting extends Component {
                                     <div className="Box-root">
                                         <ShouldRender
                                             if={
-                                                this.props.statusPage.setting
-                                                    .error ||
+                                                this.props.addDomain.error ||
                                                 this.props.updateDomainError
                                             }
                                         >
@@ -772,17 +774,13 @@ export class Setting extends Component {
                                                     display: 'block',
                                                 }}
                                             >
-                                                {this.props.statusPage.setting
-                                                    .error ||
+                                                {this.props.addDomain.error ||
                                                     this.props
                                                         .updateDomainError}
                                             </span>
                                         </ShouldRender>
                                         <ShouldRender
-                                            if={
-                                                !this.props.statusPage.setting
-                                                    .error
-                                            }
+                                            if={!this.props.addDomain.error}
                                         >
                                             <span>
                                                 Changes to these settings will
@@ -816,7 +814,7 @@ export class Setting extends Component {
                                             }
                                             type="submit"
                                         >
-                                            {(!this.props.statusPage.setting
+                                            {(!this.props.addDomain
                                                 .requesting ||
                                                 !this.props
                                                     .updateDomainRequesting) && (
@@ -824,8 +822,7 @@ export class Setting extends Component {
                                                     Save Domain Settings{' '}
                                                 </span>
                                             )}
-                                            {(this.props.statusPage.setting
-                                                .requesting ||
+                                            {(this.props.addDomain.requesting ||
                                                 this.props
                                                     .updateDomainRequesting) && (
                                                 <FormLoader />
@@ -874,6 +871,7 @@ Setting.propTypes = {
     ]),
     updateDomainRequesting: PropTypes.bool,
     initialFormValues: PropTypes.object,
+    createDomainFailure: PropTypes.func,
 };
 
 const SettingForm = reduxForm({
@@ -897,6 +895,7 @@ const mapDispatchToProps = dispatch => {
             deleteDomain,
             openModal,
             closeModal,
+            createDomainFailure,
         },
         dispatch
     );
