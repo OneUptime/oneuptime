@@ -403,6 +403,10 @@ module.exports = {
                 const user = await _this.findOneBy({
                     twoFactorSecretCode: secretKey,
                 });
+                const backupCodes = user.backupCodes.filter(
+                    backupCode => backupCode.code !== code
+                );
+                await _this.updateOneBy({twoFactorSecretCode: secretKey},{backupCodes});
                 return user;
             }
             return isValid;
@@ -564,7 +568,7 @@ module.exports = {
                             password,
                             encryptedPassword
                         );
-                        if (user.twoFactorAuthEnabled) {
+                        if (res && user.twoFactorAuthEnabled) {
                             return { message: 'Login with 2FA token', email };
                         }
 
