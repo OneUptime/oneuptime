@@ -554,7 +554,7 @@ router.post('/verify/backupCode', async function(req, res) {
         const backupCode = user.backupCodes.filter(
             code => code.code === data.code
         );
-        if(backupCode.length > 0)
+        if (backupCode.length > 0)
             user = await UserService.verifyUserBackupCode(
                 data.code,
                 user.twoFactorSecretCode,

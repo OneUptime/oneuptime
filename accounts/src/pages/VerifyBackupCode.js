@@ -28,7 +28,7 @@ export class VerifyBackupCode extends Component {
 
     submitForm = values => {
         const email = this.props.login.user.email;
-        this.props.verifyBackupCode({...values, email}).then(user => {
+        this.props.verifyBackupCode({ ...values, email }).then(user => {
             if (user && user.data && user.data.id) {
                 if (SHOULD_LOG_ANALYTICS) {
                     setUserId(user.data.id);
@@ -40,7 +40,7 @@ export class VerifyBackupCode extends Component {
     };
 
     render() {
-        if(!this.props.login.user.email)
+        if (!this.props.login.user.email)
             window.location = ACCOUNTS_URL + '/login';
         const { backupCode } = this.props.login;
         let header;

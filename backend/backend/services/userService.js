@@ -406,7 +406,10 @@ module.exports = {
                 const backupCodes = user.backupCodes.filter(
                     backupCode => backupCode.code !== code
                 );
-                await _this.updateOneBy({twoFactorSecretCode: secretKey},{backupCodes});
+                await _this.updateOneBy(
+                    { twoFactorSecretCode: secretKey },
+                    { backupCodes }
+                );
                 return user;
             }
             return isValid;
