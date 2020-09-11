@@ -31,10 +31,8 @@
     display: flex;
     align-items: center;
     justify-content: space-evenly;
-    width: 97px;
-    height: 24px;
-    padding-left: 3px;
-    padding-right: 3px;
+    width: 90px;
+    height: 28px;
 }
 
 .tooltip .tooltiptext strong {
