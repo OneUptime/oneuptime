@@ -24,6 +24,7 @@ const CustomTutorial = ({
     monitors,
     currentProjectId,
     projectTeamMembers,
+    hideActionButton,
 }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         {/* Here, component and monitor notifier */}
@@ -84,6 +85,7 @@ const CustomTutorial = ({
                     }
                     callToActionLink={`/dashboard/project/${currentProjectId}/components`}
                     callToAction="Create Monitor"
+                    hideActionButton={hideActionButton}
                 />
             </div>
         ) : null}
@@ -137,6 +139,7 @@ CustomTutorial.propTypes = {
     monitors: PropTypes.array,
     currentProjectId: PropTypes.string,
     projectTeamMembers: PropTypes.array,
+    hideActionButton: PropTypes.bool,
 };
 
 export default CustomTutorial;

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { closeTutorial } from '../../actions/tutorial';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import ShouldRender from './ShouldRender';
 
 function QuickTipBox({
     title,
@@ -14,6 +15,7 @@ function QuickTipBox({
     callToAction,
     projectId,
     closeTutorial,
+    hideActionButton,
 }) {
     return (
         <div
@@ -65,17 +67,19 @@ function QuickTipBox({
                             </div>
                         </div>
                     </div>
-                    <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
-                        <div>
-                            <Link
-                                id={`gotoPage-${id}`}
-                                className="bs-Button "
-                                to={callToActionLink || '/dashboard'}
-                            >
-                                <span>{callToAction || 'Home'}</span>
-                            </Link>
+                    <ShouldRender if={!hideActionButton}>
+                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
+                            <div>
+                                <Link
+                                    id={`gotoPage-${id}`}
+                                    className="bs-Button "
+                                    to={callToActionLink || '/dashboard'}
+                                >
+                                    <span>{callToAction || 'Home'}</span>
+                                </Link>
+                            </div>
                         </div>
-                    </div>
+                    </ShouldRender>
                 </div>
             </div>
         </div>
@@ -93,6 +97,7 @@ QuickTipBox.propTypes = {
     callToAction: PropTypes.string,
     projectId: PropTypes.string,
     closeTutorial: PropTypes.func,
+    hideActionButton: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>
