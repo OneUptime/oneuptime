@@ -67,38 +67,67 @@ router.put(
         const { projectId, statusPageId } = req.params;
         const subDomain = req.body.domain;
 
-        if (typeof subDomain !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not of type string.',
-            });
-        }
+        if (Array.isArray(subDomain)) {
+            if (subDomain.length === 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Domain is required.',
+                });
+            }
+        } else {
+            if (typeof subDomain !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Domain is not of type string.',
+                });
+            }
 
-        if (!UtilService.isDomainValid(subDomain)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not valid.',
-            });
+            if (!UtilService.isDomainValid(subDomain)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Domain is not valid.',
+                });
+            }
         }
 
         try {
-            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                projectId,
-                subDomain
-            );
-
-            if (doesDomainBelongToProject) {
-                return sendErrorResponse(req, res, {
-                    message:
-                        'This domain is already associated with another project',
-                    code: 400,
+            if (Array.isArray(subDomain)) {
+                subDomain.forEach(async domain => {
+                    const belongsToProject = await DomainVerificationService.doesDomainBelongToProject(
+                        projectId,
+                        domain.domain
+                    );
+                    if (!belongsToProject) {
+                        await StatusPageService.createDomain(
+                            domain.domain,
+                            projectId,
+                            statusPageId
+                        );
+                    }
                 });
+            } else {
+                const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
+                    projectId,
+                    subDomain
+                );
+
+                if (doesDomainBelongToProject) {
+                    return sendErrorResponse(req, res, {
+                        message:
+                            'This domain is already associated with another project',
+                        code: 400,
+                    });
+                }
+                await StatusPageService.createDomain(
+                    subDomain,
+                    projectId,
+                    statusPageId
+                );
             }
-            const response = await StatusPageService.createDomain(
-                subDomain,
-                projectId,
-                statusPageId
-            );
+            const response = await StatusPageService.findOneBy({
+                _id: statusPageId,
+            });
+
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
