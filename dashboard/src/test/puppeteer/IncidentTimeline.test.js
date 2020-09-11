@@ -512,6 +512,10 @@ describe('Incident Timeline API', () => {
             await page.waitForSelector(`#more-details-${projectMonitorName}`);
             await page.click(`#more-details-${projectMonitorName}`);
 
+            // click on incident tab
+            await page.waitForSelector('#react-tabs-2');
+            await page.click('#react-tabs-2');
+
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
@@ -535,6 +539,11 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(2000);
             }
 
+            // click on timeline tab
+            await page.waitForSelector('#react-tabs-6');
+            await page.click('#react-tabs-6');
+            await page.waitFor(2000);
+
             await page.waitForSelector('#incidentTimeline tr.incidentListItem');
             let incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
@@ -543,8 +552,8 @@ describe('Incident Timeline API', () => {
 
             expect(countIncidentTimelines).toEqual(10);
 
-            const nextSelector = await page.$('#btnTimelineNext');
-            await nextSelector.click();
+            await page.waitForSelector('#btnTimelineNext');
+            await page.click('#btnTimelineNext');
             await page.waitFor(7000);
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
