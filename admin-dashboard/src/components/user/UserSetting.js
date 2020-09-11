@@ -44,7 +44,10 @@ export class UserSetting extends Component {
     };
 
     render() {
-        const { twoFactorAuthEnabled } = this.props.user;
+        let { twoFactorAuthEnabled } = this.props.user;
+        if (twoFactorAuthEnabled === undefined) {
+            twoFactorAuthEnabled = false;
+        }
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">

@@ -13,6 +13,7 @@ import {
     setTwoFactorAuth,
     verifyTwoFactorAuthToken,
     generateTwoFactorQRCode,
+    twoFactorAuthTokenError,
 } from '../../actions/user';
 
 function validate() {
@@ -225,6 +226,9 @@ class TwoFactorAuthModal extends Component {
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
+                                                this.props.twoFactorAuthTokenError(
+                                                    ''
+                                                );
                                                 this.props.closeModal({
                                                     id: this.props
                                                         .twoFactorAuthId,
@@ -307,6 +311,7 @@ TwoFactorAuthModal.propTypes = {
     twoFactorAuthId: PropTypes.string,
     twoFactorAuthSetting: PropTypes.object,
     verifyTwoFactorAuthToken: PropTypes.func,
+    twoFactorAuthTokenError: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -324,6 +329,7 @@ const mapDispatchToProps = dispatch =>
             setTwoFactorAuth,
             verifyTwoFactorAuthToken,
             generateTwoFactorQRCode,
+            twoFactorAuthTokenError,
         },
         dispatch
     );
