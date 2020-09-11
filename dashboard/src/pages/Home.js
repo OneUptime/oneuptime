@@ -17,7 +17,7 @@ import moment from 'moment-timezone';
 import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
-import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
+import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent';
 import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
 import { subProjectTeamLoading } from '../actions/team';
 import QuickTipBox from '../components/basic/QuickTipBox';
@@ -25,6 +25,7 @@ import { tutorials } from '../config';
 import FeatureList from '../components/basic/FeatureList';
 import uuid from 'uuid';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
+import flattenArray from '../utils/flattenArray';
 
 class Home extends Component {
     componentDidMount() {
@@ -38,7 +39,9 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
-            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
+            this.props.fetchSubProjectOngoingScheduledEvents(
+                this.props.currentProjectId
+            );
         }
         if (this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
@@ -57,7 +60,9 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
-            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
+            this.props.fetchSubProjectOngoingScheduledEvents(
+                this.props.currentProjectId
+            );
         }
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
@@ -197,6 +202,9 @@ class Home extends Component {
                             incident={incident}
                             multiple={true}
                             route={pathname}
+                            multipleIncidentRequest={
+                                this.props.multipleIncidentRequest
+                            }
                         />
                     </RenderIfUserInSubProject>
                 );
@@ -205,29 +213,25 @@ class Home extends Component {
 
         let ongoingEventList;
         if (
-            this.props.ongoingScheduledEvent.events &&
-            this.props.ongoingScheduledEvent.events.length > 0
+            this.props.subProjectOngoingScheduledEvents &&
+            this.props.subProjectOngoingScheduledEvents.length > 0
         ) {
-            ongoingEventList = this.props.ongoingScheduledEvent.events.map(
-                event => {
-                    return (
-                        <RenderIfUserInSubProject
-                            key={event._id}
-                            subProjectId={
-                                event.projectId._id || event.projectId
-                            }
-                        >
-                            <OngoingScheduledEvent
-                                event={event}
-                                monitorList={this.props.monitorList}
-                                projectId={
-                                    event.projectId._id || event.projectId
-                                }
-                            />
-                        </RenderIfUserInSubProject>
-                    );
-                }
+            let ongoingScheduledEvents = this.props.subProjectOngoingScheduledEvents.map(
+                eventData => eventData.ongoingScheduledEvents
             );
+            ongoingScheduledEvents = flattenArray(ongoingScheduledEvents);
+            ongoingEventList = ongoingScheduledEvents.map(event => (
+                <RenderIfUserInSubProject
+                    key={event._id}
+                    subProjectId={event.projectId._id || event.projectId}
+                >
+                    <OngoingScheduledEvent
+                        event={event}
+                        monitorList={this.props.monitorList}
+                        projectId={this.props.currentProjectId}
+                    />
+                </RenderIfUserInSubProject>
+            ));
         }
 
         return (
@@ -531,6 +535,17 @@ class Home extends Component {
                                                                                                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                                                                                         <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
                                                                                                             <span
+                                                                                                                className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                                                                                style={{
+                                                                                                                    filter:
+                                                                                                                        'brightness(0) invert(1)',
+                                                                                                                    marginTop:
+                                                                                                                        '1px',
+                                                                                                                    marginRight:
+                                                                                                                        '5px',
+                                                                                                                }}
+                                                                                                            />
+                                                                                                            <span
                                                                                                                 id="component-content-header"
                                                                                                                 className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
                                                                                                             >
@@ -599,13 +614,14 @@ Home.propTypes = {
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
     ]),
-    fetchOngoingScheduledEvents: PropTypes.func,
-    ongoingScheduledEvent: PropTypes.object,
     projectTeamMembers: PropTypes.array,
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,
     components: PropTypes.array,
     monitorList: PropTypes.array,
+    fetchSubProjectOngoingScheduledEvents: PropTypes.func,
+    subProjectOngoingScheduledEvents: PropTypes.array,
+    multipleIncidentRequest: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -634,13 +650,13 @@ const mapStateToProps = (state, props) => {
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
-        ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
         projectTeamMembers,
         components,
         monitors,
-        monitorList: state.monitor.monitorsList.monitors[0]
-            ? state.monitor.monitorsList.monitors[0].monitors
-            : [],
+        monitorList: state.monitor.monitorsList.monitors,
+        subProjectOngoingScheduledEvents:
+            state.scheduledEvent.subProjectOngoingScheduledEvent.events,
+        multipleIncidentRequest: state.incident.unresolvedincidents,
     };
 };
 
@@ -650,8 +666,8 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             userScheduleRequest,
             fetchUserSchedule,
-            fetchOngoingScheduledEvents,
             subProjectTeamLoading,
+            fetchSubProjectOngoingScheduledEvents,
         },
         dispatch
     );

@@ -88,6 +88,12 @@ export const statusPageNoteReset = () => {
     };
 };
 
+export const showIncidentCard = payload => ({
+    // payload => true or false
+    type: types.SHOW_INCIDENT_CARD,
+    payload,
+});
+
 export const individualNoteEnable = message => {
     return {
         type: types.INDIVIDUAL_NOTES_ENABLE,
@@ -944,5 +950,13 @@ export function fetchLastIncidentTimelines(projectId, statusPageId) {
                     : 'Network Error';
             dispatch(fetchLastIncidentTimelinesFailure(errorMsg));
         }
+    };
+}
+
+export function showEventCard(payload) {
+    // payload => true or false
+    return {
+        type: types.SHOW_EVENT_CARD,
+        payload,
     };
 }

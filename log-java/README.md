@@ -28,12 +28,12 @@ Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.
 
 ```java
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.Logger;
+import io.hackerbay.fyipe.FyipeLogger;
 
 public class SampleClass {
 
     // constructor
-    Logger logger = new Logger(
+    FyipeLogger logger = new FyipeLogger(
         "API_URL", // https://fyipe.com/api
         "APPLICATION_LOG_ID",
         "APPLICATION_LOG_KEY"
@@ -75,7 +75,7 @@ Main API to send logs to the server.
         -   [Others](#others)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
-        -   [new Logger(apiUrl, applicationId, applicationKey)](#new-loggerapiurl-applicationid-applicationkey)
+        -   [new FyipeLogger(apiUrl, applicationId, applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(warning, tags)](#loggerwarningwarning-tags)
             -   [logger.error(error, tags)](#loggererrorerror-tags)
@@ -83,7 +83,7 @@ Main API to send logs to the server.
 
 <a name="logger_api--logger"></a>
 
-### new Logger(apiUrl, applicationId, applicationKey)
+### new FyipeLogger(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -100,7 +100,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param | Type                  | Description                                                 |
@@ -112,7 +112,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param   | Type                  | Description                                                 |
@@ -124,7 +124,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new Logger</code>](#logger_api--logger)
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param | Type                  | Description                                                 |

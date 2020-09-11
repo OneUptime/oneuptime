@@ -1097,8 +1097,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                 },
             });
 
-        case DELETE_MONITOR_SUCCESS:
-        case 'DELETE_MONITOR': {
+        case DELETE_MONITOR_SUCCESS: {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
@@ -1292,8 +1291,11 @@ export default function monitor(state = INITIAL_STATE, action) {
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }) => _id !== action.payload
+                                ({ _id }) =>
+                                    String(_id) !== String(action.payload)
                             );
+                            subProjectMonitor.count =
+                                subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
                     ),
@@ -1379,11 +1381,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                 activeProbe: action.payload,
             });
 
-        case GET_MONITOR_LOGS_SUCCESS:
+        case GET_MONITOR_LOGS_SUCCESS: {
+            const monitorId = action.payload.monitorId
+                ? action.payload.monitorId
+                : action.payload.logs && action.payload.logs.length > 0
+                ? action.payload.logs[0].monitorId
+                : null;
             return Object.assign({}, state, {
                 monitorLogs: {
                     ...state.monitorLogs,
-                    [action.payload.monitorId]: {
+                    [monitorId]: {
                         logs: action.payload.logs,
                         error: null,
                         requesting: false,
@@ -1394,6 +1401,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     },
                 },
             });
+        }
 
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {

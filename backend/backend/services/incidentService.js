@@ -66,37 +66,39 @@ module.exports = {
                 incident.createdById = data.createdById || null;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
-                incident.incidentPriority = data.incidentPriority;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 incident.idNumber =
-                    incidentsCountInProject + deletedIncidentsCountInProject;
-
-                const incidentSettings = data.probeId
-                    ? await IncidentSettingsService.findOne({
-                          projectId: data.projectId,
-                      })
-                    : {
-                          title: data.title,
-                          description: data.description,
-                      };
-
-                const templatesInput = {
-                    incidentType: data.incidentType,
-                    monitorName: monitor.name,
-                    projectName: project.name,
-                    time: Moment().format('h:mm:ss a'),
-                    date: Moment().format('MMM Do YYYY'),
-                };
-                const titleTemplate = Handlebars.compile(
-                    incidentSettings.title
-                );
-                const descriptionTemplate = Handlebars.compile(
-                    incidentSettings.description
-                );
-                incident.title = titleTemplate(templatesInput);
-                incident.description = descriptionTemplate(templatesInput);
+                    incidentsCountInProject +
+                    deletedIncidentsCountInProject +
+                    1;
 
                 if (data.probeId) {
+                    const incidentSettings = await IncidentSettingsService.findOne(
+                        {
+                            projectId: data.projectId,
+                        }
+                    );
+
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        monitorName: monitor.name,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                    };
+
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
+
+                    incident.title = titleTemplate(templatesInput);
+                    incident.description = descriptionTemplate(templatesInput);
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
+
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -105,6 +107,10 @@ module.exports = {
                             reportedStatus: data.incidentType,
                         },
                     ];
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
                 }
 
                 incident = await incident.save();
@@ -802,6 +808,39 @@ module.exports = {
                 );
             }
             return incident;
+        }
+    },
+
+    /**
+     * @description removes a particular monitor from incident and deletes the incident
+     * @param {string} monitorId the id of the monitor
+     * @param {string} userId the id of the user
+     */
+    removeMonitor: async function(monitorId, userId) {
+        try {
+            const incidents = await this.findBy({ monitorId: monitorId });
+
+            await Promise.all(
+                incidents.map(async incident => {
+                    // only delete the incident, since the monitor can be restored
+                    const deletedIncident = await IncidentModel.findOneAndUpdate(
+                        { _id: incident._id },
+                        {
+                            $set: {
+                                deleted: true,
+                                deletedAt: Date.now(),
+                                deletedById: userId,
+                            },
+                        },
+                        { new: true }
+                    );
+
+                    await RealTimeService.deleteIncident(deletedIncident);
+                })
+            );
+        } catch (error) {
+            ErrorService.log('incidentService.removeMonitor', error);
+            throw error;
         }
     },
 };

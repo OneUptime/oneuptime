@@ -277,10 +277,10 @@ class ResourceTabularList extends Component {
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
                                                                 <span
-                                                                    className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                    className={`Badge-text Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
                                                                 >
                                                                     {this.generateResourceStatus(
                                                                         componentResource
@@ -300,7 +300,7 @@ class ResourceTabularList extends Component {
                                                         >
                                                             <span
                                                                 id={`resource_type_${componentResource.name}`}
-                                                                className={`Badge-text Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
+                                                                className={`Badge-text Text-lineHeight--16 Text-typeface--capitalize`}
                                                             >
                                                                 {componentResource.type ===
                                                                 'api monitor'

@@ -18,6 +18,7 @@ const initialState = {
     },
     incident: {
         requesting: false,
+        resolving: false,
         error: null,
         success: false,
         incident: null,
@@ -59,6 +60,7 @@ const initialState = {
         error: null,
         success: false,
         incidents: [],
+        resolving: false,
     },
     closeincident: {
         requesting: false,
@@ -444,6 +446,7 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     unresolvedincidents: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
@@ -461,12 +464,14 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     incident: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incident: action.payload.data,
                     },
                     unresolvedincidents: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
@@ -487,6 +492,7 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     unresolvedincidents: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
@@ -504,12 +510,14 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     incident: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incident: action.payload.data,
                     },
                     unresolvedincidents: {
                         requesting: false,
+                        resolving: false,
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
@@ -533,6 +541,7 @@ export default function incident(state = initialState, action) {
                         requesting: true,
                         success: false,
                         error: null,
+                        resolving: false,
                     },
                 });
             } else {
@@ -542,6 +551,7 @@ export default function incident(state = initialState, action) {
                         requesting: true,
                         success: false,
                         error: null,
+                        resolving: false,
                     },
                 });
             }
@@ -551,18 +561,20 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     unresolvedincidents: {
                         ...state.unresolvedincidents,
-                        requesting: true,
+                        requesting: false,
                         success: false,
                         error: null,
+                        resolving: true,
                     },
                 });
             } else {
                 return Object.assign({}, state, {
                     incident: {
                         ...state.incident,
-                        requesting: true,
+                        requesting: false,
                         success: false,
                         error: null,
+                        resolving: true,
                     },
                 });
             }
@@ -574,6 +586,7 @@ export default function incident(state = initialState, action) {
                     error: null,
                     success: true,
                     incidents: action.payload,
+                    resolving: false,
                 },
             });
 
@@ -584,6 +597,7 @@ export default function incident(state = initialState, action) {
                     requesting: true,
                     success: false,
                     error: null,
+                    resolving: false,
                 },
             });
 
@@ -594,6 +608,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                    resolving: false,
                 },
             });
 
@@ -604,6 +619,7 @@ export default function incident(state = initialState, action) {
                     error: null,
                     success: false,
                     incidents: [],
+                    resolving: false,
                 },
             });
 
@@ -1018,6 +1034,39 @@ export default function incident(state = initialState, action) {
                     ),
                 },
             });
+
+        case 'DELETE_INCIDENT': {
+            if (state.incidents.incidents[0]) {
+                return {
+                    ...state,
+                    incidents: {
+                        ...state.incidents,
+                        incidents: [
+                            {
+                                ...state.incidents.incidents[0],
+                                incidents: state.incidents.incidents[0].incidents.filter(
+                                    incident =>
+                                        String(incident._id) !==
+                                        String(action.payload._id)
+                                ),
+                            },
+                        ],
+                    },
+                    unresolvedincidents: {
+                        ...state.unresolvedincidents,
+                        incidents: state.unresolvedincidents.incidents.filter(
+                            incident =>
+                                String(incident._id) !==
+                                String(action.payload._id)
+                        ),
+                    },
+                };
+            }
+
+            return {
+                ...state,
+            };
+        }
 
         case types.DELETE_INCIDENT_FAILURE:
             return Object.assign({}, state, {

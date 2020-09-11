@@ -51,13 +51,17 @@ function filterKeys(field) {
 }
 
 function isObjectID(id) {
-    if (ObjectID.isValid(id)) {
-        if (new ObjectID(id) === id) {
-            return true;
+    try {
+        if (ObjectID.isValid(id)) {
+            if (new ObjectID(id) === id) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }
-    } else {
+    } catch (e) {
         return false;
     }
 }

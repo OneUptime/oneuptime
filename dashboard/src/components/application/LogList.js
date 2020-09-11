@@ -346,7 +346,6 @@ class LogList extends Component {
                                                                                         }
                                                                                     >
                                                                                         <img
-                                                                                            alt="more"
                                                                                             style={{
                                                                                                 width:
                                                                                                     '15px',
@@ -356,7 +355,6 @@ class LogList extends Component {
                                                                                             src={
                                                                                                 '/dashboard/assets/img/more.svg'
                                                                                             }
-                                                                                            alt="more"
                                                                                         />
                                                                                     </button>
                                                                                 </div>

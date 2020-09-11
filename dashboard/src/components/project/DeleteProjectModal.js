@@ -41,7 +41,6 @@ export class DeleteProjectModal extends Component {
         this.props.hideDeleteModal();
         if (nextProject) switchProject(nextProject);
         else history.push('/');
-        this.props.hideDeleteModal();
     }
 
     handleKeyBoard = e => {

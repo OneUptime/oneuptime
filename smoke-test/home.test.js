@@ -49,7 +49,7 @@ describe('Request demo', () => {
         await page.waitForSelector('#form-section');
         await page.type('#fullname', util.user.name);
         await page.type('#email', util.user.email);
-        await page.type('#Phone', util.user.phone);
+        await page.type('#phone', util.user.phone);
         await page.type('#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
@@ -74,7 +74,7 @@ describe('Request demo', () => {
         await page.waitForSelector('#form-section');
         await page.type('#fullname', util.user.name);
         await page.type('#email', util.user.email);
-        await page.type('#Phone', util.user.phone);
+        await page.type('#phone', util.user.phone);
         await page.type('#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
@@ -99,7 +99,7 @@ describe('Request demo', () => {
         await page.waitForSelector('#form-section');
         await page.type('#fullname', util.user.name);
         await page.type('#email', util.user.email);
-        await page.type('#Phone', util.user.phone);
+        await page.type('#phone', util.user.phone);
         await page.type('#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');
@@ -124,7 +124,7 @@ describe('Request demo', () => {
         await page.waitForSelector('#form-section');
         await page.type('#fullname', util.user.name);
         await page.type('#email', util.user.email);
-        await page.type('#Phone', util.user.phone);
+        await page.type('#phone', util.user.phone);
         await page.type('#website', util.user.website);
         await page.click('#country');
         await page.keyboard.press('ArrowDown');

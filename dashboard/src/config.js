@@ -380,7 +380,8 @@ export const PricingPlan = {
 
     getPlanById(id) {
         const plans = this.getPlans();
-        if (id) return plans.find(plan => plan.planId === id);
+        if (id && plans.find(plan => plan.planId === id))
+            return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
 };
@@ -719,23 +720,47 @@ export function renderIfUserInSubProject(
     return renderItems;
 }
 
-export const formatDecimal = (value, decimalPlaces) => {
-    return Number(
-        Math.round(parseFloat(value + 'e' + decimalPlaces)) +
-            'e-' +
-            decimalPlaces
-    ).toFixed(decimalPlaces);
+export const formatDecimal = (value, decimalPlaces, roundType) => {
+    let formattedNumber;
+    switch (roundType) {
+        case 'up':
+            formattedNumber = Math.ceil(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+            break;
+        case 'down':
+            formattedNumber = Math.floor(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+            break;
+        default:
+            formattedNumber = Math.round(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+    }
+    return Number(formattedNumber + 'e-' + decimalPlaces).toFixed(
+        decimalPlaces
+    );
 };
 
 export const formatBytes = (a, b, c, d, e) => {
+    let value = a;
+    let decimalPlaces;
+    let roundType;
+    if (typeof a === 'object') {
+        value = a.value;
+        decimalPlaces = a.decimalPlaces;
+        roundType = a.roundType;
+    }
     return (
         formatDecimal(
             ((b = Math),
             (c = b.log),
             (d = 1e3),
-            (e = (c(a) / c(d)) | 0),
-            a / b.pow(d, e)),
-            2
+            (e = (c(value) / c(d)) | 0),
+            value / b.pow(d, e)),
+            decimalPlaces >= 0 ? decimalPlaces : 2,
+            roundType
         ) +
         ' ' +
         (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')

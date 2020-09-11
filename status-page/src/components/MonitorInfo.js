@@ -214,7 +214,7 @@ class MonitorInfo extends Component {
         const monitorStatus = getMonitorStatus(statuses);
 
         const uptime =
-            uptimePercent || uptimePercent === 0
+            uptimePercent !== 100 && !isNaN(uptimePercent)
                 ? uptimePercent.toFixed(3)
                 : '100';
         const upDays = timeBlock.length;

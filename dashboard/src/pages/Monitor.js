@@ -18,6 +18,7 @@ import {
     fetchMonitorsIncidents,
     fetchMonitorStatuses,
     fetchLighthouseLogs,
+    createMonitorSuccess,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
@@ -28,7 +29,13 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import { API_URL } from '../config';
+import io from 'socket.io-client';
+import { history } from '../store';
 
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 class DashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
@@ -83,6 +90,7 @@ class DashboardView extends Component {
 
     componentWillUnmount() {
         this.props.destroy('NewMonitor');
+        socket.removeListener(`createMonitor-${this.props.currentProject._id}`);
     }
 
     ready = () => {
@@ -131,6 +139,18 @@ class DashboardView extends Component {
     };
 
     render() {
+        if (this.props.currentProject) {
+            socket.on(
+                `createMonitor-${this.props.currentProject._id}`,
+                data => {
+                    this.props.createMonitorSuccess(data);
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring/${data._id}`
+                    );
+                }
+            );
+        }
+
         let incidentslist = null;
         const {
             componentId,
@@ -420,6 +440,7 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             fetchTutorial,
             getProbes,
+            createMonitorSuccess,
         },
         dispatch
     );
@@ -507,6 +528,7 @@ DashboardView.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    createMonitorSuccess: PropTypes.func.isRequired,
 };
 
 DashboardView.displayName = 'DashboardView';

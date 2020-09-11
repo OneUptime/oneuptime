@@ -122,7 +122,9 @@ export function MonitorChart({
     const responseTime = checkLogs ? data[0].responseTime : '0';
     const monitorStatus = toPascalCase(checkLogs ? data[0].status : status);
     const uptime =
-        uptimePercent || uptimePercent === 0 ? uptimePercent.toFixed(3) : '100';
+        uptimePercent !== 100 && !isNaN(uptimePercent)
+            ? uptimePercent.toFixed(3)
+            : '100';
 
     useEffect(() => {
         setNow(Date.now());
@@ -299,9 +301,13 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs
-                                                    ? formatBytes(
-                                                          data[0].totalMemory
-                                                      )
+                                                    ? formatBytes({
+                                                          value:
+                                                              data[0]
+                                                                  .totalMemory,
+                                                          decimalPlaces: 0,
+                                                          roundType: 'down',
+                                                      })
                                                     : '0 Bytes'}
                                             </span>
                                         </span>

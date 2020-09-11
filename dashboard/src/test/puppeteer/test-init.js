@@ -475,7 +475,7 @@ module.exports = {
             request.continue();
         }
     },
-    addProject: async function(page, projectName = null) {
+    addProject: async function(page, projectName = null, checkCard = false) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId');
         await page.click('#AccountSwitcherId');
@@ -489,6 +489,34 @@ module.exports = {
             { visible: true }
         );
         startupOption.click();
+        if (checkCard) {
+            await page.waitFor(5000);
+            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
+
+            const elementHandle = await page.$(
+                'iframe[name=__privateStripeFrame5]'
+            );
+            const frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cardnumber]');
+            await frame.type('input[name=cardnumber]', '4242424242424242', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=cvc]');
+            await frame.type('input[name=cvc]', '123', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=exp-date]');
+            await frame.type('input[name=exp-date]', '11/23', {
+                delay: 150,
+            });
+
+            await frame.waitForSelector('input[name=postal]');
+            await frame.type('input[name=postal]', '12345', {
+                delay: 150,
+            });
+        }
         await page.click('#btnCreateProject');
         await page.waitForNavigation({ waitUntil: 'networkidle0' });
     },
@@ -567,7 +595,7 @@ module.exports = {
         type,
         eventBtn,
         noteDescription,
-        incidentState = 'update'
+        eventState = 'update'
     ) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledEvents', {
@@ -583,10 +611,10 @@ module.exports = {
             visible: true,
         });
         await page.click(`#add-${type}-message`);
-        await page.waitForSelector('#incident_state', {
+        await page.waitForSelector('#event_state', {
             visible: true,
         });
-        await this.selectByText('#incident_state', incidentState, page);
+        await this.selectByText('#event_state', eventState, page);
         await page.click('#new-investigation');
         await page.type('#new-investigation', noteDescription);
         await page.click('#investigation-addButton');
@@ -615,5 +643,64 @@ module.exports = {
         await page.type('input[id=title]', incidentType);
         await page.click('button[id=createIncident]');
         await page.waitFor(5000);
+    },
+    addTwilioSettings: async function(
+        enableSms,
+        accountSid,
+        authToken,
+        phoneNumber,
+        page
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+        });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#sms');
+        await page.click('#sms');
+        await page.waitForSelector('label[for=enabled]', {
+            visible: true,
+        });
+        if (enableSms) await page.click('label[for=enabled]');
+        await page.type('#accountSid', accountSid);
+        await page.type('#authToken', authToken);
+        await page.type('#phoneNumber', phoneNumber);
+        await page.click('#submitTwilioSettings');
+        await page.waitFor(3000);
+        await page.reload();
+        await page.waitForSelector('#accountSid');
+    },
+    addSmtpSettings: async function(
+        enable,
+        user,
+        pass,
+        host,
+        port,
+        from,
+        secure,
+        page
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#projectSettings', {
+            visible: true,
+        });
+        await page.click('#projectSettings');
+        await page.waitForSelector('#email');
+        await page.click('#email');
+        await page.waitForSelector('label[for=smtpswitch]');
+        if (enable) await page.click('label[for=smtpswitch]');
+        await page.waitForSelector('#user');
+        await page.type('#user', user);
+        await page.type('#pass', pass);
+        await page.type('#host', host);
+        await page.type('#port', port);
+        await page.type('#from', from);
+        if (secure) await page.$eval('#secure', e => e.click());
+        await page.click('#saveSmtp');
+        await page.waitFor(3000);
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        await page.waitFor(3000);
     },
 };

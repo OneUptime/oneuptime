@@ -112,7 +112,7 @@ UserBlockBox.propTypes = {
     blockUser: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    userId: PropTypes.string.isRequired,
+    userId: PropTypes.string,
 };
 
 UserBlockBox.contextTypes = {

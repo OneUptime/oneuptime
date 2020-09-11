@@ -119,7 +119,10 @@ describe('Scheduled Event Note', function() {
                                                         'Authorization',
                                                         authorization
                                                     )
-                                                    .send(scheduledEvent)
+                                                    .send({
+                                                        ...scheduledEvent,
+                                                        monitors: [monitorId],
+                                                    })
                                                     .end(async function(
                                                         err,
                                                         res

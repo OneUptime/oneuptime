@@ -1,35 +1,32 @@
 const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
-const MonitorService = require('./monitorService');
 const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function({ projectId }, data) {
         try {
-            let monitorData = [];
             if (!data.monitors || data.monitors.length === 0) {
-                // select all monitors in a project if no monitor was selected
-                const monitors = await MonitorService.findBy({ projectId });
-                if (monitors.length > 0) {
-                    monitorData = monitors.map(monitor => ({
-                        monitorId: monitor._id,
-                    }));
-                }
-            } else {
-                if (!isArrayUnique(data.monitors)) {
-                    const error = new Error(
-                        'You cannot have multiple selection of a monitor'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-                monitorData = data.monitors.map(monitor => ({
-                    monitorId: monitor,
-                }));
+                const error = new Error(
+                    'You need at least one monitor to create a scheduled event'
+                );
+                error.code = 400;
+                throw error;
             }
-            // reassign data.monitors with the restructured monitor data
-            data.monitors = monitorData;
+
+            if (!isArrayUnique(data.monitors)) {
+                const error = new Error(
+                    'You cannot have multiple selection of a monitor'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+
             data.projectId = projectId;
 
             let scheduledEvent = await ScheduledEventModel.create({
@@ -59,31 +56,26 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            let monitorData = [];
             if (!data.monitors || data.monitors.length === 0) {
-                // select all monitors in a project if no monitor was selected
-                const monitors = await MonitorService.findBy({
-                    projectId: query.projectId,
-                });
-                if (monitors.length > 0) {
-                    monitorData = monitors.map(monitor => ({
-                        monitorId: monitor._id,
-                    }));
-                }
-            } else {
-                if (!isArrayUnique(data.monitors)) {
-                    const error = new Error(
-                        'You cannot have multiple selection of a monitor'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-                monitorData = data.monitors.map(monitor => ({
-                    monitorId: monitor,
-                }));
+                const error = new Error(
+                    'You need at least one monitor to update a scheduled event'
+                );
+                error.code = 400;
+                throw error;
             }
-            // reassign data.monitors with the restructured monitor data
-            data.monitors = monitorData;
+
+            if (!isArrayUnique(data.monitors)) {
+                const error = new Error(
+                    'You cannot have multiple selection of a monitor'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
 
             let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 { _id: query._id },
@@ -237,6 +229,52 @@ module.exports = {
         }
     },
 
+    getSubProjectScheduledEvents: async function(subProjectIds) {
+        const subProjectScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const scheduledEvents = await this.findBy(
+                    { projectId: id },
+                    10,
+                    0
+                );
+                const count = await this.countBy({ projectId: id });
+                return {
+                    scheduledEvents,
+                    count,
+                    project: id,
+                    skip: 0,
+                    limit: 10,
+                };
+            })
+        );
+        return subProjectScheduledEvents;
+    },
+
+    getSubProjectOngoingScheduledEvents: async function(
+        subProjectIds,
+        timeQuery
+    ) {
+        const subProjectOngoingScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const ongoingScheduledEvents = await this.findBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                const count = await this.countBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                return {
+                    ongoingScheduledEvents,
+                    count,
+                    project: id,
+                };
+            })
+        );
+
+        return subProjectOngoingScheduledEvents;
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
@@ -257,6 +295,73 @@ module.exports = {
             return 'Event(s) removed successfully!';
         } catch (error) {
             ErrorService.log('scheduledEventService.hardDeleteBy', error);
+            throw error;
+        }
+    },
+
+    /**
+     * @description removes a particular monitor from scheduled event
+     * @description if no monitor remains after deletion, then the scheduled event is deleted
+     * @param {string} monitorId the id of the monitor
+     * @param {string} userId the id of the user
+     */
+    removeMonitor: async function(monitorId, userId) {
+        try {
+            const scheduledEvents = await this.findBy({
+                'monitors.monitorId': monitorId,
+            });
+
+            await Promise.all(
+                scheduledEvents.map(async event => {
+                    // remove the monitor from scheduled event monitors list
+                    event.monitors = event.monitors.filter(
+                        monitor =>
+                            String(monitor.monitorId._id) !== String(monitorId)
+                    );
+
+                    if (event.monitors.length > 0) {
+                        let updatedEvent = await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            { $set: { monitors: event.monitors } },
+                            { new: true }
+                        );
+                        updatedEvent = await updatedEvent
+                            .populate('monitors.monitorId', 'name')
+                            .populate('projectId', 'name')
+                            .populate('createdById', 'name')
+                            .execPopulate();
+
+                        await RealTimeService.updateScheduledEvent(
+                            updatedEvent
+                        );
+                    } else {
+                        // delete the scheduled event when no monitor is remaining
+                        let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            {
+                                $set: {
+                                    monitors: event.monitors,
+                                    deleted: true,
+                                    deletedAt: Date.now(),
+                                    deletedById: userId,
+                                },
+                            },
+                            { new: true }
+                        );
+                        deletedEvent = await deletedEvent
+                            .populate('monitors.monitorId', 'name')
+                            .populate('projectId', 'name')
+                            .populate('createdById', 'name')
+                            .execPopulate();
+
+                        await RealTimeService.deleteScheduledEvent(
+                            deletedEvent
+                        );
+                    }
+                })
+            );
+        } catch (error) {
+            ErrorService.log('scheduledEventService.removeMonitor', error);
             throw error;
         }
     },

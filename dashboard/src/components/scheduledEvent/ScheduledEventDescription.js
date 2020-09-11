@@ -14,7 +14,40 @@ function ScheduledEventDescription({
     isOngoing,
     history,
     openModal,
+    monitorList,
 }) {
+    const handleMonitorListing = (event, monitorState) => {
+        const affectedMonitors = [];
+        const eventMonitors = [];
+        // populate the ids of the event monitors in an array
+        event.monitors.map(monitor => {
+            eventMonitors.push(String(monitor.monitorId._id));
+            return monitor;
+        });
+
+        monitorState.map(monitor => {
+            if (eventMonitors.includes(String(monitor._id))) {
+                affectedMonitors.push(monitor);
+            }
+            return monitor;
+        });
+
+        // if they are equal then all the resources are affected
+        if (affectedMonitors.length === monitorState.length) {
+            return 'All Resources are affected';
+        } else {
+            return affectedMonitors.length <= 3
+                ? affectedMonitors
+                      .map(monitor => capitalize(monitor.name))
+                      .join(', ')
+                      .replace(/, ([^,]*)$/, ' and $1')
+                : affectedMonitors.length > 3 &&
+                      `${capitalize(affectedMonitors[0].name)}, ${capitalize(
+                          affectedMonitors[1].name
+                      )} and ${affectedMonitors.length - 2} other monitors.`;
+        }
+    };
+
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -115,6 +148,22 @@ function ScheduledEventDescription({
                                         </ShouldRender>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
                                             <label className="bs-Fieldset-label">
+                                                Affected Resources
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <span
+                                                    className="value"
+                                                    style={{ marginTop: '2px' }}
+                                                >
+                                                    {handleMonitorListing(
+                                                        scheduledEvent,
+                                                        monitorList
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
+                                            <label className="bs-Fieldset-label">
                                                 Start Date
                                             </label>
                                             <div className="bs-Fieldset-fields">
@@ -169,6 +218,7 @@ ScheduledEventDescription.propTypes = {
     isOngoing: PropTypes.bool,
     history: PropTypes.object,
     openModal: PropTypes.func,
+    monitorList: PropTypes.array,
 };
 
 ScheduledEventDescription.defaultProps = {

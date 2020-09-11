@@ -85,6 +85,7 @@ class StatusPage extends Component {
                         route={pathname}
                         name={pageName}
                         pageTitle="Status Page"
+                        status={pageName}
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}

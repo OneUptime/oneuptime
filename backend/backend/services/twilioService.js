@@ -5,7 +5,7 @@
  */
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
-const TwilioModel = require('../models/twilio');
+const SmsSmtpService = require('./smsSmtpService');
 const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
@@ -13,7 +13,6 @@ const GlobalConfigService = require('./globalConfigService');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
-const EncryptDecrypt = require('../config/encryptDecrypt');
 
 const _this = {
     findByOne: async function(query) {
@@ -22,7 +21,7 @@ const _this = {
                 query = {};
             }
             query.deleted = false;
-            const twilioSettings = await TwilioModel.findOne(query);
+            const twilioSettings = await SmsSmtpService.findOneBy(query);
             return twilioSettings;
         } catch (error) {
             ErrorService.log('SubscriberService.findByOne', error);
@@ -36,7 +35,7 @@ const _this = {
             error.code = 400;
             return error;
         }
-        return twilio(accountSid, authToken);
+        return new twilio(accountSid, authToken);
     },
 
     getSettings: async () => {
@@ -169,12 +168,10 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const authToken = await EncryptDecrypt.decrypt(
-                    customTwilioSettings.authToken
-                );
+
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    authToken
+                    customTwilioSettings.authToken
                 );
                 const message = await twilioClient.messages.create(options);
                 return message;
@@ -255,12 +252,9 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const authToken = await EncryptDecrypt.decrypt(
-                    customTwilioSettings.authToken
-                );
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    authToken
+                    customTwilioSettings.authToken
                 );
                 const message = await twilioClient.messages.create(options);
                 return message;
@@ -340,12 +334,10 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const authToken = await EncryptDecrypt.decrypt(
-                    customTwilioSettings.authToken
-                );
+
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    authToken
+                    customTwilioSettings.authToken
                 );
                 const message = await twilioClient.messages.create(options);
                 return message;
@@ -506,7 +498,8 @@ const _this = {
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
-            const alertPhoneVerificationCode = process.env.IS_TESTING
+            const alertPhoneVerificationCode = process.env
+                .TWILIO_SMS_VERIFICATION_CODE
                 ? process.env.TWILIO_SMS_VERIFICATION_CODE
                 : Math.random()
                       .toString(10)
@@ -518,12 +511,10 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to,
                 };
-                const authToken = await EncryptDecrypt.decrypt(
-                    customTwilioSettings.authToken
-                );
+
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
-                    authToken
+                    customTwilioSettings.authToken
                 );
                 await twilioClient.messages.create(options);
                 await UserService.updateOneBy(

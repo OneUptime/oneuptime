@@ -85,6 +85,7 @@ rateLimitter:
 ## Fyipe official image version on Docker Hub
 ## ref: https://hub.docker.com/u/fyipeproject
 ##
+
 image:
   registry: docker.io
   repository: fyipeproject
@@ -175,6 +176,9 @@ host:
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
 isTesting: false
+
+# Encryption Key
+encryptionKey: ThisEncryptionKeyLengthIs32Size.
 
 # If you disable sign up, then you need to specify 
 # fyipe.admin.email and fyipe.admin.password values for the admin account. 
