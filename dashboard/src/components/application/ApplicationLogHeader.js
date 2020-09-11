@@ -66,7 +66,7 @@ class ApplicationLogHeader extends Component {
                                             <div>
                                                 <button
                                                     id={`filter_${applicationLog.name}`}
-                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--filter"
                                                     type="button"
                                                     onClick={() =>
                                                         this.setState(
@@ -76,7 +76,11 @@ class ApplicationLogHeader extends Component {
                                                         )
                                                     }
                                                 >
-                                                    <span>Filter Logs</span>
+                                                    <span>
+                                                        {this.state.showFilters
+                                                            ? 'Hide Filters'
+                                                            : 'Filter Logs'}
+                                                    </span>
                                                 </button>
                                                 <button
                                                     id={`key_${applicationLog.name}`}
@@ -198,8 +202,9 @@ class ApplicationLogHeader extends Component {
                                                             }
                                                         />
                                                     </span>
-                                                    <span
-                                                        className="db-DateRangeInput-input-arrow"
+                                                    <img
+                                                        alt="next"
+                                                        src="/dashboard/assets/icons/next.svg"
                                                         style={{
                                                             height: '14px',
                                                             width: '14px',
