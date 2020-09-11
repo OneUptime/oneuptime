@@ -14,7 +14,7 @@ import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { history } from '../../store';
-import { fetchOngoingScheduledEvents } from '../../actions/scheduledEvent';
+import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 
 class TopContent extends Component {
@@ -23,18 +23,18 @@ class TopContent extends Component {
             userSettings,
             getVersion,
             currentProject,
-            fetchOngoingScheduledEvents,
+            fetchSubProjectOngoingScheduledEvents,
         } = this.props;
         userSettings();
         getVersion();
         if (currentProject && currentProject._id) {
-            fetchOngoingScheduledEvents(currentProject._id);
+            fetchSubProjectOngoingScheduledEvents(currentProject._id);
         }
     }
 
     componentDidUpdate(prevProps) {
         if (prevProps.currentProject !== this.props.currentProject) {
-            this.props.fetchOngoingScheduledEvents(
+            this.props.fetchSubProjectOngoingScheduledEvents(
                 this.props.currentProject._id
             );
         }
@@ -118,8 +118,11 @@ class TopContent extends Component {
     );
 
     renderOngoingScheduledEvents = () => {
-        const { ongoingScheduledEvents } = this.props;
-        const count = ongoingScheduledEvents.length;
+        const { subProjectOngoingScheduledEvents } = this.props;
+        let count = 0;
+        subProjectOngoingScheduledEvents.forEach(eventData => {
+            count += eventData.count;
+        });
         return count > 0 ? (
             <div
                 className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer Margin-left--20"
@@ -323,9 +326,9 @@ const mapStateToProps = (state, props) => {
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
-        ongoingScheduledEvents:
-            state.scheduledEvent.ongoingScheduledEvent.events,
         monitors,
+        subProjectOngoingScheduledEvents:
+            state.scheduledEvent.subProjectOngoingScheduledEvent.events,
     };
 };
 
@@ -339,7 +342,7 @@ const mapDispatchToProps = dispatch =>
             openNotificationMenu,
             getVersion,
             openSideNav,
-            fetchOngoingScheduledEvents,
+            fetchSubProjectOngoingScheduledEvents,
         },
         dispatch
     );
@@ -365,9 +368,9 @@ TopContent.propTypes = {
     length: PropTypes.number,
     map: PropTypes.func,
     currentProject: PropTypes.shape({ _id: PropTypes.string }),
-    fetchOngoingScheduledEvents: PropTypes.func,
-    ongoingScheduledEvents: PropTypes.array,
+    fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     monitors: PropTypes.shape({ count: PropTypes.number }),
+    subProjectOngoingScheduledEvents: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

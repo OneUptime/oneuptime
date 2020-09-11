@@ -191,8 +191,13 @@ module.exports = {
     },
     decryptPassword: async function(security) {
         try {
+            const values = [];
+            for (let i = 0; i <= 15; i++)
+                values.push(security.gitCredential.iv[i]);
+            const iv = Buffer.from(values);
             security.gitCredential.gitPassword = await decrypt(
-                security.gitCredential.gitPassword
+                security.gitCredential.gitPassword,
+                iv
             );
             return security;
         } catch (error) {

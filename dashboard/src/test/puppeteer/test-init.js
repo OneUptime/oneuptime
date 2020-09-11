@@ -595,7 +595,7 @@ module.exports = {
         type,
         eventBtn,
         noteDescription,
-        incidentState = 'update'
+        eventState = 'update'
     ) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledEvents', {
@@ -611,10 +611,10 @@ module.exports = {
             visible: true,
         });
         await page.click(`#add-${type}-message`);
-        await page.waitForSelector('#incident_state', {
+        await page.waitForSelector('#event_state', {
             visible: true,
         });
-        await this.selectByText('#incident_state', incidentState, page);
+        await this.selectByText('#event_state', eventState, page);
         await page.click('#new-investigation');
         await page.type('#new-investigation', noteDescription);
         await page.click('#investigation-addButton');

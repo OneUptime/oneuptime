@@ -6,6 +6,7 @@ const gitCredentialSchema = Schema(
     {
         gitUsername: String,
         gitPassword: String,
+        iv: Schema.Types.Buffer,
         projectId: {
             type: Schema.Types.ObjectId,
             ref: 'Project',
