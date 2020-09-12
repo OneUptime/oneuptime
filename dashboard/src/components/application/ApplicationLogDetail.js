@@ -114,13 +114,7 @@ class ApplicationLogDetail extends Component {
             fetchLogs,
         } = this.props;
         const { filter, logType } = this.state;
-        let endDate = '';
-        let i = 0;
-        while (i < 29) {
-            endDate += val[i];
-            i += 1;
-        }
-        endDate = moment(endDate);
+        const endDate = moment(val);
         if (moment(startDate).isBefore(endDate)) {
             fetchLogs(
                 currentProject._id,
@@ -370,7 +364,7 @@ ApplicationLogDetail.propTypes = {
     stats: PropTypes.object,
     fetchLogs: PropTypes.func,
     startDate: PropTypes.string,
-    endDate: PropTypes.string,
+    endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 export default connect(
     mapStateToProps,
