@@ -403,9 +403,10 @@ module.exports = {
                 const user = await _this.findOneBy({
                     twoFactorSecretCode: secretKey,
                 });
-                const backupCodes = user.backupCodes.filter(
-                    backupCode => backupCode.code !== code
-                );
+                const backupCodes = user.backupCodes.map(backupCode => {
+                    if (backupCode.code === code) backupCode.used = true;
+                    return backupCode;
+                });
                 await _this.updateOneBy(
                     { twoFactorSecretCode: secretKey },
                     { backupCodes }
