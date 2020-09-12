@@ -224,7 +224,7 @@ export class Setting extends Component {
     };
 
     renderNewDomainField = (publicStatusPageUrl, index) => (
-        <div className="bs-Fieldset-row" key={index}>
+        <div className="bs-Fieldset-row Margin-bottom--20" key={index}>
             <label className="bs-Fieldset-label">
                 {' '}
                 Your Status Page is hosted at{' '}
@@ -314,6 +314,20 @@ export class Setting extends Component {
                         </span>
                     )}
                 </p>
+                <div
+                    className="bs-Fieldset-row"
+                    style={{
+                        padding: '5px 0 0 0',
+                    }}
+                >
+                    <button
+                        className="btnDeleteDomain bs-Button"
+                        onClick={event => this.removeInputField(event)}
+                    >
+                        <span className="bs-Button--icon bs-Button--delete"></span>
+                        <span>Delete Domain</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -324,7 +338,7 @@ export class Setting extends Component {
             className="bs-Button bs-Button--icon bs-Button--new"
             type="button"
             onClick={() => {
-                this.props.createDomainFailure();
+                this.props.createDomainFailure('');
                 this.props.addMoreDomain();
                 this.setState(prevState => {
                     return {
@@ -342,6 +356,16 @@ export class Setting extends Component {
             <span>Add Domain</span>
         </button>
     );
+
+    removeInputField = event => {
+        event.preventDefault();
+        this.setState(prevState => {
+            prevState.fields.pop();
+            return {
+                fields: [...prevState.fields],
+            };
+        });
+    };
 
     render() {
         let statusPageId = '';
@@ -561,6 +585,8 @@ export class Setting extends Component {
                                                                                     'center',
                                                                                 paddingLeft: 0,
                                                                                 paddingBottom: 0,
+                                                                                paddingTop:
+                                                                                    '5px',
                                                                             }}
                                                                         >
                                                                             <ShouldRender
@@ -575,8 +601,7 @@ export class Setting extends Component {
                                                                                 <div
                                                                                     className="bs-Fieldset-row"
                                                                                     style={{
-                                                                                        paddingLeft: 0,
-                                                                                        paddingRight: 0,
+                                                                                        padding: 0,
                                                                                         marginRight:
                                                                                             '15px',
                                                                                     }}
@@ -613,9 +638,7 @@ export class Setting extends Component {
                                                                                 <div
                                                                                     className="bs-Fieldset-row"
                                                                                     style={{
-                                                                                        paddingLeft: 0,
-                                                                                        paddingRight: 0,
-                                                                                        paddingBottom: 0,
+                                                                                        padding: 0,
                                                                                     }}
                                                                                 >
                                                                                     <button
@@ -711,10 +734,10 @@ export class Setting extends Component {
                                         if={
                                             this.props.domains &&
                                             this.props.domains.length === 0 &&
-                                            !this.props.showDomainField
+                                            this.state.fields.length === 0
                                         }
                                     >
-                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2 Padding-all--16 Text-align--center">
+                                        <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2 Padding-all--16 Text-align--center Padding-top--20">
                                             <span>No domains added</span>
                                         </div>
                                     </ShouldRender>
