@@ -71,6 +71,7 @@ class Schedule extends Component {
                         route={pathname}
                         name={name}
                         pageTitle="Schedule"
+                        containerType="Call Schedule"
                     />
                     <div className="Box-root">
                         <div>
