@@ -197,4 +197,40 @@ describe('Monitor Detail API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Should delete a subscriber',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-4');
+                await page.click('#react-tabs-4');
+
+                let initialSubscribers =
+                    '#subscribersList > tbody > tr.subscriber-list-item';
+                await page.waitForSelector(initialSubscribers);
+                initialSubscribers = await page.$$(initialSubscribers);
+                const initialCount = initialSubscribers.length;
+
+                await page.waitForSelector('button[id=deleteSubscriber_0]');
+                await page.click('button[id=deleteSubscriber_0]');
+
+                let finalSubscribers =
+                    '#subscribersList > tbody > tr.subscriber-list-item';
+                await page.waitForSelector(finalSubscribers);
+                finalSubscribers = await page.$$(finalSubscribers);
+                const finalCount = finalSubscribers.length;
+
+                expect(finalCount).toEqual(3);
+                expect(initialCount).toBeGreaterThan(finalCount);
+            });
+        },
+        operationTimeOut
+    );
 });
