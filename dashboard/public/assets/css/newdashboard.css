@@ -11200,3 +11200,6 @@ table {
     grid-template-columns: auto;
   }
 }
+.MuiInputBase-input {
+    cursor: pointer;
+}

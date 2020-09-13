@@ -108,6 +108,34 @@ export class OnCallAlertBox extends Component {
         }
     };
 
+    renderAddEscalationPolicyButton = () => (
+        <button
+            type="button"
+            className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+            onClick={() =>
+                this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox', {
+                    callReminders: 3,
+                    smsReminders: 3,
+                    emailReminders: 3,
+                    email: true,
+                    sms: false,
+                    call: false,
+                    rotateBy: '',
+                    rotationInterval: '',
+                    firstRotationOn: '',
+                    rotationTimezone: '',
+                    teams: [
+                        {
+                            teamMembers: [],
+                        },
+                    ],
+                })
+            }
+        >
+            Add Escalation Policy
+        </button>
+    );
+
     render() {
         const { handleSubmit } = this.props;
 
@@ -132,35 +160,7 @@ export class OnCallAlertBox extends Component {
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                     <div className="Box-root">
-                                        <button
-                                            type="button"
-                                            className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                            onClick={() =>
-                                                this.props.pushArray(
-                                                    'OnCallAlertBox',
-                                                    'OnCallAlertBox',
-                                                    {
-                                                        callReminders: 3,
-                                                        smsReminders: 3,
-                                                        emailReminders: 3,
-                                                        email: true,
-                                                        sms: false,
-                                                        call: false,
-                                                        rotateBy: '',
-                                                        rotationInterval: '',
-                                                        firstRotationOn: '',
-                                                        rotationTimezone: '',
-                                                        teams: [
-                                                            {
-                                                                teamMembers: [],
-                                                            },
-                                                        ],
-                                                    }
-                                                )
-                                            }
-                                        >
-                                            Add Escalation Policy
-                                        </button>
+                                        {this.renderAddEscalationPolicyButton()}
                                     </div>
                                 </div>
                             </div>
@@ -215,6 +215,7 @@ export class OnCallAlertBox extends Component {
                                 </div>
 
                                 <div>
+                                    {this.renderAddEscalationPolicyButton()}
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={

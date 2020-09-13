@@ -103,7 +103,7 @@ class StatusPage extends Component {
                                     Basic
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-4'}>
-                                    Domain Settings
+                                    Custom Domains
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-4'}>
                                     Branding
