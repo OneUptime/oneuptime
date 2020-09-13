@@ -335,9 +335,7 @@ export class SubscriberList extends Component {
                                                                     }
                                                                     onClick={() =>
                                                                         this.props.deleteSubscriber(
-                                                                            subscriber
-                                                                                .projectId
-                                                                                ._id,
+                                                                            subscriber.projectId,
                                                                             subscriber._id
                                                                         )
                                                                     }

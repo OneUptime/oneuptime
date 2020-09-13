@@ -1080,19 +1080,23 @@ export default function monitor(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        if (
-                            monitor.monitors[0]._id === action.payload.monitorId
-                        ) {
-                            monitor.monitors[0].subscribers.subscribers = monitor.monitors[0].subscribers.subscribers.filter(
-                                subscriber =>
-                                    subscriber._id !== action.payload._id
-                            );
-                            monitor.monitors[0].subscribers.count =
-                                monitor.monitors[0].subscribers.count - 1;
-                            return monitor;
-                        } else {
-                            return monitor;
-                        }
+                        monitor.monitors.find((targetMonitor, index) => {
+                            if (
+                                targetMonitor._id === action.payload.monitorId
+                            ) {
+                                monitor.monitors[
+                                    index
+                                ].subscribers.subscribers = monitor.monitors[
+                                    index
+                                ].subscribers.subscribers.filter(
+                                    subscriber =>
+                                        subscriber._id !== action.payload._id
+                                );
+                                return true;
+                            }
+                            return false;
+                        });
+                        return monitor;
                     }),
                 },
             });
