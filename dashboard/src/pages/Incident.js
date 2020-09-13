@@ -386,7 +386,11 @@ class Incident extends React.Component {
                         route={getParentRoute(pathname, null, 'incident-log')}
                         name="Incident Log"
                     />
-                    <BreadCrumbItem route={pathname} name="Incident" />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Incident"
+                        containerType="Incident"
+                    />
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
