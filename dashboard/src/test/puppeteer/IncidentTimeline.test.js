@@ -11,7 +11,6 @@ const projectName = utils.generateRandomString();
 const projectMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-const bodyText = utils.generateRandomString();
 const message = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
@@ -70,144 +69,6 @@ describe('Incident Timeline API', () => {
         await cluster.close();
     });
 
-    // test(
-    //     'should create incident in project with multi-probes and add to incident timeline',
-    //     async () => {
-    //         expect.assertions(2);
-    //         const testServer = async ({ page }) => {
-    //             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-    //             await page.evaluate(
-    //                 () => (document.getElementById('responseTime').value = '')
-    //             );
-    //             await page.evaluate(
-    //                 () => (document.getElementById('statusCode').value = '')
-    //             );
-    //             await page.evaluate(
-    //                 () => (document.getElementById('body').value = '')
-    //             );
-    //             await page.waitForSelector('#responseTime');
-    //             await page.$eval('input[name=responseTime]', e => e.click());
-    //             await page.type('input[name=responseTime]', '0');
-    //             await page.waitForSelector('#statusCode');
-    //             await page.$eval('input[name=statusCode]', e => e.click());
-    //             await page.type('input[name=statusCode]', '400');
-    //             await page.select('#responseType', 'html');
-    //             await page.waitForSelector('#body');
-    //             await page.$eval('textarea[name=body]', e => e.click());
-    //             await page.type(
-    //                 'textarea[name=body]',
-    //                 `<h1 id="html"><span>${bodyText}</span></h1>`
-    //             );
-    //             await page.$eval('button[type=submit]', e => e.click());
-    //             await page.waitForSelector('#save-btn');
-    //         };
-
-    //         const dashboard = async ({ page }) => {
-    //             await page.waitFor(350000);
-    //             // Navigate to Component details
-    //             await init.navigateToComponentDetails(componentName, page);
-
-    //             await page.waitForSelector('#incident_span_0');
-
-    //             const incidentTitleSelector = await page.$('#incident_span_0');
-
-    //             let textContent = await incidentTitleSelector.getProperty(
-    //                 'innerText'
-    //             );
-    //             textContent = await textContent.jsonValue();
-    //             expect(textContent.toLowerCase()).toEqual(
-    //                 `${projectMonitorName}'s Incident Status`.toLowerCase()
-    //             );
-
-    //             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-    //             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
-    //                 e.click()
-    //             );
-    //             await page.waitFor(5000);
-
-    //             // click on timeline tab
-    //             await page.waitForSelector('#react-tabs-6');
-    //             await page.click('#react-tabs-6');
-
-    //             const incidentTimelineRows = await page.$$(
-    //                 '#incidentTimeline tr.incidentListItem'
-    //             );
-    //             const countIncidentTimelines = incidentTimelineRows.length;
-    //             expect(countIncidentTimelines).toEqual(2);
-    //         };
-
-    //         await cluster.execute(null, testServer);
-    //         await cluster.execute(null, dashboard);
-    //     },
-    //     operationTimeOut
-    // );
-
-    // test(
-    //     'should auto-resolve incident in project with multi-probes and add to incident timeline',
-    //     async () => {
-    //         expect.assertions(2);
-    //         const testServer = async ({ page }) => {
-    //             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
-    //                 waitUntil: 'networkidle2',
-    //             });
-    //             await page.evaluate(
-    //                 () => (document.getElementById('responseTime').value = '')
-    //             );
-    //             await page.evaluate(
-    //                 () => (document.getElementById('statusCode').value = '')
-    //             );
-    //             await page.evaluate(
-    //                 () => (document.getElementById('body').value = '')
-    //             );
-    //             await page.waitForSelector('#responseTime');
-    //             await page.$eval('input[name=responseTime]', e => e.click());
-    //             await page.type('input[name=responseTime]', '0');
-    //             await page.waitForSelector('#statusCode');
-    //             await page.$eval('input[name=statusCode]', e => e.click());
-    //             await page.type('input[name=statusCode]', '200');
-    //             await page.select('#responseType', 'html');
-    //             await page.waitForSelector('#body');
-    //             await page.$eval('textarea[name=body]', e => e.click());
-    //             await page.type(
-    //                 'textarea[name=body]',
-    //                 `<h1 id="html"><span>${bodyText}</span></h1>`
-    //             );
-    //             await page.$eval('button[type=submit]', e => e.click());
-    //             await page.waitForSelector('#save-btn');
-    //         };
-
-    //         const dashboard = async ({ page }) => {
-    //             await page.waitFor(350000);
-    //             // Navigate to Component details
-    //             await init.navigateToComponentDetails(componentName, page);
-
-    //             await page.waitForSelector('#ResolveText_0');
-
-    //             const resolveTextSelector = await page.$('#ResolveText_0');
-    //             expect(resolveTextSelector).not.toBeNull();
-
-    //             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-    //             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
-    //                 e.click()
-    //             );
-    //             await page.waitFor(5000);
-
-    //             // click on timeline tab
-    //             await page.waitForSelector('#react-tabs-6');
-    //             await page.click('#react-tabs-6');
-
-    //             const incidentTimelineRows = await page.$$(
-    //                 '#incidentTimeline tr.incidentListItem'
-    //             );
-    //             const countIncidentTimelines = incidentTimelineRows.length;
-    //             expect(countIncidentTimelines).toEqual(6);
-    //         };
-
-    //         await cluster.execute(null, testServer);
-    //         await cluster.execute(null, dashboard);
-    //     },
-    //     operationTimeOut
-    // );
     test(
         'should create incident in project and add to message to the incident message thread',
         async () => {
@@ -559,7 +420,7 @@ describe('Incident Timeline API', () => {
                 '#incidentTimeline tr.incidentListItem'
             );
             countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(6);
+            expect(countIncidentTimelines).toEqual(10);
 
             const prevSelector = await page.$('#btnTimelinePrev');
             await prevSelector.click();
