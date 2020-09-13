@@ -243,8 +243,6 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
                 await page.waitForSelector(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
@@ -307,8 +305,6 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
                 await page.waitForSelector(
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
