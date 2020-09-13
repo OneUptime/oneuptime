@@ -103,6 +103,15 @@ module.exports = {
 
             if (statusPage) {
                 // attach the domain id to statuspage collection and update it
+                const domain = statusPage.domains.find(domain =>
+                    domain.domain === subDomain ? true : false
+                );
+                if (domain) {
+                    const error = new Error('Domain already exists');
+                    error.code = 400;
+                    ErrorService.log('statusPageService.createDomain', error);
+                    throw error;
+                }
                 statusPage.domains = [
                     ...statusPage.domains,
                     {
@@ -111,8 +120,8 @@ module.exports = {
                             createdDomain._id || existingBaseDomain._id,
                     },
                 ];
-
                 const result = await statusPage.save();
+
                 return result
                     .populate('domains.domainVerificationToken')
                     .execPopulate();
