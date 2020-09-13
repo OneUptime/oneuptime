@@ -108,56 +108,61 @@ describe('Subcriber Alert API', function() {
         await AirtableService.deleteUser(airtableId);
     });
 
-    it('should create subscriber alert with valid incidentId, alertVia', done => {
-        request
-            .post(`/subscriber/${projectId}`)
-            .send({
-                monitorId: monitorId,
-                contactEmail: userData.user.email,
-                contactPhone: '+23482348294',
-            })
-            .end((err, res) => {
-                subscriberId = res.body._id;
-                request
-                    .post(`/subscriberAlert/${projectId}/${subscriberId}`)
-                    .send({
-                        incidentId: incidentId,
-                        alertVia: 'sms',
-                    })
-                    .end((err, res) => {
-                        expect(res).to.have.status(200);
-                        expect(res.body).to.be.an('object');
-                        expect(res.body.alertVia).to.be.equal('sms');
-                        SubscriberAlertService.hardDeleteBy({
-                            _id: res.body._id,
-                        });
-                        done();
-                    });
-            });
-    });
+    /*
+     * commented the code below because there is no logically implementation of the api in the applicatioin
+     * if the need arises, we can uncomment the code and use the appropriate api
+     */
 
-    it('should not create subscriber alert with invalid alertVia', done => {
-        request
-            .post(`/subscriber/${projectId}`)
-            .send({
-                monitorId: monitorId,
-                contactEmail: userData.user.email,
-                contactPhone: '+23482348294',
-            })
-            .end((err, res) => {
-                subscriberId = res.body._id;
-                request
-                    .post(`/subscriberAlert/${projectId}/${subscriberId}`)
-                    .send({
-                        incidentId: incidentId,
-                        alertVia: null,
-                    })
-                    .end((err, res) => {
-                        expect(res).to.have.status(400);
-                        done();
-                    });
-            });
-    });
+    // it('should create subscriber alert with valid incidentId, alertVia', done => {
+    //     request
+    //         .post(`/subscriber/${projectId}`)
+    //         .send({
+    //             monitorId: monitorId,
+    //             contactEmail: userData.user.email,
+    //             contactPhone: '+23482348294',
+    //         })
+    //         .end((err, res) => {
+    //             subscriberId = res.body._id;
+    //             request
+    //                 .post(`/subscriberAlert/${projectId}/${subscriberId}`)
+    //                 .send({
+    //                     incidentId: incidentId,
+    //                     alertVia: 'sms',
+    //                 })
+    //                 .end((err, res) => {
+    //                     expect(res).to.have.status(200);
+    //                     expect(res.body).to.be.an('object');
+    //                     expect(res.body.alertVia).to.be.equal('sms');
+    //                     SubscriberAlertService.hardDeleteBy({
+    //                         _id: res.body._id,
+    //                     });
+    //                     done();
+    //                 });
+    //         });
+    // });
+
+    // it('should not create subscriber alert with invalid alertVia', done => {
+    //     request
+    //         .post(`/subscriber/${projectId}`)
+    //         .send({
+    //             monitorId: monitorId,
+    //             contactEmail: userData.user.email,
+    //             contactPhone: '+23482348294',
+    //         })
+    //         .end((err, res) => {
+    //             subscriberId = res.body._id;
+    //             request
+    //                 .post(`/subscriberAlert/${projectId}/${subscriberId}`)
+    //                 .send({
+    //                     incidentId: incidentId,
+    //                     alertVia: null,
+    //                 })
+    //                 .end((err, res) => {
+    //                     expect(res).to.have.status(400);
+    //                     done();
+    //                 });
+    //         });
+    // });
 
     it('should get subscriber alerts by projectId', done => {
         request.get(`/subscriberAlert/${projectId}`).end((err, res) => {
