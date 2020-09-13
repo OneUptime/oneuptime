@@ -45,7 +45,10 @@ function launchChromeAndRunLighthouse(url, flags = {}, config = null) {
     });
 }
 
-const flags = { chromeFlags: ['--headless'], emulatedFormFactor: 'desktop' };
+const flags = {
+    chromeFlags: ['--headless', '--no-sandbox'],
+    emulatedFormFactor: 'desktop',
+};
 
 process.on('message', function(data) {
     if (data.mobile) flags.emulatedFormFactor = 'mobile';
