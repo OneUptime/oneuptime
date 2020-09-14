@@ -78,6 +78,7 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -113,6 +114,7 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -153,6 +155,7 @@ describe('Subscribers Alert logs API', () => {
                 await page.reload({
                     waitUntil: 'networkidle0',
                 });
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector('#subscriberAlertTable tbody tr');
                 const rowsCount = (
                     await page.$$('#subscriberAlertTable tbody tr')
