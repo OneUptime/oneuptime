@@ -26,7 +26,7 @@ const config = {
             cpuSlowdownMultiplier: 4,
         },
         // Skip the h2 audit so it doesn't lie to us. See https://github.com/GoogleChrome/lighthouse/issues/6539
-        skipAudits: ['uses-http2'],
+        skipAudits: ['uses-http2', 'is-on-https', 'largest-contentful-paint'],
         onlyCategories: [
             'performance',
             'accessibility',
@@ -70,9 +70,9 @@ process.on('message', function(data) {
             results.lhr.environment = 'ignore';
             results.lhr.configSettings = 'ignore';
             results.lhr.metrics = 'ignore';
-            results.lhr.audits = 'ignore';
+            // results.lhr.audits = 'ignore';
             results.lhr.categoryGroups = 'ignore';
-            console.log('*****results*******', results.lhr.categories);
+            console.log('*****results*******', results.lhr);
 
             scores.performance = Math.ceil(
                 results.lhr.categories.performance.score * 100
