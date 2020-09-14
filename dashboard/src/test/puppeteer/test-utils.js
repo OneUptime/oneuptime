@@ -133,6 +133,21 @@ const twilioCredentials = {
     phoneNumber: process.env.TEST_TWILIO_PHONE,
 };
 
+const monitorTabIndexes = {
+    BASIC: 0,
+    SUBSCRIBERS: 2,
+    INTEGRATION: 4,
+    ADVANCE: 6,
+};
+const incidentTabIndexes = {
+    BASIC: 0,
+    MONITOR_LOGS: 2,
+    ALERT_LOGS: 4,
+    INCIDENT_TIMELINE: 8,
+    INCIDENT_NOTES: 10,
+    ADVANCE: 12,
+};
+
 module.exports = {
     ACCOUNTS_URL,
     DASHBOARD_URL,
@@ -161,4 +176,6 @@ module.exports = {
     smtpCredential,
     twilioCredentials,
     capitalize,
+    monitorTabIndexes,
+    incidentTabIndexes,
 };
