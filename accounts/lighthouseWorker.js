@@ -70,9 +70,8 @@ process.on('message', function(data) {
             results.lhr.environment = 'ignore';
             results.lhr.configSettings = 'ignore';
             results.lhr.metrics = 'ignore';
-            // results.lhr.audits = 'ignore';
+            results.lhr.audits = 'ignore';
             results.lhr.categoryGroups = 'ignore';
-            console.log('*****results*******', results.lhr);
 
             scores.performance = Math.ceil(
                 results.lhr.categories.performance.score * 100
