@@ -3,6 +3,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import DataPathHoC from '../DataPathHoC';
+import TwoFactorAuthModal from './TwoFactorAuth';
+import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
+import { openModal } from '../../actions/modal';
 
 export class UserSetting extends Component {
     constructor(props) {
@@ -16,7 +20,35 @@ export class UserSetting extends Component {
         }
     }
 
+    handleChange = () => {
+        const {
+            user,
+            updateTwoFactorAuthToken,
+            openModal,
+            setTwoFactorAuth,
+        } = this.props;
+        if (user.twoFactorAuthEnabled) {
+            updateTwoFactorAuthToken({
+                twoFactorAuthEnabled: false,
+                email: user.email,
+            }).then(() => {
+                setTwoFactorAuth(!user.twoFactorAuthEnabled);
+            });
+        } else {
+            openModal({
+                twoFactorAuthId: user.id,
+                onClose: () => '',
+                content: DataPathHoC(TwoFactorAuthModal, {}),
+            });
+        }
+    };
+
     render() {
+        let { twoFactorAuthEnabled } = this.props.user;
+        if (twoFactorAuthEnabled === undefined) {
+            twoFactorAuthEnabled = false;
+        }
+
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -121,6 +153,34 @@ export class UserSetting extends Component {
                                                 </span>
                                             </div>
                                         </div>
+                                        <div className="bs-Fieldset-row">
+                                            <label className="bs-Fieldset-label">
+                                                Two Factor Authentication <br />{' '}
+                                                by Google Authenticator
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                <label
+                                                    className="Toggler-wrap"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <input
+                                                        className="btn-toggler"
+                                                        type="checkbox"
+                                                        onChange={
+                                                            this.handleChange
+                                                        }
+                                                        name="twoFactorAuthEnabled"
+                                                        id="twoFactorAuthEnabled"
+                                                        checked={
+                                                            twoFactorAuthEnabled
+                                                        }
+                                                    />
+                                                    <span className="TogglerBtn-slider round"></span>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </fieldset>
                             </div>
@@ -156,7 +216,10 @@ export class UserSetting extends Component {
 UserSetting.displayName = 'UserSetting';
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators(
+        { updateTwoFactorAuthToken, openModal, setTwoFactorAuth },
+        dispatch
+    );
 };
 
 function mapStateToProps(state) {
@@ -169,6 +232,9 @@ function mapStateToProps(state) {
 
 UserSetting.propTypes = {
     user: PropTypes.object.isRequired,
+    updateTwoFactorAuthToken: PropTypes.func,
+    openModal: PropTypes.func,
+    setTwoFactorAuth: PropTypes.func,
 };
 
 UserSetting.contextTypes = {

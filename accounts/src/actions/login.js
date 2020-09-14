@@ -151,7 +151,7 @@ export function verifyAuthToken(values) {
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
-    values.email = email;
+    values.email = values.email || email;
     return function(dispatch) {
         const promise = postApi('user/totp/verifyToken', values);
         dispatch(verifyTokenRequest(promise));
@@ -205,7 +205,7 @@ export function verifyBackupCode(values) {
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
-    values.email = email;
+    values.email = values.email || email;
     return function(dispatch) {
         const promise = postApi('user/verify/backupCode', values);
         dispatch(useBackupCodeRequest(promise));

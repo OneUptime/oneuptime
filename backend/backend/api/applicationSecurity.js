@@ -30,21 +30,21 @@ router.post(
                 });
             }
 
-            if (!data.name.trim()) {
+            if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Application Security Name is required',
                 });
             }
 
-            if (!data.gitRepositoryUrl.trim()) {
+            if (!data.gitRepositoryUrl || !data.gitRepositoryUrl.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Git Repository URL is required',
                 });
             }
 
-            if (!data.gitCredential.trim()) {
+            if (!data.gitCredential || !data.gitCredential.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Git Credential is required',

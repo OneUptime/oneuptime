@@ -66,7 +66,7 @@ class ApplicationLogHeader extends Component {
                                             <div>
                                                 <button
                                                     id={`filter_${applicationLog.name}`}
-                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--filter"
                                                     type="button"
                                                     onClick={() =>
                                                         this.setState(
@@ -76,7 +76,11 @@ class ApplicationLogHeader extends Component {
                                                         )
                                                     }
                                                 >
-                                                    <span>Filter Logs</span>
+                                                    <span>
+                                                        {this.state.showFilters
+                                                            ? 'Hide Filters'
+                                                            : 'Filter Logs'}
+                                                    </span>
                                                 </button>
                                                 <button
                                                     id={`key_${applicationLog.name}`}
@@ -185,12 +189,7 @@ class ApplicationLogHeader extends Component {
                                                         cursor: 'pointer',
                                                     }}
                                                 >
-                                                    <span
-                                                        className="db-DateRangeInput-start"
-                                                        style={{
-                                                            padding: '3px',
-                                                        }}
-                                                    >
+                                                    <span className="db-DateRangeInput-start">
                                                         <Field
                                                             type="text"
                                                             name="startDate"
@@ -198,28 +197,20 @@ class ApplicationLogHeader extends Component {
                                                                 CustomDateTimeSelector
                                                             }
                                                             id="startDate"
-                                                            style={{
-                                                                marginTop:
-                                                                    '0px',
-                                                                width: '180px',
-                                                            }}
                                                             maxDate={
                                                                 currentDate
                                                             }
                                                         />
                                                     </span>
-                                                    <span
-                                                        className="db-DateRangeInput-input-arrow"
+                                                    <img
+                                                        alt="next"
+                                                        src="/dashboard/assets/icons/next.svg"
                                                         style={{
-                                                            padding: '3px',
+                                                            height: '14px',
+                                                            width: '14px',
                                                         }}
                                                     />
-                                                    <span
-                                                        className="db-DateRangeInput-end"
-                                                        style={{
-                                                            padding: '3px',
-                                                        }}
-                                                    >
+                                                    <span className="db-DateRangeInput-end">
                                                         <Field
                                                             type="text"
                                                             name="endDate"
@@ -227,11 +218,6 @@ class ApplicationLogHeader extends Component {
                                                                 CustomDateTimeSelector
                                                             }
                                                             id="endDate"
-                                                            style={{
-                                                                marginTop:
-                                                                    '0px',
-                                                                width: '180px',
-                                                            }}
                                                             maxDate={
                                                                 currentDate
                                                             }

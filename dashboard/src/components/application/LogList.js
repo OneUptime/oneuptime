@@ -356,6 +356,7 @@ class LogList extends Component {
                                                                                             src={
                                                                                                 '/dashboard/assets/img/more.svg'
                                                                                             }
+                                                                                            alt="more-logs"
                                                                                         />
                                                                                     </button>
                                                                                 </div>
