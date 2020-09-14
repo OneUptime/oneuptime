@@ -23,6 +23,13 @@ describe('Monitor Detail API', () => {
 
     let cluster;
 
+    const monitorTabIndexes = {
+        BASIC: 0,
+        SUBSCRIBERS: 2,
+        INTEGRATION: 4,
+        ADVANCE: 6,
+    };
+
     beforeAll(async () => {
         jest.setTimeout(500000);
 
@@ -94,10 +101,6 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                // click on Incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.$eval(`#createIncident_${monitorName}`, e =>
                     e.click()
@@ -141,10 +144,6 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-
-                // click on Incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
 
                 const selector =
                     'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
@@ -220,10 +219,6 @@ describe('Monitor Detail API', () => {
                     page
                 );
 
-                // click on Incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 const nextSelector = await page.waitForSelector('#btnNext');
                 await nextSelector.click();
 
@@ -254,10 +249,6 @@ describe('Monitor Detail API', () => {
                     monitorName,
                     page
                 );
-                // click on Incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 await page.waitFor(5000);
                 const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
@@ -265,8 +256,7 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(5000);
 
                 // click on advance option tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(monitorTabIndexes.ADVANCE, page);
 
                 await page.waitForSelector('button[id=deleteIncidentButton]');
                 await page.$eval('#deleteIncidentButton', e => e.click());
@@ -300,8 +290,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await init.gotoTab(monitorTabIndexes.SUBSCRIBERS, page);
 
                 const addButtonSelector = '#addSubscriberButton';
                 await page.waitForSelector(addButtonSelector);
@@ -342,9 +331,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
-
+                await init.gotoTab(monitorTabIndexes.SUBSCRIBERS, page);
                 const addButtonSelector = '#addSubscriberButton';
                 await page.waitForSelector(addButtonSelector);
 
@@ -407,8 +394,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const addButtonSelector = '#addMsTeamsButton';
                 await page.waitForSelector(addButtonSelector);
@@ -453,8 +439,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const existingWebhookSelector =
                     '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
@@ -499,8 +484,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const createdWebhookSelector =
                     '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
@@ -540,8 +524,7 @@ describe('Monitor Detail API', () => {
                 );
 
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const addButtonSelector = '#addMsTeamsButton';
                 await page.waitForSelector(addButtonSelector);
@@ -608,8 +591,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const addButtonSelector = '#addSlackButton';
                 await page.waitForSelector(addButtonSelector);
@@ -653,8 +635,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const existingWebhookSelector =
                     '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
@@ -699,8 +680,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
                 const createdWebhookSelector =
                     '#slackWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
                 await page.waitForSelector(createdWebhookSelector);
@@ -738,8 +718,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
                 const addButtonSelector = '#addSlackButton';
                 await page.waitForSelector(addButtonSelector);
 
@@ -804,8 +783,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
                 const addButtonSelector = '#addWebhookButton';
                 await page.waitForSelector(addButtonSelector);
                 await page.$eval(addButtonSelector, e => e.click());
@@ -850,8 +828,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on integrations tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(monitorTabIndexes.INTEGRATION, page);
 
                 const addButtonSelector = '#addWebhookButton';
                 await page.waitForSelector(addButtonSelector);
@@ -1204,8 +1181,7 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on advanced tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(monitorTabIndexes.ADVANCE, page);
 
                 const deleteButtonSelector = `#delete_${newMonitorName}`;
                 await page.$eval(deleteButtonSelector, e => e.click());
