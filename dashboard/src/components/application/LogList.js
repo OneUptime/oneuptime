@@ -352,6 +352,7 @@ class LogList extends Component {
                                                                                                 height:
                                                                                                     '15px',
                                                                                             }}
+                                                                                            alt="more"
                                                                                             src={
                                                                                                 '/dashboard/assets/img/more.svg'
                                                                                             }

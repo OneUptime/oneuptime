@@ -36,7 +36,8 @@ router.put('/', getUser, async function(req, res) {
         user = await UserService.closeTutorialBy(
             { _id: userId },
             req.body.type,
-            user.tutorial
+            user.tutorial,
+            req.body.projectId // project ID is needed for custom tutorials
         );
 
         const tutorialObj = {
