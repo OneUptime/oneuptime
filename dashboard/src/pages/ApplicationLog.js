@@ -114,11 +114,16 @@ class ApplicationLog extends Component {
                                 <div className="db-RadarRulesLists-page">
                                     <ShouldRender
                                         if={
-                                            this.props.applicationLogTutorial
-                                                .show
+                                            this.props.tutorialStat
+                                                .applicationLog.show
                                         }
                                     >
-                                        <TutorialBox type="applicationLog" />
+                                        <TutorialBox
+                                            type="applicationLog"
+                                            currentProjectId={
+                                                this.props.currentProject?._id
+                                            }
+                                        />
                                     </ShouldRender>
                                     <LibraryList />
                                     {applicationLogsList}
@@ -149,7 +154,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentId, projectId } = props.match.params;
 
     const applicationLog = state.applicationLog.applicationLogsList;
 
@@ -163,16 +168,30 @@ const mapStateToProps = (state, props) => {
         });
     });
 
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        applicationLog: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
+
     return {
-        applicationLogTutorial: state.tutorial.applicationLog,
         componentId,
         component,
         applicationLog,
         currentProject,
+        tutorialStat,
     };
 };
 ApplicationLog.propTypes = {
-    applicationLogTutorial: PropTypes.object,
+    tutorialStat: PropTypes.object,
     applicationLog: PropTypes.object,
     match: PropTypes.object,
     location: PropTypes.shape({
