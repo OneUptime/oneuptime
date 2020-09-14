@@ -83,7 +83,7 @@ describe('Tutorial API', function() {
             });
     });
 
-    it('should update the user tutorial status', function(done) {
+    it('should not update the user tutorial status if project id is not given', function(done) {
         const authorization = `Basic ${token}`;
         request
             .put('/tutorial')
@@ -92,10 +92,10 @@ describe('Tutorial API', function() {
                 type: 'monitor',
             })
             .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body._id).to.be.equal(userId);
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    `Project ID can't be null`
+                );
                 done();
             });
     });
@@ -157,6 +157,26 @@ describe('Tutorial API', function() {
                 expect(res.body.data[projectId].teamMember.show).to.be.equal(
                     false
                 );
+                done();
+            });
+    });
+    it('should update the user status page tutorial status per project', function(done) {
+        const authorization = `Basic ${token}`;
+        const type = 'statusPage';
+        request
+            .put('/tutorial')
+            .set('Authorization', authorization)
+            .send({
+                type,
+                projectId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data[projectId]).to.be.an('object');
+                expect(res.body.data[projectId][type]).to.be.an('object');
+                expect(res.body.data[projectId][type].show).to.be.equal(false);
                 done();
             });
     });
