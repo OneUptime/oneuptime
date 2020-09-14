@@ -519,7 +519,7 @@ const mapStateToProps = (state, props) => {
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
-        subProjects
+        subProjects,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         component,
