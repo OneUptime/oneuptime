@@ -1,10 +1,18 @@
 # Running Fyipe
 
-## Running this project in local environment.
-- Run MongoDB and Redis manually on port 27017 and 6379 respectively. (You can do this with docker)
-- If Docker and Docker compose is not your thing, you can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
+## Running this project in local environment (without docker compose, recommended if you're doing active development).
 
-## Running with docker compose
+-   Run MongoDB and Redis manually on port 27017 and 6379 respectively. You can do this with docker below:
+
+```
+mkdir ~/mongodata # This is where all of your Fyipe MongoDB data will be stored.
+docker run -d -p 27017:27017 -v ~/mongodata:/data/db mongo:latest
+docker run -d -p 6379:6379 redis:latest
+```
+
+-   You can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
+
+## Running with docker compose (with docker-compose, recommended if you're actively testing the app)
 
 -   Before you run this project locally, please make sure you're on Ubuntu or on a Mac machine.
 -   Install Docker and Docker Compose.
@@ -17,7 +25,6 @@
     -   Once the container is deleted, cd into that project run `npm install` and `npm run dev`.
     -   Let other projects / containers run on docker. They will work perfectly fine with a project you're working on.
 
-
-
 ## Running on: on-prem, staging, or production.
-- We run this by using helm charts, please check `README.md` in the `helm-chart` folder.
+
+-   We run this by using helm charts, please check `README.md` in the `helm-chart` folder.

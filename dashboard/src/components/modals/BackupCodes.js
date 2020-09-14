@@ -59,9 +59,9 @@ class BackupCodesModal extends React.Component {
                                 }}
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>
+                                    <div>
                                         Two Factor Authentication Backup Codes
-                                    </span>
+                                    </div>
                                 </span>
                             </div>
                         </div>
@@ -69,6 +69,10 @@ class BackupCodesModal extends React.Component {
                             <div className="bs-Modal-block">
                                 <div>
                                     <div className="bs-Fieldset-wrapper">
+                                        <div className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--normal Text-lineHeight--24 Text-typeface--base Text-wrap--wrap Padding-bottom--48">
+                                            You have to print these codes or
+                                            keep them in the safe place.
+                                        </div>
                                         <fieldset style={{ marginTop: -10 }}>
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -79,6 +83,7 @@ class BackupCodesModal extends React.Component {
                                                         style={{
                                                             overflow: 'hidden',
                                                             overflowX: 'auto',
+                                                            width: '100%',
                                                         }}
                                                     >
                                                         <table className="Table">
@@ -103,7 +108,7 @@ class BackupCodesModal extends React.Component {
                                                                                     }}
                                                                                 >
                                                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                                                        <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                        <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-align--center">
                                                                                             <div className="Margin-right--7">
                                                                                                 <span>
                                                                                                     {

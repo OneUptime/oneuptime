@@ -23,6 +23,7 @@ import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
+import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -194,6 +195,22 @@ class DashboardView extends Component {
                                                                 .requesting
                                                         }
                                                     >
+                                                        {/* Here, component notifier */}
+                                                        <CustomTutorial
+                                                            components={
+                                                                allComponents
+                                                            }
+                                                            customTutorialStat={
+                                                                this.props
+                                                                    .customTutorialStat
+                                                            }
+                                                            currentProjectId={
+                                                                currentProjectId
+                                                            }
+                                                            hideActionButton={
+                                                                true
+                                                            }
+                                                        />
                                                         <ShouldRender
                                                             if={
                                                                 this.props
@@ -322,7 +339,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
     let monitors = [];
@@ -341,6 +358,20 @@ const mapStateToProps = state => {
         return monitor;
     });
 
+    const { projectId } = props.match.params;
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for custom component tutorial
+    const customTutorialStat = {
+        component: { show: true },
+    };
+    // if custom component tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.component) {
+        customTutorialStat.component.show =
+            projectCustomTutorial.component.show;
+    }
+
     return {
         component,
         currentProject: state.project.currentProject,
@@ -352,6 +383,7 @@ const mapStateToProps = state => {
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         monitors,
+        customTutorialStat,
     };
 };
 
@@ -382,6 +414,7 @@ DashboardView.propTypes = {
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     monitors: PropTypes.array,
+    customTutorialStat: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

@@ -32,6 +32,7 @@ import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { API_URL } from '../config';
 import io from 'socket.io-client';
 import { history } from '../store';
+import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 const socket = io.connect(API_URL.replace('/api', ''), {
     path: '/api/socket.io',
@@ -302,6 +303,22 @@ class DashboardView extends Component {
                                                                 .requesting
                                                         }
                                                     >
+                                                        {/* Here, component notifier */}
+                                                        <CustomTutorial
+                                                            monitors={
+                                                                allMonitors
+                                                            }
+                                                            customTutorialStat={
+                                                                this.props
+                                                                    .customTutorialStat
+                                                            }
+                                                            currentProjectId={
+                                                                currentProjectId
+                                                            }
+                                                            hideActionButton={
+                                                                true
+                                                            }
+                                                        />
                                                         <ShouldRender
                                                             if={
                                                                 this.props
@@ -447,7 +464,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentId, projectId } = props.match.params;
     const monitor = state.monitor;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -475,6 +492,16 @@ const mapStateToProps = (state, props) => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+    // set a default show to true for the monitor custom tutorial
+    const customTutorialStat = {
+        monitor: { show: true },
+    };
+    // if custom monitor tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.monitor) {
+        customTutorialStat.monitor.show = projectCustomTutorial.monitor.show;
+    }
 
     return {
         monitor,
@@ -487,6 +514,7 @@ const mapStateToProps = (state, props) => {
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         component,
+        customTutorialStat,
     };
 };
 
@@ -529,6 +557,7 @@ DashboardView.propTypes = {
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
     createMonitorSuccess: PropTypes.func.isRequired,
+    customTutorialStat: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

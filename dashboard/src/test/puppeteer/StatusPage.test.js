@@ -60,6 +60,13 @@ describe('Status Page', () => {
                 //component + monitor
                 await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(null, monitorName, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+                await page.waitForSelector(`#more-details-${componentName}`, {
+                    visible: true,
+                });
+                await page.click(`#more-details-${componentName}`);
                 await init.addMonitorToComponent(null, monitorName1, page);
                 await page.waitForSelector('.ball-beat', { hidden: true });
             }
@@ -381,8 +388,8 @@ describe('Status Page', () => {
                 await page.click('#react-tabs-2');
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain', { visible: true });
-                await page.type('#domain', 'fyipeapp.com');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'fyipeapp.com');
                 await page.click('#btnAddDomain');
                 // if domain was not added sucessfully, list will be undefined
                 // it will timeout
@@ -492,8 +499,8 @@ describe('Status Page', () => {
                 // create one more domain on the status page
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain', { visible: true });
-                await page.type('#domain', 'app.fyipeapp.com');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'app.fyipeapp.com');
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
 
@@ -539,8 +546,8 @@ describe('Status Page', () => {
                 // create one more domain on the status page
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain', { visible: true });
-                await page.type('#domain', 'app.fyipeapp.com');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'server.fyipeapp.com');
                 await page.click('#btnAddDomain');
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#react-tabs-2');
@@ -653,7 +660,7 @@ describe('Status Page', () => {
                 let elem = await page.$('#field-error');
                 elem = await elem.getProperty('innerText');
                 elem = await elem.jsonValue();
-                expect(elem).toEqual('Domain is required');
+                expect(elem).toEqual('Domain is required.');
             });
         },
         operationTimeOut
@@ -669,14 +676,71 @@ describe('Status Page', () => {
                 await page.click('#react-tabs-2');
                 await page.waitForSelector('#addMoreDomain');
                 await page.click('#addMoreDomain');
-                await page.waitForSelector('#domain', { visible: true });
-                await page.type('#domain', 'fyipeapp');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'fyipeapp');
                 await page.waitForSelector('#btnAddDomain');
                 await page.click('#btnAddDomain');
                 let elem = await page.$('#field-error');
                 elem = await elem.getProperty('innerText');
                 elem = await elem.jsonValue();
                 expect(elem).toEqual('Domain is not valid.');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should add multiple domains',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'fyipe.fyipeapp.com');
+
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain_2', { visible: true });
+                await page.type('#domain_2', 'api.fyipeapp.com');
+                await page.waitForSelector('#btnAddDomain');
+                await page.click('#btnAddDomain');
+                await page.waitFor(10000);
+                const domains = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+                expect(domains).toEqual(4);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should not add an existing domain',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+                const initialDomains = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+                await page.waitForSelector('#addMoreDomain');
+                await page.click('#addMoreDomain');
+                await page.waitForSelector('#domain_1', { visible: true });
+                await page.type('#domain_1', 'fyipe.fyipeapp.com');
+                await page.click('#addMoreDomain');
+                await page.waitFor(5000);
+                const domains = await page.$$eval(
+                    'fieldset[name="added-domain"]',
+                    domains => domains.length
+                );
+                expect(domains).toEqual(initialDomains);
             });
         },
         operationTimeOut

@@ -1,3 +1,9 @@
+# This document is for launching Fyipe VM's on Azure, GCP and AWS. 
+# Follow the installation steps below. 
+# Azure: https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/azure-vm-create-offer#technical-configuration
+
+
+
 # Add these lines to: sudo crontab -e
 
 # Run this on Reboot. 

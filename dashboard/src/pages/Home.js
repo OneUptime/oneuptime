@@ -18,14 +18,10 @@ import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent';
-import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
 import { subProjectTeamLoading } from '../actions/team';
-import QuickTipBox from '../components/basic/QuickTipBox';
-import { tutorials } from '../config';
-import FeatureList from '../components/basic/FeatureList';
-import uuid from 'uuid';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
+import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 class Home extends Component {
     componentDidMount() {
@@ -67,17 +63,6 @@ class Home extends Component {
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
-    }
-    getDescription(type) {
-        return tutorials.getTutorials().filter(note => note.id === type);
-    }
-    renderFeatures(features) {
-        if (features) {
-            return features.map(feature => (
-                <FeatureList key={uuid.v4()} content={feature} />
-            ));
-        }
-        return null;
     }
 
     render() {
@@ -328,185 +313,34 @@ class Home extends Component {
                                                                 </ShouldRender>
 
                                                                 <div className="Box-root Margin-bottom--12">
-                                                                    {/* Here, component and monitor notifier */}
-
-                                                                    {this.props
-                                                                        .components &&
-                                                                    this.props
-                                                                        .components
-                                                                        .length <
-                                                                        1 ? (
-                                                                        <div>
-                                                                            {/* No Component Notifier */}
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'component'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Create your first Component"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'component'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'component'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Components
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'component'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
-                                                                                callToAction="Create Component"
-                                                                            />
-                                                                        </div>
-                                                                    ) : this
-                                                                          .props
-                                                                          .monitors &&
-                                                                      this.props
-                                                                          .monitors
-                                                                          .length <
-                                                                          1 ? (
-                                                                        <div>
-                                                                            {/* No Monitor Notifier */}
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'monitor'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Create a Monitor"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'monitor'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'monitor'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Monitors
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'monitor'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
-                                                                                callToAction="Create Monitor"
-                                                                            />
-                                                                        </div>
-                                                                    ) : null}
-
-                                                                    {/* Here, check if atleast organization has just 1 member before rendering */}
-
-                                                                    <RenderIfOwnerOrAdmin>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                this
-                                                                                    .props
-                                                                                    .projectTeamMembers &&
-                                                                                this
-                                                                                    .props
-                                                                                    .projectTeamMembers
-                                                                                    .length ===
-                                                                                    1
-                                                                            }
-                                                                        >
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'teamMember'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Invite your Team"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'teamMember'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'teamMember'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Inviting
-                                                                                                your
-                                                                                                team
-                                                                                                members
-                                                                                                would
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'teamMember'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/team`}
-                                                                                callToAction="Invite Team Member"
-                                                                            />
-                                                                        </ShouldRender>
-                                                                    </RenderIfOwnerOrAdmin>
+                                                                    {/* Here, component, monitor and team member notifier */}
+                                                                    <CustomTutorial
+                                                                        components={
+                                                                            this
+                                                                                .props
+                                                                                .components
+                                                                        }
+                                                                        monitors={
+                                                                            this
+                                                                                .props
+                                                                                .monitors
+                                                                        }
+                                                                        customTutorialStat={
+                                                                            this
+                                                                                .props
+                                                                                .customTutorialStat
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                        projectTeamMembers={
+                                                                            this
+                                                                                .props
+                                                                                .projectTeamMembers
+                                                                        }
+                                                                    />
 
                                                                     {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
                                                                     {this.props
@@ -622,6 +456,7 @@ Home.propTypes = {
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
+    customTutorialStat: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -643,6 +478,29 @@ const mapStateToProps = (state, props) => {
         );
         return subProjectTeamMember;
     });
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the 3 custom tutorials
+    const customTutorialStat = {
+        component: { show: true },
+        monitor: { show: true },
+        teamMember: { show: true },
+    };
+    // if custom component tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.component) {
+        customTutorialStat.component.show =
+            projectCustomTutorial.component.show;
+    }
+    // if custom monitor tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.monitor) {
+        customTutorialStat.monitor.show = projectCustomTutorial.monitor.show;
+    }
+    // if custom invite team member tutorial has a value, set it
+    if (projectCustomTutorial && projectCustomTutorial.teamMember) {
+        customTutorialStat.teamMember.show =
+            projectCustomTutorial.teamMember.show;
+    }
 
     return {
         currentProjectId: projectId,
@@ -657,6 +515,7 @@ const mapStateToProps = (state, props) => {
         subProjectOngoingScheduledEvents:
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
         multipleIncidentRequest: state.incident.unresolvedincidents,
+        customTutorialStat,
     };
 };
 

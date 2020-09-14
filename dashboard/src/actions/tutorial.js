@@ -85,10 +85,10 @@ export function fetchTutorial() {
     };
 }
 
-export function closeTutorial(type) {
+export function closeTutorial(type, projectId = null) {
     return function(dispatch) {
         let promise = null;
-        promise = putApi('tutorial', { type });
+        promise = putApi('tutorial', { type, projectId });
 
         dispatch(closeTutorialRequest(promise));
 
