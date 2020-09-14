@@ -111,7 +111,7 @@ export class VerifyBackupCode extends Component {
                     <p>
                         Have a google app authenticator?{' '}
                         <Link to="/accounts/user-auth/token">
-                            Enter auth token
+                            Enter Auth Token
                         </Link>
                         .
                     </p>
