@@ -200,9 +200,9 @@ class DashboardView extends Component {
                                                             components={
                                                                 allComponents
                                                             }
-                                                            customTutorialStat={
+                                                            tutorialStat={
                                                                 this.props
-                                                                    .customTutorialStat
+                                                                    .tutorialStat
                                                             }
                                                             currentProjectId={
                                                                 currentProjectId
@@ -214,11 +214,17 @@ class DashboardView extends Component {
                                                         <ShouldRender
                                                             if={
                                                                 this.props
-                                                                    .componentTutorial
+                                                                    .tutorialStat
+                                                                    .component
                                                                     .show
                                                             }
                                                         >
-                                                            <TutorialBox type="component" />
+                                                            <TutorialBox
+                                                                type="component"
+                                                                currentProjectId={
+                                                                    currentProjectId
+                                                                }
+                                                            />
                                                         </ShouldRender>
 
                                                         {components}
@@ -359,18 +365,22 @@ const mapStateToProps = (state, props) => {
     });
 
     const { projectId } = props.match.params;
+
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 
-    // set a default show to true for custom component tutorial
-    const customTutorialStat = {
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        componentCustom: { show: true },
         component: { show: true },
     };
-    // if custom component tutorial has a value, set it
-    if (projectCustomTutorial && projectCustomTutorial.component) {
-        customTutorialStat.component.show =
-            projectCustomTutorial.component.show;
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
     }
+    console.log(tutorialStat);
 
     return {
         component,
@@ -383,7 +393,7 @@ const mapStateToProps = (state, props) => {
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         monitors,
-        customTutorialStat,
+        tutorialStat,
     };
 };
 
@@ -414,7 +424,7 @@ DashboardView.propTypes = {
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     monitors: PropTypes.array,
-    customTutorialStat: PropTypes.object,
+    tutorialStat: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';
