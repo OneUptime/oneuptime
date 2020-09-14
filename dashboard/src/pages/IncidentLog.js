@@ -251,7 +251,7 @@ const mapStateToProps = (state, props) => {
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 
-    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    // set a default show to true for the tutorials to display
     const tutorialStat = {
         incident: { show: true },
     };
