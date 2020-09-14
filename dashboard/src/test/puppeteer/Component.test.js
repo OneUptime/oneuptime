@@ -252,6 +252,24 @@ describe('Components', () => {
         },
         operationTimeOut
     );
+    test(
+        'Should show indicator on how to create monitor',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                const customTutorialType = 'monitor';
+                await page.waitFor(5000);
+                // confirm that monitor box exist on component details page
+                const componentBoxElement = await page.waitForSelector(
+                    `#info-${customTutorialType}`
+                );
+                expect(componentBoxElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
 
     test(
         'Should create a new monitor in component',
