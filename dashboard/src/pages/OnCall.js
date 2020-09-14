@@ -273,9 +273,17 @@ export class OnCall extends Component {
                         <div>
                             <div>
                                 <ShouldRender
-                                    if={this.props.callScheduleTutorial.show}
+                                    if={
+                                        this.props.tutorialStat.callSchedule
+                                            .show
+                                    }
                                 >
-                                    <TutorialBox type="call-schedule" />
+                                    <TutorialBox
+                                        type="call-schedule"
+                                        currentProjectId={
+                                            this.props.currentProjectId
+                                        }
+                                    />
                                 </ShouldRender>
 
                                 {allSchedules}
@@ -352,6 +360,20 @@ const mapStateToProps = (state, props) => {
 
     subProjectSchedules && subProjectSchedules.unshift(projectSchedule);
 
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        callSchedule: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
+
     return {
         currentProjectId,
         subProjectSchedules,
@@ -360,7 +382,7 @@ const mapStateToProps = (state, props) => {
         projectId,
         subProjects,
         currentProject: state.project.currentProject,
-        callScheduleTutorial: state.tutorial.callSchedule,
+        tutorialStat,
     };
 };
 
@@ -380,7 +402,7 @@ OnCall.propTypes = {
     pages: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
-    callScheduleTutorial: PropTypes.object,
+    tutorialStat: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
