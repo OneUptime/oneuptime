@@ -30,13 +30,9 @@ describe('Registration API', () => {
 
     it('User cannot register with invalid email', async () => {
         const invalidEmail = 'invalidEmail';
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/register', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', invalidEmail);
@@ -51,23 +47,19 @@ describe('Registration API', () => {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', user.password);
         await page.click('button[type=submit]');
-        await page.waitFor(1000);
 
-        const html = await page.$eval('#email', e => {
-            return e.innerHTML;
-        });
-        html.should.containEql('Email is not valid.');
+        const errorMsg = await page.$eval(
+            '#email_error',
+            elem => elem.textContent
+        );
+        expect(errorMsg).toEqual('Email is not valid.');
     }, 160000);
 
     it('User cannot register with personal email', async () => {
         const personalEmail = 'personalEmail@gmail.com';
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/register', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', personalEmail);
@@ -82,11 +74,12 @@ describe('Registration API', () => {
         await page.click('input[name=confirmPassword]');
         await page.type('input[name=confirmPassword]', user.password);
         await page.click('button[type=submit]');
-        await page.waitFor(1000);
-        const html = await page.$eval('#email', e => {
-            return e.innerHTML;
-        });
-        html.should.containEql('Please enter a business email address.');
+
+        const errorMsg = await page.$eval(
+            '#email_error',
+            elem => elem.textContent
+        );
+        expect(errorMsg).toEqual('Please enter a business email address.');
     }, 160000);
 
     test('Registration form fields should be cleaned if the user moves to the login form and returns back.', async () => {

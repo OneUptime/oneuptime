@@ -78,6 +78,9 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#customTabList > li');
+                const tabs = await page.$$('#customTabList > li');
+                await tabs[2].click();
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -86,6 +89,9 @@ describe('Subscribers Alert logs API', () => {
                 await init.selectByText('#countryCodeId', countryCode, page);
                 await page.type('#contactPhoneId', phoneNumber);
                 await page.click('#createSubscriber');
+                await page.waitForSelector('#createSubscriber', {
+                    hidden: true,
+                });
                 const subscriberPhoneNumberSelector =
                     '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
                 await page.waitForSelector(subscriberPhoneNumberSelector);
@@ -113,6 +119,9 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#customTabList > li');
+                const tabs = await page.$$('#customTabList > li');
+                await tabs[2].click();
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -120,6 +129,9 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#emailId');
                 await page.type('#emailId', subscriberEmail);
                 await page.click('#createSubscriber');
+                await page.waitForSelector('#createSubscriber', {
+                    hidden: true,
+                });
                 const subscriberEmailSelector =
                     '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
                 await page.waitForSelector(subscriberEmailSelector);
@@ -142,46 +154,54 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
+                await page.waitForSelector('#customTabList > li');
+                let tabs = await page.$$('#customTabList > li');
+                await tabs[1].click();
+
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#incidentType');
                 await init.selectByText('#incidentType', 'offline', page);
                 await page.click('#createIncident');
                 await page.waitForSelector(`#incident_${monitorName}_0`);
-                await page.click(`#incident_${monitorName}_0`);
+                await page.waitForSelector('#notificationscroll');
+                await page.click('#viewIncident-0');
+                await page.waitForSelector('#incident_0');
+
+                await page.waitForSelector('#customTabList > li');
+                tabs = await page.$$('#customTabList > li');
+                await tabs[1].click();
                 await page.waitFor(3000);
-                await page.reload({
-                    waitUntil: 'networkidle0',
-                });
+                await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.waitForSelector('#customTabList > li');
+                tabs = await page.$$('#customTabList > li');
+                await tabs[1].click();
                 await page.waitForSelector('#subscriberAlertTable tbody tr');
                 const rowsCount = (
                     await page.$$('#subscriberAlertTable tbody tr')
                 ).length;
                 expect(rowsCount).toEqual(2);
-                const tableContent = await page.$eval(
-                    '#subscriberAlertTable tbody',
-                    e => e.textContent
-                );
-
-                expect(tableContent).toContain(monitorName);
-                expect(tableContent).toContain(`${countryCode}${phoneNumber}`);
 
                 const firstRowIdentifier =
                     '#subscriberAlertTable tbody tr:nth-of-type(1)';
                 await page.click(firstRowIdentifier);
                 await page.waitForSelector('#backboneModals .bs-Modal-content');
-                await page.waitFor(3000);
 
                 const subscriber = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(2) .bs-Fieldset-fields',
+                    '#backboneModals #subscriber',
                     e => e.textContent
                 );
                 const via = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(3) .bs-Fieldset-fields',
+                    '#backboneModals #alertVia',
                     e => e.textContent
                 );
                 const type = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(4) .bs-Fieldset-fields',
+                    '#backboneModals #eventType',
+                    e => e.textContent
+                );
+                const alertStatus = await page.$eval(
+                    '#backboneModals #alertStatus',
                     e => e.textContent
                 );
 
@@ -189,28 +209,36 @@ describe('Subscribers Alert logs API', () => {
                     subscriberEmail,
                     `${countryCode}${phoneNumber}`,
                 ]).toContain(subscriber);
+
                 expect(['sms', 'email']).toContain(via);
                 expect(type).toEqual('identified');
+                expect(alertStatus).toEqual('Sent');
 
-                await page.click('#backboneModals .bs-Modal-footer button');
-                await page.waitFor(3000);
+                await page.click('#backboneModals #closeBtn');
+                await page.waitForSelector(
+                    '#backboneModals .bs-Modal-content',
+                    { hidden: true }
+                );
 
                 const secondRowIdentifier =
                     '#subscriberAlertTable tbody tr:nth-of-type(2)';
                 await page.click(secondRowIdentifier);
                 await page.waitForSelector('#backboneModals .bs-Modal-content');
-                await page.waitFor(3000);
 
                 const subscriber1 = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(2) .bs-Fieldset-fields',
+                    '#backboneModals #subscriber',
                     e => e.textContent
                 );
                 const via1 = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(3) .bs-Fieldset-fields',
+                    '#backboneModals #alertVia',
                     e => e.textContent
                 );
                 const type1 = await page.$eval(
-                    '#backboneModals .bs-Modal-content .bs-Fieldset-rows .bs-Fieldset-row:nth-of-type(4) .bs-Fieldset-fields',
+                    '#backboneModals #eventType',
+                    e => e.textContent
+                );
+                const alertStatus1 = await page.$eval(
+                    '#backboneModals #alertStatus',
                     e => e.textContent
                 );
 
@@ -220,6 +248,7 @@ describe('Subscribers Alert logs API', () => {
                 ]).toContain(subscriber1);
                 expect(['sms', 'email']).toContain(via1);
                 expect(type1).toEqual('identified');
+                expect(alertStatus1).toEqual('Sent');
             });
         },
         operationTimeOut
