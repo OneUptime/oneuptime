@@ -249,8 +249,6 @@ describe('Monitor Detail API', () => {
 
                 // click on advance option tab
                 await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
-                await page.waitForSelector('#react-tabs-10');
-                await page.click('#react-tabs-10');
 
                 await page.waitForSelector('button[id=deleteIncidentButton]');
                 await page.$eval('#deleteIncidentButton', e => e.click());
@@ -261,9 +259,8 @@ describe('Monitor Detail API', () => {
                 await page.$eval('#confirmDeleteIncident', e => e.click());
                 await page.waitForNavigation();
 
-                // click on Incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
+                // click on basic tab
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 let incidentCountSpanElement = await page.waitForSelector(
                     `#incident_count`
