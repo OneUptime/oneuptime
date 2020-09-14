@@ -35,7 +35,7 @@ child.on('message', function(score) {
     if (
         score.performance < 50 ||
         score.accessibility < 80 ||
-        score.bestPractices < 80 ||
+        score.bestPractices < 70 ||
         score.seo < 80
     ) {
         checksFailed = true;
