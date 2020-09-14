@@ -308,9 +308,9 @@ class DashboardView extends Component {
                                                             monitors={
                                                                 allMonitors
                                                             }
-                                                            customTutorialStat={
+                                                            tutorialStat={
                                                                 this.props
-                                                                    .customTutorialStat
+                                                                    .tutorialStat
                                                             }
                                                             currentProjectId={
                                                                 currentProjectId
@@ -322,11 +322,17 @@ class DashboardView extends Component {
                                                         <ShouldRender
                                                             if={
                                                                 this.props
-                                                                    .monitorTutorial
+                                                                    .tutorialStat
+                                                                    .monitor
                                                                     .show
                                                             }
                                                         >
-                                                            <TutorialBox type="monitor" />
+                                                            <TutorialBox
+                                                                type="monitor"
+                                                                currentProjectId={
+                                                                    currentProjectId
+                                                                }
+                                                            />
                                                         </ShouldRender>
 
                                                         <div className="Box-root Margin-bottom--12">
@@ -494,13 +500,17 @@ const mapStateToProps = (state, props) => {
         );
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
-    // set a default show to true for the monitor custom tutorial
-    const customTutorialStat = {
+
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        monitorCustom: { show: true },
         monitor: { show: true },
     };
-    // if custom monitor tutorial has a value, set it
-    if (projectCustomTutorial && projectCustomTutorial.monitor) {
-        customTutorialStat.monitor.show = projectCustomTutorial.monitor.show;
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
     }
 
     return {
@@ -509,12 +519,11 @@ const mapStateToProps = (state, props) => {
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         monitors: state.monitor.monitorsList.monitors,
-        subProjects,
-        monitorTutorial: state.tutorial.monitor,
+        subProjects
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         component,
-        customTutorialStat,
+        tutorialStat,
     };
 };
 
@@ -543,7 +552,6 @@ DashboardView.propTypes = {
     fetchMonitorStatuses: PropTypes.func.isRequired,
     fetchLighthouseLogs: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
-    monitorTutorial: PropTypes.object,
     getProbes: PropTypes.func,
     startDate: PropTypes.object,
     endDate: PropTypes.object,
@@ -557,7 +565,7 @@ DashboardView.propTypes = {
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
     createMonitorSuccess: PropTypes.func.isRequired,
-    customTutorialStat: PropTypes.object,
+    tutorialStat: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';
