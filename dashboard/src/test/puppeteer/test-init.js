@@ -623,8 +623,10 @@ module.exports = {
         });
     },
     addIncident: async function(monitorName, incidentType, page) {
-        await page.waitForSelector(`button[id=create_incident_${monitorName}]`);
-        await page.click(`button[id=create_incident_${monitorName}]`);
+        await page.waitForSelector(
+            `button[id=monitorCreateIncident_${monitorName}]`
+        );
+        await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
         await page.waitForSelector('button[id=createIncident]');
         await this.selectByText('#incidentType', incidentType, page);
         await page.waitForSelector('input[id=title]');
