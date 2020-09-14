@@ -201,9 +201,14 @@ class IncidentLog extends React.Component {
                         <div>
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
-                                    if={this.props.incidentTutorial.show}
+                                    if={this.props.tutorialStat.incident.show}
                                 >
-                                    <TutorialBox type="incident" />
+                                    <TutorialBox
+                                        type="incident"
+                                        currentProjectId={
+                                            this.props.currentProject?._id
+                                        }
+                                    />
                                 </ShouldRender>
 
                                 {allIncidents}
@@ -222,7 +227,7 @@ class IncidentLog extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentId, projectId } = props.match.params;
     let subProjects = state.subProject.subProjects.subProjects;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -242,6 +247,20 @@ const mapStateToProps = (state, props) => {
         subProjectNames.map(name =>
             subProjects.find(subProject => subProject.name === name)
         );
+
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        incident: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
     return {
         componentId,
         currentProject: state.project.currentProject,
@@ -249,7 +268,7 @@ const mapStateToProps = (state, props) => {
         create: state.incident.newIncident.requesting,
         subProjects,
         subProjectIncidents: state.incident.incidents.incidents,
-        incidentTutorial: state.tutorial.incident,
+        tutorialStat,
         component,
     };
 };
@@ -285,7 +304,7 @@ IncidentLog.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-    incidentTutorial: PropTypes.object,
+    tutorialStat: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
