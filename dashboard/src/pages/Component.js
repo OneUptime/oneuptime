@@ -380,7 +380,6 @@ const mapStateToProps = (state, props) => {
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
-    console.log(tutorialStat);
 
     return {
         component,
@@ -388,7 +387,6 @@ const mapStateToProps = (state, props) => {
         incidents: state.incident.unresolvedincidents.incidents,
         components: state.component.componentList.components,
         subProjects,
-        componentTutorial: state.tutorial.component,
         monitor: state.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
@@ -414,7 +412,6 @@ DashboardView.propTypes = {
     destroy: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
-    componentTutorial: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
