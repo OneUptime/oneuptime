@@ -143,9 +143,9 @@ const incidentTabIndexes = {
     BASIC: 0,
     MONITOR_LOGS: 2,
     ALERT_LOGS: 4,
-    INCIDENT_TIMELINE: 8,
-    INCIDENT_NOTES: 10,
-    ADVANCE: 12,
+    INCIDENT_TIMELINE: 6,
+    INCIDENT_NOTES: 8,
+    ADVANCE: 10,
 };
 
 module.exports = {
