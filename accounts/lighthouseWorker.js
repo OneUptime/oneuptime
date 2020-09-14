@@ -26,7 +26,7 @@ const config = {
             cpuSlowdownMultiplier: 4,
         },
         // Skip the h2 audit so it doesn't lie to us. See https://github.com/GoogleChrome/lighthouse/issues/6539
-        // skipAudits: ['uses-http2'],
+        skipAudits: ['uses-http2'],
         onlyCategories: [
             'performance',
             'accessibility',
@@ -57,21 +57,22 @@ process.on('message', function(data) {
     spinner.color = 'green';
     launchChromeAndRunLighthouse(data.url, flags, config)
         .then(results => {
-            results.artifacts = 'ignore';
-            results.reportGroups = 'ignore';
-            results.timing = 'ignore';
-            results.userAgent = 'ignore';
-            results.lighthouseVersion = 'ignore';
-            results.runWarnings = 'runWarnings';
-            results.report = 'ignore';
-            results.runtimeConfig = 'ignore';
+            // results.artifacts = 'ignore';
+            // results.reportGroups = 'ignore';
+            // results.timing = 'ignore';
+            // results.userAgent = 'ignore';
+            // results.lighthouseVersion = 'ignore';
+            // results.runWarnings = 'runWarnings';
+            // results.report = 'ignore';
+            // results.runtimeConfig = 'ignore';
 
-            results.lhr.userAgent = 'ignore';
-            results.lhr.environment = 'ignore';
-            results.lhr.configSettings = 'ignore';
-            results.lhr.metrics = 'ignore';
-            results.lhr.audits = 'ignore';
-            results.lhr.categoryGroups = 'ignore';
+            // results.lhr.userAgent = 'ignore';
+            // results.lhr.environment = 'ignore';
+            // results.lhr.configSettings = 'ignore';
+            // results.lhr.metrics = 'ignore';
+            // results.lhr.audits = 'ignore';
+            // results.lhr.categoryGroups = 'ignore';
+            console.log('*****results*******', results);
 
             scores.performance = Math.ceil(
                 results.lhr.categories.performance.score * 100
