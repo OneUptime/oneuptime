@@ -35,7 +35,7 @@ const _this = {
             error.code = 400;
             return error;
         }
-        return new twilio(accountSid, authToken);
+        return twilio(accountSid, authToken);
     },
 
     getSettings: async () => {
@@ -173,7 +173,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+
                 const message = await twilioClient.messages.create(options);
+
                 return message;
             } else {
                 const creds = await _this.getSettings();
