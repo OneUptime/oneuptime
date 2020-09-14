@@ -46,7 +46,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const smsSmtp = await SmsSmtpService.findOneBy({ projectId });
-        return sendItemResponse(req, res, smsSmtp);
+        return sendItemResponse(req, res, smsSmtp || {});
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
