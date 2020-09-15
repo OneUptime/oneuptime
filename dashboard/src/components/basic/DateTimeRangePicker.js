@@ -5,18 +5,21 @@ import originalMoment from 'moment';
 import { extendMoment } from 'moment-range';
 import ShouldRender from './ShouldRender';
 import { Field, reduxForm } from 'redux-form';
-import CustomDateTimeSelector from './CustomDateTimeSelector';
+import DateTimeWrapper from './DateTimeWrapper';
+import DateWrapper from './DateWrapper';
 const moment = extendMoment(originalMoment);
 
 function DateTimeRangePicker({
     currentDateRange,
     handleStartDateTimeChange,
     handleEndDateTimeChange,
+    formId,
+    displayOnlyDate = false,
 }) {
     const currentDate = moment();
     return (
         <div>
-            <form id="applicationLogDateTimeForm">
+            <form id={formId}>
                 <ShouldRender if={currentDateRange}>
                     <div className="db-DateRangeInputWithComparison">
                         <div
@@ -38,7 +41,11 @@ function DateTimeRangePicker({
                                     <Field
                                         type="text"
                                         name="startDate"
-                                        component={CustomDateTimeSelector}
+                                        component={
+                                            displayOnlyDate
+                                                ? DateWrapper
+                                                : DateTimeWrapper
+                                        }
                                         id="startDate"
                                         maxDate={currentDate}
                                         onChange={handleStartDateTimeChange}
@@ -56,7 +63,11 @@ function DateTimeRangePicker({
                                     <Field
                                         type="text"
                                         name="endDate"
-                                        component={CustomDateTimeSelector}
+                                        component={
+                                            displayOnlyDate
+                                                ? DateWrapper
+                                                : DateTimeWrapper
+                                        }
                                         id="endDate"
                                         maxDate={currentDate}
                                         onChange={handleEndDateTimeChange}
@@ -77,6 +88,8 @@ DateTimeRangePicker.propTypes = {
     handleStartDateTimeChange: PropTypes.func,
     handleEndDateTimeChange: PropTypes.func,
     currentDateRange: PropTypes.object,
+    displayOnlyDate: PropTypes.bool,
+    formId: PropTypes.string,
 };
 
 function mapStateToProps(state, ownProps) {
