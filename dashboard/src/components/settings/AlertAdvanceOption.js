@@ -170,15 +170,12 @@ export class AlertAdvanceOption extends Component {
                                                                             '5px',
                                                                     }}
                                                                 >
-                                                                    <label>
-                                                                        <span>
-                                                                            Enable
-                                                                            call
-                                                                            and
-                                                                            SMS
-                                                                            alerts
-                                                                        </span>
-                                                                    </label>
+                                                                    <span>
+                                                                        Enable
+                                                                        call and
+                                                                        SMS
+                                                                        alerts
+                                                                    </span>
                                                                 </div>
                                                             </label>
                                                         </div>
@@ -447,18 +444,16 @@ export class AlertAdvanceOption extends Component {
                                                                                 '5px',
                                                                         }}
                                                                     >
-                                                                        <label>
-                                                                            <span>
-                                                                                Enable
-                                                                                call
-                                                                                and
-                                                                                SMS
-                                                                                alerts
-                                                                                to
-                                                                                US
-                                                                                Numbers
-                                                                            </span>
-                                                                        </label>
+                                                                        <span>
+                                                                            Enable
+                                                                            call
+                                                                            and
+                                                                            SMS
+                                                                            alerts
+                                                                            to
+                                                                            US
+                                                                            Numbers
+                                                                        </span>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -502,32 +497,30 @@ export class AlertAdvanceOption extends Component {
                                                                                 '5px',
                                                                         }}
                                                                     >
-                                                                        <label>
-                                                                            <span>
-                                                                                Enable
-                                                                                call
-                                                                                and
-                                                                                SMS
-                                                                                alerts
-                                                                                to
-                                                                                Non-US
-                                                                                Numbers{' '}
-                                                                                <a
-                                                                                    target="_blank"
-                                                                                    className="underline"
-                                                                                    rel="noopener noreferrer"
-                                                                                    href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world"
-                                                                                >
-                                                                                    <span>
-                                                                                        (except
-                                                                                        these
-                                                                                        high
-                                                                                        risk
-                                                                                        countries)
-                                                                                    </span>
-                                                                                </a>
-                                                                            </span>
-                                                                        </label>
+                                                                        <span>
+                                                                            Enable
+                                                                            call
+                                                                            and
+                                                                            SMS
+                                                                            alerts
+                                                                            to
+                                                                            Non-US
+                                                                            Numbers{' '}
+                                                                            <a
+                                                                                target="_blank"
+                                                                                className="underline"
+                                                                                rel="noopener noreferrer"
+                                                                                href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world"
+                                                                            >
+                                                                                <span>
+                                                                                    (except
+                                                                                    these
+                                                                                    high
+                                                                                    risk
+                                                                                    countries)
+                                                                                </span>
+                                                                            </a>
+                                                                        </span>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -577,29 +570,27 @@ export class AlertAdvanceOption extends Component {
                                                                                     '5px',
                                                                             }}
                                                                         >
-                                                                            <label>
-                                                                                <span>
-                                                                                    Enable
-                                                                                    call
-                                                                                    and
-                                                                                    SMS
-                                                                                    alerts
-                                                                                    to{' '}
-                                                                                    <a
-                                                                                        target="_blank"
-                                                                                        className="underline"
-                                                                                        rel="noopener noreferrer"
-                                                                                        href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world"
-                                                                                    >
-                                                                                        <span>
-                                                                                            these
-                                                                                            high
-                                                                                            risk
-                                                                                            countries
-                                                                                        </span>
-                                                                                    </a>
-                                                                                </span>
-                                                                            </label>
+                                                                            <span>
+                                                                                Enable
+                                                                                call
+                                                                                and
+                                                                                SMS
+                                                                                alerts
+                                                                                to{' '}
+                                                                                <a
+                                                                                    target="_blank"
+                                                                                    className="underline"
+                                                                                    rel="noopener noreferrer"
+                                                                                    href="https://www.twilio.com/docs/sip-trunking/voice-dialing-geographic-permissions#the-highest-risk-countries-for-toll-fraud-in-world"
+                                                                                >
+                                                                                    <span>
+                                                                                        these
+                                                                                        high
+                                                                                        risk
+                                                                                        countries
+                                                                                    </span>
+                                                                                </a>
+                                                                            </span>
                                                                         </div>
                                                                     </label>
                                                                 </PricingPlan>

@@ -53,6 +53,7 @@ class ResourceTabularList extends Component {
         let statusDescription = 'TBD';
         let indicator, monitor, logs, probe;
         let appSecurityStatus = 'no data yet',
+            containerSecurityStatus = 'no data yet',
             monitorStatus = '';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
@@ -101,7 +102,6 @@ class ResourceTabularList extends Component {
                 statusDescription = monitorStatus;
                 break;
             case 'application security':
-            case 'container security':
                 // get application security status
                 data =
                     componentResource.securityLog &&
@@ -121,6 +121,36 @@ class ResourceTabularList extends Component {
                         count={
                             data && data.vulnerabilities
                                 ? data.vulnerabilities[appSecurityStatus]
+                                : 0
+                        }
+                    />
+                );
+                break;
+            case 'container security':
+                // get container security status
+                data =
+                    componentResource.securityLog &&
+                    componentResource.securityLog.data &&
+                    componentResource.securityLog.data.vulnerabilityInfo
+                        ? componentResource.securityLog.data
+                        : null;
+                if (data) {
+                    containerSecurityStatus = threatLevel(
+                        data.vulnerabilityInfo
+                    );
+                    statusDescription = `${containerSecurityStatus} issues`;
+                } else {
+                    statusDescription = 'No Scan Yet';
+                }
+                indicator = (
+                    <IssueIndicator
+                        status={containerSecurityStatus}
+                        resourceName={componentResource.name}
+                        count={
+                            data && data.vulnerabilityInfo
+                                ? data.vulnerabilityInfo[
+                                      containerSecurityStatus
+                                  ]
                                 : 0
                         }
                     />
