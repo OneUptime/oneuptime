@@ -169,7 +169,6 @@ class ApplicationLogHeader extends Component {
                                         : 'none',
                                 }}
                             >
-                                {/* Figure how to bring the form back */}
                                 <DateTimeRangePicker
                                     currentDateRange={currentDateRange}
                                     handleStartDateTimeChange={
