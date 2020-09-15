@@ -88,6 +88,14 @@ export class Reports extends Component {
         this.handleIncidentChange = this.handleIncidentChange.bind(this);
     }
 
+    handleMemberStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleMembersChange(startDate, this.state.membersEnd);
+    };
+    handleMemberEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleMembersChange(this.state.membersStart, endDate);
+    };
     handleMembersChange(startDate, endDate) {
         this.setState({
             membersStart: startDate,
@@ -128,6 +136,14 @@ export class Reports extends Component {
             resolveTimeEnd: endDate,
         });
     }
+    handleIncidentStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleIncidentChange(startDate, this.state.incidentEnd);
+    };
+    handleIncidentEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleIncidentChange(this.state.incidentStart, endDate);
+    };
 
     handleIncidentChange(startDate, endDate) {
         this.setState({
@@ -420,23 +436,33 @@ export class Reports extends Component {
                                                                         'flex-end',
                                                                 }}
                                                             >
-                                                                <DateRangeWrapper
-                                                                    selected={
-                                                                        this
+                                                                <DateTimeRangePicker
+                                                                    currentDateRange={{
+                                                                        startDate: this
                                                                             .state
-                                                                            .incidentStart
+                                                                            .incidentStart,
+                                                                        endDate: this
+                                                                            .state
+                                                                            .incidentEnd,
+                                                                    }}
+                                                                    handleStartDateTimeChange={
+                                                                        this
+                                                                            .handleIncidentStartDateTimeChange
+                                                                    }
+                                                                    handleEndDateTimeChange={
+                                                                        this
+                                                                            .handleIncidentEndDateTimeChange
+                                                                    }
+                                                                    formId={
+                                                                        'incidentReportForm'
+                                                                    }
+                                                                    displayOnlyDate={
+                                                                        true
                                                                     }
                                                                     style={{
-                                                                        justifyContent:
-                                                                            'flex-end',
+                                                                        height:
+                                                                            '28px',
                                                                     }}
-                                                                    onChange={
-                                                                        this
-                                                                            .handleIncidentChange
-                                                                    }
-                                                                    dateRange={
-                                                                        30
-                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -497,23 +523,33 @@ export class Reports extends Component {
                                                                         'flex-end',
                                                                 }}
                                                             >
-                                                                <DateRangeWrapper
-                                                                    selected={
-                                                                        this
+                                                                <DateTimeRangePicker
+                                                                    currentDateRange={{
+                                                                        startDate: this
                                                                             .state
-                                                                            .membersStart
+                                                                            .membersStart,
+                                                                        endDate: this
+                                                                            .state
+                                                                            .membersEnd,
+                                                                    }}
+                                                                    handleStartDateTimeChange={
+                                                                        this
+                                                                            .handleMemberStartDateTimeChange
+                                                                    }
+                                                                    handleEndDateTimeChange={
+                                                                        this
+                                                                            .handleMemberEndDateTimeChange
+                                                                    }
+                                                                    formId={
+                                                                        'memberReportForm'
+                                                                    }
+                                                                    displayOnlyDate={
+                                                                        true
                                                                     }
                                                                     style={{
-                                                                        justifyContent:
-                                                                            'flex-end',
+                                                                        height:
+                                                                            '28px',
                                                                     }}
-                                                                    onChange={
-                                                                        this
-                                                                            .handleMembersChange
-                                                                    }
-                                                                    dateRange={
-                                                                        30
-                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
