@@ -13,6 +13,7 @@ import Select from '../components/basic/react-select-fyipe';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import DateTimeRangePicker from '../components/basic/DateTimeRangePicker';
 
 const styles = {
     cardGrid: {
@@ -113,6 +114,14 @@ export class Reports extends Component {
         });
     }
 
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleResolveTimeChange(startDate, this.state.resolveTimeEnd);
+    };
+    handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleResolveTimeChange(this.state.resolveTimeStart, endDate);
+    };
     handleResolveTimeChange(startDate, endDate) {
         this.setState({
             resolveTimeStart: startDate,
@@ -253,23 +262,33 @@ export class Reports extends Component {
                                                                         'flex-end',
                                                                 }}
                                                             >
-                                                                <DateRangeWrapper
-                                                                    selected={
-                                                                        this
+                                                                <DateTimeRangePicker
+                                                                    currentDateRange={{
+                                                                        startDate: this
                                                                             .state
-                                                                            .resolveTimeStart
+                                                                            .resolveTimeStart,
+                                                                        endDate: this
+                                                                            .state
+                                                                            .resolveTimeEnd,
+                                                                    }}
+                                                                    handleStartDateTimeChange={
+                                                                        this
+                                                                            .handleStartDateTimeChange
+                                                                    }
+                                                                    handleEndDateTimeChange={
+                                                                        this
+                                                                            .handleEndDateTimeChange
+                                                                    }
+                                                                    formId={
+                                                                        'averageResolveTimeForm'
+                                                                    }
+                                                                    displayOnlyDate={
+                                                                        true
                                                                     }
                                                                     style={{
-                                                                        justifyContent:
-                                                                            'flex-end',
+                                                                        height:
+                                                                            '28px',
                                                                     }}
-                                                                    onChange={
-                                                                        this
-                                                                            .handleResolveTimeChange
-                                                                    }
-                                                                    dateRange={
-                                                                        30
-                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
