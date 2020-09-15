@@ -212,7 +212,7 @@ module.exports = {
         }
     },
 
-    closeTutorialBy: async function(query, type, data) {
+    closeTutorialBy: async function(query, type, data, projectId) {
         try {
             if (!query) query = {};
             if (!data) data = {};
@@ -220,7 +220,11 @@ module.exports = {
             type = type.replace(/-([a-z])/g, function(g) {
                 return g[1].toUpperCase();
             });
-            data[type] = { show: false };
+
+            // if projectID is passed, get the current tutorial status
+            const currentStatus = data[projectId] || {};
+            currentStatus[type] = { show: false }; // overwrite that current type under that project
+            data[projectId] = currentStatus; // update the data object then
 
             const tutorial = await UserModel.findOneAndUpdate(
                 query,
@@ -403,6 +407,14 @@ module.exports = {
                 const user = await _this.findOneBy({
                     twoFactorSecretCode: secretKey,
                 });
+                const backupCodes = user.backupCodes.map(backupCode => {
+                    if (backupCode.code === code) backupCode.used = true;
+                    return backupCode;
+                });
+                await _this.updateOneBy(
+                    { twoFactorSecretCode: secretKey },
+                    { backupCodes }
+                );
                 return user;
             }
             return isValid;
@@ -564,7 +576,7 @@ module.exports = {
                             password,
                             encryptedPassword
                         );
-                        if (user.twoFactorAuthEnabled) {
+                        if (res && user.twoFactorAuthEnabled) {
                             return { message: 'Login with 2FA token', email };
                         }
 

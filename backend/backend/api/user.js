@@ -554,12 +554,19 @@ router.post('/verify/backupCode', async function(req, res) {
         const backupCode = user.backupCodes.filter(
             code => code.code === data.code
         );
-        user = await UserService.verifyUserBackupCode(
-            data.code,
-            user.twoFactorSecretCode,
-            backupCode[0].counter
-        );
-        if (!user || !user._id) {
+        if (backupCode.length > 0 && backupCode[0].used) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'This backup code was used once, show another code.',
+            });
+        }
+        if (backupCode.length > 0)
+            user = await UserService.verifyUserBackupCode(
+                data.code,
+                user.twoFactorSecretCode,
+                backupCode[0].counter
+            );
+        if (backupCode.length === 0 || !user || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Invalid backup code.',
@@ -803,6 +810,30 @@ router.put('/profile', getUser, async function(req, res) {
             const user = await UserService.updateOneBy({ _id: userId }, data);
             return sendItemResponse(req, res, user);
         });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
+// Description: Turns on or off 2FA.
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 500: Server Error.
+router.put('/:userId/2fa', isUserMasterAdmin, async function(req, res) {
+    try {
+        const { userId } = req.params;
+        const data = req.body;
+        const userData = await UserService.findOneBy({ _id: userId });
+        if (userData.email !== data.email) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid user data.',
+            });
+        }
+        // Call the UserService
+        const user = await UserService.updateOneBy({ _id: userId }, data);
+        return sendItemResponse(req, res, user);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

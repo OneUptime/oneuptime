@@ -11,7 +11,6 @@ const projectName = utils.generateRandomString();
 const projectMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-const bodyText = utils.generateRandomString();
 const message = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
@@ -71,136 +70,6 @@ describe('Incident Timeline API', () => {
     });
 
     test(
-        'should create incident in project with multi-probes and add to incident timeline',
-        async () => {
-            expect.assertions(2);
-            const testServer = async ({ page }) => {
-                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-                await page.evaluate(
-                    () => (document.getElementById('responseTime').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('statusCode').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('body').value = '')
-                );
-                await page.waitForSelector('#responseTime');
-                await page.$eval('input[name=responseTime]', e => e.click());
-                await page.type('input[name=responseTime]', '0');
-                await page.waitForSelector('#statusCode');
-                await page.$eval('input[name=statusCode]', e => e.click());
-                await page.type('input[name=statusCode]', '400');
-                await page.select('#responseType', 'html');
-                await page.waitForSelector('#body');
-                await page.$eval('textarea[name=body]', e => e.click());
-                await page.type(
-                    'textarea[name=body]',
-                    `<h1 id="html"><span>${bodyText}</span></h1>`
-                );
-                await page.$eval('button[type=submit]', e => e.click());
-                await page.waitForSelector('#save-btn');
-            };
-
-            const dashboard = async ({ page }) => {
-                await page.waitFor(350000);
-                // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForSelector('#incident_span_0');
-
-                const incidentTitleSelector = await page.$('#incident_span_0');
-
-                let textContent = await incidentTitleSelector.getProperty(
-                    'innerText'
-                );
-                textContent = await textContent.jsonValue();
-                expect(textContent.toLowerCase()).toEqual(
-                    `${projectMonitorName}'s Incident Status`.toLowerCase()
-                );
-
-                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
-                    e.click()
-                );
-                await page.waitFor(5000);
-
-                const incidentTimelineRows = await page.$$(
-                    '#incidentTimeline tr.incidentListItem'
-                );
-                const countIncidentTimelines = incidentTimelineRows.length;
-                expect(countIncidentTimelines).toEqual(2);
-            };
-
-            await cluster.execute(null, testServer);
-            await cluster.execute(null, dashboard);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'should auto-resolve incident in project with multi-probes and add to incident timeline',
-        async () => {
-            expect.assertions(2);
-            const testServer = async ({ page }) => {
-                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
-                    waitUntil: 'networkidle2',
-                });
-                await page.evaluate(
-                    () => (document.getElementById('responseTime').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('statusCode').value = '')
-                );
-                await page.evaluate(
-                    () => (document.getElementById('body').value = '')
-                );
-                await page.waitForSelector('#responseTime');
-                await page.$eval('input[name=responseTime]', e => e.click());
-                await page.type('input[name=responseTime]', '0');
-                await page.waitForSelector('#statusCode');
-                await page.$eval('input[name=statusCode]', e => e.click());
-                await page.type('input[name=statusCode]', '200');
-                await page.select('#responseType', 'html');
-                await page.waitForSelector('#body');
-                await page.$eval('textarea[name=body]', e => e.click());
-                await page.type(
-                    'textarea[name=body]',
-                    `<h1 id="html"><span>${bodyText}</span></h1>`
-                );
-                await page.$eval('button[type=submit]', e => e.click());
-                await page.waitForSelector('#save-btn');
-            };
-
-            const dashboard = async ({ page }) => {
-                await page.waitFor(350000);
-                // Navigate to Component details
-                await init.navigateToComponentDetails(componentName, page);
-
-                await page.waitForSelector('#ResolveText_0');
-
-                const resolveTextSelector = await page.$('#ResolveText_0');
-                expect(resolveTextSelector).not.toBeNull();
-
-                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
-                    e.click()
-                );
-                await page.waitFor(5000);
-
-                const incidentTimelineRows = await page.$$(
-                    '#incidentTimeline tr.incidentListItem'
-                );
-                const countIncidentTimelines = incidentTimelineRows.length;
-                expect(countIncidentTimelines).toEqual(6);
-            };
-
-            await cluster.execute(null, testServer);
-            await cluster.execute(null, dashboard);
-        },
-        operationTimeOut
-    );
-    test(
         'should create incident in project and add to message to the incident message thread',
         async () => {
             const dashboard = async ({ page }) => {
@@ -210,28 +79,38 @@ describe('Incident Timeline API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 await page.waitForSelector(
-                    `#more-details-${projectMonitorName}`
+                    `#create_incident_${projectMonitorName}`
                 );
-                await page.click(`#more-details-${projectMonitorName}`);
-                // create incident
-                await page.waitForSelector(
-                    `#monitorCreateIncident_${projectMonitorName}`
-                );
-                await page.click(
-                    `#monitorCreateIncident_${projectMonitorName}`
-                );
+                await page.click(`#create_incident_${projectMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('#title', 'new incident');
+                await page.waitForSelector('#createIncident');
                 await page.click('#createIncident');
 
                 await page.waitFor(2000);
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                await page.waitFor(2000);
+                // click on incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
+
                 // fill investigation message thread form
                 await page.waitFor(2000);
+                await page.waitForSelector(`#add-${type}-message`);
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
@@ -269,10 +148,23 @@ describe('Incident Timeline API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                // click on incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
+
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -312,10 +204,23 @@ describe('Incident Timeline API', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
 
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                // click on incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
                 // fill internal message thread form
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
@@ -357,16 +262,29 @@ describe('Incident Timeline API', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
 
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                // click on incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
                 await page.waitFor(5000);
 
                 // edit investigation message thread form
-                await page.waitForSelector(`#edit-${type}`);
+                await page.waitForSelector(`#${type}-editButton`);
                 await page.click(`textarea[id=edit-${type}]`);
                 await page.type(`textarea[id=edit-${type}]`, '-updated');
                 await init.selectByText(
@@ -403,9 +321,22 @@ describe('Incident Timeline API', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitFor(2000);
 
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+                // click on incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
+
+                // click on incident notes tab
+                await page.waitForSelector('#react-tabs-8');
+                await page.click('#react-tabs-8');
 
                 await page.waitForSelector(
                     `#delete_${type}_incident_message_0`
@@ -438,10 +369,21 @@ describe('Incident Timeline API', () => {
             await init.navigateToComponentDetails(componentName, page);
             await page.waitFor(2000);
 
+            // navigate to monitor details
+            await page.waitForSelector(`#more-details-${projectMonitorName}`);
+            await page.click(`#more-details-${projectMonitorName}`);
+
+            // click on incident tab
+            await page.waitForSelector('#react-tabs-2');
+            await page.click('#react-tabs-2');
+
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
+            // click on incident notes tab
+            await page.waitForSelector('#react-tabs-8');
+            await page.click('#react-tabs-8');
             await page.waitFor(2000);
 
             for (let i = 0; i < 10; i++) {
@@ -458,6 +400,11 @@ describe('Incident Timeline API', () => {
                 await page.waitFor(2000);
             }
 
+            // click on timeline tab
+            await page.waitForSelector('#react-tabs-6');
+            await page.click('#react-tabs-6');
+            await page.waitFor(2000);
+
             await page.waitForSelector('#incidentTimeline tr.incidentListItem');
             let incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
@@ -466,14 +413,14 @@ describe('Incident Timeline API', () => {
 
             expect(countIncidentTimelines).toEqual(10);
 
-            const nextSelector = await page.$('#btnTimelineNext');
-            await nextSelector.click();
+            await page.waitForSelector('#btnTimelineNext');
+            await page.click('#btnTimelineNext');
             await page.waitFor(7000);
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
             );
             countIncidentTimelines = incidentTimelineRows.length;
-            expect(countIncidentTimelines).toEqual(6);
+            expect(countIncidentTimelines).toEqual(10);
 
             const prevSelector = await page.$('#btnTimelinePrev');
             await prevSelector.click();

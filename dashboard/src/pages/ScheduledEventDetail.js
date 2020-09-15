@@ -112,6 +112,7 @@ class ScheduledEvent extends Component {
                         route={pathname}
                         name={eventName}
                         pageTitle="Scheduled Event Detail"
+                        containerType="Scheduled Event"
                     />
                     <ShouldRender if={requesting}>
                         <LoadingState />

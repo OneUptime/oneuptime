@@ -666,7 +666,7 @@ module.exports = {
         await page.type('#authToken', authToken);
         await page.type('#phoneNumber', phoneNumber);
         await page.click('#submitTwilioSettings');
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#accountSid');
     },
@@ -697,10 +697,8 @@ module.exports = {
         await page.type('#from', from);
         if (secure) await page.$eval('#secure', e => e.click());
         await page.click('#saveSmtp');
-        await page.waitFor(3000);
-        await page.reload({
-            waitUntil: 'networkidle0',
-        });
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
+        await page.reload();
+        await page.waitForSelector('#user');
     },
 };
