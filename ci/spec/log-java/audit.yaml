@@ -18,7 +18,7 @@ audit_log-java:
         - sudo /var/lib/dpkg/info/ca-certificates-java.postinst configure
         - sudo apt install ca-certificates-java --reinstall
         - cd log-java
-        - mvn clean
+        - mvn -e -X clean
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh audit_log-java log-java
