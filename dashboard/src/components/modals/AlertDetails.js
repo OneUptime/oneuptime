@@ -34,7 +34,9 @@ class AlertDetailsModal extends Component {
                                         Subscriber
                                     </label>
                                     <div className="bs-Fieldset-fields Margin-top--6">
-                                        <div>{this.props.data.subscriber}</div>
+                                        <div id="subscriber">
+                                            {this.props.data.subscriber}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="bs-Fieldset-row">
@@ -44,7 +46,7 @@ class AlertDetailsModal extends Component {
                                     <div className="bs-Fieldset-fields Margin-top--6">
                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                <span>
+                                                <span id="alertVia">
                                                     {this.props.data.alertVia}
                                                 </span>
                                             </span>
@@ -59,7 +61,10 @@ class AlertDetailsModal extends Component {
                                         {this.props.data.eventType ===
                                             'acknowledged' && (
                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span
+                                                    id="eventType"
+                                                    className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                >
                                                     {this.props.data.eventType}
                                                 </span>
                                             </div>
@@ -67,7 +72,10 @@ class AlertDetailsModal extends Component {
                                         {this.props.data.eventType ===
                                             'resolved' && (
                                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span
+                                                    id="eventType"
+                                                    className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                >
                                                     {this.props.data.eventType}
                                                 </span>
                                             </div>
@@ -75,7 +83,10 @@ class AlertDetailsModal extends Component {
                                         {this.props.data.eventType ===
                                             'identified' && (
                                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span
+                                                    id="eventType"
+                                                    className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                >
                                                     {this.props.data.eventType}
                                                 </span>
                                             </div>
@@ -91,7 +102,10 @@ class AlertDetailsModal extends Component {
                                             {this.props.data.alertStatus ===
                                                 'Pending' && (
                                                 <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                    <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span
+                                                        id="alertStatus"
+                                                        className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                    >
                                                         {
                                                             this.props.data
                                                                 .alertStatus
@@ -104,7 +118,10 @@ class AlertDetailsModal extends Component {
                                                 this.props.data.alertStatus ===
                                                     'Sent') && (
                                                 <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span
+                                                        id="alertStatus"
+                                                        className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                    >
                                                         Sent
                                                     </span>
                                                 </div>
@@ -112,7 +129,10 @@ class AlertDetailsModal extends Component {
                                             {this.props.data.alertStatus ===
                                                 null && (
                                                 <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                    <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span
+                                                        id="alertStatus"
+                                                        className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
+                                                    >
                                                         Error
                                                     </span>
                                                 </div>
@@ -137,6 +157,7 @@ class AlertDetailsModal extends Component {
                         <div className="bs-Modal-footer">
                             <div className="bs-Modal-footer-actions">
                                 <button
+                                    id="closeBtn"
                                     className="bs-Button bs-DeprecatedButton"
                                     type="button"
                                     onClick={closeThisDialog}

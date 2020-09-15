@@ -39,6 +39,13 @@ import {
     SEARCH_USERS_RESET,
     SEARCH_USERS_SUCCESS,
     SEARCH_USERS_FAILURE,
+    UPDATE_TWO_FACTOR_AUTH_REQUEST,
+    UPDATE_TWO_FACTOR_AUTH_SUCCESS,
+    UPDATE_TWO_FACTOR_AUTH_FAILURE,
+    SET_TWO_FACTOR_AUTH,
+    GENERATE_TWO_FACTOR_QR_REQUEST,
+    GENERATE_TWO_FACTOR_QR_SUCCESS,
+    GENERATE_TWO_FACTOR_QR_FAILURE,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -97,6 +104,18 @@ const INITIAL_STATE = {
         requesting: false,
         error: null,
         success: false,
+    },
+    twoFactorAuthSetting: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {},
+    },
+    qrCode: {
+        error: null,
+        requesting: false,
+        success: false,
+        data: {},
     },
 };
 
@@ -522,6 +541,80 @@ export default function user(state = INITIAL_STATE, action) {
         case SEARCH_USERS_RESET:
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
+            });
+
+        //update user's two factor auth settings
+        case UPDATE_TWO_FACTOR_AUTH_REQUEST:
+            return Object.assign({}, state, {
+                twoFactorAuthSetting: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case UPDATE_TWO_FACTOR_AUTH_SUCCESS:
+            return Object.assign({}, state, {
+                user: {
+                    ...INITIAL_STATE.user,
+                    user: action.payload,
+                },
+                twoFactorAuthSetting: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case UPDATE_TWO_FACTOR_AUTH_FAILURE:
+            return Object.assign({}, state, {
+                twoFactorAuthSetting: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    data: state.twoFactorAuthSetting.data,
+                },
+            });
+
+        case SET_TWO_FACTOR_AUTH:
+            return Object.assign({}, state, {
+                user: {
+                    ...state.user,
+                    twoFactorAuthEnabled: action.payload,
+                },
+            });
+
+        //generate user's QR code
+        case GENERATE_TWO_FACTOR_QR_REQUEST:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                    data: state.qrCode.data,
+                },
+            });
+
+        case GENERATE_TWO_FACTOR_QR_SUCCESS:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    data: action.payload,
+                },
+            });
+
+        case GENERATE_TWO_FACTOR_QR_FAILURE:
+            return Object.assign({}, state, {
+                qrCode: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    data: state.qrCode.data,
+                },
             });
 
         default:

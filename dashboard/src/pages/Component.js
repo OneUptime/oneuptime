@@ -23,6 +23,7 @@ import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
+import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 class DashboardView extends Component {
     componentDidMount() {
@@ -194,14 +195,36 @@ class DashboardView extends Component {
                                                                 .requesting
                                                         }
                                                     >
+                                                        {/* Here, component notifier */}
+                                                        <CustomTutorial
+                                                            components={
+                                                                allComponents
+                                                            }
+                                                            tutorialStat={
+                                                                this.props
+                                                                    .tutorialStat
+                                                            }
+                                                            currentProjectId={
+                                                                currentProjectId
+                                                            }
+                                                            hideActionButton={
+                                                                true
+                                                            }
+                                                        />
                                                         <ShouldRender
                                                             if={
                                                                 this.props
-                                                                    .componentTutorial
+                                                                    .tutorialStat
+                                                                    .component
                                                                     .show
                                                             }
                                                         >
-                                                            <TutorialBox type="component" />
+                                                            <TutorialBox
+                                                                type="component"
+                                                                currentProjectId={
+                                                                    currentProjectId
+                                                                }
+                                                            />
                                                         </ShouldRender>
 
                                                         {components}
@@ -322,7 +345,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
     let monitors = [];
@@ -341,17 +364,34 @@ const mapStateToProps = state => {
         return monitor;
     });
 
+    const { projectId } = props.match.params;
+
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the tutorials to display
+    const tutorialStat = {
+        componentCustom: { show: true },
+        component: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
+
     return {
         component,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
         components: state.component.componentList.components,
         subProjects,
-        componentTutorial: state.tutorial.component,
         monitor: state.monitor,
         startDate: state.monitor.monitorsList.startDate,
         endDate: state.monitor.monitorsList.endDate,
         monitors,
+        tutorialStat,
     };
 };
 
@@ -372,7 +412,6 @@ DashboardView.propTypes = {
     destroy: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
-    componentTutorial: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -382,6 +421,7 @@ DashboardView.propTypes = {
     startDate: PropTypes.object,
     endDate: PropTypes.object,
     monitors: PropTypes.array,
+    tutorialStat: PropTypes.object,
 };
 
 DashboardView.displayName = 'DashboardView';

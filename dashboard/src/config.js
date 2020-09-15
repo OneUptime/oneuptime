@@ -380,7 +380,8 @@ export const PricingPlan = {
 
     getPlanById(id) {
         const plans = this.getPlans();
-        if (id) return plans.find(plan => plan.planId === id);
+        if (id && plans.find(plan => plan.planId === id))
+            return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
 };

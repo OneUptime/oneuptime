@@ -1,35 +1,32 @@
 const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
-const MonitorService = require('./monitorService');
 const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function({ projectId }, data) {
         try {
-            let monitorData = [];
             if (!data.monitors || data.monitors.length === 0) {
-                // select all monitors in a project if no monitor was selected
-                const monitors = await MonitorService.findBy({ projectId });
-                if (monitors.length > 0) {
-                    monitorData = monitors.map(monitor => ({
-                        monitorId: monitor._id,
-                    }));
-                }
-            } else {
-                if (!isArrayUnique(data.monitors)) {
-                    const error = new Error(
-                        'You cannot have multiple selection of a monitor'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-                monitorData = data.monitors.map(monitor => ({
-                    monitorId: monitor,
-                }));
+                const error = new Error(
+                    'You need at least one monitor to create a scheduled event'
+                );
+                error.code = 400;
+                throw error;
             }
-            // reassign data.monitors with the restructured monitor data
-            data.monitors = monitorData;
+
+            if (!isArrayUnique(data.monitors)) {
+                const error = new Error(
+                    'You cannot have multiple selection of a monitor'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+
             data.projectId = projectId;
 
             let scheduledEvent = await ScheduledEventModel.create({
@@ -59,31 +56,26 @@ module.exports = {
         if (!query.deleted) query.deleted = false;
 
         try {
-            let monitorData = [];
             if (!data.monitors || data.monitors.length === 0) {
-                // select all monitors in a project if no monitor was selected
-                const monitors = await MonitorService.findBy({
-                    projectId: query.projectId,
-                });
-                if (monitors.length > 0) {
-                    monitorData = monitors.map(monitor => ({
-                        monitorId: monitor._id,
-                    }));
-                }
-            } else {
-                if (!isArrayUnique(data.monitors)) {
-                    const error = new Error(
-                        'You cannot have multiple selection of a monitor'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-                monitorData = data.monitors.map(monitor => ({
-                    monitorId: monitor,
-                }));
+                const error = new Error(
+                    'You need at least one monitor to update a scheduled event'
+                );
+                error.code = 400;
+                throw error;
             }
-            // reassign data.monitors with the restructured monitor data
-            data.monitors = monitorData;
+
+            if (!isArrayUnique(data.monitors)) {
+                const error = new Error(
+                    'You cannot have multiple selection of a monitor'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
 
             let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 { _id: query._id },
@@ -235,6 +227,52 @@ module.exports = {
             ErrorService.log('scheduledEventService.findOneBy', error);
             throw error;
         }
+    },
+
+    getSubProjectScheduledEvents: async function(subProjectIds) {
+        const subProjectScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const scheduledEvents = await this.findBy(
+                    { projectId: id },
+                    10,
+                    0
+                );
+                const count = await this.countBy({ projectId: id });
+                return {
+                    scheduledEvents,
+                    count,
+                    project: id,
+                    skip: 0,
+                    limit: 10,
+                };
+            })
+        );
+        return subProjectScheduledEvents;
+    },
+
+    getSubProjectOngoingScheduledEvents: async function(
+        subProjectIds,
+        timeQuery
+    ) {
+        const subProjectOngoingScheduledEvents = await Promise.all(
+            subProjectIds.map(async id => {
+                const ongoingScheduledEvents = await this.findBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                const count = await this.countBy({
+                    projectId: id,
+                    ...timeQuery,
+                });
+                return {
+                    ongoingScheduledEvents,
+                    count,
+                    project: id,
+                };
+            })
+        );
+
+        return subProjectOngoingScheduledEvents;
     },
 
     countBy: async function(query) {

@@ -93,6 +93,36 @@ export class Monitors extends Component {
         }
     };
 
+    renderAddMonitorButton = subProject => (
+        <ShouldRender
+            if={
+                this.props.monitors.length > 0 &&
+                (IsAdminSubProject(subProject) || IsOwnerSubProject(subProject))
+            }
+        >
+            <button
+                id="addMoreMonitors"
+                className="bs-Button bs-Button--icon bs-Button--new"
+                type="button"
+                onClick={() =>
+                    this.props.pushArray('StatuspageMonitors', 'monitors', {
+                        monitor: null,
+                        description: '',
+                        uptime: true,
+                        memory: false,
+                        cpu: false,
+                        storage: false,
+                        responseTime: false,
+                        temperature: false,
+                        runtime: false,
+                    })
+                }
+            >
+                <span>Add Monitor</span>
+            </button>
+        </ShouldRender>
+    );
+
     render() {
         const { handleSubmit, subProjects } = this.props;
         const { status } = this.props.statusPage;
@@ -124,49 +154,11 @@ export class Monitors extends Component {
                                     </span>
                                 </span>
                             </div>
-                            <ShouldRender
-                                if={
-                                    this.props.monitors.length > 0 &&
-                                    (IsAdminSubProject(subProject) ||
-                                        IsOwnerSubProject(subProject))
-                                }
-                            >
-                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                    <div className="Box-root">
-                                        <button
-                                            id="addMoreMonitors"
-                                            className="Button bs-ButtonLegacy ActionIconParent"
-                                            type="button"
-                                            onClick={() =>
-                                                this.props.pushArray(
-                                                    'StatuspageMonitors',
-                                                    'monitors',
-                                                    {
-                                                        monitor: null,
-                                                        description: '',
-                                                        uptime: true,
-                                                        memory: false,
-                                                        cpu: false,
-                                                        storage: false,
-                                                        responseTime: false,
-                                                        temperature: false,
-                                                        runtime: false,
-                                                    }
-                                                )
-                                            }
-                                        >
-                                            <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                <div className="Box-root Margin-right--8">
-                                                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                                </div>
-                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                    <span>Add Monitor</span>
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                <div className="Box-root">
+                                    {this.renderAddMonitorButton(subProject)}
                                 </div>
-                            </ShouldRender>
+                            </div>
                         </div>
                     </div>
                     <form onSubmit={handleSubmit(this.submitForm)}>
@@ -273,6 +265,7 @@ export class Monitors extends Component {
                                 </div>
                             </div>
                             <div>
+                                {this.renderAddMonitorButton(subProject)}
                                 <ShouldRender
                                     if={
                                         this.props.monitors.length > 0 &&

@@ -165,7 +165,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            let twilio = await TwilioModel.findOne(query)
+            const twilio = await TwilioModel.findOne(query)
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .lean();
@@ -175,9 +175,6 @@ module.exports = {
                     twilio.iv.buffer
                 );
                 delete twilio.iv;
-            }
-            if (!twilio) {
-                twilio = {};
             }
 
             return twilio;

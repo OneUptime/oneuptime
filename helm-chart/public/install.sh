@@ -3,10 +3,8 @@
 # This is used to install Fyipe on a standalone VM
 # This is usally used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
 
-# Flush all repos
 
 # If this is the first install, then helm wont be found. 
-
 if [[ ! $(which helm) ]]
 then
     echo "RUNNING COMMAND:  sudo rm /etc/apt/sources.list  || echo 'File not found'"

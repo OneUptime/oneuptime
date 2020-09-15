@@ -173,7 +173,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+
                 const message = await twilioClient.messages.create(options);
+
                 return message;
             } else {
                 const creds = await _this.getSettings();

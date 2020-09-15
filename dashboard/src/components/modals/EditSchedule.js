@@ -36,6 +36,7 @@ class UpdateSchedule extends React.Component {
             updateScheduledEvent,
             closeModal,
             updateScheduledEventModalId,
+            monitors,
         } = this.props;
         const projectId = this.props.currentProject._id;
         const scheduledEventId = this.props.initialValues._id;
@@ -47,7 +48,7 @@ class UpdateSchedule extends React.Component {
             );
             postObj.monitors = monitors;
         } else {
-            postObj.monitors = [];
+            postObj.monitors = monitors.map(monitor => monitor._id);
         }
 
         postObj.name = values.name;
@@ -790,7 +791,12 @@ const selector = formValueSelector('newUpdateSchedule');
 
 const mapStateToProps = state => {
     const scheduledEventToBeUpdated = state.modal.modals[0].event;
-    const monitors = state.monitor.monitorsList.monitors[0].monitors;
+
+    const monitorData = state.monitor.monitorsList.monitors.find(
+        data => String(data._id) === String(state.modal.modals[0].projectId)
+    );
+    const monitors = monitorData.monitors;
+
     const initialValues = {};
     const startDate = selector(state, 'startDate');
 

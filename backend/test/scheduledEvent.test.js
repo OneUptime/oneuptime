@@ -110,6 +110,7 @@ describe('Scheduled event API', function() {
                                                             '2019-06-11 11:01:52.178',
                                                         endDate:
                                                             '2019-06-26 11:31:53.302',
+                                                        monitors: [monitorId],
                                                     });
                                                 }
 
@@ -225,16 +226,12 @@ describe('Scheduled event API', function() {
     it('should get all scheduled events for a project', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/scheduledEvent/${projectId}`)
+            .get(`/scheduledEvent/${projectId}/scheduledEvents/all`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body.data).to.be.an('array');
-                expect(res.body.data).to.have.length.greaterThan(0);
-                expect(res.body).to.have.property('count');
-                expect(res.body.count).to.be.a('number');
+                expect(res.body).to.be.an('array');
+                expect(res.body).to.have.length.greaterThan(0);
                 done();
             });
     });
@@ -247,6 +244,7 @@ describe('Scheduled event API', function() {
             .send({
                 ...scheduledEvent,
                 name: 'updated name',
+                monitors: [monitorId],
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);

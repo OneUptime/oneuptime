@@ -146,8 +146,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector('#react-tabs-2');
                 await page.click('#react-tabs-2');
 
-                const selector =
-                    'tr.incidentListItem:first-of-type > td:nth-of-type(2)';
+                const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
                 await page.click(selector);
                 await page.waitFor(3000);
@@ -265,8 +264,8 @@ describe('Monitor Detail API', () => {
                 await page.waitFor(5000);
 
                 // click on advance option tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await page.waitForSelector('#react-tabs-10');
+                await page.click('#react-tabs-10');
 
                 await page.waitForSelector('button[id=deleteIncidentButton]');
                 await page.$eval('#deleteIncidentButton', e => e.click());
@@ -277,11 +276,19 @@ describe('Monitor Detail API', () => {
                 await page.$eval('#confirmDeleteIncident', e => e.click());
                 await page.waitForNavigation();
 
-                const incidentList = 'tr.incidentListItem';
-                await page.waitForSelector(incidentList);
-                await page.waitFor(35000);
+                // click on Incident tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
-                expect((await page.$$(incidentList)).length).toEqual(0);
+                let incidentCountSpanElement = await page.waitForSelector(
+                    `#incident_count`
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.getProperty(
+                    'innerText'
+                );
+                incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
+
+                expect(incidentCountSpanElement).toMatch('0 Incident');
             });
         },
         operationTimeOut

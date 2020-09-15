@@ -7,6 +7,7 @@ const dockerCredentialSchema = Schema(
         dockerRegistryUrl: String,
         dockerUsername: String,
         dockerPassword: String,
+        iv: Schema.Types.Buffer,
         projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
         deleted: {
             type: Boolean,

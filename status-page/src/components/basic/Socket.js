@@ -47,39 +47,53 @@ class SocketApp extends Component {
                     `updateMonitorStatus-${this.props.project._id}`
                 );
                 socket.removeListener(
-                    `addIncidentNote-${this.props.project._id}`
+                    `addIncidentNote-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `updateIncidentNote-${this.props.project._id}`
+                    `updateIncidentNote-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `addScheduledEvent-${this.props.project._id}`
+                    `addScheduledEvent-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `deleteScheduledEvent-${this.props.project._id}`
+                    `deleteScheduledEvent-${this.props.project
+                        .parentProjectId || this.props.project._id}`
                 );
                 socket.removeListener(
-                    `updateScheduledEvent-${this.props.project._id}`
-                );
-                socket.removeListener(`addEventNote-${this.props.project._id}`);
-                socket.removeListener(
-                    `deleteEventNote-${this.props.project._id}`
+                    `updateScheduledEvent-${this.props.project
+                        .parentProjectId || this.props.project._id}`
                 );
                 socket.removeListener(
-                    `updateEventNote-${this.props.project._id}`
+                    `addEventNote-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
+                );
+                socket.removeListener(
+                    `deleteEventNote-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
+                );
+                socket.removeListener(
+                    `updateEventNote-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
                 socket.removeListener(
-                    `incidentCreated-${this.props.project._id}`
+                    `incidentCreated-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `deleteIncident-${this.props.project._id}`
+                    `deleteIncident-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `updateIncident-${this.props.project._id}`
+                    `updateIncident-${this.props.project.parentProjectId ||
+                        this.props.project._id}`
                 );
                 socket.removeListener(
-                    `updateIncidentTimeline-${this.props.project._id}`
+                    `updateIncidentTimeline-${this.props.project
+                        .parentProjectId || this.props.project._id}`
                 );
                 socket.removeListener(
                     `deleteIncidentNote-${this.props.project._id}`
@@ -120,68 +134,91 @@ class SocketApp extends Component {
                     thisObj.props.probes
                 );
             });
-            socket.on(`addIncidentNote-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.addincidentnotebysocket(data);
-            });
-            socket.on(`updateIncidentNote-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.updateincidentnotebysocket(data);
-            });
-            socket.on(`addScheduledEvent-${this.props.project._id}`, function(
-                data
-            ) {
-                if (data.showEventOnStatusPage) {
-                    thisObj.props.addscheduledeventbysocket(data);
-                }
-            });
             socket.on(
-                `deleteScheduledEvent-${this.props.project._id}`,
+                `addIncidentNote-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.addincidentnotebysocket(data);
+                }
+            );
+            socket.on(
+                `updateIncidentNote-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.updateincidentnotebysocket(data);
+                }
+            );
+            socket.on(
+                `addScheduledEvent-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    if (data.showEventOnStatusPage) {
+                        thisObj.props.addscheduledeventbysocket(data);
+                    }
+                }
+            );
+            socket.on(
+                `deleteScheduledEvent-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
                 function(data) {
                     thisObj.props.deletescheduledeventbysocket(data);
                 }
             );
             socket.on(
-                `updateScheduledEvent-${this.props.project._id}`,
+                `updateScheduledEvent-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
                 function(data) {
                     thisObj.props.updatescheduledeventbysocket(data);
                 }
             );
-            socket.on(`addEventNote-${this.props.project._id}`, function(data) {
-                thisObj.props.addeventnotebysocket(data);
-            });
-            socket.on(`deleteEventNote-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.deleteeventnotebysocket(data);
-            });
-            socket.on(`updateEventNote-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.updateeventnotebysocket(data);
-            });
+            socket.on(
+                `addEventNote-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.addeventnotebysocket(data);
+                }
+            );
+            socket.on(
+                `deleteEventNote-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.deleteeventnotebysocket(data);
+                }
+            );
+            socket.on(
+                `updateEventNote-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.updateeventnotebysocket(data);
+                }
+            );
             socket.on(`updateProbe-${this.props.project._id}`, function(data) {
                 thisObj.props.updateprobebysocket(data);
             });
-            socket.on(`incidentCreated-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.incidentcreatedbysocket(data);
-            });
-            socket.on(`deleteIncident-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.deleteincidentbysocket(data);
-            });
-            socket.on(`updateIncident-${this.props.project._id}`, function(
-                data
-            ) {
-                thisObj.props.updateincidentbysocket(data);
-            });
             socket.on(
-                `updateIncidentTimeline-${this.props.project._id}`,
+                `incidentCreated-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.incidentcreatedbysocket(data);
+                }
+            );
+            socket.on(
+                `deleteIncident-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.deleteincidentbysocket(data);
+                }
+            );
+            socket.on(
+                `updateIncident-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
+                function(data) {
+                    thisObj.props.updateincidentbysocket(data);
+                }
+            );
+            socket.on(
+                `updateIncidentTimeline-${this.props.project.parentProjectId ||
+                    this.props.project._id}`,
                 function(data) {
                     thisObj.props.addincidenttimelinebysocket(data);
                 }

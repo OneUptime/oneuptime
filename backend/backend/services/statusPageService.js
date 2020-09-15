@@ -22,7 +22,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('domains.domainVerificationToken')
                 .lean();
             return statusPages;
@@ -103,6 +103,15 @@ module.exports = {
 
             if (statusPage) {
                 // attach the domain id to statuspage collection and update it
+                const domain = statusPage.domains.find(domain =>
+                    domain.domain === subDomain ? true : false
+                );
+                if (domain) {
+                    const error = new Error('Domain already exists');
+                    error.code = 400;
+                    ErrorService.log('statusPageService.createDomain', error);
+                    throw error;
+                }
                 statusPage.domains = [
                     ...statusPage.domains,
                     {
@@ -111,8 +120,8 @@ module.exports = {
                             createdDomain._id || existingBaseDomain._id,
                     },
                 ];
-
                 const result = await statusPage.save();
+
                 return result
                     .populate('domains.domainVerificationToken')
                     .execPopulate();
@@ -303,7 +312,7 @@ module.exports = {
             query.deleted = false;
             const statusPage = await StatusPageModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken');
             return statusPage;
@@ -679,7 +688,7 @@ module.exports = {
 
             const statusPages = await StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('monitorIds', 'name')
                 .populate('domains.domainVerificationToken')
                 .lean();

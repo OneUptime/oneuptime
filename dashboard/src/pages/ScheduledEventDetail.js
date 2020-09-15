@@ -112,6 +112,7 @@ class ScheduledEvent extends Component {
                         route={pathname}
                         name={eventName}
                         pageTitle="Scheduled Event Detail"
+                        containerType="Scheduled Event"
                     />
                     <ShouldRender if={requesting}>
                         <LoadingState />
@@ -236,6 +237,15 @@ ScheduledEvent.propTypes = {
 };
 
 const mapStateToProps = state => {
+    const monitorList = [];
+    state.monitor.monitorsList.monitors.map(data => {
+        data.monitors.map(monitor => {
+            monitorList.push(monitor);
+            return monitor;
+        });
+        return data;
+    });
+
     return {
         scheduledEvent:
             state.scheduledEvent.newScheduledEvent.scheduledEvent &&
@@ -244,9 +254,7 @@ const mapStateToProps = state => {
         internalNotesList: state.scheduledEvent.scheduledEventInternalList,
         investigationNotesList:
             state.scheduledEvent.scheduledEventInvestigationList,
-        monitorList: state.monitor.monitorsList.monitors[0]
-            ? state.monitor.monitorsList.monitors[0].monitors
-            : [],
+        monitorList,
     };
 };
 

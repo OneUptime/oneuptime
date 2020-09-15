@@ -26,7 +26,7 @@ import {
 import CustomStyles from '../components/statusPage/CustomStyles';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
 class StatusPage extends Component {
     async componentDidMount() {
@@ -61,6 +61,9 @@ class StatusPage extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
             );
         }
+    }
+    componentWillMount() {
+        resetIdCounter();
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -100,7 +103,7 @@ class StatusPage extends Component {
                                     Basic
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-4'}>
-                                    Domain Settings
+                                    Custom Domains
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-4'}>
                                     Branding
