@@ -132,4 +132,72 @@ describe('Enterprise User API', function() {
                 done();
             });
     });
+
+    it('should turn off 2fa for a user', function(done) {
+        request
+            .post('/user/login')
+            .send({
+                email: data.newUser.email,
+                password: data.newUser.password,
+            })
+            .then(function(res) {
+                const jwtToken = res.body.tokens.jwtAccessToken;
+                request
+                    .put('/user/profile')
+                    .set('Authorization', `Basic ${jwtToken}`)
+                    .send({
+                        twoFactorAuthEnabled: true,
+                        email: data.newUser.email,
+                    })
+                    .then(function(res) {
+                        request
+                            .put(`/user/${res.body._id}/2fa`)
+                            .set('Authorization', `Basic ${token}`)
+                            .send({
+                                email: data.newUser.email,
+                                twoFactorAuthEnabled: !res.body
+                                    .twoFactorAuthEnabled,
+                            })
+                            .end(function(err, res) {
+                                expect(res.body.twoFactorAuthEnabled).to.eql(
+                                    false
+                                );
+                                done();
+                            });
+                    });
+            });
+    });
+
+    it('should not turn off 2fa for a user if loged in user is not admin', function(done) {
+        request
+            .post('/user/login')
+            .send({
+                email: data.newUser.email,
+                password: data.newUser.password,
+            })
+            .then(function(res) {
+                const jwtToken = res.body.tokens.jwtAccessToken;
+                request
+                    .put('/user/profile')
+                    .set('Authorization', `Basic ${jwtToken}`)
+                    .send({
+                        twoFactorAuthEnabled: true,
+                        email: data.newUser.email,
+                    })
+                    .then(function(res) {
+                        request
+                            .put(`/user/${res.body._id}/2fa`)
+                            .set('Authorization', `Basic ${jwtToken}`)
+                            .send({
+                                email: data.newUser.email,
+                                twoFactorAuthEnabled: !res.body
+                                    .twoFactorAuthEnabled,
+                            })
+                            .end(function(err, result) {
+                                expect(result).to.have.status(400);
+                                done();
+                            });
+                    });
+            });
+    });
 });
