@@ -19,10 +19,10 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 let projectId, userId, airtableId, token;
 
 describe('Tutorial API', function() {
-    this.timeout(20000);
+    this.timeout(80000);
 
     before(function(done) {
-        this.timeout(40000);
+        this.timeout(120000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
@@ -83,7 +83,7 @@ describe('Tutorial API', function() {
             });
     });
 
-    it('should update the user tutorial status', function(done) {
+    it('should not update the user tutorial status if project id is not given', function(done) {
         const authorization = `Basic ${token}`;
         request
             .put('/tutorial')
@@ -92,10 +92,91 @@ describe('Tutorial API', function() {
                 type: 'monitor',
             })
             .end(function(err, res) {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal(
+                    `Project ID can't be null`
+                );
+                done();
+            });
+    });
+
+    it('should update the user custom component tutorial status per project', function(done) {
+        const authorization = `Basic ${token}`;
+        const type = 'component';
+        request
+            .put('/tutorial')
+            .set('Authorization', authorization)
+            .send({
+                type,
+                projectId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data[projectId]).to.be.an('object');
+                expect(res.body.data[projectId][type]).to.be.an('object');
+                expect(res.body.data[projectId][type].show).to.be.equal(false);
+                done();
+            });
+    });
+    it('should update the user custom team memb er tutorial status per project', function(done) {
+        const authorization = `Basic ${token}`;
+        const type = 'teamMember';
+        request
+            .put('/tutorial')
+            .set('Authorization', authorization)
+            .send({
+                type,
+                projectId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data[projectId]).to.be.an('object');
+                expect(res.body.data[projectId][type]).to.be.an('object');
+                expect(res.body.data[projectId][type].show).to.be.equal(false);
+                done();
+            });
+    });
+    it('should get the user tutorial status for a project', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get('/tutorial')
+            .set('Authorization', authorization)
+            .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
                 expect(res.body._id).to.be.equal(userId);
+                expect(res.body.data[projectId]).to.be.an('object');
+                expect(res.body.data[projectId].component.show).to.be.equal(
+                    false
+                );
+                expect(res.body.data[projectId].teamMember.show).to.be.equal(
+                    false
+                );
+                done();
+            });
+    });
+    it('should update the user status page tutorial status per project', function(done) {
+        const authorization = `Basic ${token}`;
+        const type = 'statusPage';
+        request
+            .put('/tutorial')
+            .set('Authorization', authorization)
+            .send({
+                type,
+                projectId,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data');
+                expect(res.body.data[projectId]).to.be.an('object');
+                expect(res.body.data[projectId][type]).to.be.an('object');
+                expect(res.body.data[projectId][type].show).to.be.equal(false);
                 done();
             });
     });

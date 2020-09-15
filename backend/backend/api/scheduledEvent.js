@@ -6,6 +6,7 @@ const ScheduledEventService = require('../services/scheduledEventService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const { getSubProjects } = require('../middlewares/subProject');
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 const moment = require('moment');
 
@@ -271,6 +272,34 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
     }
 });
 
+// this will handle getting for both projects and subProjects
+router.get(
+    '/:projectId/ongoingEvent/all',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            const currentDate = moment();
+            // this contains both projectIds and subProjectIds
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+
+            const ongoingScheduledEvents = await ScheduledEventService.getSubProjectOngoingScheduledEvents(
+                subProjectIds,
+                {
+                    startDate: { $lte: currentDate },
+                    endDate: { $gt: currentDate },
+                }
+            );
+            return sendItemResponse(req, res, ongoingScheduledEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
@@ -308,7 +337,6 @@ router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
 
         const scheduledEvent = await ScheduledEventService.findOneBy({
             _id: eventId,
-            projectId,
         });
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
@@ -349,6 +377,28 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.get(
+    '/:projectId/scheduledEvents/all',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function(req, res) {
+        try {
+            // this contains both projectIds and subProjectIds
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map(project => project._id)
+                : null;
+
+            const scheduledEvents = await ScheduledEventService.getSubProjectScheduledEvents(
+                subProjectIds
+            );
+            return sendItemResponse(req, res, scheduledEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.get(
     '/:projectId/:monitorId/statusPage',

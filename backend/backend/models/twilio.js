@@ -7,7 +7,7 @@ const twilioSchema = new Schema({
     authToken: String,
     phoneNumber: String,
     iv: Schema.Types.Buffer,
-    enabled: { type: Boolean, default: true },
+    enabled: { type: Boolean, default: false },
     createdAt: {
         type: Date,
         default: Date.now,

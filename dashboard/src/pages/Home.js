@@ -17,14 +17,11 @@ import moment from 'moment-timezone';
 import OnCallSchedule from '../components/onCall/OnCallSchedule';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import IncidentStatus from '../components/incident/IncidentStatus';
-import { fetchOngoingScheduledEvents } from '../actions/scheduledEvent';
-import RenderIfOwnerOrAdmin from '../components/basic/RenderIfOwnerOrAdmin';
+import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent';
 import { subProjectTeamLoading } from '../actions/team';
-import QuickTipBox from '../components/basic/QuickTipBox';
-import { tutorials } from '../config';
-import FeatureList from '../components/basic/FeatureList';
-import uuid from 'uuid';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
+import flattenArray from '../utils/flattenArray';
+import CustomTutorial from '../components/tutorial/CustomTutorial';
 
 class Home extends Component {
     componentDidMount() {
@@ -38,7 +35,9 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
-            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
+            this.props.fetchSubProjectOngoingScheduledEvents(
+                this.props.currentProjectId
+            );
         }
         if (this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
@@ -57,22 +56,13 @@ class Home extends Component {
                 this.props.currentProjectId,
                 this.props.user.id
             );
-            this.props.fetchOngoingScheduledEvents(this.props.currentProjectId);
+            this.props.fetchSubProjectOngoingScheduledEvents(
+                this.props.currentProjectId
+            );
         }
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
-    }
-    getDescription(type) {
-        return tutorials.getTutorials().filter(note => note.id === type);
-    }
-    renderFeatures(features) {
-        if (features) {
-            return features.map(feature => (
-                <FeatureList key={uuid.v4()} content={feature} />
-            ));
-        }
-        return null;
     }
 
     render() {
@@ -208,29 +198,25 @@ class Home extends Component {
 
         let ongoingEventList;
         if (
-            this.props.ongoingScheduledEvent.events &&
-            this.props.ongoingScheduledEvent.events.length > 0
+            this.props.subProjectOngoingScheduledEvents &&
+            this.props.subProjectOngoingScheduledEvents.length > 0
         ) {
-            ongoingEventList = this.props.ongoingScheduledEvent.events.map(
-                event => {
-                    return (
-                        <RenderIfUserInSubProject
-                            key={event._id}
-                            subProjectId={
-                                event.projectId._id || event.projectId
-                            }
-                        >
-                            <OngoingScheduledEvent
-                                event={event}
-                                monitorList={this.props.monitorList}
-                                projectId={
-                                    event.projectId._id || event.projectId
-                                }
-                            />
-                        </RenderIfUserInSubProject>
-                    );
-                }
+            let ongoingScheduledEvents = this.props.subProjectOngoingScheduledEvents.map(
+                eventData => eventData.ongoingScheduledEvents
             );
+            ongoingScheduledEvents = flattenArray(ongoingScheduledEvents);
+            ongoingEventList = ongoingScheduledEvents.map(event => (
+                <RenderIfUserInSubProject
+                    key={event._id}
+                    subProjectId={event.projectId._id || event.projectId}
+                >
+                    <OngoingScheduledEvent
+                        event={event}
+                        monitorList={this.props.monitorList}
+                        projectId={this.props.currentProjectId}
+                    />
+                </RenderIfUserInSubProject>
+            ));
         }
 
         return (
@@ -327,185 +313,34 @@ class Home extends Component {
                                                                 </ShouldRender>
 
                                                                 <div className="Box-root Margin-bottom--12">
-                                                                    {/* Here, component and monitor notifier */}
-
-                                                                    {this.props
-                                                                        .components &&
-                                                                    this.props
-                                                                        .components
-                                                                        .length <
-                                                                        1 ? (
-                                                                        <div>
-                                                                            {/* No Component Notifier */}
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'component'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Create your first Component"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'component'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'component'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Components
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'component'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
-                                                                                callToAction="Create Component"
-                                                                            />
-                                                                        </div>
-                                                                    ) : this
-                                                                          .props
-                                                                          .monitors &&
-                                                                      this.props
-                                                                          .monitors
-                                                                          .length <
-                                                                          1 ? (
-                                                                        <div>
-                                                                            {/* No Monitor Notifier */}
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'monitor'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Create a Monitor"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'monitor'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'monitor'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Monitors
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'monitor'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/components`}
-                                                                                callToAction="Create Monitor"
-                                                                            />
-                                                                        </div>
-                                                                    ) : null}
-
-                                                                    {/* Here, check if atleast organization has just 1 member before rendering */}
-
-                                                                    <RenderIfOwnerOrAdmin>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                this
-                                                                                    .props
-                                                                                    .projectTeamMembers &&
-                                                                                this
-                                                                                    .props
-                                                                                    .projectTeamMembers
-                                                                                    .length ===
-                                                                                    1
-                                                                            }
-                                                                        >
-                                                                            <QuickTipBox
-                                                                                id={
-                                                                                    this.getDescription(
-                                                                                        'teamMember'
-                                                                                    )[0]
-                                                                                        .id
-                                                                                }
-                                                                                title="Invite your Team"
-                                                                                icon={
-                                                                                    this.getDescription(
-                                                                                        'teamMember'
-                                                                                    )[0]
-                                                                                        .icon
-                                                                                }
-                                                                                content={
-                                                                                    <div>
-                                                                                        {
-                                                                                            this.getDescription(
-                                                                                                'teamMember'
-                                                                                            )[0]
-                                                                                                .description
-                                                                                        }
-
-                                                                                        <div>
-                                                                                            <br />
-                                                                                            <p>
-                                                                                                Inviting
-                                                                                                your
-                                                                                                team
-                                                                                                members
-                                                                                                would
-                                                                                                help
-                                                                                                you
-                                                                                                to:{' '}
-                                                                                            </p>
-                                                                                            <ul>
-                                                                                                {this.renderFeatures(
-                                                                                                    this.getDescription(
-                                                                                                        'teamMember'
-                                                                                                    )[0]
-                                                                                                        .features
-                                                                                                )}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                }
-                                                                                callToActionLink={`/dashboard/project/${this.props.currentProjectId}/team`}
-                                                                                callToAction="Invite Team Member"
-                                                                            />
-                                                                        </ShouldRender>
-                                                                    </RenderIfOwnerOrAdmin>
+                                                                    {/* Here, component, monitor and team member notifier */}
+                                                                    <CustomTutorial
+                                                                        components={
+                                                                            this
+                                                                                .props
+                                                                                .components
+                                                                        }
+                                                                        monitors={
+                                                                            this
+                                                                                .props
+                                                                                .monitors
+                                                                        }
+                                                                        tutorialStat={
+                                                                            this
+                                                                                .props
+                                                                                .tutorialStat
+                                                                        }
+                                                                        currentProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .currentProjectId
+                                                                        }
+                                                                        projectTeamMembers={
+                                                                            this
+                                                                                .props
+                                                                                .projectTeamMembers
+                                                                        }
+                                                                    />
 
                                                                     {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
                                                                     {this.props
@@ -613,14 +448,15 @@ Home.propTypes = {
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
     ]),
-    fetchOngoingScheduledEvents: PropTypes.func,
-    ongoingScheduledEvent: PropTypes.object,
     projectTeamMembers: PropTypes.array,
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,
     components: PropTypes.array,
     monitorList: PropTypes.array,
+    fetchSubProjectOngoingScheduledEvents: PropTypes.func,
+    subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
+    tutorialStat: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -642,21 +478,35 @@ const mapStateToProps = (state, props) => {
         );
         return subProjectTeamMember;
     });
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
 
+    // set a default show to true for the 3 custom tutorials to display on the Home Page
+    const tutorialStat = {
+        componentCustom: { show: true },
+        monitorCustom: { show: true },
+        teamMemberCustom: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
     return {
         currentProjectId: projectId,
         user: state.profileSettings.profileSetting.data,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
         incidents: state.incident.unresolvedincidents.incidents,
-        ongoingScheduledEvent: state.scheduledEvent.ongoingScheduledEvent,
         projectTeamMembers,
         components,
         monitors,
-        monitorList: state.monitor.monitorsList.monitors[0]
-            ? state.monitor.monitorsList.monitors[0].monitors
-            : [],
+        monitorList: state.monitor.monitorsList.monitors,
+        subProjectOngoingScheduledEvents:
+            state.scheduledEvent.subProjectOngoingScheduledEvent.events,
         multipleIncidentRequest: state.incident.unresolvedincidents,
+        tutorialStat,
     };
 };
 
@@ -666,8 +516,8 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             userScheduleRequest,
             fetchUserSchedule,
-            fetchOngoingScheduledEvents,
             subProjectTeamLoading,
+            fetchSubProjectOngoingScheduledEvents,
         },
         dispatch
     );

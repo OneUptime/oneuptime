@@ -8,12 +8,12 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class Logger {
+public class FyipeLogger {
     private String apiUrl;
     private final String applicationLogId;
     private final String applicationLogKey;
 
-    public Logger(String apiUrl, String applicationLogId, String applicationLogKey) {
+    public FyipeLogger(String apiUrl, String applicationLogId, String applicationLogKey) {
         this.applicationLogId = applicationLogId;
         this.setApiUrl(apiUrl);
         this.applicationLogKey = applicationLogKey;

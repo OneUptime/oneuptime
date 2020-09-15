@@ -31,7 +31,7 @@ import getParentRoute from '../utils/getParentRoute';
 import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class MonitorView extends React.Component {
@@ -40,6 +40,9 @@ class MonitorView extends React.Component {
         super(props);
     }
 
+    componentWillMount() {
+        resetIdCounter();
+    }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -147,6 +150,7 @@ class MonitorView extends React.Component {
                         route={pathname}
                         name={monitorName}
                         pageTitle="Monitor View"
+                        type={monitor ? monitor.type : null}
                     />
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}

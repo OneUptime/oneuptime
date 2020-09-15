@@ -49,7 +49,7 @@ describe('Container Security Page', () => {
     });
 
     test(
-        'should add container security',
+        'should add container security and ensure it redirects to the details page',
         async done => {
             const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
             const dockerUsername = utils.dockerCredential.dockerUsername;
@@ -101,6 +101,12 @@ describe('Container Security Page', () => {
                     { visible: true }
                 );
                 expect(containerSecurity).toBeDefined();
+
+                // find the edit button which appears only on the details page
+                const editContainerElement = await page.waitForSelector(
+                    `#edit_${containerSecurityName}`
+                );
+                expect(editContainerElement).toBeDefined();
             });
             done();
         },

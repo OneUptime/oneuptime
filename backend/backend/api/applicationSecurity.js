@@ -5,6 +5,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ProbeService = require('../services/probeService');
+const RealTimeService = require('../services/realTimeService');
 
 const router = express.Router();
 
@@ -29,21 +30,21 @@ router.post(
                 });
             }
 
-            if (!data.name.trim()) {
+            if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Application Security Name is required',
                 });
             }
 
-            if (!data.gitRepositoryUrl.trim()) {
+            if (!data.gitRepositoryUrl || !data.gitRepositoryUrl.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Git Repository URL is required',
                 });
             }
 
-            if (!data.gitCredential.trim()) {
+            if (!data.gitCredential || !data.gitCredential.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Git Credential is required',
@@ -53,6 +54,7 @@ router.post(
             const applicationSecurity = await ApplicationSecurityService.create(
                 data
             );
+            RealTimeService.sendApplicationSecurityCreated(applicationSecurity);
             return sendItemResponse(req, res, applicationSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);

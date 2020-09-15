@@ -311,8 +311,20 @@ module.exports = {
         }
         await page.waitFor(1000);
     },
-    addMonitorToComponent: async function(component, monitorName, page) {
+    addMonitorToComponent: async function(
+        component,
+        monitorName,
+        page,
+        componentName
+    ) {
         component && (await this.addComponent(component, page));
+        componentName = component || componentName;
+
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
+        await page.waitForSelector('#component0', { visible: true });
+        await page.click(`#more-details-${componentName}`);
 
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
@@ -595,7 +607,7 @@ module.exports = {
         type,
         eventBtn,
         noteDescription,
-        incidentState = 'update'
+        eventState = 'update'
     ) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#scheduledEvents', {
@@ -611,10 +623,10 @@ module.exports = {
             visible: true,
         });
         await page.click(`#add-${type}-message`);
-        await page.waitForSelector('#incident_state', {
+        await page.waitForSelector('#event_state', {
             visible: true,
         });
-        await this.selectByText('#incident_state', incidentState, page);
+        await this.selectByText('#event_state', eventState, page);
         await page.click('#new-investigation');
         await page.type('#new-investigation', noteDescription);
         await page.click('#investigation-addButton');
@@ -666,7 +678,7 @@ module.exports = {
         await page.type('#authToken', authToken);
         await page.type('#phoneNumber', phoneNumber);
         await page.click('#submitTwilioSettings');
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#accountSid');
     },
@@ -697,10 +709,8 @@ module.exports = {
         await page.type('#from', from);
         if (secure) await page.$eval('#secure', e => e.click());
         await page.click('#saveSmtp');
-        await page.waitFor(3000);
-        await page.reload({
-            waitUntil: 'networkidle0',
-        });
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
+        await page.reload();
+        await page.waitForSelector('#user');
     },
 };

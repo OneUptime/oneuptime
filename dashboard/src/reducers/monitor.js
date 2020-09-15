@@ -1080,19 +1080,23 @@ export default function monitor(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        if (
-                            monitor.monitors[0]._id === action.payload.monitorId
-                        ) {
-                            monitor.monitors[0].subscribers.subscribers = monitor.monitors[0].subscribers.subscribers.filter(
-                                subscriber =>
-                                    subscriber._id !== action.payload._id
-                            );
-                            monitor.monitors[0].subscribers.count =
-                                monitor.monitors[0].subscribers.count - 1;
-                            return monitor;
-                        } else {
-                            return monitor;
-                        }
+                        monitor.monitors.find((targetMonitor, index) => {
+                            if (
+                                targetMonitor._id === action.payload.monitorId
+                            ) {
+                                monitor.monitors[
+                                    index
+                                ].subscribers.subscribers = monitor.monitors[
+                                    index
+                                ].subscribers.subscribers.filter(
+                                    subscriber =>
+                                        subscriber._id !== action.payload._id
+                                );
+                                return true;
+                            }
+                            return false;
+                        });
+                        return monitor;
                     }),
                 },
             });
@@ -1381,11 +1385,16 @@ export default function monitor(state = INITIAL_STATE, action) {
                 activeProbe: action.payload,
             });
 
-        case GET_MONITOR_LOGS_SUCCESS:
+        case GET_MONITOR_LOGS_SUCCESS: {
+            const monitorId = action.payload.monitorId
+                ? action.payload.monitorId
+                : action.payload.logs && action.payload.logs.length > 0
+                ? action.payload.logs[0].monitorId
+                : null;
             return Object.assign({}, state, {
                 monitorLogs: {
                     ...state.monitorLogs,
-                    [action.payload.monitorId]: {
+                    [monitorId]: {
                         logs: action.payload.logs,
                         error: null,
                         requesting: false,
@@ -1396,6 +1405,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                     },
                 },
             });
+        }
 
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {

@@ -5,8 +5,21 @@ import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
+import { Field, reduxForm, formValueSelector } from 'redux-form';
+import { connect } from 'react-redux';
+import Select from '../../components/basic/react-select-fyipe';
+import SearchBox from '../basic/SearchBox';
+import * as moment from 'moment';
+import CustomDateTimeSelector from '../basic/CustomDateTimeSelector';
 
 class ApplicationLogHeader extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            showFilters: false,
+        };
+    }
     render() {
         const {
             applicationLog,
@@ -19,7 +32,16 @@ class ApplicationLogHeader extends Component {
             deleting,
             viewMore,
             resetApplicationLogKey,
+            filter,
+            logOptions,
+            currentDateRange,
+            logType,
+            handleEndDateTimeChange,
+            handleLogFilterChange,
+            handleLogTypeChange,
         } = this.props;
+        const currentDate = moment();
+
         return (
             <div>
                 <div className="db-Trends-header">
@@ -42,6 +64,24 @@ class ApplicationLogHeader extends Component {
                                     <div>
                                         {isDetails ? (
                                             <div>
+                                                <button
+                                                    id={`filter_${applicationLog.name}`}
+                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--filter"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        this.setState(
+                                                            state => ({
+                                                                showFilters: !state.showFilters,
+                                                            })
+                                                        )
+                                                    }
+                                                >
+                                                    <span>
+                                                        {this.state.showFilters
+                                                            ? 'Hide Filters'
+                                                            : 'Filter Logs'}
+                                                    </span>
+                                                </button>
                                                 <button
                                                     id={`key_${applicationLog.name}`}
                                                     className={
@@ -121,6 +161,137 @@ class ApplicationLogHeader extends Component {
                                 </div>
                             </div>
                         </div>
+                        <ShouldRender if={isDetails}>
+                            <div
+                                className="db-Trends-controls Margin-top--12"
+                                style={{
+                                    display: this.state.showFilters
+                                        ? 'flex'
+                                        : 'none',
+                                }}
+                            >
+                                <form id="applicationLogDateTimeForm">
+                                    <ShouldRender if={currentDateRange}>
+                                        <div className="db-DateRangeInputWithComparison">
+                                            <div
+                                                className="db-DateRangeInput bs-Control"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    height: '35px',
+                                                }}
+                                                onClick={this.onToggle}
+                                            >
+                                                <div
+                                                    className="db-DateRangeInput-input"
+                                                    role="button"
+                                                    tabIndex="0"
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <span className="db-DateRangeInput-start">
+                                                        <Field
+                                                            type="text"
+                                                            name="startDate"
+                                                            component={
+                                                                CustomDateTimeSelector
+                                                            }
+                                                            id="startDate"
+                                                            maxDate={
+                                                                currentDate
+                                                            }
+                                                        />
+                                                    </span>
+                                                    <img
+                                                        alt="next"
+                                                        src="/dashboard/assets/icons/next.svg"
+                                                        style={{
+                                                            height: '14px',
+                                                            width: '14px',
+                                                        }}
+                                                    />
+                                                    <span className="db-DateRangeInput-end">
+                                                        <Field
+                                                            type="text"
+                                                            name="endDate"
+                                                            component={
+                                                                CustomDateTimeSelector
+                                                            }
+                                                            id="endDate"
+                                                            maxDate={
+                                                                currentDate
+                                                            }
+                                                            onChange={
+                                                                handleEndDateTimeChange
+                                                            }
+                                                        />
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ShouldRender>
+                                </form>
+
+                                <div className="Flex-flex action-bar-holder ">
+                                    <div
+                                        style={{
+                                            height: '28px',
+                                            margin: '5px 0px',
+                                            marginRight: '5px',
+                                        }}
+                                    >
+                                        <SearchBox
+                                            name="log_filter"
+                                            value={filter}
+                                            onChange={handleLogFilterChange}
+                                            placeholder="Filter logs by ..."
+                                            className="db-select-pr"
+                                            id="log_filter_selector"
+                                            isDisabled={
+                                                !(
+                                                    applicationLog &&
+                                                    !applicationLog.requesting
+                                                )
+                                            }
+                                            style={{
+                                                height: '33px',
+                                                padding: '5px',
+                                                width: '250px',
+                                                border: '#CCCCCC 1px solid',
+                                                borderRadius: '5px',
+                                                fontSize: '14px',
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            height: '33px',
+                                            margin: '5px 0px',
+                                        }}
+                                    >
+                                        <Select
+                                            name="log_type_selector"
+                                            value={logType}
+                                            onChange={handleLogTypeChange}
+                                            placeholder="Log Type"
+                                            className="db-select-pr"
+                                            id="log_type_selector"
+                                            isDisabled={
+                                                !(
+                                                    applicationLog &&
+                                                    !applicationLog.requesting
+                                                )
+                                            }
+                                            style={{
+                                                height: '33px',
+                                            }}
+                                            options={logOptions}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </ShouldRender>
                     </div>
                 </div>
             </div>
@@ -130,6 +301,22 @@ class ApplicationLogHeader extends Component {
 
 ApplicationLogHeader.displayName = 'ApplicationLogHeader';
 
+const selector = formValueSelector('applicationLogDateTimeForm');
+function mapStateToProps(state, ownProps) {
+    const applicationLogId = ownProps.applicationLog._id;
+    const currentDateRange = state.applicationLog.logs[applicationLogId]
+        ? state.applicationLog.logs[applicationLogId].dateRange
+        : null;
+    const startDate = selector(state, 'startDate');
+    const endDate = selector(state, 'endDate');
+    return {
+        currentProject: state.project.currentProject,
+        initialValues: currentDateRange,
+        currentDateRange,
+        startDate,
+        endDate,
+    };
+}
 ApplicationLogHeader.propTypes = {
     openApplicationLogKeyModalId: PropTypes.string,
     applicationLog: PropTypes.object,
@@ -141,6 +328,17 @@ ApplicationLogHeader.propTypes = {
     deleting: PropTypes.bool,
     viewMore: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
+    filter: PropTypes.string,
+    logOptions: PropTypes.array,
+    currentDateRange: PropTypes.object,
+    logType: PropTypes.object,
+    handleEndDateTimeChange: PropTypes.func,
+    handleLogFilterChange: PropTypes.func,
+    handleLogTypeChange: PropTypes.func,
 };
-
-export default ApplicationLogHeader;
+const ApplicationLogDateForm = reduxForm({
+    form: 'applicationLogDateTimeForm',
+    enableReinitialize: true,
+    destroyOnUnmount: true,
+})(ApplicationLogHeader);
+export default connect(mapStateToProps)(ApplicationLogDateForm);

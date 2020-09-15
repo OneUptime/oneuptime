@@ -29,13 +29,16 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 
 class Incident extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
+    }
+    componentWillMount() {
+        resetIdCounter();
     }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -249,24 +252,30 @@ class Incident extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Logs
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Monitor Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Timeline
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Alert Logs
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Notes
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Incident Timeline
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-6'}>
+                                    Incident Notes
+                                </Tab>
+                                <Tab
+                                    id="tab-advance"
+                                    className={'custom-tab custom-tab-6'}
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5"
+                                    className="custom-tab-6"
                                 ></div>
                             </TabList>
                         </div>
@@ -281,10 +290,6 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <IncidentAlert
-                                    next={this.nextAlerts}
-                                    previous={this.previousAlerts}
-                                />
                                 <div className="Box-root Margin-bottom--12">
                                     <MonitorViewLogsBox
                                         incidentId={this.props.incident._id}
@@ -292,6 +297,15 @@ class Incident extends React.Component {
                                         monitorName={monitorName}
                                     />
                                 </div>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentAlert
+                                    next={this.nextAlerts}
+                                    previous={this.previousAlerts}
+                                />
+
                                 <SubscriberAlert
                                     next={this.nextSubscribers}
                                     previous={this.previousSubscribers}
@@ -386,7 +400,11 @@ class Incident extends React.Component {
                         route={getParentRoute(pathname, null, 'incident-log')}
                         name="Incident Log"
                     />
-                    <BreadCrumbItem route={pathname} name="Incident" />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Incident"
+                        containerType="Incident"
+                    />
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">

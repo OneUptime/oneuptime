@@ -19,6 +19,7 @@ import { setStartDate, setEndDate } from '../../actions/dateTime';
 import ApplicationLogDetailView from './ApplicationLogDetailView';
 import ApplicationLogHeader from './ApplicationLogHeader';
 import NewApplicationLog from './NewApplicationLog';
+import * as moment from 'moment';
 
 class ApplicationLogDetail extends Component {
     constructor(props) {
@@ -28,6 +29,9 @@ class ApplicationLogDetail extends Component {
             deleting: false,
             deleteModalId: uuid.v4(),
             openApplicationLogKeyModalId: uuid.v4(),
+            filter: '',
+            currentDate: moment(),
+            logType: { value: '', label: 'All Logs' },
         };
     }
     deleteApplicationLog = () => {
@@ -101,6 +105,103 @@ class ApplicationLogDetail extends Component {
                 applicationLog._id
         );
     };
+    handleEndDateTimeChange = val => {
+        const {
+            applicationLog,
+            currentProject,
+            componentId,
+            startDate,
+            fetchLogs,
+        } = this.props;
+        const { filter, logType } = this.state;
+        const endDate = moment(val);
+        if (moment(startDate).isBefore(endDate)) {
+            fetchLogs(
+                currentProject._id,
+                componentId,
+                applicationLog._id,
+                0,
+                10,
+                startDate,
+                endDate,
+                logType.value,
+                filter
+            );
+        }
+    };
+    handleLogTypeChange = logType => {
+        const {
+            applicationLog,
+            currentProject,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+            isDetails,
+        } = this.props;
+        // check if it is the details page before actioning
+        if (!isDetails) {
+            return;
+        }
+        this.setState({ logType });
+        const { filter } = this.state;
+        fetchLogs(
+            currentProject._id,
+            componentId,
+            applicationLog._id,
+            0,
+            10,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
+    handleLogFilterChange = filter => {
+        this.setState({ filter });
+        const {
+            applicationLog,
+            currentProject,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+        } = this.props;
+        const { logType } = this.state;
+        fetchLogs(
+            currentProject._id,
+            componentId,
+            applicationLog._id,
+            0,
+            10,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
+    handleNavigationButtonClick = (skip, limit) => {
+        const {
+            applicationLog,
+            currentProject,
+            componentId,
+            startDate,
+            endDate,
+            fetchLogs,
+        } = this.props;
+        const { logType, filter } = this.state;
+        fetchLogs(
+            currentProject._id,
+            componentId,
+            applicationLog._id,
+            skip,
+            limit,
+            startDate,
+            endDate,
+            logType.value,
+            filter
+        );
+    };
     componentDidMount() {
         const {
             fetchStats,
@@ -111,6 +212,12 @@ class ApplicationLogDetail extends Component {
         fetchStats(currentProject._id, componentId, applicationLog._id);
     }
     render() {
+        const logOptions = [
+            { value: '', label: 'All Logs' },
+            { value: 'error', label: 'Error' },
+            { value: 'warning', label: 'Warning' },
+            { value: 'info', label: 'Info' },
+        ];
         const {
             deleting,
             deleteModalId,
@@ -151,6 +258,15 @@ class ApplicationLogDetail extends Component {
                                 resetApplicationLogKey={
                                     this.resetApplicationLogKey
                                 }
+                                {...this.state}
+                                logOptions={logOptions}
+                                handleEndDateTimeChange={
+                                    this.handleEndDateTimeChange
+                                }
+                                handleLogFilterChange={
+                                    this.handleLogFilterChange
+                                }
+                                handleLogTypeChange={this.handleLogTypeChange}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -168,6 +284,11 @@ class ApplicationLogDetail extends Component {
                             projectId={currentProject._id}
                             isDetails={isDetails}
                             stats={stats}
+                            logOptions={logOptions}
+                            handleLogTypeChange={this.handleLogTypeChange}
+                            handleNavigationButtonClick={
+                                this.handleNavigationButtonClick
+                            }
                         />
                     </div>
                 </div>
@@ -196,19 +317,35 @@ const mapDispatchToProps = dispatch => {
     );
 };
 function mapStateToProps(state, ownProps) {
+    const applicationLogId = ownProps.index;
     const applicationLogs =
         state.applicationLog.applicationLogsList.applicationLogs;
     const applicationLogFromRedux = applicationLogs.filter(
-        applicationLog => applicationLog._id === ownProps.index
+        applicationLog => applicationLog._id === applicationLogId
     );
-    const stats = state.applicationLog.stats[ownProps.index];
+    const stats = state.applicationLog.stats[applicationLogId];
+    const currentDateRange = state.applicationLog.logs[applicationLogId]
+        ? state.applicationLog.logs[applicationLogId].dateRange
+        : null;
+    const startDate = state.form.applicationLogDateTimeForm
+        ? state.form.applicationLogDateTimeForm.values
+            ? state.form.applicationLogDateTimeForm.values.startDate
+            : ''
+        : '';
+    const endDate = state.form.applicationLogDateTimeForm
+        ? state.form.applicationLogDateTimeForm.values
+            ? state.form.applicationLogDateTimeForm.values.endDate
+            : ''
+        : '';
     return {
         currentProject: state.project.currentProject,
-        startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate,
         applicationLog: applicationLogFromRedux[0],
         editMode: applicationLogFromRedux[0].editMode,
         stats,
+        initialValues: currentDateRange,
+        currentDateRange,
+        startDate,
+        endDate,
     };
 }
 
@@ -225,8 +362,10 @@ ApplicationLogDetail.propTypes = {
     editApplicationLogSwitch: PropTypes.func,
     fetchStats: PropTypes.func,
     stats: PropTypes.object,
+    fetchLogs: PropTypes.func,
+    startDate: PropTypes.string,
+    endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
-
 export default connect(
     mapStateToProps,
     mapDispatchToProps

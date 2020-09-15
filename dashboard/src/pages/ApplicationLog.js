@@ -17,6 +17,13 @@ import { ApplicationLogList } from '../components/application/ApplicationLogList
 import { LoadingState } from '../components/basic/Loader';
 import LibraryList from '../components/application/LibraryList';
 import sortByName from '../utils/sortByName';
+import { API_URL } from '../config';
+import io from 'socket.io-client';
+import { history } from '../store';
+
+const socket = io.connect(API_URL.replace('/api', ''), {
+    path: '/api/socket.io',
+});
 
 class ApplicationLog extends Component {
     componentDidMount() {
@@ -37,11 +44,21 @@ class ApplicationLog extends Component {
 
         this.props.fetchApplicationLogs(projectId, componentId);
     };
+    componentWillUnmount() {
+        socket.removeListener(`createApplicationLog-${this.props.componentId}`);
+    }
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
+            socket.on(
+                `createApplicationLog-${this.props.componentId}`,
+                data => {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-logs/${data._id}`
+                    );
+                }
+            );
         }
-
         const {
             location: { pathname },
             component,
@@ -97,11 +114,16 @@ class ApplicationLog extends Component {
                                 <div className="db-RadarRulesLists-page">
                                     <ShouldRender
                                         if={
-                                            this.props.applicationLogTutorial
-                                                .show
+                                            this.props.tutorialStat
+                                                .applicationLog.show
                                         }
                                     >
-                                        <TutorialBox type="applicationLog" />
+                                        <TutorialBox
+                                            type="applicationLog"
+                                            currentProjectId={
+                                                this.props.currentProject?._id
+                                            }
+                                        />
                                     </ShouldRender>
                                     <LibraryList />
                                     {applicationLogsList}
@@ -132,7 +154,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, props) => {
-    const { componentId } = props.match.params;
+    const { componentId, projectId } = props.match.params;
 
     const applicationLog = state.applicationLog.applicationLogsList;
 
@@ -146,16 +168,30 @@ const mapStateToProps = (state, props) => {
         });
     });
 
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the tutorials to display
+    const tutorialStat = {
+        applicationLog: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
+
     return {
-        applicationLogTutorial: state.tutorial.applicationLog,
         componentId,
         component,
         applicationLog,
         currentProject,
+        tutorialStat,
     };
 };
 ApplicationLog.propTypes = {
-    applicationLogTutorial: PropTypes.object,
+    tutorialStat: PropTypes.object,
     applicationLog: PropTypes.object,
     match: PropTypes.object,
     location: PropTypes.shape({
