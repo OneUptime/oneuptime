@@ -8,6 +8,8 @@ import { addArrayField, removeArrayField } from '../../actions/monitor';
 import { ValidateField } from '../../config';
 import { RenderSelect } from './RenderSelect';
 import { RenderField } from './RenderField';
+import Tooltip from './Tooltip';
+import ShouldRender from './ShouldRender';
 
 const flexStyle = {
     display: 'inline-block',
@@ -629,6 +631,14 @@ export class RenderOption extends Component {
                                             : { width: '200px' }
                                     }
                                 />
+                                <ShouldRender
+                                    if={
+                                        type === 'api' &&
+                                        bodyfield.responseType === 'evals'
+                                    }
+                                >
+                                    <Tooltip title="Evaluate Response"></Tooltip>
+                                </ShouldRender>
                             </div>
                         </div>
 
