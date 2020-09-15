@@ -105,16 +105,22 @@ class ApplicationLogDetail extends Component {
                 applicationLog._id
         );
     };
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.fetchByDateChange(startDate, this.props.endDate);
+    };
     handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.fetchByDateChange(this.props.startDate, endDate);
+    };
+    fetchByDateChange = (startDate, endDate) => {
         const {
             applicationLog,
             currentProject,
             componentId,
-            startDate,
             fetchLogs,
         } = this.props;
         const { filter, logType } = this.state;
-        const endDate = moment(val);
         if (moment(startDate).isBefore(endDate)) {
             fetchLogs(
                 currentProject._id,
@@ -262,6 +268,9 @@ class ApplicationLogDetail extends Component {
                                 logOptions={logOptions}
                                 handleEndDateTimeChange={
                                     this.handleEndDateTimeChange
+                                }
+                                handleStartDateTimeChange={
+                                    this.handleStartDateTimeChange
                                 }
                                 handleLogFilterChange={
                                     this.handleLogFilterChange

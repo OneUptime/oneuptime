@@ -35,6 +35,7 @@ class ApplicationLogHeader extends Component {
             currentDateRange,
             logType,
             handleEndDateTimeChange,
+            handleStartDateTimeChange,
             handleLogFilterChange,
             handleLogTypeChange,
             formId,
@@ -171,6 +172,9 @@ class ApplicationLogHeader extends Component {
                                 {/* Figure how to bring the form back */}
                                 <DateTimeRangePicker
                                     currentDateRange={currentDateRange}
+                                    handleStartDateTimeChange={
+                                        handleStartDateTimeChange
+                                    }
                                     handleEndDateTimeChange={
                                         handleEndDateTimeChange
                                     }
@@ -273,6 +277,7 @@ ApplicationLogHeader.propTypes = {
     currentDateRange: PropTypes.object,
     logType: PropTypes.object,
     handleEndDateTimeChange: PropTypes.func,
+    handleStartDateTimeChange: PropTypes.func,
     handleLogFilterChange: PropTypes.func,
     handleLogTypeChange: PropTypes.func,
     formId: PropTypes.string,

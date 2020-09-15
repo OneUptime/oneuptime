@@ -8,7 +8,11 @@ import { Field, reduxForm } from 'redux-form';
 import CustomDateTimeSelector from './CustomDateTimeSelector';
 const moment = extendMoment(originalMoment);
 
-function DateTimeRangePicker({ currentDateRange, handleEndDateTimeChange }) {
+function DateTimeRangePicker({
+    currentDateRange,
+    handleStartDateTimeChange,
+    handleEndDateTimeChange,
+}) {
     const currentDate = moment();
     return (
         <div>
@@ -37,6 +41,7 @@ function DateTimeRangePicker({ currentDateRange, handleEndDateTimeChange }) {
                                         component={CustomDateTimeSelector}
                                         id="startDate"
                                         maxDate={currentDate}
+                                        onChange={handleStartDateTimeChange}
                                     />
                                 </span>
                                 <img
@@ -69,6 +74,7 @@ function DateTimeRangePicker({ currentDateRange, handleEndDateTimeChange }) {
 DateTimeRangePicker.displayName = 'DateTimeRangePicker';
 
 DateTimeRangePicker.propTypes = {
+    handleStartDateTimeChange: PropTypes.func,
     handleEndDateTimeChange: PropTypes.func,
     currentDateRange: PropTypes.object,
 };
