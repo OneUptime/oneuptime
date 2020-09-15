@@ -14,6 +14,7 @@ function DateTimeRangePicker({
     handleStartDateTimeChange,
     handleEndDateTimeChange,
     formId,
+    style,
     displayOnlyDate = false,
 }) {
     const currentDate = moment();
@@ -27,6 +28,7 @@ function DateTimeRangePicker({
                             style={{
                                 cursor: 'pointer',
                                 height: '35px',
+                                ...style,
                             }}
                         >
                             <div
@@ -90,6 +92,7 @@ DateTimeRangePicker.propTypes = {
     currentDateRange: PropTypes.object,
     displayOnlyDate: PropTypes.bool,
     formId: PropTypes.string,
+    style: PropTypes.object,
 };
 
 function mapStateToProps(state, ownProps) {
