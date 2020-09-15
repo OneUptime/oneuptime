@@ -364,7 +364,7 @@ describe('Monitor Detail API', () => {
                 subscriberRows = await page.$$(createdSubscriberSelector);
                 countSubscribers = subscriberRows.length;
 
-                expect(countSubscribers).toEqual(1);
+                expect(countSubscribers).toEqual(5);
 
                 const prevSelector = await page.$('#btnPrevSubscriber');
                 await prevSelector.click();
@@ -1155,8 +1155,9 @@ describe('Monitor Detail API', () => {
                 await page.click('input[id=name]', { clickCount: 3 });
                 await page.type('input[id=name]', newMonitorName);
                 await page.$eval('button[type=submit]', e => e.click());
+                await page.waitFor(3000);
 
-                const selector = `span#monitor-title-${newMonitorName}`;
+                const selector = `#monitor-title-${newMonitorName}`;
 
                 let spanElement = await page.waitForSelector(selector);
                 spanElement = await spanElement.getProperty('innerText');
