@@ -570,9 +570,9 @@ export function twoFactorAuthTokenError(error) {
     };
 }
 
-export function updateTwoFactorAuthToken(data) {
+export function updateTwoFactorAuthToken(userId, data) {
     return function(dispatch) {
-        const promise = putApi('user/profile', data);
+        const promise = putApi(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
@@ -603,84 +603,5 @@ export function setTwoFactorAuth(enabled) {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
-    };
-}
-
-export function verifyTwoFactorAuthToken(values) {
-    return function(dispatch) {
-        const promise = postApi('user/totp/verifyToken', values);
-        dispatch(twoFactorAuthTokenRequest());
-        promise.then(
-            function(response) {
-                const payload = response.data;
-                dispatch(twoFactorAuthTokenSuccess(payload));
-                return payload;
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(twoFactorAuthTokenError(errors(error)));
-            }
-        );
-
-        return promise;
-    };
-}
-
-// Generate user's QR code
-export function generateTwoFactorQRCodeRequest() {
-    return {
-        type: types.GENERATE_TWO_FACTOR_QR_REQUEST,
-    };
-}
-
-export function generateTwoFactorQRCodeSuccess(payload) {
-    return {
-        type: types.GENERATE_TWO_FACTOR_QR_SUCCESS,
-        payload: payload,
-    };
-}
-
-export function generateTwoFactorQRCodeError(error) {
-    return {
-        type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
-        payload: error,
-    };
-}
-
-export function generateTwoFactorQRCode(userId) {
-    return function(dispatch) {
-        const promise = postApi(`user/totp/token/${userId}`);
-        dispatch(generateTwoFactorQRCodeRequest());
-        promise.then(
-            function(response) {
-                const payload = response.data;
-                dispatch(generateTwoFactorQRCodeSuccess(payload));
-                return payload;
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(generateTwoFactorQRCodeError(errors(error)));
-            }
-        );
-
-        return promise;
     };
 }

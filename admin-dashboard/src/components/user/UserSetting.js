@@ -3,8 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import DataPathHoC from '../DataPathHoC';
-import TwoFactorAuthModal from './TwoFactorAuth';
 import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
 import { openModal } from '../../actions/modal';
 
@@ -21,24 +19,13 @@ export class UserSetting extends Component {
     }
 
     handleChange = () => {
-        const {
-            user,
-            updateTwoFactorAuthToken,
-            openModal,
-            setTwoFactorAuth,
-        } = this.props;
-        if (user.twoFactorAuthEnabled) {
-            updateTwoFactorAuthToken({
-                twoFactorAuthEnabled: false,
+        const { user, updateTwoFactorAuthToken, setTwoFactorAuth } = this.props;
+        if (user) {
+            updateTwoFactorAuthToken(user._id, {
+                twoFactorAuthEnabled: !user.twoFactorAuthEnabled,
                 email: user.email,
             }).then(() => {
                 setTwoFactorAuth(!user.twoFactorAuthEnabled);
-            });
-        } else {
-            openModal({
-                twoFactorAuthId: user.id,
-                onClose: () => '',
-                content: DataPathHoC(TwoFactorAuthModal, {}),
             });
         }
     };
@@ -233,7 +220,6 @@ function mapStateToProps(state) {
 UserSetting.propTypes = {
     user: PropTypes.object.isRequired,
     updateTwoFactorAuthToken: PropTypes.func,
-    openModal: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
 };
 
