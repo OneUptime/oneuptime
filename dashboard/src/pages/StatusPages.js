@@ -28,8 +28,11 @@ class StatusPage extends Component {
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Status Pages" />
-                    <ShouldRender if={this.props.statusPageTutorial.show}>
-                        <TutorialBox type="status-page" />
+                    <ShouldRender if={this.props.tutorialStat.statusPage.show}>
+                        <TutorialBox
+                            type="status-page"
+                            currentProjectId={projectId}
+                        />
                     </ShouldRender>
 
                     <StatusPagesTable projectId={projectId} />
@@ -45,17 +48,30 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state, props) {
     const { projectId } = props.match.params;
+    // try to get custom project tutorial by project ID
+    const projectCustomTutorial = state.tutorial[projectId];
+
+    // set a default show to true for the tutorials to display
+    const tutorialStat = {
+        statusPage: { show: true },
+    };
+    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
+    for (const key in tutorialStat) {
+        if (projectCustomTutorial && projectCustomTutorial[key]) {
+            tutorialStat[key].show = projectCustomTutorial[key].show;
+        }
+    }
 
     return {
         statusPage: state.statusPage,
         projectId,
-        statusPageTutorial: state.tutorial.statusPage,
+        tutorialStat,
     };
 }
 
 StatusPage.propTypes = {
     projectId: PropTypes.string.isRequired,
-    statusPageTutorial: PropTypes.object,
+    tutorialStat: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

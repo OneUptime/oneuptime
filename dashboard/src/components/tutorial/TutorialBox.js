@@ -7,7 +7,7 @@ import { closeTutorial } from '../../actions/tutorial';
 import ApiDoc from '../fyipeApi/ApiDoc';
 import ShouldRender from '../basic/ShouldRender';
 
-const Tutorials = ({ type, closeTutorial }) => (
+const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
@@ -29,7 +29,9 @@ const Tutorials = ({ type, closeTutorial }) => (
                             <div className="Box-root">
                                 <span
                                     className="incident-close-button"
-                                    onClick={() => closeTutorial(type)}
+                                    onClick={() =>
+                                        closeTutorial(type, currentProjectId)
+                                    }
                                 ></span>
                             </div>
                         </div>
@@ -57,8 +59,9 @@ const mapDispatchToProps = dispatch =>
 Tutorials.displayName = 'TutorialBox';
 
 Tutorials.propTypes = {
-    type: PropTypes.string,
-    closeTutorial: PropTypes.func,
+    type: PropTypes.string.isRequired,
+    closeTutorial: PropTypes.func.isRequired,
+    currentProjectId: PropTypes.string.isRequired,
 };
 
 export default connect(null, mapDispatchToProps)(Tutorials);

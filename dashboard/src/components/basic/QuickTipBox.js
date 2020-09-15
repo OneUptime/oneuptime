@@ -39,7 +39,9 @@ function QuickTipBox({
                                 <span
                                     id={`close-${id}`}
                                     className="incident-close-button"
-                                    onClick={() => closeTutorial(id, projectId)}
+                                    onClick={() =>
+                                        closeTutorial(`${id}Custom`, projectId)
+                                    }
                                 ></span>
                             </div>
                         </div>
