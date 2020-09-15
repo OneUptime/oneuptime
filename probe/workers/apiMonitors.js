@@ -28,7 +28,7 @@ module.exports = {
                     let retry = true;
                     let retryCount = 0;
                     while (retry) {
-                        const { res, resp } = await pingfetch(
+                        const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url,
                             monitor.method,
                             body,
@@ -39,6 +39,7 @@ module.exports = {
                             monitor,
                             res,
                             resp,
+                            rawResp,
                             type: monitor.type,
                             retryCount,
                         });
@@ -62,8 +63,8 @@ const pingfetch = async (url, method, body, headers) => {
     const now = new Date().getTime();
     let resp = null;
     let res = null;
+    let sslCertificate, response, data;
     try {
-        let sslCertificate, response, data;
         try {
             const payload = {
                 method: method,
@@ -105,5 +106,5 @@ const pingfetch = async (url, method, body, headers) => {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
-    return { res, resp };
+    return { res, resp, rawResp: response };
 };

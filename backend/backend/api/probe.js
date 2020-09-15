@@ -103,24 +103,39 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     response
 ) {
     try {
-        const { monitor, res, resp, type, retryCount } = req.body;
+        const { monitor, res, resp, rawResp, type, retryCount } = req.body;
         let status, log;
 
         if (type === 'api' || type === 'url') {
             const validUp = await (monitor &&
             monitor.criteria &&
             monitor.criteria.up
-                ? ProbeService.conditions(res, resp, monitor.criteria.up)
+                ? ProbeService.conditions(
+                      res,
+                      resp,
+                      monitor.criteria.up,
+                      rawResp
+                  )
                 : false);
             const validDegraded = await (monitor &&
             monitor.criteria &&
             monitor.criteria.degraded
-                ? ProbeService.conditions(res, resp, monitor.criteria.degraded)
+                ? ProbeService.conditions(
+                      res,
+                      resp,
+                      monitor.criteria.degraded,
+                      rawResp
+                  )
                 : false);
             const validDown = await (monitor &&
             monitor.criteria &&
             monitor.criteria.down
-                ? ProbeService.conditions(res, resp, monitor.criteria.down)
+                ? ProbeService.conditions(
+                      res,
+                      resp,
+                      monitor.criteria.down,
+                      rawResp
+                  )
                 : false);
 
             if (validDown) {

@@ -564,7 +564,7 @@ module.exports = {
         return stat;
     },
 
-    conditions: async (payload, resp, con) => {
+    conditions: async (payload, resp, con, response) => {
         let stat = true;
         const status = resp
             ? resp.status
@@ -583,10 +583,18 @@ module.exports = {
                 con.and,
                 status,
                 body,
-                sslCertificate
+                sslCertificate,
+                response
             );
         } else if (con && con.or && con.or.length) {
-            stat = await checkOr(payload, con.or, status, body, sslCertificate);
+            stat = await checkOr(
+                payload,
+                con.or,
+                status,
+                body,
+                sslCertificate,
+                response
+            );
         }
         return stat;
     },
@@ -967,7 +975,8 @@ module.exports = {
 
 const _ = require('lodash');
 
-const checkAnd = async (payload, con, statusCode, body, ssl) => {
+// eslint-disable-next-line no-unused-vars
+const checkAnd = async (payload, con, statusCode, body, ssl, response) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
         if (
@@ -1637,10 +1646,15 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                 }
             }
         } else if (con[i] && con[i].responseType === 'evals') {
-            // eslint-disable-next-line no-unused-vars
-            const response = body;
             if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
-                if (!(con[i] && con[i].field1 && body && eval(con[i].field1))) {
+                if (
+                    !(
+                        con[i] &&
+                        con[i].field1 &&
+                        response &&
+                        eval(con[i].field1)
+                    )
+                ) {
                     validity = false;
                 }
             }
@@ -1655,7 +1669,9 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.and,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (!temp) {
                 validity = temp;
@@ -1670,7 +1686,9 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.or,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (!temp1) {
                 validity = temp1;
@@ -1679,7 +1697,7 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
     }
     return validity;
 };
-const checkOr = async (payload, con, statusCode, body, ssl) => {
+const checkOr = async (payload, con, statusCode, body, ssl, response) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
         if (con[i] && con[i].responseType === 'responseTime') {
@@ -2269,10 +2287,13 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 }
             }
         } else if (con[i] && con[i].responseType === 'evals') {
-            // eslint-disable-next-line no-unused-vars
-            const response = body;
             if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
-                if (con[i] && con[i].field1 && body && eval(con[i].field1)) {
+                if (
+                    con[i] &&
+                    con[i].field1 &&
+                    response &&
+                    eval(con[i].field1)
+                ) {
                     validity = true;
                 }
             }
@@ -2287,7 +2308,9 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.and,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (temp) {
                 validity = temp;
@@ -2302,7 +2325,9 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.or,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (temp1) {
                 validity = temp1;
