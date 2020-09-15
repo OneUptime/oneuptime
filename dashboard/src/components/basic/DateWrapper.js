@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
-import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
+import { DatePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import MomentUtils from '@date-io/moment';
 import { withStyles } from '@material-ui/core/styles';
 import * as moment from 'moment';
@@ -41,7 +41,7 @@ const styles = () => ({
     },
 });
 
-const CustomDateTimeSelector = ({
+const DateWrapper = ({
     input,
     meta: { touched, error },
     style,
@@ -70,16 +70,17 @@ const CustomDateTimeSelector = ({
                     marginTop:
                         style && style.marginTop ? style.marginTop : '-32px',
                     fontWeight: '500',
+                    width: '100px',
                 }}
             >
                 <MuiThemeProvider theme={theme}>
                     <MuiPickersUtilsProvider utils={MomentUtils}>
-                        <DateTimePicker
+                        <DatePicker
                             name={input.name}
                             margin="normal"
-                            id={id ? id + 'time-picker' : 'time-picker'}
+                            id={id ? id + 'date-picker' : 'date-picker'}
                             value={value}
-                            format={'lll'}
+                            format={'ll'}
                             error={false}
                             invalidDateMessage={false}
                             variant="modal"
@@ -120,9 +121,9 @@ const CustomDateTimeSelector = ({
     );
 };
 
-CustomDateTimeSelector.displayName = 'CustomDateTimeSelector';
+DateWrapper.displayName = 'DateWrapper';
 
-CustomDateTimeSelector.propTypes = {
+DateWrapper.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,
     meta: PropTypes.object.isRequired,
@@ -133,4 +134,4 @@ CustomDateTimeSelector.propTypes = {
     maxDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 
-export default withStyles(styles)(CustomDateTimeSelector);
+export default withStyles(styles)(DateWrapper);
