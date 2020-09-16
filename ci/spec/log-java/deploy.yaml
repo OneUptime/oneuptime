@@ -19,10 +19,9 @@ deploy_staging_log-java:
         - sudo docker ps
         - cd log-java
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
-        - gpg --list-keys
-        - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 42541A36BDCF48C31765695A3F88555C95A2AF4C
-        - gpg --keyserver keyserver.ubuntu.com --send-keys 42541A36BDCF48C31765695A3F88555C95A2AF4C
         # - gpg --list-keys
+        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 42541A36BDCF48C31765695A3F88555C95A2AF4C
+        # - gpg --keyserver keyserver.ubuntu.com --send-keys 42541A36BDCF48C31765695A3F88555C95A2AF4C
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - mvn clean deploy
@@ -31,8 +30,6 @@ deploy_staging_log-java:
         - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
-        # - mvn versions:set -DnewVersion=3.0.$CI_PIPELINE_IID-SNAPSHOT
-        # - mvn clean deploy -P release
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
