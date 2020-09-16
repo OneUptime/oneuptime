@@ -106,5 +106,19 @@ const pingfetch = async (url, method, body, headers) => {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
-    return { res, resp, rawResp: response };
+    return {
+        res,
+        resp,
+        rawResp: {
+            ok: response && response.ok ? response.ok : null,
+            status: response && response.status ? response.status : null,
+            statusText:
+                response && response.statusText ? response.statusText : null,
+            headers:
+                response && response.headers && response.headers.raw()
+                    ? response.headers.raw()
+                    : null,
+            body: resp && resp.body ? resp.body : null,
+        },
+    };
 };

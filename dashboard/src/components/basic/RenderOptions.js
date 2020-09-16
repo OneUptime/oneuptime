@@ -224,7 +224,7 @@ export class RenderOption extends Component {
                                 },
                                 {
                                     value: 'evals',
-                                    label: 'Evals',
+                                    label: 'Evaluate Response',
                                     show: type === 'api',
                                 },
                                 {
@@ -650,7 +650,9 @@ export class RenderOption extends Component {
                                         <p>
                                             <ul>
                                                 <li>
-                                                    <code>response.header</code>
+                                                    <code>
+                                                        response.headers
+                                                    </code>
                                                 </li>
                                                 <li>
                                                     <code>response.body</code>
@@ -698,7 +700,7 @@ export class RenderOption extends Component {
                                                 </li>
                                                 <li>
                                                     <code>
-                                                        3 | response.header[
+                                                        3 | response.headers[
                                                         <span
                                                             style={{
                                                                 color: 'green',
