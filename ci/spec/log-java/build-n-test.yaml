@@ -25,7 +25,7 @@ build_n_test_log-java:
         # - sudo update-ca-certificates -f
         # - sudo apt install ca-certificates-java --reinstall
         - sudo apt-get remove -y --purge openjdk* java-common default-jdk
-        - sudo apt-get autoremove --purge
+        - sudo apt-get autoremove -y  --purge
         - sudo update-alternatives --config java
         - sudo apt-get install -y openjdk-8-jdk
         - cp -f log-java/.m2/settings.xml $HOME/.m2/settings.xml
