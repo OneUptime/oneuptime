@@ -111,7 +111,12 @@ const pingfetch = async (url, method, body, headers) => {
         resp,
         rawResp: {
             ok: response && response.ok ? response.ok : null,
-            status: response && response.status ? response.status : null,
+            status:
+                response && response.status
+                    ? response.status
+                    : resp && resp.status
+                    ? resp.status
+                    : null,
             statusText:
                 response && response.statusText ? response.statusText : null,
             headers:
