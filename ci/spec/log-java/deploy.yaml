@@ -19,7 +19,7 @@ deploy_staging_log-java:
         - sudo docker ps
         - cd log-java
         - gpg --list-keys
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 57BE7B2EC10D7338212093C8D8460AB6E05CD41E
         - gpg --keyserver keyserver.ubuntu.com --send-keys 57BE7B2EC10D7338212093C8D8460AB6E05CD41E
         # - gpg --list-keys
