@@ -6,7 +6,6 @@ import { extendMoment } from 'moment-range';
 import ShouldRender from './ShouldRender';
 import { Field, reduxForm } from 'redux-form';
 import DateTimeWrapper from './DateTimeWrapper';
-import DateWrapper from './DateWrapper';
 const moment = extendMoment(originalMoment);
 
 function DateTimeRangePicker({
@@ -15,7 +14,6 @@ function DateTimeRangePicker({
     handleEndDateTimeChange,
     formId,
     style,
-    displayOnlyDate = false,
 }) {
     const currentDate = moment();
     return (
@@ -43,11 +41,7 @@ function DateTimeRangePicker({
                                     <Field
                                         type="text"
                                         name="startDate"
-                                        component={
-                                            displayOnlyDate
-                                                ? DateWrapper
-                                                : DateTimeWrapper
-                                        }
+                                        component={DateTimeWrapper}
                                         id="startDate"
                                         maxDate={currentDate}
                                         onChange={handleStartDateTimeChange}
@@ -65,11 +59,7 @@ function DateTimeRangePicker({
                                     <Field
                                         type="text"
                                         name="endDate"
-                                        component={
-                                            displayOnlyDate
-                                                ? DateWrapper
-                                                : DateTimeWrapper
-                                        }
+                                        component={DateTimeWrapper}
                                         id="endDate"
                                         maxDate={currentDate}
                                         onChange={handleEndDateTimeChange}
@@ -90,7 +80,6 @@ DateTimeRangePicker.propTypes = {
     handleStartDateTimeChange: PropTypes.func,
     handleEndDateTimeChange: PropTypes.func,
     currentDateRange: PropTypes.object,
-    displayOnlyDate: PropTypes.bool,
     formId: PropTypes.string,
     style: PropTypes.object,
 };

@@ -305,9 +305,6 @@ export class Reports extends Component {
                                                                     formId={
                                                                         'averageResolveTimeForm'
                                                                     }
-                                                                    displayOnlyDate={
-                                                                        true
-                                                                    }
                                                                     style={{
                                                                         height:
                                                                             '28px',
@@ -463,9 +460,6 @@ export class Reports extends Component {
                                                                     formId={
                                                                         'incidentReportForm'
                                                                     }
-                                                                    displayOnlyDate={
-                                                                        true
-                                                                    }
                                                                     style={{
                                                                         height:
                                                                             '28px',
@@ -550,9 +544,6 @@ export class Reports extends Component {
                                                                     formId={
                                                                         'memberReportForm'
                                                                     }
-                                                                    displayOnlyDate={
-                                                                        true
-                                                                    }
                                                                     style={{
                                                                         height:
                                                                             '28px',
@@ -628,9 +619,6 @@ export class Reports extends Component {
                                                                     }
                                                                     formId={
                                                                         'monitorReportForm'
-                                                                    }
-                                                                    displayOnlyDate={
-                                                                        true
                                                                     }
                                                                     style={{
                                                                         height:
