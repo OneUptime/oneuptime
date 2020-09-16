@@ -9,6 +9,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { PropTypes } from 'prop-types';
+import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
 class ProfileBilling extends Component {
     constructor(props) {
@@ -30,6 +31,7 @@ class ProfileBilling extends Component {
         return (
             <Dashboard>
                 <Fade>
+                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                     <BreadCrumbItem route={pathname} name="Billing" />
                     <div id="profileBilling" className="Margin-vertical--12">
                         <Invoice />

@@ -4,6 +4,7 @@ import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import ChangePassword from '../components/profileSettings/ChangePassword';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
 const ChangePasswordSetting = props => {
     const {
@@ -13,6 +14,7 @@ const ChangePasswordSetting = props => {
     return (
         <Dashboard>
             <Fade>
+                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                 <BreadCrumbItem route={pathname} name="Change Password" />
                 <div>
                     <div>
