@@ -11158,6 +11158,13 @@ table {
     justify-content: center;
     cursor: pointer;
 }
+
+.custom-tab-2 {
+    width: 50%;
+}
+.custom-tab-3 {
+    width: 33.33%;
+}
 .custom-tab-4 {
     width: 25%;
 }
