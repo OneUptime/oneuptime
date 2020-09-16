@@ -20,7 +20,7 @@ const theme = createMuiTheme({
 const styles = () => ({
     input: {
         flex: '0 0 auto',
-        padding: '4px 0px 2px 7px',
+        padding: '4px 4px 2px 7px',
         color: '#000000',
         cursor: 'text',
         fontSize: '14px',
