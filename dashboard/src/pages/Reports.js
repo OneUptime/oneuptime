@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Fade from 'react-reveal/Fade';
-import DateRangeWrapper from '../components/reports/DateRangeWrapper';
 import Dashboard from '../components/Dashboard';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
@@ -103,6 +102,14 @@ export class Reports extends Component {
         });
     }
 
+    handleMonitorStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleMonitorChange(startDate, this.state.monitorEnd);
+    };
+    handleMonitorEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleMonitorChange(this.state.monitorStart, endDate);
+    };
     handleMonitorChange(startDate, endDate) {
         this.setState({
             monitorStart: startDate,
@@ -602,23 +609,33 @@ export class Reports extends Component {
                                                                         'flex-end',
                                                                 }}
                                                             >
-                                                                <DateRangeWrapper
-                                                                    selected={
-                                                                        this
+                                                                <DateTimeRangePicker
+                                                                    currentDateRange={{
+                                                                        startDate: this
                                                                             .state
-                                                                            .monitorStart
+                                                                            .monitorStart,
+                                                                        endDate: this
+                                                                            .state
+                                                                            .monitorEnd,
+                                                                    }}
+                                                                    handleStartDateTimeChange={
+                                                                        this
+                                                                            .handleMonitorStartDateTimeChange
+                                                                    }
+                                                                    handleEndDateTimeChange={
+                                                                        this
+                                                                            .handleMonitorEndDateTimeChange
+                                                                    }
+                                                                    formId={
+                                                                        'monitorReportForm'
+                                                                    }
+                                                                    displayOnlyDate={
+                                                                        true
                                                                     }
                                                                     style={{
-                                                                        justifyContent:
-                                                                            'flex-end',
+                                                                        height:
+                                                                            '28px',
                                                                     }}
-                                                                    onChange={
-                                                                        this
-                                                                            .handleMonitorChange
-                                                                    }
-                                                                    dateRange={
-                                                                        30
-                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
