@@ -971,7 +971,7 @@ margin-left:10px;
 
 /* When the checkbox is checked, add a blue background */
 .container-checkbox input:checked ~ .checkmark {
-  background-color: rgb(35, 156, 255);
+  background-color: #000;
   overflow: visible;
 }
 
