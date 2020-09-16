@@ -98,6 +98,7 @@ function ScheduledEventDescription({
                                         id: scheduledEvent._id,
                                         content: EditSchedule,
                                         event: scheduledEvent,
+                                        projectId: scheduledEvent.projectId._id,
                                     })
                                 }
                             >

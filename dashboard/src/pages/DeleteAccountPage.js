@@ -4,6 +4,7 @@ import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
+import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
 const DeleteAccountPage = props => {
     const {
@@ -13,6 +14,7 @@ const DeleteAccountPage = props => {
     return (
         <Dashboard>
             <Fade>
+                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
                 <BreadCrumbItem route={pathname} name="Advanced" />
                 <div>
                     <div>

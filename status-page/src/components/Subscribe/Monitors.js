@@ -25,8 +25,8 @@ class Monitors extends Component {
     };
     componentDidMount() {
         const monitors = {};
-        this.props.monitorIds &&
-            this.props.monitorIds.map(m => {
+        this.props.monitors &&
+            this.props.monitors.map(m => {
                 if (m && m.name && m._id) {
                     monitors[m.name] = true;
                 }
@@ -45,7 +45,7 @@ class Monitors extends Component {
                 key => this.state[key]
             );
             monitors = monitors.map(monitor =>
-                this.props.monitorIds.find(el => el.name === monitor)
+                this.props.monitors.find(el => el.name === monitor)
             );
             monitors = monitors.map(monitor => monitor._id);
             if (monitors && monitors.length) {
@@ -127,7 +127,7 @@ const mapStateToProps = state => ({
     userDetails: state.subscribe.userDetails,
     statuspage: state.status.statusPage,
     subscribed: state.subscribe.subscribed,
-    monitorIds: state.status.statusPage && state.status.statusPage.monitorIds,
+    monitors: state.status.statusPage && state.status.statusPage.monitorsData,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -138,7 +138,7 @@ Monitors.propTypes = {
     subscribeUser: PropTypes.func,
     validationError: PropTypes.func,
     statuspage: PropTypes.object,
-    monitorIds: PropTypes.array,
+    monitors: PropTypes.array,
     map: PropTypes.func,
     subscribed: PropTypes.object,
     requesting: PropTypes.bool,
