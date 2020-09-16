@@ -1652,7 +1652,13 @@ const checkAnd = async (payload, con, statusCode, body, ssl, response) => {
                         con[i] &&
                         con[i].field1 &&
                         response &&
-                        eval(con[i].field1)
+                        Function(
+                            '"use strict";const response = ' +
+                                JSON.stringify(response) +
+                                ';return (' +
+                                con[i].field1 +
+                                ');'
+                        )()
                     )
                 ) {
                     validity = false;
@@ -2292,7 +2298,13 @@ const checkOr = async (payload, con, statusCode, body, ssl, response) => {
                     con[i] &&
                     con[i].field1 &&
                     response &&
-                    eval(con[i].field1)
+                    Function(
+                        '"use strict";const response = ' +
+                            JSON.stringify(response) +
+                            ';return (' +
+                            con[i].field1 +
+                            ');'
+                    )()
                 ) {
                     validity = true;
                 }
