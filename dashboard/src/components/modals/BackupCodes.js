@@ -35,11 +35,26 @@ class BackupCodesModal extends React.Component {
         this.setState({ copied: true });
     };
 
-    render() {
+    refineCodes = () => {
         const {
-            closeThisDialog,
             profileSettings: { data },
         } = this.props;
+        const refinedCodes = [];
+        if (data.backupCodes.length > 0) {
+            const rows = Math.ceil(data.backupCodes.length / 2);
+            let j = 0;
+            for (let i = 0; i < rows; i++) {
+                const temp = [data.backupCodes[j], data.backupCodes[j + 1]];
+                j += 2;
+                refinedCodes.push(temp);
+            }
+        }
+        return refinedCodes;
+    };
+
+    render() {
+        const { closeThisDialog } = this.props;
+        const backupCodes = this.refineCodes();
 
         return (
             <div
@@ -88,16 +103,18 @@ class BackupCodesModal extends React.Component {
                                                     >
                                                         <table className="Table">
                                                             <tbody className="Table-body">
-                                                                {data.backupCodes &&
-                                                                data.backupCodes
-                                                                    .length >
+                                                                {backupCodes &&
+                                                                backupCodes.length >
                                                                     0 ? (
-                                                                    data.backupCodes.map(
+                                                                    backupCodes.map(
                                                                         code => (
                                                                             <tr
                                                                                 className="Table-row db-ListViewItem bs-ActionsParent scheduleListItem"
                                                                                 key={
-                                                                                    code.code
+                                                                                    code[0]
+                                                                                        ? code[0]
+                                                                                              .code
+                                                                                        : ''
                                                                                 }
                                                                             >
                                                                                 <td
@@ -111,9 +128,30 @@ class BackupCodesModal extends React.Component {
                                                                                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-align--center">
                                                                                             <div className="Margin-right--7">
                                                                                                 <span>
-                                                                                                    {
-                                                                                                        code.code
-                                                                                                    }
+                                                                                                    {code[0]
+                                                                                                        ? code[0]
+                                                                                                              .code
+                                                                                                        : ''}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                                                    style={{
+                                                                                        height:
+                                                                                            '1px',
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                                                        <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-align--center">
+                                                                                            <div className="Margin-right--7">
+                                                                                                <span>
+                                                                                                    {code[1]
+                                                                                                        ? code[1]
+                                                                                                              .code
+                                                                                                        : ''}
                                                                                                 </span>
                                                                                             </div>
                                                                                         </span>

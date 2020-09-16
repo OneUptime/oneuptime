@@ -115,12 +115,15 @@ export class DashboardApp extends Component {
                 !notification.closed.includes(User.getUserId())
         );
 
+        const userProfile =
+            location.pathname === '/dashboard/profile/billing' ||
+            location.pathname === '/dashboard/profile/settings' ||
+            location.pathname === '/dashboard/profile/changePassword' ||
+            location.pathname === '/dashboard/profile/advanced';
+
         return (
             <Fragment>
-                {location.pathname === '/dashboard/profile/billing' ||
-                location.pathname === '/dashboard/profile/settings' ||
-                location.pathname === '/dashboard/profile/changePassword' ||
-                location.pathname === '/dashboard/profile/advanced' ? (
+                {userProfile ? (
                     <BreadCrumbItem route="#" name="Account" />
                 ) : (
                     <BreadCrumbItem
@@ -146,25 +149,12 @@ export class DashboardApp extends Component {
 
                 <div onKeyDown={this.handleKeyBoard} className="db-World-root">
                     <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
-                        <ShouldRender
-                            if={
-                                location.pathname ===
-                                '/dashboard/profile/settings'
-                            }
-                        >
+                        <ShouldRender if={userProfile}>
                             <div className="db-World-scrollWrapper">
-                                <ShouldRender
-                                    if={
-                                        project.projects.projects !==
-                                            undefined &&
-                                        project.projects.projects[0]
-                                    }
-                                >
-                                    <SideNav
-                                        location={this.props.location}
-                                        match={this.props.match}
-                                    />
-                                </ShouldRender>
+                                <SideNav
+                                    location={this.props.location}
+                                    match={this.props.match}
+                                />
 
                                 <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
                                     <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -180,8 +170,7 @@ export class DashboardApp extends Component {
                             if={
                                 !project.projects.requesting &&
                                 project.projects.success &&
-                                location.pathname !==
-                                    '/dashboard/profile/settings'
+                                !userProfile
                             }
                         >
                             <div className="db-World-scrollWrapper">
@@ -282,8 +271,7 @@ export class DashboardApp extends Component {
                             if={
                                 project.projects.success &&
                                 project.projects.projects.length === 0 &&
-                                location.pathname !==
-                                    '/dashboard/profile/settings'
+                                !userProfile
                             }
                         >
                             <div>

@@ -31,7 +31,9 @@ const RenderField = ({
             />
         </span>
         {meta.error && meta.touched && (
-            <span style={errorStyle}>{meta.error}</span>
+            <span id={`${id}_error`} style={errorStyle}>
+                {meta.error}
+            </span>
         )}
     </span>
 );

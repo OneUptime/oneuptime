@@ -16,6 +16,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import uuid from 'uuid';
+import BreadCrumbs from '../breadCrumb/BreadCrumbs';
 
 //Client side validation
 function validate(values) {

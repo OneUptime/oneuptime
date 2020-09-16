@@ -33,11 +33,19 @@ router.put('/', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({ _id: userId });
+        // validate that project ID is passed
+        const projectId = req.body.projectId;
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Project ID can't be null",
+            });
+        }
         user = await UserService.closeTutorialBy(
             { _id: userId },
             req.body.type,
             user.tutorial,
-            req.body.projectId // project ID is needed for custom tutorials
+            projectId // project ID is always needed
         );
 
         const tutorialObj = {

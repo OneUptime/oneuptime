@@ -270,15 +270,14 @@ module.exports = {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#AccountSwitcherId', { visible: true });
         await page.click('#AccountSwitcherId');
-        await page.waitFor(2000);
         await page.waitForSelector(`#accountSwitcher div#${projectName}`);
-        await page.click(`#accountSwitcher div#${projectName}`);
-        await page.waitFor(5000);
+        await Promise.all([
+            page.click(`#accountSwitcher div#${projectName}`),
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        ]);
     },
     renameProject: async function(newProjectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
-        // Navigate to Components page
-        // await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#components', { timeout: 100000 });
         const projectNameSelector = await page.$('input[name=project_name');
         if (projectNameSelector) {
@@ -311,8 +310,20 @@ module.exports = {
         }
         await page.waitFor(1000);
     },
-    addMonitorToComponent: async function(component, monitorName, page) {
+    addMonitorToComponent: async function(
+        component,
+        monitorName,
+        page,
+        componentName
+    ) {
         component && (await this.addComponent(component, page));
+        componentName = component || componentName;
+
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
+        await page.waitForSelector('#component0', { visible: true });
+        await page.click(`#more-details-${componentName}`);
 
         await page.waitForSelector('input[id=name]');
         await page.click('input[id=name]');
@@ -622,29 +633,27 @@ module.exports = {
             hidden: true,
         });
     },
-    addIncident: async function(monitorName, incidentType, page) {
-        await page.waitForSelector(
-            `button[id=monitorCreateIncident_${monitorName}]`
-        );
-        await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
-        await page.waitForSelector('button[id=createIncident]');
+    addIncident: async function(
+        monitorName,
+        incidentType,
+        page,
+        incidentPriority
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#components', { visible: true });
+        await page.click('#components');
+        await page.waitForSelector(`#view-resource-${monitorName}`, {
+            visible: true,
+        });
+        await page.click(`#view-resource-${monitorName}`);
+
+        await page.waitForSelector(`#monitorCreateIncident_${monitorName}`);
+        await page.click(`#monitorCreateIncident_${monitorName}`);
+        await page.waitForSelector('#createIncident');
         await this.selectByText('#incidentType', incidentType, page);
-        await page.waitForSelector('input[id=title]');
-        await page.type('input[id=title]', incidentType);
-        await page.click('button[id=createIncident]');
-        await page.waitFor(5000);
-    },
-    addMonitorIncident: async function(monitorName, incidentType, page) {
-        await page.waitForSelector(
-            `button[id=monitorCreateIncident_${monitorName}]`
-        );
-        await page.click(`button[id=monitorCreateIncident_${monitorName}]`);
-        await page.waitForSelector('button[id=createIncident]');
-        await this.selectByText('#incidentType', incidentType, page);
-        await page.waitForSelector('input[id=title]');
-        await page.type('input[id=title]', incidentType);
-        await page.click('button[id=createIncident]');
-        await page.waitFor(5000);
+        await this.selectByText('#incidentPriority', incidentPriority, page);
+        await page.click('#createIncident');
+        await page.waitForSelector('#ball-beat', { hidden: true });
     },
     addTwilioSettings: async function(
         enableSms,
@@ -668,7 +677,7 @@ module.exports = {
         await page.type('#authToken', authToken);
         await page.type('#phoneNumber', phoneNumber);
         await page.click('#submitTwilioSettings');
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#accountSid');
     },
@@ -699,11 +708,9 @@ module.exports = {
         await page.type('#from', from);
         if (secure) await page.$eval('#secure', e => e.click());
         await page.click('#saveSmtp');
-        await page.waitFor(3000);
-        await page.reload({
-            waitUntil: 'networkidle0',
-        });
-        await page.waitFor(3000);
+        await page.waitForSelector('.ball-beat', { hidden: true });
+        await page.reload();
+        await page.waitForSelector('#user');
     },
     gotoTab: async function(tabId, page) {
         await page.waitForSelector(`#react-tabs-${tabId}`);

@@ -85,7 +85,7 @@ export function fetchTutorial() {
     };
 }
 
-export function closeTutorial(type, projectId = null) {
+export function closeTutorial(type, projectId) {
     return function(dispatch) {
         let promise = null;
         promise = putApi('tutorial', { type, projectId });
