@@ -24,7 +24,7 @@ build_n_test_log-java:
         # - sudo /var/lib/dpkg/info/ca-certificates-java.postinst configure
         # - sudo update-ca-certificates -f
         # - sudo apt install ca-certificates-java --reinstall
-        - sudo apt-get remove --purge openjdk* java-common default-jdk
+        - sudo apt-get remove -y --purge openjdk* java-common default-jdk
         - sudo apt-get autoremove --purge
         - sudo update-alternatives --config java
         - sudo apt-get install -y openjdk-8-jdk
