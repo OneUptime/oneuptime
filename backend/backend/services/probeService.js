@@ -1647,20 +1647,24 @@ const checkAnd = async (payload, con, statusCode, body, ssl, response) => {
             }
         } else if (con[i] && con[i].responseType === 'evals') {
             if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
-                if (
-                    !(
-                        con[i] &&
-                        con[i].field1 &&
-                        response &&
-                        Function(
-                            '"use strict";const response = ' +
-                                JSON.stringify(response) +
-                                ';return (' +
-                                con[i].field1 +
-                                ');'
-                        )()
-                    )
-                ) {
+                try {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            response &&
+                            Function(
+                                '"use strict";const response = ' +
+                                    JSON.stringify(response) +
+                                    ';return (' +
+                                    con[i].field1 +
+                                    ');'
+                            )()
+                        )
+                    ) {
+                        validity = false;
+                    }
+                } catch (e) {
                     validity = false;
                 }
             }
@@ -2294,19 +2298,23 @@ const checkOr = async (payload, con, statusCode, body, ssl, response) => {
             }
         } else if (con[i] && con[i].responseType === 'evals') {
             if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
-                if (
-                    con[i] &&
-                    con[i].field1 &&
-                    response &&
-                    Function(
-                        '"use strict";const response = ' +
-                            JSON.stringify(response) +
-                            ';return (' +
-                            con[i].field1 +
-                            ');'
-                    )()
-                ) {
-                    validity = true;
+                try {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        response &&
+                        Function(
+                            '"use strict";const response = ' +
+                                JSON.stringify(response) +
+                                ';return (' +
+                                con[i].field1 +
+                                ');'
+                        )()
+                    ) {
+                        validity = true;
+                    }
+                } catch (e) {
+                    // validity = false;
                 }
             }
         }
