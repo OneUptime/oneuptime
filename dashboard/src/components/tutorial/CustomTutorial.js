@@ -20,7 +20,7 @@ const renderFeatures = features => {
 };
 const CustomTutorial = ({
     components,
-    customTutorialStat,
+    tutorialStat,
     monitors,
     currentProjectId,
     projectTeamMembers,
@@ -31,7 +31,7 @@ const CustomTutorial = ({
 
         {components &&
         components.length < 1 &&
-        customTutorialStat.component.show ? (
+        tutorialStat.componentCustom.show ? (
             <div>
                 {/* No Component Notifier */}
                 <QuickTipBox
@@ -61,7 +61,7 @@ const CustomTutorial = ({
             </div>
         ) : monitors &&
           monitors.length < 1 &&
-          customTutorialStat.monitor.show ? (
+          tutorialStat.monitorCustom.show ? (
             <div>
                 {/* No Monitor Notifier */}
                 <QuickTipBox
@@ -98,7 +98,7 @@ const CustomTutorial = ({
                 if={
                     projectTeamMembers &&
                     projectTeamMembers.length === 1 &&
-                    customTutorialStat.teamMember.show
+                    tutorialStat.teamMemberCustom.show
                 }
             >
                 <QuickTipBox
@@ -136,7 +136,7 @@ CustomTutorial.displayName = 'TutorialBox';
 
 CustomTutorial.propTypes = {
     components: PropTypes.array,
-    customTutorialStat: PropTypes.object,
+    tutorialStat: PropTypes.object,
     monitors: PropTypes.array,
     currentProjectId: PropTypes.string,
     projectTeamMembers: PropTypes.array,

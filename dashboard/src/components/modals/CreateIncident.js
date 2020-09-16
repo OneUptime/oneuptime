@@ -423,7 +423,7 @@ class CreateIncident extends Component {
                                                                     this.props
                                                                         .currentProject
                                                                         ._id +
-                                                                    '/monitoring'
+                                                                    '/components'
                                                             );
                                                         }}
                                                     >
