@@ -155,8 +155,9 @@ describe('Subscribers Alert logs API', () => {
                     page
                 );
                 await page.waitForSelector('#customTabList > li');
-                let tabs = await page.$$('#customTabList > li');
-                await tabs[1].click();
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
 
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
@@ -169,14 +170,18 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#incident_0');
 
                 await page.waitForSelector('#customTabList > li');
-                tabs = await page.$$('#customTabList > li');
-                await tabs[1].click();
+                // navigate to Alert logs tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
                 await page.waitFor(3000);
                 await page.reload({ waitUntil: 'networkidle0' });
 
                 await page.waitForSelector('#customTabList > li');
-                tabs = await page.$$('#customTabList > li');
-                await tabs[1].click();
+                // navigate to Alert logs tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
                 await page.waitForSelector('#subscriberAlertTable tbody tr');
                 const rowsCount = (
                     await page.$$('#subscriberAlertTable tbody tr')
