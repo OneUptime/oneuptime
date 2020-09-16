@@ -222,9 +222,9 @@ class BackupCodesModal extends React.Component {
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     type="button"
-                                    onClick={closeThisDialog}
+                                    onClick={generateBackupCodes}
                                 >
-                                    <span>Cancel</span>
+                                    <span>Generate new codes</span>
                                 </button>
                                 <CopyToClipboard text={this.state.codes}>
                                     <button
@@ -239,13 +239,6 @@ class BackupCodesModal extends React.Component {
                                         )}
                                     </button>
                                 </CopyToClipboard>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                    type="button"
-                                    onClick={generateBackupCodes}
-                                >
-                                    <span>Generate new codes</span>
-                                </button>
                             </div>
                         </div>
                     </div>
