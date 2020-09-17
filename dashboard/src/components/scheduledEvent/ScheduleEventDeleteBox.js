@@ -44,6 +44,7 @@ class ScheduleEventDeleteBox extends Component {
                                 <div>
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
+                                        id={`deleteScheduleEvent`}
                                         onClick={() =>
                                             openModal({
                                                 id: deleteModalId,

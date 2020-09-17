@@ -125,157 +125,157 @@ class ScheduledEvent extends Component {
                     <ShouldRender if={requesting}>
                         <LoadingState />
                     </ShouldRender>
-                    <Tabs
-                        selectedTabClassName={'custom-tab-selected'}
-                        onSelect={tabIndex => this.tabSelected(tabIndex)}
-                    >
-                        <div className="Flex-flex Flex-direction--columnReverse">
-                            <TabList
-                                id="customTabList"
-                                className={'custom-tab-list'}
-                            >
-                                <Tab className={'custom-tab custom-tab-3'}>
-                                    Basic
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-3'}>
-                                    Notes
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-3'}>
-                                    Advanced Options
-                                </Tab>
-                                <div
-                                    id="tab-slider"
-                                    className="custom-tab-3"
-                                ></div>
-                            </TabList>
-                        </div>
-                        <TabPanel>
-                            <Fade>
-                                <ShouldRender
-                                    if={!requesting && scheduledEvent}
+                    <ShouldRender if={!requesting}>
+                        <Tabs
+                            selectedTabClassName={'custom-tab-selected'}
+                            onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        >
+                            <div className="Flex-flex Flex-direction--columnReverse">
+                                <TabList
+                                    id="customTabList"
+                                    className={'custom-tab-list'}
                                 >
-                                    <div>
+                                    <Tab className={'custom-tab custom-tab-3'}>
+                                        Basic
+                                    </Tab>
+                                    <Tab className={'custom-tab custom-tab-3'}>
+                                        Notes
+                                    </Tab>
+                                    <Tab className={'custom-tab custom-tab-3'}>
+                                        Advanced Options
+                                    </Tab>
+                                    <div
+                                        id="tab-slider"
+                                        className="custom-tab-3"
+                                    ></div>
+                                </TabList>
+                            </div>
+                            <TabPanel>
+                                <Fade>
+                                    <ShouldRender if={scheduledEvent}>
                                         <div>
-                                            <div className="db-BackboneViewContainer">
-                                                <div className="react-settings-view react-view">
-                                                    <span>
-                                                        <div>
-                                                            <ScheduledEventDescription
-                                                                scheduledEvent={
-                                                                    scheduledEvent
-                                                                }
-                                                                monitorList={
-                                                                    monitorList
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </span>
+                                            <div>
+                                                <div className="db-BackboneViewContainer">
+                                                    <div className="react-settings-view react-view">
+                                                        <span>
+                                                            <div>
+                                                                <ScheduledEventDescription
+                                                                    scheduledEvent={
+                                                                        scheduledEvent
+                                                                    }
+                                                                    monitorList={
+                                                                        monitorList
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </ShouldRender>
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <ShouldRender
-                                    if={investigationNotesList.requesting}
-                                >
-                                    <LoadingState />
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!investigationNotesList.requesting}
-                                >
-                                    <div>
+                                    </ShouldRender>
+                                </Fade>
+                            </TabPanel>
+                            <TabPanel>
+                                <Fade>
+                                    <ShouldRender
+                                        if={investigationNotesList.requesting}
+                                    >
+                                        <LoadingState />
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={!investigationNotesList.requesting}
+                                    >
                                         <div>
-                                            <div className="db-BackboneViewContainer">
-                                                <div className="react-settings-view react-view">
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                            <ScheduledEventNote
-                                                                type="Investigation"
-                                                                notes={
-                                                                    investigationNotesList.scheduledEventNotes
-                                                                }
-                                                                count={
-                                                                    investigationNotesList.count
-                                                                }
-                                                                projectId={
-                                                                    projectId
-                                                                }
-                                                                scheduledEventId={
-                                                                    scheduledEventId
-                                                                }
-                                                                skip={
-                                                                    investigationNotesList.skip
-                                                                }
-                                                                limit={
-                                                                    investigationNotesList.limit
-                                                                }
-                                                            />
+                                            <div>
+                                                <div className="db-BackboneViewContainer">
+                                                    <div className="react-settings-view react-view">
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                                                <ScheduledEventNote
+                                                                    type="Investigation"
+                                                                    notes={
+                                                                        investigationNotesList.scheduledEventNotes
+                                                                    }
+                                                                    count={
+                                                                        investigationNotesList.count
+                                                                    }
+                                                                    projectId={
+                                                                        projectId
+                                                                    }
+                                                                    scheduledEventId={
+                                                                        scheduledEventId
+                                                                    }
+                                                                    skip={
+                                                                        investigationNotesList.skip
+                                                                    }
+                                                                    limit={
+                                                                        investigationNotesList.limit
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={internalNotesList.requesting}>
-                                    <LoadingState />
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={!internalNotesList.requesting}
-                                >
-                                    <div>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={internalNotesList.requesting}
+                                    >
+                                        <LoadingState />
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={!internalNotesList.requesting}
+                                    >
                                         <div>
-                                            <div className="db-BackboneViewContainer">
-                                                <div className="react-settings-view react-view">
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                            <ScheduledEventNote
-                                                                type="Internal"
-                                                                notes={
-                                                                    internalNotesList.scheduledEventNotes
-                                                                }
-                                                                count={
-                                                                    internalNotesList.count
-                                                                }
-                                                                projectId={
-                                                                    projectId
-                                                                }
-                                                                scheduledEventId={
-                                                                    scheduledEventId
-                                                                }
-                                                                skip={
-                                                                    internalNotesList.skip
-                                                                }
-                                                                limit={
-                                                                    internalNotesList.limit
-                                                                }
-                                                            />
+                                            <div>
+                                                <div className="db-BackboneViewContainer">
+                                                    <div className="react-settings-view react-view">
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                                                <ScheduledEventNote
+                                                                    type="Internal"
+                                                                    notes={
+                                                                        internalNotesList.scheduledEventNotes
+                                                                    }
+                                                                    count={
+                                                                        internalNotesList.count
+                                                                    }
+                                                                    projectId={
+                                                                        projectId
+                                                                    }
+                                                                    scheduledEventId={
+                                                                        scheduledEventId
+                                                                    }
+                                                                    skip={
+                                                                        internalNotesList.skip
+                                                                    }
+                                                                    limit={
+                                                                        internalNotesList.limit
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </ShouldRender>
-                            </Fade>
-                        </TabPanel>
-                        <TabPanel>
-                            <Fade>
-                                <ShouldRender
-                                    if={!requesting && scheduledEvent}
-                                >
-                                    <ScheduleEventDeleteBox
-                                        projectId={projectId}
-                                        scheduledEventId={scheduledEventId}
-                                    />
-                                </ShouldRender>
-                            </Fade>
-                        </TabPanel>
-                    </Tabs>
+                                    </ShouldRender>
+                                </Fade>
+                            </TabPanel>
+                            <TabPanel>
+                                <Fade>
+                                    <ShouldRender if={scheduledEvent}>
+                                        <ScheduleEventDeleteBox
+                                            projectId={projectId}
+                                            scheduledEventId={scheduledEventId}
+                                        />
+                                    </ShouldRender>
+                                </Fade>
+                            </TabPanel>
+                        </Tabs>
+                    </ShouldRender>
                 </Fade>
             </Dashboard>
         );
