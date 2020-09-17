@@ -22,6 +22,7 @@ import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote'
 import { API_URL } from '../config';
 import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 const socket = io.connect(API_URL.replace('/api', ''), {
@@ -32,6 +33,9 @@ class ScheduledEvent extends Component {
     constructor(props) {
         super(props);
         this.limit = 10;
+    }
+    componentWillMount() {
+        resetIdCounter();
     }
 
     tabSelected = index => {
@@ -50,7 +54,6 @@ class ScheduledEvent extends Component {
             createScheduledEventNoteSuccess,
         } = this.props;
         const { projectId, scheduledEventId } = match.params;
-
         // fetch scheduled event
         fetchscheduledEvent(projectId, scheduledEventId);
 
@@ -262,7 +265,14 @@ class ScheduledEvent extends Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <p> TODO Delete Component Here</p>
+                                <ShouldRender
+                                    if={!requesting && scheduledEvent}
+                                >
+                                    <ScheduleEventDeleteBox
+                                        projectId={projectId}
+                                        scheduledEventId={scheduledEventId}
+                                    />
+                                </ShouldRender>
                             </Fade>
                         </TabPanel>
                     </Tabs>
