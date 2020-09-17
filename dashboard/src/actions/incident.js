@@ -514,6 +514,7 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
                 }
             }
         );
+        return promise;
     };
 }
 

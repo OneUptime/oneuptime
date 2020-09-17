@@ -414,6 +414,7 @@ module.exports = {
             await page.type('#name', statusPageName);
             await page.click('#btnCreateStatusPage');
         }
+        await page.waitForSelector('#btnCreateStatusPage', { hidden: true });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await page.$(
@@ -711,5 +712,10 @@ module.exports = {
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#user');
+    },
+    gotoTab: async function(tabId, page) {
+        await page.waitForSelector(`#react-tabs-${tabId}`);
+        await page.click(`#react-tabs-${tabId}`);
+        await page.waitFor(2000);
     },
 };

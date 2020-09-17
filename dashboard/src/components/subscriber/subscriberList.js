@@ -3,14 +3,22 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import countryTelephoneCode from 'country-telephone-code';
+import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { deleteSubscriber } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
+import { openModal } from '../../actions/modal';
+import DataPathHoC from '../DataPathHoC';
+import DeleteSubscriber from '../modals/DeleteSubscriber';
 
 export class SubscriberList extends Component {
+    state = {
+        deleteSubscriberModalId: uuid.v4(),
+    };
+
     componentDidMount() {
         const {
             subProjectId,
@@ -335,9 +343,25 @@ export class SubscriberList extends Component {
                                                                             deleting
                                                                         }
                                                                         onClick={() =>
-                                                                            this.props.deleteSubscriber(
-                                                                                subscriber.projectId,
-                                                                                subscriber._id
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: this
+                                                                                        .state
+                                                                                        .deleteSubscriberModalId,
+                                                                                    onClose: () =>
+                                                                                        '',
+                                                                                    onConfirm: () =>
+                                                                                        this.props.deleteSubscriber(
+                                                                                            subscriber.projectId,
+                                                                                            subscriber._id
+                                                                                        ),
+                                                                                    content: DataPathHoC(
+                                                                                        DeleteSubscriber,
+                                                                                        {
+                                                                                            deleting,
+                                                                                        }
+                                                                                    ),
+                                                                                }
                                                                             )
                                                                         }
                                                                         id={`deleteSubscriber_${index}`}
@@ -469,7 +493,7 @@ export class SubscriberList extends Component {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { deleteSubscriber, fetchMonitorsSubscribers },
+        { deleteSubscriber, fetchMonitorsSubscribers, openModal },
         dispatch
     );
 };
@@ -493,6 +517,7 @@ SubscriberList.propTypes = {
     deleteSubscriber: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func,
     subProjectId: PropTypes.string,
+    openModal: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscriberList);
