@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorChart from './MonitorChart';
 import uuid from 'uuid';
-import DateRangeWrapper from './DateRangeWrapper';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
 import moment from 'moment';
@@ -27,6 +26,7 @@ import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import CreateManualIncident from '../modals/CreateManualIncident';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -59,24 +59,37 @@ export class MonitorViewHeader extends Component {
             endDate
         );
     }
-
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleDateChange(startDate, this.state.endDate);
+    };
+    handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleDateChange(this.state.startDate, endDate);
+    };
     handleDateChange = (startDate, endDate) => {
-        this.setState({ startDate, endDate });
+        if (moment(startDate).isBefore(moment(endDate))) {
+            this.setState({ startDate, endDate });
 
-        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
+            const {
+                fetchMonitorLogs,
+                fetchMonitorStatuses,
+                monitor,
+            } = this.props;
 
-        fetchMonitorLogs(
-            monitor.projectId._id || monitor.projectId,
-            monitor._id,
-            startDate,
-            endDate
-        );
-        fetchMonitorStatuses(
-            monitor.projectId._id || monitor.projectId,
-            monitor._id,
-            startDate,
-            endDate
-        );
+            fetchMonitorLogs(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
+            fetchMonitorStatuses(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
+        }
     };
 
     editMonitor = () => {
@@ -214,10 +227,19 @@ export class MonitorViewHeader extends Component {
                         />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
-                                <DateRangeWrapper
-                                    selected={startDate}
-                                    onChange={this.handleDateChange}
-                                    dateRange={30}
+                                <DateTimeRangePicker
+                                    currentDateRange={{
+                                        startDate: startDate,
+                                        endDate: endDate,
+                                    }}
+                                    handleStartDateTimeChange={
+                                        this.handleStartDateTimeChange
+                                    }
+                                    handleEndDateTimeChange={
+                                        this.handleEndDateTimeChange
+                                    }
+                                    formId={'monitorDateTime'}
+                                    displayOnlyDate={true}
                                 />
                             </div>
                             <div>
