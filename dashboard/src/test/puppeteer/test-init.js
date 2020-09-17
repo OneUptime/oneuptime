@@ -619,6 +619,8 @@ module.exports = {
             visible: true,
         });
         await page.click(`#${eventBtn}`);
+        // navigate to the note tab section
+        await this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
         await page.waitForSelector(`#add-${type}-message`, {
             visible: true,
         });
