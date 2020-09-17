@@ -52,8 +52,8 @@ class ResourceTabularList extends Component {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
         let indicator, monitor, logs, probe;
-        let appSecurityStatus = 'no data yet',
-            containerSecurityStatus = 'no data yet',
+        let appSecurityStatus = 'currently scanning',
+            containerSecurityStatus = 'currently scanning',
             monitorStatus = '';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
@@ -121,7 +121,7 @@ class ResourceTabularList extends Component {
                         count={
                             data && data.vulnerabilities
                                 ? data.vulnerabilities[appSecurityStatus]
-                                : 0
+                                : ''
                         }
                     />
                 );
@@ -151,7 +151,7 @@ class ResourceTabularList extends Component {
                                 ? data.vulnerabilityInfo[
                                       containerSecurityStatus
                                   ]
-                                : 0
+                                : ''
                         }
                     />
                 );
