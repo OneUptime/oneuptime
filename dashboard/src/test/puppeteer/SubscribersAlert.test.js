@@ -78,9 +78,7 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector('#customTabList > li');
-                const tabs = await page.$$('#customTabList > li');
-                await tabs[2].click();
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -119,9 +117,7 @@ describe('Subscribers Alert logs API', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector('#customTabList > li');
-                const tabs = await page.$$('#customTabList > li');
-                await tabs[2].click();
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await page.waitForSelector('#alertViaId');
@@ -176,7 +172,7 @@ describe('Subscribers Alert logs API', () => {
                 );
                 await page.waitFor(3000);
                 await page.reload({ waitUntil: 'networkidle0' });
-
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector('#customTabList > li');
                 // navigate to Alert logs tab
                 await page.$$eval('#customTabList > li', elem =>

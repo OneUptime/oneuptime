@@ -4,25 +4,29 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { getMonitorLogs } from '../../actions/monitor';
 import MonitorLogsList from '../monitor/MonitorLogsList';
-import DateTimeRangeWrapper from './DateTimeRangeWrapper';
 import Select from '../../components/basic/react-select-fyipe';
 import ShouldRender from '../../components/basic/ShouldRender';
-import TimeRangeSelector from '../../components/basic/TimeRangeSelector';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
+import moment from 'moment';
 
+const endDate = moment();
+const startDate = moment().subtract(30, 'd');
 export class MonitorViewLogsBox extends Component {
     constructor(props) {
         super(props);
         this.props = props;
         this.state = {
             probeValue: { value: '', label: 'All Probes' },
+            startDate: startDate,
+            endDate: endDate,
         };
     }
 
     prevClicked = (monitorId, skip, limit) => {
         const { currentProject, getMonitorLogs } = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        const start = incidentId ? '' : this.props.startDate.clone().utc();
-        const end = incidentId ? '' : this.props.endDate.clone().utc();
+        const start = incidentId ? '' : this.state.startDate.clone().utc();
+        const end = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -43,8 +47,8 @@ export class MonitorViewLogsBox extends Component {
     nextClicked = (monitorId, skip, limit) => {
         const { currentProject, getMonitorLogs } = this.props;
         const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        const start = incidentId ? '' : this.props.startDate.clone().utc();
-        const end = incidentId ? '' : this.props.endDate.clone().utc();
+        const start = incidentId ? '' : this.state.startDate.clone().utc();
+        const end = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -61,9 +65,21 @@ export class MonitorViewLogsBox extends Component {
             });
         }
     };
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleDateChange(startDate, this.state.endDate);
+    };
+    handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleDateChange(this.state.startDate, endDate);
+    };
 
     handleDateChange = (startDate, endDate) => {
         const { currentProject, getMonitorLogs, monitorId } = this.props;
+        this.setState({
+            startDate,
+            endDate,
+        });
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -96,8 +112,8 @@ export class MonitorViewLogsBox extends Component {
             monitorId,
             0,
             10,
-            this.props.startDate.clone().utc(),
-            this.props.endDate.clone().utc(),
+            this.state.startDate.clone().utc(),
+            this.state.endDate.clone().utc(),
             data.value
         );
     };
@@ -143,17 +159,21 @@ export class MonitorViewLogsBox extends Component {
                         <br />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
-                                <DateTimeRangeWrapper
-                                    selected={this.props.startDate}
-                                    onChange={this.handleDateChange}
-                                    dateRange={1}
-                                />
-                            </div>
-                            <div className="db-Trends-timeControls">
-                                <TimeRangeSelector
-                                    name1="asdfgh"
-                                    name2="asdfghuio"
-                                    onChange={this.handleTimeChange}
+                                <DateTimeRangePicker
+                                    currentDateRange={{
+                                        startDate: this.state.startDate,
+                                        endDate: this.state.endDate,
+                                    }}
+                                    handleStartDateTimeChange={
+                                        this.handleStartDateTimeChange
+                                    }
+                                    handleEndDateTimeChange={
+                                        this.handleEndDateTimeChange
+                                    }
+                                    formId={'averageResolveTimeForm'}
+                                    style={{
+                                        height: '28px',
+                                    }}
                                 />
                             </div>
                             <div style={{ height: '28px', width: '250px' }}>
@@ -194,13 +214,11 @@ MonitorViewLogsBox.displayName = 'MonitorViewLogsBox';
 
 MonitorViewLogsBox.propTypes = {
     currentProject: PropTypes.object,
-    endDate: PropTypes.object,
     getMonitorLogs: PropTypes.func,
     incidentId: PropTypes.string,
     monitorId: PropTypes.string,
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
-    startDate: PropTypes.object,
     probes: PropTypes.array,
 };
 
@@ -213,8 +231,6 @@ function mapStateToProps(state, props) {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
         probes: state.probe.probes.data,
         currentProject: state.project.currentProject,
-        startDate: state.dateTime.dates.startDate,
-        endDate: state.dateTime.dates.endDate,
     };
 }
 

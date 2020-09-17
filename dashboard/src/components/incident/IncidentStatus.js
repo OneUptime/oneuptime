@@ -21,6 +21,7 @@ import { openModal } from '../../actions/modal';
 import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
+import { markAsRead } from '../../actions/notification';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -52,12 +53,19 @@ export class IncidentStatus extends Component {
 
     resolve = () => {
         const userId = User.getUserId();
-        this.props.resolveIncident(
-            this.props.incident.projectId,
-            this.props.incident._id,
-            userId,
-            this.props.multiple
-        );
+        this.props
+            .resolveIncident(
+                this.props.incident.projectId,
+                this.props.incident._id,
+                userId,
+                this.props.multiple
+            )
+            .then(() => {
+                this.props.markAsRead(
+                    this.props.incident.projectId,
+                    this.props.incident.notificationId
+                );
+            });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT RESOLVED',
@@ -918,7 +926,13 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { resolveIncident, acknowledgeIncident, closeIncident, openModal },
+        {
+            resolveIncident,
+            acknowledgeIncident,
+            closeIncident,
+            openModal,
+            markAsRead,
+        },
         dispatch
     );
 };
@@ -940,6 +954,7 @@ IncidentStatus.propTypes = {
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
+    markAsRead: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
