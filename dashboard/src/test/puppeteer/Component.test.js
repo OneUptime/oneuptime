@@ -488,9 +488,6 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
-                // click on Incident tab
-                await monitorPage.waitForSelector('#react-tabs-2');
-                await monitorPage.click('#react-tabs-2');
 
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`

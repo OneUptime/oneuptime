@@ -262,16 +262,25 @@ describe('Monitor API With SubProjects', () => {
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', data.monitorName);
                     await init.selectByText('#type', 'manual', page);
-                    await page.click('button[type=submit]');
-                    // create a monitor for subproject
-                    await page.waitForSelector('#monitors');
-                    await page.click('#monitors');
-                    await page.waitForSelector('#form-new-monitor');
+                    await page.click('#addMonitorButton');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                    await page.waitForSelector('#cbMonitors', {
+                        visible: true,
+                    });
+                    await page.click('#cbMonitors');
+                    await page.waitForSelector('#form-new-monitor', {
+                        visible: true,
+                    });
                     await page.click('input[id=name]');
                     await page.type('input[id=name]', `${data.monitorName}1`);
                     await init.selectByText('#type', 'manual', page);
-                    await page.click('button[type=submit]');
-
+                    await page.click('#addMonitorButton');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+                    await page.waitForSelector('#cbMonitors', {
+                        visible: true,
+                    });
+                    await page.click('#cbMonitors');
+                    await page.waitForSelector(`#badge_${subProjectName}`);
                     const subProjectBadgeSelector = await page.$(
                         `#badge_${subProjectName}`
                     );
@@ -280,7 +289,9 @@ describe('Monitor API With SubProjects', () => {
                         'innerText'
                     );
                     textContent = await textContent.jsonValue();
-                    expect(textContent).toEqual(subProjectName.toUpperCase());
+                    expect(textContent.toUpperCase()).toEqual(
+                        subProjectName.toUpperCase()
+                    );
                 }
             );
 

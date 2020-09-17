@@ -117,8 +117,6 @@ describe('StatusPage API With SubProjects', () => {
 
                     await init.loginUser(user, page);
 
-                    // switch to invited project for new user
-                    // await init.switchProject(data.projectName, page);
                     await page.waitForSelector('#statusPages');
                     await page.click('#statusPages');
 
@@ -126,7 +124,7 @@ describe('StatusPage API With SubProjects', () => {
                         `#btnCreateStatusPage_${data.subProjectName}`
                     );
 
-                    expect(createButton).toBe(null);
+                    expect(createButton).toBeNull();
                 }
             );
 
@@ -152,7 +150,6 @@ describe('StatusPage API With SubProjects', () => {
                         data.subProjectName,
                         page
                     );
-                    await page.waitFor(2000);
                     await page.waitForSelector(
                         `#status_page_count_${data.subProjectName}`
                     );
@@ -191,13 +188,9 @@ describe('StatusPage API With SubProjects', () => {
                         data.subProjectName,
                         page
                     );
-                    await page.waitFor(2000);
                 }
                 await init.logout(page);
             } else {
-                // await cluster.waitForOne();
-                // // switch to invited project for new user
-                // await init.switchProject(data.projectName, page);
                 await page.waitForSelector('#statusPages');
                 await page.click('#statusPages');
 
@@ -248,7 +241,7 @@ describe('StatusPage API With SubProjects', () => {
         'should update sub-project status page settings',
         async done => {
             await cluster.execute(
-                { email, password, subProjectMonitorName },
+                { email, password, projectName, subProjectName },
                 async ({ page, data }) => {
                     const user = {
                         email: data.email,
@@ -260,26 +253,36 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
                     await page.click('tr.statusPageListItem');
-                    await page.waitForSelector(`#btnAddStatusPageMonitors`);
-                    await page.click('#btnAddStatusPageMonitors');
-                    await page.click('#react-tabs-2');
-                    await page.click('#domain');
-                    await page.type('#domain', 'https://fyipe.com');
-                    await page.click('#btnAddDomain');
-                    await page.click('#react-tabs-4');
-                    await page.click('textarea[name=description]');
-                    await page.type(
-                        'textarea[name=description]',
-                        'Statuspage Description'
+
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to branding tab
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[2].click()
                     );
-                    await page.waitForSelector('#btnAddLink');
-                    await page.click('#btnAddLink');
-                    await page.waitForSelector('#footerName');
-                    await page.click('#footerName');
-                    await page.type('#footerName', 'Home');
-                    await page.click('#url');
-                    await page.type('#url', 'https://fyipe.com');
-                    await page.click('#createFooter');
+                    const pageTitle = 'MyCompany';
+                    const pageDescription = 'MyCompany description';
+                    await page.waitForSelector('#title');
+                    await page.type('#title', pageTitle);
+                    await page.type(
+                        '#account_app_product_description',
+                        pageDescription
+                    );
+                    await page.click('#saveBranding');
+                    await page.waitForSelector('.ball-beat', { hidden: true });
+
+                    await page.reload({ waitUntil: 'networkidle0' });
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to branding tab
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[2].click()
+                    );
+                    await page.waitForSelector('#title');
+                    const title = await page.$eval(
+                        '#title',
+                        elem => elem.value
+                    );
+
+                    expect(title).toEqual(pageTitle);
                 }
             );
 
@@ -308,16 +311,22 @@ describe('StatusPage API With SubProjects', () => {
                     await page.click('#statusPages');
                     await page.waitForSelector('tr.statusPageListItem');
                     await page.click('tr.statusPageListItem');
-                    await page.click('#react-tabs-6');
+                    await page.waitForSelector('#customTabList > li');
+                    // navigate to advanced options
+                    await page.$$eval('#customTabList > li', elem =>
+                        elem[3].click()
+                    );
                     await page.waitForSelector('#delete');
                     await page.click('#delete');
                     await page.waitForSelector('#confirmDelete');
                     await page.click('#confirmDelete');
-                    await page.waitFor(5000);
+                    await page.waitForSelector('#confirmDelete', {
+                        hidden: true,
+                    });
                     await page.waitForSelector('#statusPages');
                     await page.click('#statusPages');
-                    await page.waitFor(5000);
 
+                    await page.waitForSelector('tr.statusPageListItem');
                     const statusPageRows = await page.$$(
                         'tr.statusPageListItem'
                     );

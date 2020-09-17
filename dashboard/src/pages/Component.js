@@ -213,6 +213,12 @@ class DashboardView extends Component {
                                                         />
                                                         <ShouldRender
                                                             if={
+                                                                (!this.props
+                                                                    .tutorialStat
+                                                                    .componentCustom
+                                                                    .show ||
+                                                                    allComponents.length >
+                                                                        0) &&
                                                                 this.props
                                                                     .tutorialStat
                                                                     .component
