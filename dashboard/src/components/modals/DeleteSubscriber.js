@@ -47,11 +47,12 @@ class DeleteSubscriber extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
+                                        id="cancelDeleteSubscriber"
                                     >
                                         <span>Cancel</span>
                                     </button>
                                     <button
-                                        id="deleteComponent"
+                                        id="deleteSubscriber"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
