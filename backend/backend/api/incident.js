@@ -119,6 +119,7 @@ router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
         });
         await MonitorStatusService.create({
             monitorId,
+            incidentId: incident._id,
             manuallyCreated: true,
             status: incidentType,
         });
