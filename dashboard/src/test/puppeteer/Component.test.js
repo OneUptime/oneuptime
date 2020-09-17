@@ -272,7 +272,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create a new monitor in component',
+        'Should create a new monitor in component and confirm that monitor quick tip shows',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -293,6 +293,16 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
+
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                const customTutorialType = 'monitor';
+                // find monitor quick tip and confirm it shows
+                const monitorQuickTip = await page.waitForSelector(
+                    `#quick-tip-${customTutorialType}`
+                );
+                expect(monitorQuickTip).toBeDefined();
             });
         },
         operationTimeOut
