@@ -731,11 +731,9 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 }
 .bs-Button-subscribe{
     padding: 4px 12px 2px;
-    background-color: #000000;
     border-radius: 4px;
     border:none;
     outline: none;
-    color: #fff;
     cursor: pointer;
     font-size: 15px;
     font-weight: 500;
@@ -745,7 +743,16 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
     vertical-align: middle;
     white-space: nowrap;
     word-break: keep-all;
-    transition: box-shadow 0.08s ease-in, color 0.08s ease-in;
+    transition: box-shadow 0.08s ease-in, color 0.08s ease-in, background-color 0.1s ease-in;
+
+    box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
+    color: #000;
+    background-color: #fff;
+}
+.bs-Button-subscribe:hover {
+  background-color: #000;
+  color: #fff;
+  box-shadow: none;
 }
 .subscribe-overlay{
   background:rgba(82, 95, 127, 0.25);
@@ -964,7 +971,7 @@ margin-left:10px;
 
 /* When the checkbox is checked, add a blue background */
 .container-checkbox input:checked ~ .checkmark {
-  background-color: rgb(35, 156, 255);
+  background-color: #000;
   overflow: visible;
 }
 

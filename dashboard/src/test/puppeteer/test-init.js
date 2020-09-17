@@ -713,4 +713,9 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#user');
     },
+    gotoTab: async function(tabId, page) {
+        await page.waitForSelector(`#react-tabs-${tabId}`);
+        await page.click(`#react-tabs-${tabId}`);
+        await page.waitFor(2000);
+    },
 };

@@ -20,7 +20,7 @@ const theme = createMuiTheme({
 const styles = () => ({
     input: {
         flex: '0 0 auto',
-        padding: '4px 0px 2px 7px',
+        padding: '4px 4px 2px 7px',
         color: '#000000',
         cursor: 'text',
         fontSize: '14px',
@@ -41,7 +41,7 @@ const styles = () => ({
     },
 });
 
-const CustomDateTimeSelector = ({
+const DateTimeWrapper = ({
     input,
     meta: { touched, error },
     style,
@@ -120,9 +120,9 @@ const CustomDateTimeSelector = ({
     );
 };
 
-CustomDateTimeSelector.displayName = 'CustomDateTimeSelector';
+DateTimeWrapper.displayName = 'DateTimeWrapper';
 
-CustomDateTimeSelector.propTypes = {
+DateTimeWrapper.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,
     meta: PropTypes.object.isRequired,
@@ -133,4 +133,4 @@ CustomDateTimeSelector.propTypes = {
     maxDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 
-export default withStyles(styles)(CustomDateTimeSelector);
+export default withStyles(styles)(DateTimeWrapper);

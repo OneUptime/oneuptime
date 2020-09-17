@@ -321,6 +321,12 @@ class DashboardView extends Component {
                                                         />
                                                         <ShouldRender
                                                             if={
+                                                                (!this.props
+                                                                    .tutorialStat
+                                                                    .monitorCustom
+                                                                    .show ||
+                                                                    allMonitors.length >
+                                                                        0) &&
                                                                 this.props
                                                                     .tutorialStat
                                                                     .monitor

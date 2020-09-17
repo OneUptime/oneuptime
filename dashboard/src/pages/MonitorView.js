@@ -161,24 +161,21 @@ class MonitorView extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
-                                    Incidents
-                                </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Integrations
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-5'}>
+                                <Tab className={'custom-tab custom-tab-4'}>
                                     Advanced Options
                                 </Tab>
                                 <div
                                     id="tab-slider"
-                                    className="custom-tab-5"
+                                    className="custom-tab-4"
                                 ></div>
                             </TabList>
                         </div>
@@ -284,6 +281,20 @@ class MonitorView extends React.Component {
                                                                                 />
                                                                             </ShouldRender>
                                                                         </div>
+                                                                        <div className="Box-root Margin-bottom--12">
+                                                                            <MonitorViewIncidentBox
+                                                                                componentId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .componentId
+                                                                                }
+                                                                                monitor={
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                }
+                                                                            />
+                                                                        </div>
                                                                         <ShouldRender
                                                                             if={
                                                                                 this
@@ -353,24 +364,6 @@ class MonitorView extends React.Component {
                                                                                 />
                                                                             </div>
                                                                         </ShouldRender>
-                                                                    </Fade>
-                                                                </TabPanel>
-                                                                <TabPanel>
-                                                                    <Fade>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <MonitorViewIncidentBox
-                                                                                componentId={
-                                                                                    this
-                                                                                        .props
-                                                                                        .componentId
-                                                                                }
-                                                                                monitor={
-                                                                                    this
-                                                                                        .props
-                                                                                        .monitor
-                                                                                }
-                                                                            />
-                                                                        </div>
                                                                     </Fade>
                                                                 </TabPanel>
                                                                 <TabPanel>

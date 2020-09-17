@@ -84,11 +84,16 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should show the incident created pop up to other team members',
+        'Should not show incident popup for resolved incidemnts',
         async () => {
             const projectName = 'Project1';
             const role = 'Member';
             return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('button[id=viewIncident-0]');
+                await page.click('button[id=viewIncident-0]');
+                await page.waitForSelector('#btnResolve_0');
+                await page.click('#btnResolve_0');
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Invite member on the project
@@ -106,6 +111,30 @@ describe('Incident Created test', () => {
                     hidden: true,
                 });
 
+                await init.logout(page);
+                await init.loginUser(user1, page);
+                // Switch projects
+                await init.switchProject(projectName, page);
+                const viewIncidentButton = await page.$(
+                    'button[id=viewIncident-0]',
+                    { visible: true }
+                );
+                expect(viewIncidentButton).toBe(null);
+                await init.logout(page);
+                await init.loginUser(user, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should show the incident created pop up to other team members',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await init.addIncident(monitorName, 'Degraded', page, 'Low');
                 await init.logout(page);
                 await init.loginUser(user1, page);
                 // Switch projects
@@ -374,7 +403,7 @@ describe('Incident Created test', () => {
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
 
-                expect(filteredIncidentsCount).toEqual(3);
+                expect(filteredIncidentsCount).toEqual(4);
             });
         },
         operationTimeOut
@@ -401,7 +430,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(4);
+                expect(filteredIncidentsCount).toEqual(5);
             });
         },
         operationTimeOut
@@ -430,7 +459,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(5);
+                expect(filteredIncidentsCount).toEqual(6);
             });
         },
         operationTimeOut
