@@ -15,20 +15,22 @@ const user = {
 };
 
 describe('Login API', () => {
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(150000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await browser.close();
+        done();
     });
 
-    it('Should login valid User', async () => {
+    it('Should login valid User', async done => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
 
@@ -48,5 +50,6 @@ describe('Login API', () => {
             utils.BACKEND_URL.includes('localhost') ? email : 'user@fyipe.com'
         );
         page.url().should.containEql(utils.DASHBOARD_URL);
+        done();
     }, 200000);
 });

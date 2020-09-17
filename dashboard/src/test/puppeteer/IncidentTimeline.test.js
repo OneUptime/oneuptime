@@ -96,17 +96,16 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitFor(2000);
-                // click on incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 // fill investigation message thread form
                 await page.waitFor(2000);
@@ -154,17 +153,15 @@ describe('Incident Timeline API', () => {
                 );
                 await page.click(`#more-details-${projectMonitorName}`);
 
-                // click on incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -210,17 +207,15 @@ describe('Incident Timeline API', () => {
                 );
                 await page.click(`#more-details-${projectMonitorName}`);
 
-                // click on incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
                 // fill internal message thread form
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
@@ -268,16 +263,14 @@ describe('Incident Timeline API', () => {
                 );
                 await page.click(`#more-details-${projectMonitorName}`);
 
-                // click on incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
-
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -326,17 +319,16 @@ describe('Incident Timeline API', () => {
                     `#more-details-${projectMonitorName}`
                 );
                 await page.click(`#more-details-${projectMonitorName}`);
-                // click on incident tab
-                await page.waitForSelector('#react-tabs-2');
-                await page.click('#react-tabs-2');
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
                 await page.click(`#incident_${projectMonitorName}_0`);
                 await page.waitFor(2000);
 
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 await page.waitForSelector(
                     `#delete_${type}_incident_message_0`
@@ -373,17 +365,12 @@ describe('Incident Timeline API', () => {
             await page.waitForSelector(`#more-details-${projectMonitorName}`);
             await page.click(`#more-details-${projectMonitorName}`);
 
-            // click on incident tab
-            await page.waitForSelector('#react-tabs-2');
-            await page.click('#react-tabs-2');
-
             await page.waitForSelector(`#incident_${projectMonitorName}_0`);
             await page.$eval(`#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             // click on incident notes tab
-            await page.waitForSelector('#react-tabs-8');
-            await page.click('#react-tabs-8');
+            await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
             await page.waitFor(2000);
 
             for (let i = 0; i < 10; i++) {
@@ -401,8 +388,10 @@ describe('Incident Timeline API', () => {
             }
 
             // click on timeline tab
-            await page.waitForSelector('#react-tabs-6');
-            await page.click('#react-tabs-6');
+            await init.gotoTab(
+                utils.incidentTabIndexes.INCIDENT_TIMELINE,
+                page
+            );
             await page.waitFor(2000);
 
             await page.waitForSelector('#incidentTimeline tr.incidentListItem');
