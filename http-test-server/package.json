@@ -7,7 +7,7 @@
         "start": "node server.js",
         "dev": "cross-env NODE_ENV=development nodemon server.js",
         "audit": "npm-audit-ci-wrapper --threshold=high",
-        "test": "jest --runInBand test",
+        "test": "jest --forceExit --runInBand test",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "keywords": [],
