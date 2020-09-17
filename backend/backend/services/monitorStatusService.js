@@ -145,6 +145,31 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const monitorStatus = await MonitorStatusModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return monitorStatus;
+        } catch (error) {
+            ErrorService.log('monitorStatusService.deleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const MonitorStatusModel = require('../models/monitorStatus');
