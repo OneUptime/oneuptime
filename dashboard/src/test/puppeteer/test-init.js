@@ -414,6 +414,7 @@ module.exports = {
             await page.type('#name', statusPageName);
             await page.click('#btnCreateStatusPage');
         }
+        await page.waitForSelector('#btnCreateStatusPage', { hidden: true });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await page.$(

@@ -740,6 +740,7 @@ export class Branding extends Component {
 
                             <div>
                                 <button
+                                    id="saveBranding"
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={
                                         this.props.statusPage.branding

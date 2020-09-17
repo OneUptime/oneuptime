@@ -4,20 +4,22 @@ const util = require('./test-utils');
 let page, browser;
 
 describe('Request demo', () => {
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(util.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await browser.close();
+        done();
     });
 
-    test('user can submit request a demo form', async () => {
+    test('user can submit request a demo form', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/demo`);
         await page.waitForSelector('#form-section');
         await page.type('#fullname', util.user.name);
@@ -38,8 +40,9 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
+        done();
     }, 30000);
-    test('user can request for website monitoring resource', async () => {
+    test('user can request for website monitoring resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#website-monitoring');
         await Promise.all([
@@ -63,8 +66,9 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
+        done();
     }, 30000);
-    test('user can request for speed equals revenue resource', async () => {
+    test('user can request for speed equals revenue resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#speed-revenue');
         await Promise.all([
@@ -88,8 +92,9 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
+        done();
     }, 30000);
-    test('user can request for best practices resource', async () => {
+    test('user can request for best practices resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#best-practices');
         await Promise.all([
@@ -113,8 +118,9 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
+        done();
     }, 30000);
-    test('user can request for peak performance resource', async () => {
+    test('user can request for peak performance resource', async done => {
         await page.goto(`${util.HOME_URL}/enterprise/resources`);
         await page.waitForSelector('#peak-performance');
         await Promise.all([
@@ -138,5 +144,6 @@ describe('Request demo', () => {
             () => document.querySelector('.submitted-email').innerText
         );
         expect(emailSubmitted).toBe(util.user.email);
+        done();
     }, 30000);
 });
