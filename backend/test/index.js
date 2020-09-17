@@ -37,8 +37,8 @@ try {
     require('./user.test');
     require('./version.test');
     require('./applicationLog.test');
-    // require('./slack.test');
-    // require('./webhooks.test');
+    require('./slack.test');
+    require('./webhooks.test');
     require('./zapier.test');
     require('./rateLimit.test');
 } catch (error) {
