@@ -18,7 +18,6 @@ deploy_staging_log-java:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-java
-        # - gpg --list-keys
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
         # - gpg --list-keys
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
