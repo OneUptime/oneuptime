@@ -15,7 +15,6 @@ stages:
 include:
   # GLOBAL JOBS
   - '/ci/spec/global/lint.yaml'
-  # - '/ci/spec/global/cleanup.yaml'
   - '/ci/spec/global/rollback.yaml'
 
   # ACCOUNTS
