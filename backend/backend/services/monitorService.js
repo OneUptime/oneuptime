@@ -56,8 +56,8 @@ module.exports = {
             const count = await _this.countBy({
                 projectId: { $in: subProjectIds },
             });
-            const monitorCategory = await MonitorCategoryService.findBy({
-                _id: data.monitorCategoryId,
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategoryId,
             });
             let plan = Plans.getPlanById(project.stripePlanId);
             // null plan => enterprise plan
@@ -99,8 +99,8 @@ module.exports = {
                         monitor.data = {};
                         monitor.data.script = data.data.script;
                     }
-                    if (monitorCategory) {
-                        monitor.monitorCategoryId = data.monitorCategoryId;
+                    if (resourceCategory) {
+                        monitor.resourceCategoryId = data.resourceCategoryId;
                     }
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                     monitor.componentId = data.componentId;
@@ -229,7 +229,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('monitorCategoryId', 'name');
+                .populate('resourceCategoryId', 'name');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -247,7 +247,7 @@ module.exports = {
             const monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('monitorCategoryId', 'name');
+                .populate('resourceCategoryId', 'name');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -991,7 +991,7 @@ const MonitorLogService = require('./monitorLogService');
 const MonitorLogByHourService = require('./monitorLogByHourService');
 const MonitorLogByDayService = require('./monitorLogByDayService');
 const MonitorLogByWeekService = require('./monitorLogByWeekService');
-const MonitorCategoryService = require('./monitorCategoryService');
+const ResourceCategoryService = require('./resourceCategoryService');
 const MonitorCriteriaService = require('./monitorCriteriaService');
 const Plans = require('./../config/plans');
 const RealTimeService = require('./realTimeService');

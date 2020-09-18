@@ -23,7 +23,7 @@ import emailTemplates from './emailTemplates';
 import smsTemplates from './smsTemplates';
 import subscriber from './subscriber';
 import scheduledEvent from './scheduledEvent';
-import monitorCategories from './monitorCategories';
+import resourceCategories from './resourceCategories';
 import card from './card';
 import page from './page';
 import probe from './probe';
@@ -48,7 +48,7 @@ const appReducer = combineReducers({
     changePassword,
     component,
     monitor,
-    monitorCategories,
+    resourceCategories,
     schedule,
     statusPage,
     incident,
