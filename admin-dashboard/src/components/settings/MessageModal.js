@@ -24,18 +24,26 @@ const MessageModal = props => {
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Info</span>
+                                    <span>
+                                        {testError ? 'Test failed' : 'Success'}
+                                    </span>
                                 </span>
                             </div>
                         </div>
-                        <div className="bs-Modal-content">
+                        <div className="Flex-flex bs-Modal-content">
                             <ShouldRender if={testError}>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Test failed
+                                <span
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-align--center Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    style={{ flex: 1 }}
+                                >
+                                    {testError}
                                 </span>
                             </ShouldRender>
                             <ShouldRender if={!testError}>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                <span
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-align--center Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                    style={{ flex: 1 }}
+                                >
                                     Test is successful
                                 </span>
                             </ShouldRender>
