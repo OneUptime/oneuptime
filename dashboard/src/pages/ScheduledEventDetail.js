@@ -37,12 +37,12 @@ class ScheduledEvent extends Component {
     componentWillMount() {
         resetIdCounter();
     }
-
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
     ready = () => {
+        resetIdCounter();
         const {
             match,
             fetchscheduledEvent,
