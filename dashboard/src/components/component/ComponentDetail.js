@@ -281,6 +281,7 @@ export class ComponentDetail extends Component {
                                                 currentProject={
                                                     this.props.currentProject
                                                 }
+                                                componentName={component.name}
                                             />
                                         </div>
                                     </div>
