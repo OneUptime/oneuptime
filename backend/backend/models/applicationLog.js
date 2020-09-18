@@ -9,6 +9,10 @@ const applicationLogSchema = new Schema({
     }, //which component this application log belongs to.
     name: String,
     key: String,
+    resourceCategoryId: {
+        type: Schema.Types.ObjectId,
+        ref: 'ResourceCategory',
+    },
     createdById: { type: String, ref: 'User' }, //userId.
     createdAt: {
         type: Date,
