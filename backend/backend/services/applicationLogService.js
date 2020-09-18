@@ -171,7 +171,7 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) {
                 query = {};
@@ -185,6 +185,16 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if (unsetData) {
+                applicationLog = await ApplicationLogModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
 
             applicationLog = await this.findOneBy(query);
 

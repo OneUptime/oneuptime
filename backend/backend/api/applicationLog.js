@@ -345,14 +345,21 @@ router.put(
         }
 
         // application Log is valid
-        const newName = {
+        const applicationLogUpdate = {
             name: data.name,
         };
 
+        let unsetData;
+        if (!data.resourceCategoryId || data.resourceCategoryId === '') {
+            unsetData = { resourceCategoryId: '' };
+        } else {
+            applicationLogUpdate.resourceCategoryId = data.resourceCategoryId;
+        }
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
-                newName
+                applicationLogUpdate,
+                unsetData
             );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
