@@ -72,7 +72,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('componentId', 'name');
+                .populate('componentId', 'name')
+                .populate('resourceCategoryId', 'name');
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);
@@ -87,9 +88,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLog = await ApplicationLogModel.findOne(
-                query
-            ).populate('componentId', 'name');
+            const applicationLog = await ApplicationLogModel.findOne(query)
+                .populate('componentId', 'name')
+                .populate('resourceCategoryId', 'name');
             return applicationLog;
         } catch (error) {
             ErrorService.log('applicationLogService.findOneBy', error);
