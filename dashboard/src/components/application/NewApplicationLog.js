@@ -334,6 +334,8 @@ const mapStateToProps = (state, ownProps) => {
         name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
         resourceCategoryId: ownProps.applicationLog
             ? ownProps.applicationLog.resourceCategoryId
+                ? ownProps.applicationLog.resourceCategoryId._id
+                : ''
             : '',
     };
     return {
