@@ -337,8 +337,8 @@ describe('Scheduled Event Note ==> Pagination', () => {
             await init.registerUser(user, page);
             await init.loginUser(user, page);
             // Create component
-            await init.addComponent(componentName, page);
-            await init.addMonitorToComponent(null, monitorName, page);
+            // await init.addComponent(componentName, page);
+            await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
             // create multiple notes
@@ -455,8 +455,8 @@ describe('Scheduled Event Details ==> Deletion', () => {
             await init.registerUser(user, page);
             await init.loginUser(user, page);
             // Create component
-            await init.addComponent(componentName, page);
-            await init.addMonitorToComponent(null, monitorName, page);
+            // await init.addComponent(componentName, page);
+            await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
         });
