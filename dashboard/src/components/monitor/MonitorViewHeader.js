@@ -201,7 +201,7 @@ export class MonitorViewHeader extends Component {
                             </Badge>
                         </div>
                     )}
-                    <ShouldRender if={monitor && monitor.monitorCategoryId}>
+                    <ShouldRender if={monitor && monitor.resourceCategoryId}>
                         <div
                             className={`Box-root Padding-top--20 ${
                                 (subProjects && subProjects.length > 0) ||
@@ -211,8 +211,8 @@ export class MonitorViewHeader extends Component {
                             }`}
                         >
                             <Badge color={'slate5'}>
-                                {monitor && monitor.monitorCategoryId
-                                    ? monitor.monitorCategoryId.name
+                                {monitor && monitor.resourceCategoryId
+                                    ? monitor.resourceCategoryId.name
                                     : ''}
                             </Badge>
                         </div>

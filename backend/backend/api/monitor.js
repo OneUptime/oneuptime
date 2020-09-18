@@ -54,12 +54,12 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         } */
 
         if (
-            data.monitorCategoryId &&
-            typeof data.monitorCategoryId !== 'string'
+            data.resourceCategoryId &&
+            typeof data.resourceCategoryId !== 'string'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor Category ID is not of string type.',
+                message: 'Resource Category ID is not of string type.',
             });
         }
         if (!data.name) {
@@ -306,8 +306,8 @@ router.put(
                 }
             }
             let unsetData;
-            if (!data.monitorCategoryId || data.monitorCategoryId === '') {
-                unsetData = { monitorCategoryId: '' };
+            if (!data.resourceCategoryId || data.resourceCategoryId === '') {
+                unsetData = { resourceCategoryId: '' };
             }
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },
