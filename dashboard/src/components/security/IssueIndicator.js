@@ -22,11 +22,9 @@ const IssueIndicator = ({ status, resourceName, count }) => {
     resourceName
         ? (content = (
               <div className="Flex-flex">
-                  {status !== 'currently scanning' && (
-                      <div
-                          className={`db-Badge Box-background--${statusColor}`}
-                      ></div>
-                  )}
+                  <div
+                      className={`db-Badge Box-background--${statusColor}`}
+                  ></div>
                   <span
                       id={`resource_status_${resourceName}`}
                       className={`Text-color--${statusColor}`}
