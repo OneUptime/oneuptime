@@ -230,6 +230,13 @@ module.exports = {
                 );
                 if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
+                if (
+                    Array.isArray(incidentIdsOrRetry) &&
+                    incidentIdsOrRetry.length
+                ) {
+                    data.incidentId = incidentIdsOrRetry[0];
+                }
+
                 await MonitorStatusService.create(data);
 
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {

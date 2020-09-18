@@ -28,6 +28,7 @@ module.exports = {
 
                 monitorStatus.monitorId = data.monitorId;
                 monitorStatus.probeId = data.probeId || null;
+                monitorStatus.incidentId = data.incidentId || null;
                 monitorStatus.manuallyCreated = data.manuallyCreated || false;
                 monitorStatus.status = data.status;
 
@@ -48,6 +49,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             const updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(
                 query,
@@ -69,6 +71,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             let updatedData = await MonitorStatusModel.updateMany(query, {
                 $set: data,
@@ -98,6 +101,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             const monitorStatus = await MonitorStatusModel.find(query)
                 .sort({ createdAt: -1 })
@@ -115,6 +119,8 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
+
             const monitorStatus = await MonitorStatusModel.findOne(
                 query,
                 {},
@@ -142,6 +148,53 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('MonitorStatusService.sendMonitorStatus', error);
+            throw error;
+        }
+    },
+    deleteBy: async function(query, userId) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const monitorStatus = await MonitorStatusModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            if (monitorStatus) {
+                const {
+                    manuallyCreated,
+                    probeId,
+                    createdAt,
+                    endTime,
+                } = monitorStatus;
+                const previousMonitorStatuses = await MonitorStatusModel.find({
+                    manuallyCreated,
+                    probeId,
+                    deleted: false,
+                    createdAt: { $lte: createdAt },
+                }).sort([['createdAt', -1]]);
+                if (previousMonitorStatuses && previousMonitorStatuses.length) {
+                    const previousMonitorStatus = previousMonitorStatuses[0];
+                    await _this.updateOneBy(
+                        { _id: previousMonitorStatus._id },
+                        { endTime }
+                    );
+                }
+            }
+            return monitorStatus;
+        } catch (error) {
+            ErrorService.log('monitorStatusService.deleteBy', error);
             throw error;
         }
     },
