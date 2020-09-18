@@ -306,7 +306,7 @@ describe('Scheduled Event Note', () => {
     );
 });
 
-describe('Scheduled Event Note ==> Pagination', () => {
+describe('Scheduled Event Note ==> Pagination and Deletion', () => {
     const operationTimeOut = 50000;
 
     let cluster;
@@ -422,51 +422,6 @@ describe('Scheduled Event Note ==> Pagination', () => {
         },
         operationTimeOut
     );
-});
-describe('Scheduled Event Details ==> Deletion', () => {
-    const operationTimeOut = 50000;
-
-    let cluster;
-
-    beforeAll(async done => {
-        jest.setTimeout(200000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        // Register user
-        await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email: anotherEmail,
-                password,
-            };
-
-            // user
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
-            // Create component and monitor
-            await init.addMonitorToComponent(componentName, monitorName, page);
-            // Create a scheduled event
-            await init.addScheduledEvent(monitorName, scheduledEventName, page);
-        });
-
-        done();
-    });
-
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
-        done();
-    });
-
     test(
         'should visit the advance section and delete the schedule event',
         async done => {
