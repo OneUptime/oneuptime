@@ -99,11 +99,7 @@ describe('Custom Twilio Settings', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector('#customTabList > li');
-                // navigate to subscribers tab
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[2].click()
-                );
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await init.selectByText('#alertViaId', 'SMS', page);
@@ -111,12 +107,11 @@ describe('Custom Twilio Settings', () => {
                 await init.selectByText('#countryCodeId', countryCode, page);
                 await page.type('#contactPhoneId', phoneNumber);
                 await page.click('#createSubscriber');
+                await page.waitForSelector('#createSubscriber', {
+                    hidden: true,
+                });
 
-                await page.waitForSelector('#customTabList > li');
-                // navigate to incidents tab
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
+                await init.gotoTab(utils.monitorTabIndexes.BASIC);
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
@@ -131,12 +126,9 @@ describe('Custom Twilio Settings', () => {
                 await page.$eval(`#incident_${monitorName}_0`, elem =>
                     elem.click()
                 );
-                await page.waitForSelector('#customTabList > li');
-                // navigate to alert logs
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[2].click()
-                );
+                await page.waitForSelector('#incident_0');
 
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );
@@ -167,11 +159,6 @@ describe('Custom Twilio Settings', () => {
                     page
                 );
 
-                await page.waitForSelector('#customTabList > li');
-                // navigate to incidents tab
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
                 await page.waitForSelector(`#incident_${monitorName}_0`);
                 await page.$eval(`#incident_${monitorName}_0`, elem =>
                     elem.click()
@@ -183,12 +170,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await page.waitForSelector('#customTabList > li');
-                // navigate to alert logs
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[2].click()
-                );
-
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );
@@ -220,11 +202,6 @@ describe('Custom Twilio Settings', () => {
                     page
                 );
 
-                await page.waitForSelector('#customTabList > li');
-                // navigate to incidents tab
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
                 await page.waitForSelector(`#incident_${monitorName}_0`);
                 await page.$eval(`#incident_${monitorName}_0`, elem =>
                     elem.click()
@@ -236,12 +213,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await page.waitForSelector('#customTabList > li');
-                // navigate to alert logs
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[2].click()
-                );
-
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );
