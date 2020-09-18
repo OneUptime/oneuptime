@@ -51,6 +51,15 @@ router.post(
                     message: 'Application Log Name is required.',
                 });
             }
+            if (
+                data.resourceCategoryId &&
+                typeof data.resourceCategoryId !== 'string'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Resource Category ID is not of string type.',
+                });
+            }
 
             data.componentId = componentId;
 
