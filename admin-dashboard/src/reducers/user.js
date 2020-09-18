@@ -43,9 +43,6 @@ import {
     UPDATE_TWO_FACTOR_AUTH_SUCCESS,
     UPDATE_TWO_FACTOR_AUTH_FAILURE,
     SET_TWO_FACTOR_AUTH,
-    GENERATE_TWO_FACTOR_QR_REQUEST,
-    GENERATE_TWO_FACTOR_QR_SUCCESS,
-    GENERATE_TWO_FACTOR_QR_FAILURE,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -106,12 +103,6 @@ const INITIAL_STATE = {
         success: false,
     },
     twoFactorAuthSetting: {
-        error: null,
-        requesting: false,
-        success: false,
-        data: {},
-    },
-    qrCode: {
         error: null,
         requesting: false,
         success: false,
@@ -583,37 +574,6 @@ export default function user(state = INITIAL_STATE, action) {
                 user: {
                     ...state.user,
                     twoFactorAuthEnabled: action.payload,
-                },
-            });
-
-        //generate user's QR code
-        case GENERATE_TWO_FACTOR_QR_REQUEST:
-            return Object.assign({}, state, {
-                qrCode: {
-                    requesting: true,
-                    error: null,
-                    success: false,
-                    data: state.qrCode.data,
-                },
-            });
-
-        case GENERATE_TWO_FACTOR_QR_SUCCESS:
-            return Object.assign({}, state, {
-                qrCode: {
-                    requesting: false,
-                    error: null,
-                    success: false,
-                    data: action.payload,
-                },
-            });
-
-        case GENERATE_TWO_FACTOR_QR_FAILURE:
-            return Object.assign({}, state, {
-                qrCode: {
-                    requesting: false,
-                    error: action.payload,
-                    success: false,
-                    data: state.qrCode.data,
                 },
             });
 

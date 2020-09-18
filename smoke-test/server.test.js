@@ -4,16 +4,18 @@ const puppeteer = require('puppeteer');
 let page, browser;
 
 describe('Check Server', () => {
-    beforeAll(async () => {
+    beforeAll(async done => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await browser.close();
+        done();
     });
 
-    test('should get hosts mapping from server', async () => {
+    test('should get hosts mapping from server', async done => {
         await page.goto(`${utils.BACKEND_URL}/server/hosts`, {
             waitUntil: 'networkidle0',
         });
@@ -40,9 +42,10 @@ describe('Check Server', () => {
             }
         }
         expect(response).toBe(expectedResponse);
+        done();
     });
 
-    test('should get saas status true from server', async () => {
+    test('should get saas status true from server', async done => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
             waitUntil: 'networkidle0',
         });
@@ -50,5 +53,6 @@ describe('Check Server', () => {
             return e.innerHTML;
         });
         expect(response).toBe('{"result":true}');
+        done();
     });
 });

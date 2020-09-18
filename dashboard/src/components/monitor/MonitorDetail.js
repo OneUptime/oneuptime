@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 import uuid from 'uuid';
-import DateRangeWrapper from './DateRangeWrapper';
 import {
     editMonitorSwitch,
     selectedProbe,
@@ -29,6 +28,7 @@ import ProbeBar from './ProbeBar';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 export class MonitorDetail extends Component {
     constructor(props) {
@@ -68,6 +68,14 @@ export class MonitorDetail extends Component {
         this.setState({ nowHandler });
     };
 
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.handleDateChange(startDate, this.state.endDate);
+    };
+    handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.handleDateChange(this.state.startDate, endDate);
+    };
     handleDateChange = (startDate, endDate) => {
         this.setState({ startDate, endDate });
 
@@ -414,10 +422,19 @@ export class MonitorDetail extends Component {
                     </div>
                     <div className="db-Trends-controls">
                         <div className="db-Trends-timeControls">
-                            <DateRangeWrapper
-                                selected={startDate}
-                                onChange={this.handleDateChange}
-                                dateRange={30}
+                            <DateTimeRangePicker
+                                currentDateRange={{
+                                    startDate: startDate,
+                                    endDate: endDate,
+                                }}
+                                handleStartDateTimeChange={
+                                    this.handleStartDateTimeChange
+                                }
+                                handleEndDateTimeChange={
+                                    this.handleEndDateTimeChange
+                                }
+                                formId={`${monitor._id}-monitorDateTime`}
+                                displayOnlyDate={true}
                             />
                         </div>
                         <div>

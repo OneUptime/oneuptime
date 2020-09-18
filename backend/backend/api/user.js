@@ -820,10 +820,7 @@ router.put('/profile', getUser, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/:userId/2fa', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
+router.put('/:userId/2fa', isUserMasterAdmin, async function(req, res) {
     try {
         const { userId } = req.params;
         const data = req.body;

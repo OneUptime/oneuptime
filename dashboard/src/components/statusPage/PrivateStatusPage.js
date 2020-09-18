@@ -117,15 +117,12 @@ export class PrivateStatusPage extends Component {
                                                                         '5px',
                                                                 }}
                                                             >
-                                                                <label>
-                                                                    <span>
-                                                                        Group
-                                                                        Monitor
-                                                                        by
-                                                                        Categories
-                                                                    </span>
-                                                                </label>
-                                                                <p className="bs-Fieldset-explanation">
+                                                                <span>
+                                                                    Group
+                                                                    Monitor by
+                                                                    Categories
+                                                                </span>
+                                                                <label className="bs-Fieldset-explanation">
                                                                     <span>
                                                                         Group
                                                                         monitor
@@ -135,7 +132,7 @@ export class PrivateStatusPage extends Component {
                                                                         page by
                                                                         categories.
                                                                     </span>
-                                                                </p>
+                                                                </label>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -183,14 +180,12 @@ export class PrivateStatusPage extends Component {
                                                                             '5px',
                                                                     }}
                                                                 >
-                                                                    <label>
-                                                                        <span>
-                                                                            Private
-                                                                            Status
-                                                                            Page
-                                                                        </span>
-                                                                    </label>
-                                                                    <p className="bs-Fieldset-explanation">
+                                                                    <span>
+                                                                        Private
+                                                                        Status
+                                                                        Page
+                                                                    </span>
+                                                                    <label className="bs-Fieldset-explanation">
                                                                         <span>
                                                                             Making
                                                                             the
@@ -207,7 +202,7 @@ export class PrivateStatusPage extends Component {
                                                                             internal
                                                                             team.
                                                                         </span>
-                                                                    </p>
+                                                                    </label>
                                                                 </div>
                                                             </label>
                                                         </div>
@@ -252,14 +247,12 @@ export class PrivateStatusPage extends Component {
                                                                         '5px',
                                                                 }}
                                                             >
-                                                                <label>
-                                                                    <span>
-                                                                        Show
-                                                                        Scheduled
-                                                                        events
-                                                                    </span>
-                                                                </label>
-                                                                <p className="bs-Fieldset-explanation">
+                                                                <span>
+                                                                    Show
+                                                                    Scheduled
+                                                                    events
+                                                                </span>
+                                                                <label className="bs-Fieldset-explanation">
                                                                     <span>
                                                                         {' '}
                                                                         Enable
@@ -277,7 +270,7 @@ export class PrivateStatusPage extends Component {
                                                                         downtime,
                                                                         etc.
                                                                     </span>
-                                                                </p>
+                                                                </label>
                                                             </div>
                                                         </label>
                                                     </div>
@@ -326,12 +319,10 @@ export class PrivateStatusPage extends Component {
                                                                             '5px',
                                                                     }}
                                                                 >
-                                                                    <label>
-                                                                        <span>
-                                                                            Enable
-                                                                            Subscribers
-                                                                        </span>
-                                                                    </label>
+                                                                    <span>
+                                                                        Enable
+                                                                        Subscribers
+                                                                    </span>
                                                                 </div>
                                                             </label>
                                                         </div>

@@ -5,12 +5,10 @@ import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import Select from '../../components/basic/react-select-fyipe';
 import SearchBox from '../basic/SearchBox';
-import * as moment from 'moment';
-import CustomDateTimeSelector from '../basic/CustomDateTimeSelector';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 class ApplicationLogHeader extends Component {
     constructor(props) {
@@ -37,10 +35,11 @@ class ApplicationLogHeader extends Component {
             currentDateRange,
             logType,
             handleEndDateTimeChange,
+            handleStartDateTimeChange,
             handleLogFilterChange,
             handleLogTypeChange,
+            formId,
         } = this.props;
-        const currentDate = moment();
 
         return (
             <div>
@@ -170,67 +169,16 @@ class ApplicationLogHeader extends Component {
                                         : 'none',
                                 }}
                             >
-                                <form id="applicationLogDateTimeForm">
-                                    <ShouldRender if={currentDateRange}>
-                                        <div className="db-DateRangeInputWithComparison">
-                                            <div
-                                                className="db-DateRangeInput bs-Control"
-                                                style={{
-                                                    cursor: 'pointer',
-                                                    height: '35px',
-                                                }}
-                                                onClick={this.onToggle}
-                                            >
-                                                <div
-                                                    className="db-DateRangeInput-input"
-                                                    role="button"
-                                                    tabIndex="0"
-                                                    style={{
-                                                        cursor: 'pointer',
-                                                    }}
-                                                >
-                                                    <span className="db-DateRangeInput-start">
-                                                        <Field
-                                                            type="text"
-                                                            name="startDate"
-                                                            component={
-                                                                CustomDateTimeSelector
-                                                            }
-                                                            id="startDate"
-                                                            maxDate={
-                                                                currentDate
-                                                            }
-                                                        />
-                                                    </span>
-                                                    <img
-                                                        alt="next"
-                                                        src="/dashboard/assets/icons/next.svg"
-                                                        style={{
-                                                            height: '14px',
-                                                            width: '14px',
-                                                        }}
-                                                    />
-                                                    <span className="db-DateRangeInput-end">
-                                                        <Field
-                                                            type="text"
-                                                            name="endDate"
-                                                            component={
-                                                                CustomDateTimeSelector
-                                                            }
-                                                            id="endDate"
-                                                            maxDate={
-                                                                currentDate
-                                                            }
-                                                            onChange={
-                                                                handleEndDateTimeChange
-                                                            }
-                                                        />
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </ShouldRender>
-                                </form>
+                                <DateTimeRangePicker
+                                    currentDateRange={currentDateRange}
+                                    handleStartDateTimeChange={
+                                        handleStartDateTimeChange
+                                    }
+                                    handleEndDateTimeChange={
+                                        handleEndDateTimeChange
+                                    }
+                                    formId={formId}
+                                />
 
                                 <div className="Flex-flex action-bar-holder ">
                                     <div
@@ -301,20 +249,15 @@ class ApplicationLogHeader extends Component {
 
 ApplicationLogHeader.displayName = 'ApplicationLogHeader';
 
-const selector = formValueSelector('applicationLogDateTimeForm');
 function mapStateToProps(state, ownProps) {
     const applicationLogId = ownProps.applicationLog._id;
     const currentDateRange = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
-    const startDate = selector(state, 'startDate');
-    const endDate = selector(state, 'endDate');
     return {
         currentProject: state.project.currentProject,
         initialValues: currentDateRange,
         currentDateRange,
-        startDate,
-        endDate,
     };
 }
 ApplicationLogHeader.propTypes = {
@@ -333,12 +276,9 @@ ApplicationLogHeader.propTypes = {
     currentDateRange: PropTypes.object,
     logType: PropTypes.object,
     handleEndDateTimeChange: PropTypes.func,
+    handleStartDateTimeChange: PropTypes.func,
     handleLogFilterChange: PropTypes.func,
     handleLogTypeChange: PropTypes.func,
+    formId: PropTypes.string,
 };
-const ApplicationLogDateForm = reduxForm({
-    form: 'applicationLogDateTimeForm',
-    enableReinitialize: true,
-    destroyOnUnmount: true,
-})(ApplicationLogHeader);
-export default connect(mapStateToProps)(ApplicationLogDateForm);
+export default connect(mapStateToProps)(ApplicationLogHeader);

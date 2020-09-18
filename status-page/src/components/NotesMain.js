@@ -241,9 +241,7 @@ class NotesMain extends Component {
             );
         }
 
-        return (this.props.noteData &&
-            this.props.noteData.notes &&
-            this.props.noteData.notes.length > 0) ||
+        return this.props.noteData ||
             this.props.individualnote ||
             this.props.showIncidentCardState ? (
             <div

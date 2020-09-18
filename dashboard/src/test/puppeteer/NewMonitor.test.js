@@ -46,7 +46,7 @@ describe('New Monitor API', () => {
 
     test(
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
-        async () => {
+        async done => {
             const componentName = utils.generateRandomString();
 
             await cluster.execute(null, async ({ page }) => {
@@ -57,13 +57,23 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 5; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(null, monitorName, page);
+                    await init.addMonitorToComponent(
+                        null,
+                        monitorName,
+                        page,
+                        componentName
+                    );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(null, monitorName, page);
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName,
+                    page,
+                    componentName
+                );
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',
@@ -71,13 +81,14 @@ describe('New Monitor API', () => {
                 );
                 expect(pricingPlanModal).toBeTruthy();
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
-        async () => {
+        async done => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
             await cluster.execute(null, async ({ page }) => {
@@ -90,13 +101,23 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 10; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(null, monitorName, page);
+                    await init.addMonitorToComponent(
+                        null,
+                        monitorName,
+                        page,
+                        componentName
+                    );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(null, monitorName, page);
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName,
+                    page,
+                    componentName
+                );
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',
@@ -104,13 +125,14 @@ describe('New Monitor API', () => {
                 );
                 expect(pricingPlanModal).toBeTruthy();
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
-        async () => {
+        async done => {
             const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
             await cluster.execute(null, async ({ page }) => {
@@ -123,13 +145,23 @@ describe('New Monitor API', () => {
                 for (let i = 0; i < 15; i++) {
                     const monitorName = utils.generateRandomString();
 
-                    await init.addMonitorToComponent(null, monitorName, page);
+                    await init.addMonitorToComponent(
+                        null,
+                        monitorName,
+                        page,
+                        componentName
+                    );
                     await page.waitForSelector('.ball-beat', { hidden: true });
                 }
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(null, monitorName, page);
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName,
+                    page,
+                    componentName
+                );
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',
@@ -137,6 +169,7 @@ describe('New Monitor API', () => {
                 );
                 expect(pricingPlanModal).toBeNull();
             });
+            done();
         },
         operationTimeOut
     );

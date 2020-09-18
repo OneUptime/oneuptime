@@ -128,6 +128,22 @@ class _ProjectForm extends React.Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>Create New Project</span>
                             </span>
+                            <ShouldRender if={IS_SAAS_SERVICE}>
+                                <div className="Text-fontWeight--regular Text-fontSize--14 Margin-top--8">
+                                    <span>
+                                        To compare different pricing plans,
+                                        click{' '}
+                                        <a
+                                            href="https://fyipe.com/pricing#compare"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="Text-fontWeight--medium underline"
+                                        >
+                                            here
+                                        </a>
+                                    </span>
+                                </div>
+                            </ShouldRender>
                         </div>
                         <div className="bs-Modal-messages">
                             <ShouldRender if={errorStack}>

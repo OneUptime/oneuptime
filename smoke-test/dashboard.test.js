@@ -36,7 +36,7 @@ describe('Monitor API', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.execute(null, async ({ page }) => {
             // delete monitor
             await page.goto(utils.DASHBOARD_URL, {
@@ -65,10 +65,11 @@ describe('Monitor API', () => {
             await page.click(`#delete-component-${componentName}`);
             await page.waitForSelector('#deleteComponent');
             await page.click('#deleteComponent');
-            await page.waitFor(2000);
+            await page.waitForSelector('#deleteComponent', { hidden: true });
         });
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     it(

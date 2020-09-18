@@ -253,8 +253,10 @@ describe('Incident API With SubProjects', () => {
                 await page.waitFor(2000);
 
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 let type = 'internal';
                 // fill internal message thread form
@@ -341,8 +343,10 @@ describe('Incident API With SubProjects', () => {
                     e.click()
                 );
                 // click on incident notes tab
-                await page.waitForSelector('#react-tabs-8');
-                await page.click('#react-tabs-8');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
                 await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {
@@ -360,8 +364,10 @@ describe('Incident API With SubProjects', () => {
                     await page.waitFor(2000);
                 }
                 // click on incident timeline tab
-                await page.waitForSelector('#react-tabs-6');
-                await page.click('#react-tabs-6');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
+                    page
+                );
                 await page.waitFor(2000);
 
                 await page.waitForSelector(
