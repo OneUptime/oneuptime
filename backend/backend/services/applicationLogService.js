@@ -26,12 +26,18 @@ module.exports = {
                 ErrorService.log('applicationLogService.create', error);
                 throw error;
             }
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategoryId,
+            });
             // prepare application log model
             let applicationLog = new ApplicationLogModel();
             applicationLog.name = data.name;
             applicationLog.key = uuid.v4(); // generate random string here
             applicationLog.componentId = data.componentId;
             applicationLog.createdById = data.createdById;
+            if (resourceCategory) {
+                applicationLog.resourceCategoryId = data.resourceCategoryId;
+            }
             const savedApplicationLog = await applicationLog.save();
             applicationLog = await _this.findOneBy({
                 _id: savedApplicationLog._id,
@@ -219,4 +225,5 @@ const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
+const ResourceCategoryService = require('./resourceCategoryService');
 const uuid = require('uuid');
