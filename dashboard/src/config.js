@@ -877,13 +877,11 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
             : [];
     statuses =
         statuses && statuses.length > 0
-            ? statuses.filter(status =>
-                  moment(new Date(status.createdAt)).isBetween(
-                      start,
-                      end,
-                      'day',
-                      '[]'
-                  )
+            ? statuses.filter(
+                  status =>
+                      moment(new Date(status.startTime)).isBefore(end) &&
+                      (status.endTime === null ||
+                          moment(new Date(status.endTime)).isAfter(start))
               )
             : [];
 
