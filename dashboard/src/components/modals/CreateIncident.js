@@ -436,7 +436,7 @@ class CreateIncident extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
+                                <div className="Flex-flex Flex-Flex-direction--row">
                                     <ShouldRender
                                         if={
                                             this.props.newIncident &&
@@ -469,6 +469,7 @@ class CreateIncident extends Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={closeThisDialog}
+                                        style={{ height: '35px' }}
                                     >
                                         <span>Cancel</span>
                                     </button>
@@ -489,6 +490,7 @@ class CreateIncident extends Component {
                                                     .requesting
                                             }
                                             type="submit"
+                                            style={{ height: '35px' }}
                                         >
                                             {this.props.newIncident &&
                                                 !this.props.newIncident
