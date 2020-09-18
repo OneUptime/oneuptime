@@ -696,11 +696,11 @@ module.exports = {
             for (const probe of probes) {
                 const query = {
                     monitorId,
-                    $or: [
-                        { startTime: { $gte: start, $lte: end } },
+                    $and: [
+                        { startTime: { $lte: end } },
                         {
                             $or: [
-                                { endTime: { $gte: start, $lte: end } },
+                                { endTime: { $gte: start } },
                                 { endTime: null },
                             ],
                         },
