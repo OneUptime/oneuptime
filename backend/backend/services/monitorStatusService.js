@@ -153,6 +153,7 @@ module.exports = {
     },
     deleteBy: async function(query, userId) {
         try {
+            const _this = this;
             if (!query) {
                 query = {};
             }
@@ -170,6 +171,27 @@ module.exports = {
                     new: true,
                 }
             );
+            if (monitorStatus) {
+                const {
+                    manuallyCreated,
+                    probeId,
+                    createdAt,
+                    endTime,
+                } = monitorStatus;
+                const previousMonitorStatuses = await MonitorStatusModel.find({
+                    manuallyCreated,
+                    probeId,
+                    deleted: false,
+                    createdAt: { $lte: createdAt },
+                }).sort([['createdAt', -1]]);
+                if (previousMonitorStatuses && previousMonitorStatuses.length) {
+                    const previousMonitorStatus = previousMonitorStatuses[0];
+                    await _this.updateOneBy(
+                        { _id: previousMonitorStatus._id },
+                        { endTime }
+                    );
+                }
+            }
             return monitorStatus;
         } catch (error) {
             ErrorService.log('monitorStatusService.deleteBy', error);
