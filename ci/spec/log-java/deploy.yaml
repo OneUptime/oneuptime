@@ -37,7 +37,6 @@ deploy_staging_log-java:
         refs:
             - master
             - hotfix-master
-            - feature-log-java
     environment:
         name: staging
 
@@ -76,6 +75,5 @@ deploy_production_log-java:
         refs:
             - release
             - hotfix-release
-            - feature-log-java
     environment:
         name: production
