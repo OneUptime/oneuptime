@@ -496,13 +496,6 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
-                // click on Incident tab
-                await page.waitForSelector('#customTabList > li', {
-                    visible: true,
-                });
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
 
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`
@@ -693,11 +686,6 @@ describe('Components', () => {
                     newComponentName,
                     newMonitorName,
                     page
-                );
-                await page.waitForSelector('#customTabList > li');
-                // navigate to incidents tab
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
                 );
                 await page.waitForSelector(`#createIncident_${newMonitorName}`);
                 await page.click(`#createIncident_${newMonitorName}`);
