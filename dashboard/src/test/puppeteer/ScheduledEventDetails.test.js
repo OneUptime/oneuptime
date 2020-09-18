@@ -43,8 +43,7 @@ describe('Scheduled Event Note', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // Create component
-            // await init.addComponent(componentName, page);
+            // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
@@ -336,8 +335,7 @@ describe('Scheduled Event Note ==> Pagination', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // Create component
-            // await init.addComponent(componentName, page);
+            // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
@@ -454,8 +452,7 @@ describe('Scheduled Event Details ==> Deletion', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // Create component
-            // await init.addComponent(componentName, page);
+            // Create component and monitor
             await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
@@ -471,7 +468,7 @@ describe('Scheduled Event Details ==> Deletion', () => {
     });
 
     test(
-        'should visit the advancee seection and delete the schedule event',
+        'should visit the advance section and delete the schedule event',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
