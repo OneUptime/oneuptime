@@ -18,5 +18,9 @@ const incidentTimelineSchema = new Schema({
 
     status: { type: String },
     incident_state: String,
+
+    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    deletedById: { type: String, ref: 'User' },
 });
 module.exports = mongoose.model('IncidentTimeline', incidentTimelineSchema);
