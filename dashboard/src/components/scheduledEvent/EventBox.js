@@ -286,7 +286,7 @@ class EventBox extends Component {
                                                         </button>
                                                         <button
                                                             id={`editCredentialBtn_${index}`}
-                                                            title="delete"
+                                                            title="edit"
                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                                             style={{
                                                                 marginLeft: 20,

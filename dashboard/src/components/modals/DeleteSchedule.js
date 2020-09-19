@@ -6,6 +6,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteScheduledEvent } from '../../actions/scheduledEvent';
+import { history } from '../../store';
 
 class DeleteSchedule extends Component {
     handleKeyBoard = e => {
@@ -28,7 +29,10 @@ class DeleteSchedule extends Component {
         const { projectId, eventId } = data;
         deleteScheduledEvent(projectId, eventId).then(() => {
             if (!deleteError) {
-                return closeModal({ id: modalId });
+                closeModal({ id: modalId });
+                return history.push(
+                    `/dashboard/project/${projectId}/scheduledEvents`
+                );
             }
         });
     };
