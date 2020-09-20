@@ -258,6 +258,7 @@ export class Component extends React.Component {
                             <span className="db-SettingsForm-footerMessage"></span>
                             <div>
                                 <button
+                                    id="testSmtpSettingsButton"
                                     className="bs-Button"
                                     disabled={settings && settings.requesting}
                                     onClick={this.handleTestSmtp}

@@ -25,7 +25,7 @@ const MessageModal = props => {
                             <div className="bs-Modal-header-copy">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        {testError ? 'Test failed' : 'Success'}
+                                        {testError ? 'Test Failed' : 'Success'}
                                     </span>
                                 </span>
                             </div>
