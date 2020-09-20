@@ -4,17 +4,19 @@ const puppeteer = require('puppeteer');
 let page, browser;
 
 describe('Enterprise Backend API', () => {
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(30000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await browser.close();
+        done();
     });
 
-    test('should get status ok from backend', async () => {
+    test('should get status ok from backend', async done => {
         await page.goto(utils.BACKEND_URL, {
             waitUntil: 'networkidle0',
         });
@@ -24,5 +26,6 @@ describe('Enterprise Backend API', () => {
         expect(response).toBe(
             '{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}'
         );
+        done();
     });
 });

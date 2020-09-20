@@ -8,7 +8,11 @@ import ApiDoc from '../fyipeApi/ApiDoc';
 import ShouldRender from '../basic/ShouldRender';
 
 const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
-    <div tabIndex="0" className="Box-root Margin-vertical--12">
+    <div
+        tabIndex="0"
+        className="Box-root Margin-vertical--12"
+        id={`quick-tip-${type}`}
+    >
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -29,6 +33,7 @@ const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
                             <div className="Box-root">
                                 <span
                                     className="incident-close-button"
+                                    id={`close-quick-tip-${type}`}
                                     onClick={() =>
                                         closeTutorial(type, currentProjectId)
                                     }

@@ -230,6 +230,13 @@ module.exports = {
                 );
                 if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
+                if (
+                    Array.isArray(incidentIdsOrRetry) &&
+                    incidentIdsOrRetry.length
+                ) {
+                    data.incidentId = incidentIdsOrRetry[0];
+                }
+
                 await MonitorStatusService.create(data);
 
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
@@ -564,7 +571,7 @@ module.exports = {
         return stat;
     },
 
-    conditions: async (payload, resp, con) => {
+    conditions: async (payload, resp, con, response) => {
         let stat = true;
         const status = resp
             ? resp.status
@@ -583,10 +590,18 @@ module.exports = {
                 con.and,
                 status,
                 body,
-                sslCertificate
+                sslCertificate,
+                response
             );
         } else if (con && con.or && con.or.length) {
-            stat = await checkOr(payload, con.or, status, body, sslCertificate);
+            stat = await checkOr(
+                payload,
+                con.or,
+                status,
+                body,
+                sslCertificate,
+                response
+            );
         }
         return stat;
     },
@@ -967,7 +982,8 @@ module.exports = {
 
 const _ = require('lodash');
 
-const checkAnd = async (payload, con, statusCode, body, ssl) => {
+// eslint-disable-next-line no-unused-vars
+const checkAnd = async (payload, con, statusCode, body, ssl, response) => {
     let validity = true;
     for (let i = 0; i < con.length; i++) {
         if (
@@ -1636,6 +1652,29 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                     validity = false;
                 }
             }
+        } else if (con[i] && con[i].responseType === 'evals') {
+            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                try {
+                    if (
+                        !(
+                            con[i] &&
+                            con[i].field1 &&
+                            response &&
+                            Function(
+                                '"use strict";const response = ' +
+                                    JSON.stringify(response) +
+                                    ';return (' +
+                                    con[i].field1 +
+                                    ');'
+                            )()
+                        )
+                    ) {
+                        validity = false;
+                    }
+                } catch (e) {
+                    validity = false;
+                }
+            }
         }
         if (
             con[i] &&
@@ -1647,7 +1686,9 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.and,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (!temp) {
                 validity = temp;
@@ -1662,7 +1703,9 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.or,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (!temp1) {
                 validity = temp1;
@@ -1671,7 +1714,7 @@ const checkAnd = async (payload, con, statusCode, body, ssl) => {
     }
     return validity;
 };
-const checkOr = async (payload, con, statusCode, body, ssl) => {
+const checkOr = async (payload, con, statusCode, body, ssl, response) => {
     let validity = false;
     for (let i = 0; i < con.length; i++) {
         if (con[i] && con[i].responseType === 'responseTime') {
@@ -2260,6 +2303,27 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                     validity = true;
                 }
             }
+        } else if (con[i] && con[i].responseType === 'evals') {
+            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+                try {
+                    if (
+                        con[i] &&
+                        con[i].field1 &&
+                        response &&
+                        Function(
+                            '"use strict";const response = ' +
+                                JSON.stringify(response) +
+                                ';return (' +
+                                con[i].field1 +
+                                ');'
+                        )()
+                    ) {
+                        validity = true;
+                    }
+                } catch (e) {
+                    // validity = false;
+                }
+            }
         }
         if (
             con[i] &&
@@ -2271,7 +2335,9 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.and,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (temp) {
                 validity = temp;
@@ -2286,7 +2352,9 @@ const checkOr = async (payload, con, statusCode, body, ssl) => {
                 payload,
                 con[i].collection.or,
                 statusCode,
-                body
+                body,
+                ssl,
+                response
             );
             if (temp1) {
                 validity = temp1;

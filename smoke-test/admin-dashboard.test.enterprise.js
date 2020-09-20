@@ -15,20 +15,22 @@ const user = {
 };
 
 describe('Enterprise Admin Dashboard API', () => {
-    beforeAll(async () => {
+    beforeAll(async done => {
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
         );
+        done();
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await browser.close();
+        done();
     });
 
-    it('Should login to admin dashboard and create a new user with correct details', async () => {
+    it('Should login to admin dashboard and create a new user with correct details', async done => {
         await init.registerEnterpriseUser(user, page);
 
         const localStorageData = await page.evaluate(() => {
@@ -47,5 +49,6 @@ describe('Enterprise Admin Dashboard API', () => {
             'masteradmin@hackerbay.io'
         );
         page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
+        done();
     }, 160000);
 });

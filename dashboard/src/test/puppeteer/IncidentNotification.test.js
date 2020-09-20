@@ -53,7 +53,7 @@ describe('Incident Created test', () => {
         'Should show a pop up when an incident is created',
         async () => {
             const projectName = 'Project1';
-            const componentName = 'Home Page';
+            const componentName = 'HomePage';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 // Rename project
@@ -66,24 +66,34 @@ describe('Incident Created test', () => {
                 await page.click('button[id=btnCreateProject]');
 
                 await init.addComponent(componentName, page);
-                await init.addMonitorToComponent(null, monitorName, page);
-                await init.addIncident(monitorName, 'Degraded', page);
-                const viewIncidentButton = await page.$(
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName,
+                    page,
+                    componentName
+                );
+                await init.addIncident(monitorName, 'Degraded', page, 'Low');
+                const viewIncidentButton = await page.waitForSelector(
                     'button[id=viewIncident-0]',
                     { visible: true }
                 );
-                expect(viewIncidentButton).not.toEqual(null);
+                expect(viewIncidentButton).toBeDefined();
             });
         },
         operationTimeOut
     );
 
     test(
-        'Should show the incident created pop up to other team members',
+        'Should not show incident popup for resolved incidemnts',
         async () => {
             const projectName = 'Project1';
             const role = 'Member';
             return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('button[id=viewIncident-0]');
+                await page.click('button[id=viewIncident-0]');
+                await page.waitForSelector('#btnResolve_0');
+                await page.click('#btnResolve_0');
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Invite member on the project
@@ -96,19 +106,44 @@ describe('Incident Created test', () => {
                 await page.type('input[name=emails]', user1.email);
                 await page.waitForSelector(`#${role}_${projectName}`);
                 await page.click(`#${role}_${projectName}`);
-                await page.waitForSelector('button[type=submit]');
-                await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.click(`#btn_modal_${projectName}`);
+                await page.waitForSelector(`#btn_modal_${projectName}`, {
+                    hidden: true,
+                });
 
                 await init.logout(page);
                 await init.loginUser(user1, page);
                 // Switch projects
                 await init.switchProject(projectName, page);
-                await page.waitFor(5000);
                 const viewIncidentButton = await page.$(
-                    'button[id=viewIncident-0]'
+                    'button[id=viewIncident-0]',
+                    { visible: true }
                 );
-                expect(viewIncidentButton).not.toEqual(null);
+                expect(viewIncidentButton).toBe(null);
+                await init.logout(page);
+                await init.loginUser(user, page);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should show the incident created pop up to other team members',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+
+                await init.addIncident(monitorName, 'Degraded', page, 'Low');
+                await init.logout(page);
+                await init.loginUser(user1, page);
+                // Switch projects
+                await init.switchProject(projectName, page);
+                const viewIncidentButton = await page.waitForSelector(
+                    'button[id=viewIncident-0]',
+                    { visible: true }
+                );
+                expect(viewIncidentButton).toBeDefined();
             });
         },
         operationTimeOut
@@ -128,7 +163,7 @@ describe('Incident Created test', () => {
                 pageTitle = await pageTitle.getProperty('innerText');
                 pageTitle = await pageTitle.jsonValue();
                 pageTitle.should.be.exactly('Incident');
-                expect(pageTitle).not.toEqual(null);
+                expect(pageTitle).toBeDefined();
                 await init.logout(page);
                 await init.loginUser(user, page);
             });
@@ -137,25 +172,19 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should close an incident',
+        'Should close incident popup',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-
-                await page.waitForSelector(
-                    `button[id=view-resource-${monitorName}]`
-                );
-                await page.click(`button[id=view-resource-${monitorName}]`);
-                await init.addMonitorIncident(monitorName, 'Offline', page);
+                await init.addIncident(monitorName, 'Offline', page, 'Low');
                 await page.waitForSelector('#closeIncident_0', {
                     visible: true,
                 });
-                await page.click('#closeIncident_0');
-                await page.waitFor(5000);
-                const closeButton = await page.$('span#closeIncident_0');
-                expect(closeButton).toEqual(null);
+                await page.$eval('#closeIncident_0', elem => elem.click());
+                const closeButton = await page.waitForSelector(
+                    '#closeIncident_0',
+                    { hidden: true }
+                );
+                expect(closeButton).toBeNull();
                 await init.logout(page);
                 await init.loginUser(user1, page);
             });
@@ -170,12 +199,11 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.switchProject(projectName, page);
-                await page.waitFor(5000);
 
                 const viewIncidentButton = await page.$(
                     'button[id=viewIncident-0]'
                 );
-                expect(viewIncidentButton).not.toEqual(null);
+                expect(viewIncidentButton).toBeDefined();
             });
         },
         operationTimeOut
@@ -184,11 +212,8 @@ describe('Incident Created test', () => {
     test(
         'Should show active incidents on the dashboard',
         async () => {
-            const projectName = 'Project1';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await init.switchProject(projectName, page);
-                await page.waitFor(5000);
                 let activeIncidents = await page.$('span#activeIncidentsText', {
                     visible: true,
                 });
@@ -207,11 +232,8 @@ describe('Incident Created test', () => {
     test(
         'Should redirect to home page when active incidents is clicked',
         async () => {
-            const projectName = 'Project1';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await init.switchProject(projectName, page);
-                await page.waitFor(5000);
                 await page.waitForSelector('#activeIncidents');
                 await page.click('#activeIncidents');
                 let activeIncidents = await page.$('#cbHome', {
@@ -233,17 +255,11 @@ describe('Incident Created test', () => {
         'Should filter unacknowledged incidents',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#components');
-                await page.click('#components');
-
-                await page.waitForSelector(
-                    `button[id=view-resource-${monitorName}]`
-                );
-                await page.click(`button[id=view-resource-${monitorName}]`);
-                await init.addMonitorIncident(monitorName, 'Online', page);
+                await init.addIncident(monitorName, 'Online', page, 'Low');
                 await page.waitForSelector('button[id=viewIncident-0]');
-                await page.click('button[id=viewIncident-0]');
+                await page.$eval('button[id=viewIncident-0]', elem =>
+                    elem.click()
+                );
 
                 // Acknowledge this incident
                 await page.waitForSelector('#btnAcknowledge_0');
@@ -251,6 +267,13 @@ describe('Incident Created test', () => {
 
                 await page.waitForSelector('#backToMonitorView');
                 await page.click('#backToMonitorView');
+
+                await page.waitForSelector('#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
 
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
@@ -329,6 +352,13 @@ describe('Incident Created test', () => {
                 );
                 await page.click(`button[id=view-resource-${monitorName}]`);
 
+                await page.waitForSelector('#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
+
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
                 await page.waitForSelector('div[title=unresolved]');
@@ -357,6 +387,13 @@ describe('Incident Created test', () => {
                 );
                 await page.click(`button[id=view-resource-${monitorName}]`);
 
+                await page.waitForSelector('#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
+
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
                 await page.waitForSelector('div[title=clear]');
@@ -366,7 +403,7 @@ describe('Incident Created test', () => {
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
 
-                expect(filteredIncidentsCount).toEqual(3);
+                expect(filteredIncidentsCount).toEqual(4);
             });
         },
         operationTimeOut
@@ -375,12 +412,17 @@ describe('Incident Created test', () => {
     test(
         'Should show incidents of different components on the incident logs menu',
         async () => {
-            const componentName = 'New Component';
+            const componentName = 'NewComponent';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await init.addComponent(componentName, page);
-                await init.addMonitorToComponent(null, monitorName2, page);
-                await init.addIncident(monitorName2, 'Offline', page);
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName2,
+                    page,
+                    componentName
+                );
+                await init.addIncident(monitorName2, 'Offline', page, 'High');
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#incidents');
@@ -388,7 +430,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(4);
+                expect(filteredIncidentsCount).toEqual(5);
             });
         },
         operationTimeOut
@@ -403,23 +445,21 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('#closeIncident_0', {
                     visible: true,
                 });
-                await page.click('#closeIncident_0');
+                await page.$eval('#closeIncident_0', elem => elem.click());
                 await page.waitForSelector('#incidents');
                 await page.click('#incidents');
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
                 await page.click(`#btnCreateIncident_${projectName}`);
                 await page.waitForSelector('#frmIncident');
                 await init.selectByText('#monitorList', monitorName2, page);
-                await init.selectByText('#incidentType', 'Degraded', page);
-                await page.waitForSelector('input[id=title]');
-                await page.type('input[id=title]', 'degraded');
-                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentTypeId', 'Degraded', page);
+                await init.selectByText('#incidentPriority', 'Low', page);
                 await page.click('#createIncident');
-                await page.waitFor(5000);
+                await page.waitForSelector('#createIncident', { hidden: true });
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(5);
+                expect(filteredIncidentsCount).toEqual(6);
             });
         },
         operationTimeOut

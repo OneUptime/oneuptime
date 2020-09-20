@@ -115,7 +115,11 @@ module.exports = {
 
                 incident = await incident.save();
                 incident = await _this.findOneBy({ _id: incident._id });
-                await _this._sendIncidentCreatedAlert(incident);
+                const notification = await _this._sendIncidentCreatedAlert(
+                    incident
+                );
+                incident.notificationId = notification._id;
+                incident = await incident.save();
 
                 await RealTimeService.sendCreatedIncident(incident);
 
@@ -161,16 +165,32 @@ module.exports = {
             }
 
             query.deleted = false;
-            const incidents = await IncidentModel.findOneAndUpdate(query, {
+            const incident = await IncidentModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
                     deletedById: userId,
                 },
             });
-            return incidents;
+
+            if (incident) {
+                const monitorStatuses = await MonitorStatusService.findBy({
+                    incidentId: incident._id,
+                });
+                for (const monitorStatus of monitorStatuses) {
+                    const { _id } = monitorStatus;
+                    await MonitorStatusService.deleteBy({ _id }, userId);
+                }
+                const incidentTimeline = await IncidentTimelineService.findBy({
+                    incidentId: incident._id,
+                });
+                for (const event of incidentTimeline) {
+                    await IncidentTimelineService.deleteBy({ _id: event._id }, userId);
+                }
+            }
+            return incident;
         } catch (error) {
-            ErrorService.log('incidentService.findOneAndUpdate', error);
+            ErrorService.log('incidentService.deleteBy', error);
             throw error;
         }
     },
@@ -298,10 +318,11 @@ module.exports = {
                         : monitor.componentId,
                 incidentId: incident._id,
             };
+            let notification = {};
 
             if (!incident.createdById) {
                 const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
-                await NotificationService.create(
+                notification = await NotificationService.create(
                     incident.projectId,
                     msg,
                     'fyipe',
@@ -333,7 +354,7 @@ module.exports = {
                 );
             } else {
                 const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-                await NotificationService.create(
+                notification = await NotificationService.create(
                     incident.projectId,
                     msg,
                     incident.createdById.name,
@@ -364,6 +385,7 @@ module.exports = {
                     component
                 );
             }
+            return notification;
         } catch (error) {
             ErrorService.log(
                 'incidentService._sendIncidentCreatedAlert',

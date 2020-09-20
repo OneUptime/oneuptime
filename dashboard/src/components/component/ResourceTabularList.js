@@ -52,8 +52,8 @@ class ResourceTabularList extends Component {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
         let indicator, monitor, logs, probe;
-        let appSecurityStatus = 'no data yet',
-            containerSecurityStatus = 'no data yet',
+        let appSecurityStatus = 'currently scanning',
+            containerSecurityStatus = 'currently scanning',
             monitorStatus = '';
         const { monitors, probes, activeProbe } = this.props;
         const { startDate, endDate } = this.state;
@@ -121,7 +121,7 @@ class ResourceTabularList extends Component {
                         count={
                             data && data.vulnerabilities
                                 ? data.vulnerabilities[appSecurityStatus]
-                                : 0
+                                : ''
                         }
                     />
                 );
@@ -151,7 +151,7 @@ class ResourceTabularList extends Component {
                                 ? data.vulnerabilityInfo[
                                       containerSecurityStatus
                                   ]
-                                : 0
+                                : ''
                         }
                     />
                 );
@@ -186,7 +186,7 @@ class ResourceTabularList extends Component {
     }
 
     render() {
-        const { componentResource } = this.props;
+        const { componentResource, componentName } = this.props;
         const componentResources =
             componentResource && componentResource.componentResources
                 ? sortByName(componentResource.componentResources)
@@ -390,7 +390,10 @@ class ResourceTabularList extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span
+                                    id={`count_${componentName}`}
+                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                >
                                     {componentResource &&
                                     componentResource.componentResources
                                         ? componentResource.componentResources
@@ -447,6 +450,14 @@ ResourceTabularList.propTypes = {
     monitors: PropTypes.array,
     probes: PropTypes.array,
     activeProbe: PropTypes.number,
+    componentName: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+};
+
+ResourceTabularList.defaultProps = {
+    componentName: 'default',
 };
 
 export default connect(

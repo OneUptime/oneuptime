@@ -25,7 +25,6 @@ const IssueIndicator = ({ status, resourceName, count }) => {
                   <div
                       className={`db-Badge Box-background--${statusColor}`}
                   ></div>
-
                   <span
                       id={`resource_status_${resourceName}`}
                       className={`Text-color--${statusColor}`}

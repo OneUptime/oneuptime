@@ -105,16 +105,22 @@ class ApplicationLogDetail extends Component {
                 applicationLog._id
         );
     };
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.fetchByDateChange(startDate, this.props.endDate);
+    };
     handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.fetchByDateChange(this.props.startDate, endDate);
+    };
+    fetchByDateChange = (startDate, endDate) => {
         const {
             applicationLog,
             currentProject,
             componentId,
-            startDate,
             fetchLogs,
         } = this.props;
         const { filter, logType } = this.state;
-        const endDate = moment(val);
         if (moment(startDate).isBefore(endDate)) {
             fetchLogs(
                 currentProject._id,
@@ -263,10 +269,14 @@ class ApplicationLogDetail extends Component {
                                 handleEndDateTimeChange={
                                     this.handleEndDateTimeChange
                                 }
+                                handleStartDateTimeChange={
+                                    this.handleStartDateTimeChange
+                                }
                                 handleLogFilterChange={
                                     this.handleLogFilterChange
                                 }
                                 handleLogTypeChange={this.handleLogTypeChange}
+                                formId="applicationLogDateTimeForm"
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -363,7 +373,7 @@ ApplicationLogDetail.propTypes = {
     fetchStats: PropTypes.func,
     stats: PropTypes.object,
     fetchLogs: PropTypes.func,
-    startDate: PropTypes.string,
+    startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 };
 export default connect(

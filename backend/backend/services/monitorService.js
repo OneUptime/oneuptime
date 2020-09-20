@@ -132,6 +132,13 @@ module.exports = {
                     }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
+                    if (data.type === 'manual') {
+                        await MonitorStatusService.create({
+                            monitorId: monitor._id,
+                            manuallyCreated: true,
+                            status: 'online',
+                        });
+                    }
                     return monitor;
                 } else {
                     const error = new Error(
@@ -297,51 +304,54 @@ module.exports = {
                 let project = await ProjectService.findOneBy({
                     _id: monitor.projectId,
                 });
-                if (project.parentProjectId) {
-                    subProject = project;
-                    project = await ProjectService.findOneBy({
-                        _id: subProject.parentProjectId,
-                    });
-                }
 
-                let subProjectIds = [];
-                const subProjects = await ProjectService.findBy({
-                    parentProjectId: project._id,
-                });
-                if (subProjects && subProjects.length > 0) {
-                    subProjectIds = subProjects.map(project => project._id);
-                }
-                subProjectIds.push(project._id);
-                const monitorsCount = await this.countBy({
-                    projectId: { $in: subProjectIds },
-                });
-                let projectSeats = project.seats;
-                if (typeof projectSeats === 'string') {
-                    projectSeats = parseInt(projectSeats);
-                }
-                const projectUsers = await TeamService.getTeamMembersBy({
-                    parentProjectId: project._id,
-                }); // eslint-disable-next-line no-console
-                const seats = await TeamService.getSeats(projectUsers);
-                // check if project seats are more based on users in project or by count of monitors
-                if (
-                    !IS_SAAS_SERVICE ||
-                    (projectSeats &&
-                        projectSeats > seats &&
-                        monitorsCount > 0 &&
-                        monitorsCount <= (projectSeats - 1) * 5)
-                ) {
-                    projectSeats = projectSeats - 1;
-                    if (IS_SAAS_SERVICE) {
-                        await PaymentService.changeSeats(
-                            project.stripeSubscriptionId,
-                            projectSeats
+                if (project) {
+                    if (project.parentProjectId) {
+                        subProject = project;
+                        project = await ProjectService.findOneBy({
+                            _id: subProject.parentProjectId,
+                        });
+                    }
+
+                    let subProjectIds = [];
+                    const subProjects = await ProjectService.findBy({
+                        parentProjectId: project._id,
+                    });
+                    if (subProjects && subProjects.length > 0) {
+                        subProjectIds = subProjects.map(project => project._id);
+                    }
+                    subProjectIds.push(project._id);
+                    const monitorsCount = await this.countBy({
+                        projectId: { $in: subProjectIds },
+                    });
+                    let projectSeats = project.seats;
+                    if (typeof projectSeats === 'string') {
+                        projectSeats = parseInt(projectSeats);
+                    }
+                    const projectUsers = await TeamService.getTeamMembersBy({
+                        parentProjectId: project._id,
+                    }); // eslint-disable-next-line no-console
+                    const seats = await TeamService.getSeats(projectUsers);
+                    // check if project seats are more based on users in project or by count of monitors
+                    if (
+                        !IS_SAAS_SERVICE ||
+                        (projectSeats &&
+                            projectSeats > seats &&
+                            monitorsCount > 0 &&
+                            monitorsCount <= (projectSeats - 1) * 5)
+                    ) {
+                        projectSeats = projectSeats - 1;
+                        if (IS_SAAS_SERVICE) {
+                            await PaymentService.changeSeats(
+                                project.stripeSubscriptionId,
+                                projectSeats
+                            );
+                        }
+                        await ProjectService.updateOneBy(
+                            { _id: project._id },
+                            { seats: projectSeats.toString() }
                         );
                     }
-                    await ProjectService.updateOneBy(
-                        { _id: project._id },
-                        { seats: projectSeats.toString() }
-                    );
                 }
 
                 const alerts = await AlertService.findBy({
@@ -696,11 +706,11 @@ module.exports = {
             for (const probe of probes) {
                 const query = {
                     monitorId,
-                    $or: [
-                        { startTime: { $gte: start, $lte: end } },
+                    $and: [
+                        { startTime: { $lte: end } },
                         {
                             $or: [
-                                { endTime: { $gte: start, $lte: end } },
+                                { endTime: { $gte: start } },
                                 { endTime: null },
                             ],
                         },

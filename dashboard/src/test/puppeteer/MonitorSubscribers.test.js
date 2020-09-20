@@ -67,8 +67,8 @@ describe('Monitor Detail API', () => {
                 );
 
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
@@ -104,8 +104,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -138,8 +138,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -173,8 +173,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
@@ -209,8 +209,8 @@ describe('Monitor Detail API', () => {
                     page
                 );
                 // click on subscribers tab
-                await page.waitForSelector('#react-tabs-4');
-                await page.click('#react-tabs-4');
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
 
                 let initialSubscribers =
                     '#subscribersList > tbody > tr.subscriber-list-item';
@@ -220,6 +220,9 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('button[id=deleteSubscriber_0]');
                 await page.click('button[id=deleteSubscriber_0]');
+                await page.waitForSelector('#deleteSubscriber');
+                await page.click('#deleteSubscriber');
+                await page.waitForSelector('#subscribersList');
 
                 let finalSubscribers =
                     '#subscribersList > tbody > tr.subscriber-list-item';
@@ -229,6 +232,45 @@ describe('Monitor Detail API', () => {
 
                 expect(finalCount).toEqual(3);
                 expect(initialCount).toBeGreaterThan(finalCount);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should not delete a subscriber when the cancel button is clicked',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                // click on subscribers tab
+                await page.waitForSelector('#react-tabs-2');
+                await page.click('#react-tabs-2');
+
+                let initialSubscribers =
+                    '#subscribersList > tbody > tr.subscriber-list-item';
+                await page.waitForSelector(initialSubscribers);
+                initialSubscribers = await page.$$(initialSubscribers);
+                const initialCount = initialSubscribers.length;
+
+                await page.waitForSelector('button[id=deleteSubscriber_0]');
+                await page.click('button[id=deleteSubscriber_0]');
+                await page.waitForSelector('#cancelDeleteSubscriber');
+                await page.click('#cancelDeleteSubscriber');
+                await page.waitForSelector('#subscribersList');
+
+                let finalSubscribers =
+                    '#subscribersList > tbody > tr.subscriber-list-item';
+                await page.waitForSelector(finalSubscribers);
+                finalSubscribers = await page.$$(finalSubscribers);
+                const finalCount = finalSubscribers.length;
+
+                expect(finalCount).toEqual(3);
+                expect(initialCount).toEqual(finalCount);
             });
         },
         operationTimeOut
