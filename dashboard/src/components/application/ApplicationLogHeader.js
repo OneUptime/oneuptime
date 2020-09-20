@@ -9,6 +9,7 @@ import { connect } from 'react-redux';
 import Select from '../../components/basic/react-select-fyipe';
 import SearchBox from '../basic/SearchBox';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
+import Badge from '../common/Badge';
 
 class ApplicationLogHeader extends Component {
     constructor(props) {
@@ -46,6 +47,24 @@ class ApplicationLogHeader extends Component {
                 <div className="db-Trends-header">
                     <div className="db-Trends-title">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <div>
+                                <ShouldRender
+                                    if={
+                                        applicationLog &&
+                                        applicationLog.resourceCategoryId
+                                    }
+                                >
+                                    <div className="Box-root Padding-top--20">
+                                        <Badge color={'slate5'}>
+                                            {applicationLog &&
+                                            applicationLog.resourceCategoryId
+                                                ? applicationLog
+                                                      .resourceCategoryId.name
+                                                : ''}
+                                        </Badge>
+                                    </div>
+                                </ShouldRender>
+                            </div>
                             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                     <span
