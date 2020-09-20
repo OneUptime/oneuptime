@@ -60,7 +60,6 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                await page.waitFor(15000);
                 const componentBoxElement = await page.waitForSelector(
                     '#info-teamMember'
                 );
@@ -260,7 +259,6 @@ describe('Components', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 const customTutorialType = 'monitor';
-                await page.waitFor(5000);
                 // confirm that monitor box exist on component details page
                 const componentBoxElement = await page.waitForSelector(
                     `#info-${customTutorialType}`
@@ -272,7 +270,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create a new monitor in component',
+        'Should create a new monitor in component and confirm that monitor quick tip shows',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
@@ -293,6 +291,16 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
+
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                const customTutorialType = 'monitor';
+                // find monitor quick tip and confirm it shows
+                const monitorQuickTip = await page.waitForSelector(
+                    `#quick-tip-${customTutorialType}`
+                );
+                expect(monitorQuickTip).toBeDefined();
             });
         },
         operationTimeOut
@@ -421,8 +429,6 @@ describe('Components', () => {
                 await page.type('input[id=name]', newComponentName);
                 await page.click('button[type=submit]');
 
-                await init.navigateToComponentDetails(newComponentName, page);
-
                 await page.waitForSelector('#form-new-monitor');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', newMonitorName);
@@ -431,29 +437,31 @@ describe('Components', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForSelector(`#cb${newMonitorName}`, {
+                    visible: true,
+                });
 
-                // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
-                await page.waitFor(5000);
+                await page.waitForSelector('#component0', { visible: true });
 
-                const newComponentSelector = '#component0 table > tbody > tr';
+                const newComponentSelector = `#count_${newComponentName}`;
+                const componentSelector = `#count_${componentName}`;
+
                 await page.waitForSelector(newComponentSelector);
+                const newResourceCount = await page.$eval(
+                    `#count_${newComponentName}`,
+                    elem => elem.textContent
+                );
+                expect(newResourceCount).toEqual('1 Resource');
 
-                const newResourceRows = await page.$$(newComponentSelector);
-                const countNewResources = newResourceRows.length;
-
-                expect(countNewResources).toEqual(1); // one monitor
-
-                const componentSelector = '#component1 table > tbody > tr';
                 await page.waitForSelector(componentSelector);
-
-                const resourceRows = await page.$$(componentSelector);
-                const countResources = resourceRows.length;
-
-                expect(countResources).toEqual(3); // one log container and two monitor
+                const firstResourceCount = await page.$eval(
+                    `#count_${componentName}`,
+                    elem => elem.textContent
+                );
+                expect(firstResourceCount).toEqual('3 Resources');
             });
         },
         operationTimeOut
@@ -488,6 +496,13 @@ describe('Components', () => {
                     monitorPage
                 );
                 await monitorPage.bringToFront();
+                // click on Incident tab
+                await page.waitForSelector('#customTabList > li', {
+                    visible: true,
+                });
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
 
                 await monitorPage.waitForSelector(
                     `#createIncident_${monitorName}`
@@ -499,9 +514,22 @@ describe('Components', () => {
                     'Offline',
                     monitorPage
                 );
-                await monitorPage.type('#title', 'new incident');
+                await init.selectByText(
+                    '#incidentPriority',
+                    'Low',
+                    monitorPage
+                );
+                // await monitorPage.type('#title', 'new incident');
                 await monitorPage.click('#createIncident');
-                await monitorPage.waitFor(2000);
+                await monitorPage.waitForSelector('#createIncident', {
+                    hidden: true,
+                });
+
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
 
                 await componentPage.bringToFront();
                 // check that the monitor is offline on component page
@@ -514,7 +542,6 @@ describe('Components', () => {
                 componentSpanElement = await componentSpanElement.jsonValue();
 
                 expect(componentSpanElement).toMatch('Offline');
-                await componentPage.waitFor(2000);
                 // bring monitor window to the front so as to resolve incident
                 await monitorPage.bringToFront();
                 // open incident details
@@ -559,15 +586,13 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
-                await page.waitFor(5000);
 
-                const componentSelector = '#component1 table > tbody > tr';
-                await page.waitForSelector(componentSelector);
-
-                const resourceRows = await page.$$(componentSelector);
-                const countResources = resourceRows.length;
-
-                expect(countResources).toEqual(3); // one log container and two monitor
+                await page.waitForSelector(`#count_${componentName}`);
+                const firstResourceCount = await page.$eval(
+                    `#count_${componentName}`,
+                    elem => elem.textContent
+                );
+                expect(firstResourceCount).toEqual('3 Resources');
 
                 let spanElement = await page.waitForSelector(
                     `#resource_type_${monitorName}`
@@ -608,13 +633,12 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                const componentSelector = '#component1 table > tbody > tr';
-                await page.waitForSelector(componentSelector);
-
-                const resourceRows = await page.$$(componentSelector);
-                const countResources = resourceRows.length;
-
-                expect(countResources).toEqual(3); // one log container and two monitor
+                await page.waitForSelector(`#count_${componentName}`);
+                const firstResourceCount = await page.$eval(
+                    `#count_${componentName}`,
+                    elem => elem.textContent
+                );
+                expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
 
                 await page.click(`#view-resource-${applicationLogName}`);
 
@@ -636,19 +660,18 @@ describe('Components', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'networkidle0',
                 });
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
 
                 await page.waitForSelector(`#edit-component-${componentName}`);
                 await page.click(`#edit-component-${componentName}`);
-                await page.waitFor(2000);
 
-                await page.waitForSelector('#componentName');
+                await page.waitForSelector('input[name=name]');
                 await page.click('input[name=name]');
-                await page.type('input[name=name]', '-two', { delay: 100 });
-                await page.click('button[type=save]', { delay: 100 });
+                await page.type('input[name=name]', '-two');
+                await page.click('#editComponentButton');
 
                 let spanElement = await page.waitForSelector(
                     `span#component-title-${componentName}-two`
@@ -671,20 +694,28 @@ describe('Components', () => {
                     newMonitorName,
                     page
                 );
+                await page.waitForSelector('#customTabList > li');
+                // navigate to incidents tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
                 await page.waitForSelector(`#createIncident_${newMonitorName}`);
                 await page.click(`#createIncident_${newMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
-                await page.type('#title', 'new incident');
+                await init.selectByText('#incidentPriority', 'Low', page);
                 await page.click('#createIncident');
-                await page.waitFor(2000);
-                await page.waitForSelector(
-                    `table > tbody > tr#incident_${newMonitorName}_0`
-                );
-                await page.click(
-                    `table > tbody > tr#incident_${newMonitorName}_0`
-                );
-                await page.waitFor(5000);
+                await page.waitForSelector('#createIncident', { hidden: true });
+
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
+
+                await page.waitForSelector(`#incident_${newMonitorName}_0`);
+                await page.click(`#incident_${newMonitorName}_0`);
+
                 await page.waitForSelector('#AccountSwitcherId');
                 await page.click('#AccountSwitcherId');
                 await page.waitForSelector('#create-project');

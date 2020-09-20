@@ -165,16 +165,32 @@ module.exports = {
             }
 
             query.deleted = false;
-            const incidents = await IncidentModel.findOneAndUpdate(query, {
+            const incident = await IncidentModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
                     deletedById: userId,
                 },
             });
-            return incidents;
+
+            if (incident) {
+                const monitorStatuses = await MonitorStatusService.findBy({
+                    incidentId: incident._id,
+                });
+                for (const monitorStatus of monitorStatuses) {
+                    const { _id } = monitorStatus;
+                    await MonitorStatusService.deleteBy({ _id }, userId);
+                }
+                const incidentTimeline = await IncidentTimelineService.findBy({
+                    incidentId: incident._id,
+                });
+                for (const event of incidentTimeline) {
+                    await IncidentTimelineService.deleteBy({ _id: event._id }, userId);
+                }
+            }
+            return incident;
         } catch (error) {
-            ErrorService.log('incidentService.findOneAndUpdate', error);
+            ErrorService.log('incidentService.deleteBy', error);
             throw error;
         }
     },

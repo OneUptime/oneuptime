@@ -8,6 +8,8 @@ import { addArrayField, removeArrayField } from '../../actions/monitor';
 import { ValidateField } from '../../config';
 import { RenderSelect } from './RenderSelect';
 import { RenderField } from './RenderField';
+import Tooltip from './Tooltip';
+import ShouldRender from './ShouldRender';
 
 const flexStyle = {
     display: 'inline-block',
@@ -131,6 +133,7 @@ const placeholders = {
     },
     jsExpression: {
         responseBody: 'response.data === {}',
+        evals: "typeof response === 'object'",
     },
     executesIn: {
         executes: '2000',
@@ -218,6 +221,11 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
+                                },
+                                {
+                                    value: 'evals',
+                                    label: 'Evaluate Response',
+                                    show: type === 'api',
                                 },
                                 {
                                     value: 'ssl',
@@ -459,8 +467,10 @@ export class RenderOption extends Component {
                                         label: 'Javascript Expression',
                                         show:
                                             bodyfield &&
-                                            bodyfield.responseType ===
-                                                'responseBody',
+                                            (bodyfield.responseType ===
+                                                'responseBody' ||
+                                                bodyfield.responseType ===
+                                                    'evals'),
                                     },
                                     {
                                         value: 'empty',
@@ -621,6 +631,129 @@ export class RenderOption extends Component {
                                             : { width: '200px' }
                                     }
                                 />
+                                <ShouldRender
+                                    if={
+                                        type === 'api' &&
+                                        bodyfield.responseType === 'evals'
+                                    }
+                                >
+                                    <Tooltip title="Evaluate Response">
+                                        <p>
+                                            API Monitor exposes the{' '}
+                                            <code>response</code> object of this
+                                            API request.
+                                        </p>
+                                        <p>
+                                            Example properties include (but not
+                                            limited to) the following:
+                                        </p>
+                                        <p>
+                                            <ul>
+                                                <li>
+                                                    <code>
+                                                        response.headers
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>response.body</code>
+                                                </li>
+                                            </ul>
+                                        </p>
+                                        <p>Usage examples include:</p>
+                                        <p>
+                                            <ul>
+                                                <li>
+                                                    <code>
+                                                        1 |{' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'blue',
+                                                            }}
+                                                        >
+                                                            typeof
+                                                        </span>{' '}
+                                                        response.body ==={' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'green',
+                                                            }}
+                                                        >
+                                                            &apos;object&apos;;
+                                                        </span>
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        2 |{' '}
+                                                        response.body.message
+                                                        ==={' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'green',
+                                                            }}
+                                                        >
+                                                            &apos;User
+                                                            created&apos;
+                                                        </span>
+                                                        ;
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        3 | response.headers[
+                                                        <span
+                                                            style={{
+                                                                color: 'green',
+                                                            }}
+                                                        >
+                                                            &apos;Content-Type&apos;
+                                                        </span>
+                                                        ] ==={' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'green',
+                                                            }}
+                                                        >
+                                                            &apos;application/json&apos;
+                                                        </span>
+                                                        ;
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>4 |</code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        5 |{' '}
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            &#47;&#47; check if
+                                                            item is in array of
+                                                            data
+                                                        </span>
+                                                    </code>
+                                                </li>
+                                                <li>
+                                                    <code>
+                                                        6 |{' '}
+                                                        response.body.data.includes(
+                                                        <span
+                                                            style={{
+                                                                color: 'green',
+                                                            }}
+                                                        >
+                                                            &apos;Banana&apos;
+                                                        </span>
+                                                        );
+                                                    </code>
+                                                </li>
+                                            </ul>
+                                        </p>
+                                    </Tooltip>
+                                </ShouldRender>
                             </div>
                         </div>
 

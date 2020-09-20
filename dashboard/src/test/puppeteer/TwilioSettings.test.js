@@ -99,8 +99,11 @@ describe('Custom Twilio Settings', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector(`#more-details-${monitorName}`);
-                await page.click(`#more-details-${monitorName}`);
+                await page.waitForSelector('#customTabList > li');
+                // navigate to subscribers tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await init.selectByText('#alertViaId', 'SMS', page);
@@ -109,29 +112,43 @@ describe('Custom Twilio Settings', () => {
                 await page.type('#contactPhoneId', phoneNumber);
                 await page.click('#createSubscriber');
 
+                await page.waitForSelector('#customTabList > li');
+                // navigate to incidents tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
+                );
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('input[name=title]', incidentTitle);
                 await page.click('#createIncident');
-                await page.waitFor(3000);
+                await page.waitForSelector('#createIncident', { hidden: true });
+
                 await page.waitForSelector('#closeIncident_0');
-                await page.click('#closeIncident_0');
+                await page.$eval('#closeIncident_0', elem => elem.click());
+                await page.waitForSelector(`#incident_${monitorName}_0`);
+                await page.$eval(`#incident_${monitorName}_0`, elem =>
+                    elem.click()
+                );
+                await page.waitForSelector('#customTabList > li');
+                // navigate to alert logs
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
+
                 await page.waitForSelector(
-                    '#incident_monitor1_0>td:nth-child(2)'
+                    '#subscriberAlertTable > tbody > tr'
                 );
-                await page.$eval('#incident_monitor1_0>td:nth-child(2)', e =>
-                    e.click()
+                await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
+                    elem.click()
                 );
-                await page.waitForSelector(
-                    '#subscriberAlertTable>tbody>tr>td:nth-child(2)'
+                await page.waitForSelector('#subscriber');
+                const subscriber = await page.$eval(
+                    '#subscriber',
+                    elem => elem.textContent
                 );
-                const receiverPhoneNumber = await page.$eval(
-                    '#subscriberAlertTable>tbody>tr>td:nth-child(2)',
-                    e => e.textContent
-                );
-                expect(receiverPhoneNumber).toEqual(phoneNumber);
+                expect(subscriber).toEqual(`${countryCode}${phoneNumber}`);
             });
 
             done();
@@ -149,21 +166,42 @@ describe('Custom Twilio Settings', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector(
-                    '#incident_monitor1_0>td:nth-child(2)'
+
+                await page.waitForSelector('#customTabList > li');
+                // navigate to incidents tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
                 );
-                await page.$eval('#incident_monitor1_0>td:nth-child(2)', e =>
-                    e.click()
+                await page.waitForSelector(`#incident_${monitorName}_0`);
+                await page.$eval(`#incident_${monitorName}_0`, elem =>
+                    elem.click()
                 );
                 await page.waitForSelector('#btnAcknowledge_0');
                 await page.$eval('#btnAcknowledge_0', e => e.click());
-                await page.waitFor(5000);
-                await page.reload();
-                await page.waitForSelector('#subscriberAlertTable>tbody>tr');
-                const rowsCount = (
-                    await page.$$('#subscriberAlertTable>tbody>tr')
-                ).length;
-                expect(rowsCount).toEqual(2);
+                await page.waitForSelector('#AcknowledgeText_0', {
+                    visible: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
+
+                await page.waitForSelector('#customTabList > li');
+                // navigate to alert logs
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
+
+                await page.waitForSelector(
+                    '#subscriberAlertTable > tbody > tr'
+                );
+                // grab the last log
+                await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
+                    elem.click()
+                );
+                await page.waitForSelector('#eventType');
+                const eventType = await page.$eval(
+                    '#eventType',
+                    elem => elem.textContent
+                );
+                expect(eventType).toEqual('acknowledged');
             });
 
             done();
@@ -181,22 +219,42 @@ describe('Custom Twilio Settings', () => {
                     monitorName,
                     page
                 );
-                await page.waitForSelector(
-                    '#incident_monitor1_0 > td:nth-child(2)'
+
+                await page.waitForSelector('#customTabList > li');
+                // navigate to incidents tab
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[1].click()
                 );
-                await page.$eval('#incident_monitor1_0 > td:nth-child(2)', e =>
-                    e.click()
+                await page.waitForSelector(`#incident_${monitorName}_0`);
+                await page.$eval(`#incident_${monitorName}_0`, elem =>
+                    elem.click()
                 );
                 await page.waitForSelector('#btnResolve_0');
                 await page.$eval('#btnResolve_0', e => e.click());
-                await page.waitFor(5000);
-                await page.reload();
+                await page.waitForSelector('#ResolveText_0', {
+                    visible: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
 
-                await page.waitForSelector('#subscriberAlertTable>tbody>tr');
-                const rowsCount = (
-                    await page.$$('#subscriberAlertTable>tbody>tr')
-                ).length;
-                expect(rowsCount).toEqual(3);
+                await page.waitForSelector('#customTabList > li');
+                // navigate to alert logs
+                await page.$$eval('#customTabList > li', elem =>
+                    elem[2].click()
+                );
+
+                await page.waitForSelector(
+                    '#subscriberAlertTable > tbody > tr'
+                );
+                // grab the last log
+                await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
+                    elem.click()
+                );
+                await page.waitForSelector('#eventType');
+                const eventType = await page.$eval(
+                    '#eventType',
+                    elem => elem.textContent
+                );
+                expect(eventType).toEqual('resolved');
             });
 
             done();
@@ -258,7 +316,7 @@ describe('Custom Twilio Settings', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor('#successMessage');
+                await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent
@@ -296,7 +354,7 @@ describe('Custom Twilio Settings', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor('#successMessage');
+                await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent
