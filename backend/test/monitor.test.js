@@ -13,14 +13,14 @@ let { createUser } = require('./utils/userSignUp');
 let UserService = require('../backend/services/userService');
 let ProjectService = require('../backend/services/projectService');
 let MonitorService = require('../backend/services/monitorService');
-let MonitorCategoryService = require('../backend/services/monitorCategoryService');
+let ResourceCategoryService = require('../backend/services/resourceCategoryService');
 let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 let ComponentModel = require('../backend/models/component');
 
-let token, userId, airtableId, projectId, monitorId, monitorCategoryId;
+let token, userId, airtableId, projectId, monitorId, resourceCategoryId;
 
 let monitorCategory = {
     monitorCategoryName: 'New Monitor Category',
@@ -624,7 +624,7 @@ describe('Monitor API with monitor Category', function() {
                                         .set('Authorization', authorization)
                                         .send(monitorCategory)
                                         .end(function(err, res) {
-                                            monitorCategoryId = res.body._id;
+                                            resourceCategoryId = res.body._id;
                                             done();
                                         });
                                 });
@@ -636,7 +636,7 @@ describe('Monitor API with monitor Category', function() {
 
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
@@ -649,15 +649,15 @@ describe('Monitor API with monitor Category', function() {
                 name: 'New Monitor 8',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
-                monitorCategoryId: monitorCategoryId,
+                resourceCategoryId: resourceCategoryId,
                 componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 8');
-                expect(res.body.monitorCategoryId._id).to.be.equal(
-                    monitorCategoryId
+                expect(res.body.resourceCategoryId._id).to.be.equal(
+                    resourceCategoryId
                 );
                 done();
             });
