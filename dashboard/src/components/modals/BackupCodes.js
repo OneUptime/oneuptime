@@ -195,8 +195,8 @@ class BackupCodesModal extends React.Component {
                             <div className="bs-Modal-footer-actions">
                                 <ShouldRender
                                     if={
-                                        (this.props.backupCodesState &&
-                                            this.props.backupCodesState.error)
+                                        this.props.backupCodesState &&
+                                        this.props.backupCodesState.error
                                     }
                                 >
                                     <div className="bs-Tail-copy">
