@@ -514,6 +514,21 @@ describe('User API', function() {
             });
     });
 
+    it('should generate backup codes when the user tries to generate a QR code.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .post(`/user/totp/token/${userId}`)
+            .set('Authorization', authorization)
+            .end(async function(_err,res) {
+                expect(res).to.have.status(200);
+                const user = await UserService.findOneBy({_id : userId});
+                expect(user).to.not.eql(null);
+                expect(user.backupCodes).to.be.an('array');
+                expect(user.backupCodes.length).to.eql(8);
+                done();
+            });
+    });
+
     it('should delete user account and cancel all subscriptions', function(done) {
         const authorization = `Basic ${token}`;
         request
