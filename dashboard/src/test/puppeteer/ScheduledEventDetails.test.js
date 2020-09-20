@@ -45,6 +45,7 @@ describe('Scheduled Event Note', () => {
             await init.loginUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
+            // Create monitor
             await init.addMonitorToComponent(
                 null,
                 monitorName,
@@ -78,6 +79,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector('#add-investigation-message', {
                     visible: true,
                 });
@@ -121,6 +124,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
 
                 await page.waitForSelector(
                     '#edit_Investigation_incident_message_0',
@@ -165,7 +170,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
-
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector(
                     '#delete_Investigation_incident_message_0',
                     { visible: true }
@@ -200,6 +206,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector('#add-internal-message', {
                     visible: true,
                 });
@@ -240,7 +248,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
-
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector(
                     '#edit_Internal_incident_message_0',
                     { visible: true }
@@ -281,7 +290,8 @@ describe('Scheduled Event Note', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
-
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector(
                     '#delete_Internal_incident_message_0',
                     { visible: true }
@@ -303,7 +313,7 @@ describe('Scheduled Event Note', () => {
     );
 });
 
-describe('Scheduled Event Note ==> Pagination', () => {
+describe('Scheduled Event Note ==> Pagination and Deletion', () => {
     const operationTimeOut = 50000;
 
     let cluster;
@@ -332,9 +342,8 @@ describe('Scheduled Event Note ==> Pagination', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // Create component
-            await init.addComponent(componentName, page);
-            await init.addMonitorToComponent(null, monitorName, page);
+            // Create component and monitor
+            await init.addMonitorToComponent(componentName, monitorName, page);
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
             // create multiple notes
@@ -372,6 +381,8 @@ describe('Scheduled Event Note ==> Pagination', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 const tenthItem = await page.waitForSelector(
                     '#Investigation_incident_message_9',
                     { visible: true }
@@ -397,6 +408,8 @@ describe('Scheduled Event Note ==> Pagination', () => {
                     visible: true,
                 });
                 await page.click('#viewScheduledEvent_0');
+                // navigate to the note tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
                 await page.waitForSelector('#nextBtn', { visible: true });
                 await page.click('#nextBtn');
 
@@ -411,6 +424,48 @@ describe('Scheduled Event Note ==> Pagination', () => {
 
                 expect(fifthItem).toBeDefined();
                 expect(sixthItem).toBeNull();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+    test(
+        'should visit the advance section and delete the schedule event',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#scheduledEvents', {
+                    visible: true,
+                });
+                await page.click('#scheduledEvents');
+
+                await page.waitForSelector('#viewScheduledEvent_0', {
+                    visible: true,
+                });
+                await page.click('#viewScheduledEvent_0');
+                // navigate to the advance tab section
+                await init.gotoTab(utils.scheduleEventTabIndexes.ADVANCE, page);
+
+                // look for the delete button and click on it
+                await page.waitForSelector('#deleteScheduleEvent', {
+                    visible: true,
+                });
+                await page.click('#deleteScheduleEvent');
+
+                // find the confirm delete button in the pop up and click on it
+                await page.waitForSelector('#deleteScheduleModalBtn', {
+                    visible: true,
+                });
+                await page.click('#deleteScheduleModalBtn');
+                // confirm that the element is deleted and redirected to the list of all schedule event page
+                await page.waitFor(2000);
+                const scheduledEventList = await page.waitForSelector(
+                    '.scheduled-event-list-item',
+                    {
+                        hidden: true,
+                    }
+                );
+                expect(scheduledEventList).toBeNull();
             });
             done();
         },

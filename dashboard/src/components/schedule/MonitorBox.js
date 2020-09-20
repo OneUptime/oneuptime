@@ -227,6 +227,7 @@ MonitorBox.displayName = 'MonitorBox';
 
 const AddMonitorsForm = new reduxForm({
     form: 'AddMonitorsForm',
+    enableReinitialize: true,
 })(MonitorBox);
 
 const mapStateToProps = (state, props) => {
