@@ -94,8 +94,6 @@ describe('Monitor API', () => {
                     visible: true,
                     timeout: operationTimeOut,
                 });
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#lighthouse-performance-${monitorName}`,
