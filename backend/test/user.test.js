@@ -519,14 +519,33 @@ describe('User API', function() {
         request
             .post(`/user/totp/token/${userId}`)
             .set('Authorization', authorization)
-            .end(async function(_err,res) {
+            .end(async function(_err, res) {
                 expect(res).to.have.status(200);
-                const user = await UserService.findOneBy({_id : userId});
+                const user = await UserService.findOneBy({ _id: userId });
                 expect(user).to.not.eql(null);
                 expect(user.backupCodes).to.be.an('array');
                 expect(user.backupCodes.length).to.eql(8);
                 done();
             });
+    });
+
+    it('should generate new backup codes.', async function() {
+        const authorization = `Basic ${token}`;
+        const user = await UserService.updateOneBy(
+            { _id: userId },
+            { twoFactorAuthEnabled: true }
+        );
+        expect(user).to.not.eql(null);
+        expect(user.twoFactorAuthEnabled).to.eql(true);
+        const res = await request
+            .post(`/user/generate/backupCode`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body.length).to.eql(8);
+        expect(res.body).to.not.eql(user.backupCodes);
+        expect(res.body[0].counter).to.eql(8);
+        expect(res.body[7].counter).to.eql(15);
     });
 
     it('should delete user account and cancel all subscriptions', function(done) {
