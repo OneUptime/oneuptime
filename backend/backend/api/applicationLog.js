@@ -333,11 +333,22 @@ router.put(
         }
 
         // try to find in the application log if the name already exist for that component
-        const existingApplicationLog = await ApplicationLogService.findBy({
+        const existingQuery = {
             name: data.name,
             componentId: req.params.componentId,
-        });
-        if (existingApplicationLog && existingApplicationLog.length > 0) {
+        };
+        if (data.resourceCategoryId != '') {
+            existingQuery.resourceCategoryId = data.resourceCategoryId;
+        }
+        const existingApplicationLog = await ApplicationLogService.findBy(
+            existingQuery
+        );
+
+        if (
+            existingApplicationLog &&
+            existingApplicationLog.length > 0 &&
+            data.resourceCategoryId != ''
+        ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Application Log with that name already exists.',
