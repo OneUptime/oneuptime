@@ -415,6 +415,18 @@ export class EmailSmtpBox extends Component {
                                                                                         Transport
                                                                                     </span>
                                                                                 </span>
+                                                                                <label className="bs-Fieldset-explanation">
+                                                                                    <span>
+                                                                                        Enabled
+                                                                                        for
+                                                                                        port
+                                                                                        465,
+                                                                                        disabled
+                                                                                        for
+                                                                                        port
+                                                                                        587
+                                                                                    </span>
+                                                                                </label>
                                                                             </div>
                                                                         </label>
                                                                         <div className="Box-root Padding-left--24">
