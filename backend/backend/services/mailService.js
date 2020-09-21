@@ -1321,7 +1321,7 @@ const _this = {
             const smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
-            const privateMailer = await _this.createMailer({});
+            const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
