@@ -167,7 +167,7 @@ class NewApplicationLog extends Component {
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Resource Category
+                                                            Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
@@ -177,7 +177,7 @@ class NewApplicationLog extends Component {
                                                                 }
                                                                 name="resourceCategoryId"
                                                                 id="resourceCategoryId"
-                                                                placeholder="Choose Resource Category"
+                                                                placeholder="Choose  Category"
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -186,7 +186,7 @@ class NewApplicationLog extends Component {
                                                                         value:
                                                                             '',
                                                                         label:
-                                                                            'Select resource category',
+                                                                            'Select category',
                                                                     },
                                                                     ...(resourceCategoryList &&
                                                                     resourceCategoryList.length >
