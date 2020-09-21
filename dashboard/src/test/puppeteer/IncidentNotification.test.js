@@ -94,6 +94,7 @@ describe('Incident Created test', () => {
                 await page.click('button[id=viewIncident-0]');
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
+                await page.waitForSelector('#ResolveText_0', { visible: true });
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Invite member on the project
@@ -159,6 +160,7 @@ describe('Incident Created test', () => {
 
                 await page.waitForSelector('button[id=viewIncident-0]');
                 await page.click('button[id=viewIncident-0]');
+                await page.waitForSelector('#cbIncident', { visible: true });
                 let pageTitle = await page.$('#cbIncident');
                 pageTitle = await pageTitle.getProperty('innerText');
                 pageTitle = await pageTitle.jsonValue();
@@ -214,6 +216,9 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('span#activeIncidentsText', {
+                    visible: true,
+                });
                 let activeIncidents = await page.$('span#activeIncidentsText', {
                     visible: true,
                 });
@@ -236,6 +241,7 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#activeIncidents');
                 await page.click('#activeIncidents');
+                await page.waitForSelector('#cbHome');
                 let activeIncidents = await page.$('#cbHome', {
                     visible: true,
                 });
@@ -267,13 +273,6 @@ describe('Incident Created test', () => {
 
                 await page.waitForSelector('#backToMonitorView');
                 await page.click('#backToMonitorView');
-
-                await page.waitForSelector('#customTabList > li', {
-                    visible: true,
-                });
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
 
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
@@ -352,13 +351,6 @@ describe('Incident Created test', () => {
                 );
                 await page.click(`button[id=view-resource-${monitorName}]`);
 
-                await page.waitForSelector('#customTabList > li', {
-                    visible: true,
-                });
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
-
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');
                 await page.waitForSelector('div[title=unresolved]');
@@ -386,13 +378,6 @@ describe('Incident Created test', () => {
                     `button[id=view-resource-${monitorName}]`
                 );
                 await page.click(`button[id=view-resource-${monitorName}]`);
-
-                await page.waitForSelector('#customTabList > li', {
-                    visible: true,
-                });
-                await page.$$eval('#customTabList > li', elem =>
-                    elem[1].click()
-                );
 
                 await page.waitForSelector('button[id=filterToggle]');
                 await page.click('button[id=filterToggle]');

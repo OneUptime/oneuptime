@@ -185,7 +185,10 @@ module.exports = {
                     incidentId: incident._id,
                 });
                 for (const event of incidentTimeline) {
-                    await IncidentTimelineService.deleteBy({ _id: event._id }, userId);
+                    await IncidentTimelineService.deleteBy(
+                        { _id: event._id },
+                        userId
+                    );
                 }
             }
             return incident;
