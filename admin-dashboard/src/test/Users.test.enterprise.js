@@ -46,7 +46,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
 
     test(
         'should show a button to add more users to fyipe from admin dashboard',
-        async () => {
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 // navigating to dashboard url
                 // automatically redirects to users route
@@ -60,13 +60,14 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                 });
                 expect(elem).toBeTruthy();
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should logout and get redirected to the login page if the user deletes his account',
-        async () => {
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 // navigating to dashboard url
                 // automatically redirects to users route
@@ -78,16 +79,16 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                     '.bs-ObjectList-rows>a:last-of-type'
                 );
                 await page.click('.bs-ObjectList-rows>a:last-of-type');
-                await page.waitFor(3000);
                 await page.waitForSelector('#delete');
                 await page.click('#delete');
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
-                await page.waitFor(3000);
+                await page.waitForSelector('#confirmDelete', { hidden: true });
                 await page.waitForSelector('#users');
                 await page.click('#users');
                 await page.waitForSelector('#login-button');
             });
+            done();
         },
         operationTimeOut
     );
