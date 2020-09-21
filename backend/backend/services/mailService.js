@@ -21,14 +21,7 @@ const options = {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let {
-            user,
-            pass,
-            host,
-            port,
-            from,
-            secure,
-        } = await _this.getSmtpSettings();
+        let user, pass, host, port, from, secure;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
             enabled: true,
