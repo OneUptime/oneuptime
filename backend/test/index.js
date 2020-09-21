@@ -37,7 +37,7 @@ try {
     require('./user.test');
     require('./version.test');
     require('./applicationLog.test');
-    require('./slack.test');
+    // require('./slack.test.txt');
     require('./webhooks.test');
     require('./zapier.test');
     require('./rateLimit.test');
