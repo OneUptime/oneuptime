@@ -50,6 +50,15 @@ router.post(
                     message: 'Git Credential is required',
                 });
             }
+            if (
+                data.resourceCategoryId &&
+                typeof data.resourceCategoryId !== 'string'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Resource Category ID is not of string type.',
+                });
+            }
 
             const applicationSecurity = await ApplicationSecurityService.create(
                 data
