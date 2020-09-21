@@ -22,6 +22,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const ResourceCategoryService = require('../services/resourceCategoryService');
 const uuid = require('uuid');
 
 // Route
@@ -364,8 +365,17 @@ router.put(
         if (!data.resourceCategoryId || data.resourceCategoryId === '') {
             unsetData = { resourceCategoryId: '' };
         } else {
-            applicationLogUpdate.resourceCategoryId = data.resourceCategoryId;
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategoryId,
+            });
+            if (resourceCategory) {
+                applicationLogUpdate.resourceCategoryId =
+                    data.resourceCategoryId;
+            } else {
+                unsetData = { resourceCategoryId: '' };
+            }
         }
+
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
