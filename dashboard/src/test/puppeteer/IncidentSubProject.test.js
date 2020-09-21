@@ -142,9 +142,6 @@ describe('Incident API With SubProjects', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of monitor
@@ -158,7 +155,7 @@ describe('Incident API With SubProjects', () => {
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('#title', 'new incident');
                 await page.click('#createIncident');
-                await page.waitForSelector('#incident_span_1');
+                await page.waitForSelector('#incident_span_0');
                 const incidentTitleSelector = await page.$('#incident_span_0');
 
                 let textContent = await incidentTitleSelector.getProperty(
@@ -179,9 +176,6 @@ describe('Incident API With SubProjects', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
@@ -189,8 +183,10 @@ describe('Incident API With SubProjects', () => {
                 // acknowledge incident
                 await page.waitForSelector('#btnAcknowledge_0');
                 await page.click('#btnAcknowledge_0');
-                await page.waitFor(2000);
-                await page.waitForSelector('#AcknowledgeText_0');
+                await page.waitForSelector('#AcknowledgeText_0', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
 
                 const acknowledgeTextSelector = await page.$(
                     '#AcknowledgeText_0'
@@ -207,9 +203,6 @@ describe('Incident API With SubProjects', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
@@ -217,8 +210,10 @@ describe('Incident API With SubProjects', () => {
                 // resolve incident
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
-                await page.waitFor(2000);
-                await page.waitForSelector('#ResolveText_0');
+                await page.waitForSelector('#ResolveText_0', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
                 expect(resolveTextSelector).not.toBeNull();
@@ -235,9 +230,6 @@ describe('Incident API With SubProjects', () => {
                 const investigationNote = utils.generateRandomString();
                 const internalNote = utils.generateRandomString();
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created
@@ -250,7 +242,7 @@ describe('Incident API With SubProjects', () => {
                 await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                     e.click()
                 );
-                await page.waitFor(2000);
+                await page.waitForSelector('#incident_0', { visible: true });
 
                 // click on incident notes tab
                 await init.gotoTab(
@@ -327,21 +319,19 @@ describe('Incident API With SubProjects', () => {
                 const internalNote = utils.generateRandomString();
                 const type = 'internal';
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(2000);
 
                 await page.waitForSelector(
-                    `#incident_${projectMonitorName1}_0`
+                    `#incident_${projectMonitorName1}_0`,
+                    { visible: true }
                 );
                 await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
                     e.click()
                 );
+                await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(
                     utils.incidentTabIndexes.INCIDENT_NOTES,
@@ -406,9 +396,6 @@ describe('Incident API With SubProjects', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await init.loginUser(newUser, page);
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
                 // Navigate to details page of component created

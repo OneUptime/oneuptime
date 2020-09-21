@@ -18,16 +18,18 @@ deploy_staging_log-java:
         - sudo docker run --env-file ./backend/.env --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - cd log-java
-        - git status
-        - git checkout -f staging
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --list-keys
+        # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
+        # - gpg --keyserver keyserver.ubuntu.com --send-keys 2BC832A79ED9B002C512A064D4A60477A62C81FD
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - mvn clean deploy
+        - git init
         - git add .
         - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git staging --force
-        # - mvn versions:set -DnewVersion=1.0.0
-        # - mvn clean deploy -P release
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -38,7 +40,7 @@ deploy_staging_log-java:
     environment:
         name: staging
 
-deploy_poduction_log-java:
+deploy_production_log-java:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -62,6 +64,7 @@ deploy_poduction_log-java:
         - git checkout -f master
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
         - mvn clean deploy -P release
+        - git init
         - git add .
         - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/log-java.git master --force

@@ -792,6 +792,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   border: 2px solid #fff;
 }
 
+
 .btn-group .icon-container.selected{
   background-color: #f7f7f7;
   border-bottom: none;

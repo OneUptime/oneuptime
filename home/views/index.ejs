@@ -35,9 +35,8 @@
                     <div class="container-lg" style="display: flex; justify-content: center;">
 
                         <div>
-                            <div style="display:flex;justify-content: space-evenly;
-                            margin-top: 200px;">
-                                <div>
+                            <div class="stars-panel">
+                                <div class="mobile-collapse-block">
                                     <div style="display: flex;
                                 justify-content: center;">
                                         <img width="100" src="img/stars.svg" alt="star rating">
@@ -46,7 +45,8 @@
                                 color: black;">
                                         <div>
                                             <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
-                                                    href="https://www.capterra.com/p/176513/Fyipe/"><i>"the best SRE product out there"</i></a></span>
+                                                    href="https://www.capterra.com/p/176513/Fyipe/"><i>"the best SRE
+                                                        product out there"</i></a></span>
                                         </div>
                                         <div style="text-align: center;">
                                             <span style="font-size: 14px; color: #8b8b8b"><a target="blank"
@@ -56,7 +56,7 @@
                                     </div>
                                 </div>
 
-                                <div>
+                                <div class="mobile-collapse-block">
                                     <div style="display: flex;
                                 justify-content: center;">
                                         <img width="100" src="img/stars.svg" alt="star rating">
@@ -101,13 +101,56 @@
                                 One Complete SRE <br />and DevOps
                                 platform.
                             </h1>
-                            <p class="common-BodyText" style="text-align:center;max-width:100%">
+                           
+
+                            <div>
+                                <div style="display:flex; justify-content: space-between">
+                                    <div class="checkbox-feature ">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                                class="checkbox-text">Uptime Monitoring</div> 
+                                    </div>
+                                    <div class="checkbox-feature">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                                class="checkbox-text">Status Page</div> 
+                                    </div>
+                                    
+                                    <div class="checkbox-feature mobile-collapse">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                                class="checkbox-text">Tests</div> 
+                                    </div class="checkbox-feature">
+                                    <div class="checkbox-feature mobile-collapse">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                                class="checkbox-text">Security</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; justify-content: space-between; margin-top:10px">
+                                    <div class="checkbox-feature">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                                class="checkbox-text">Logs Management</div> 
+                                    </div>
+                                    <div class="checkbox-feature">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /> </div><div
+                                                class="checkbox-text">Incident Management</div> 
+                                    </div>
+                                    <div class="checkbox-feature mobile-collapse">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /> </div><div
+                                                class="checkbox-text">Performance Monitoring</div> 
+                                    </div>
+                                   
+                                    <div class="checkbox-feature mobile-collapse">
+                                        <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                                class="checkbox-text">Error Tracking</div> 
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="common-BodyText" style="text-align:center;max-width:100%; margin-top:50px">
                                 Fyipe monitors your website, dashboards, API's, and more and alerts your team when
                                 downtime happens. We also give you a Status Page which keeps your customers looped in
                                 and improves transparency.
                             </p>
 
-                            <ul style="margin-left: calc(50% - 150px); margin-top: 70px;">
+                            <ul class="cta-button-style">
                                 <li>
                                     <a href="#" onclick="registerUrl()" class="common-Button" id="create-account-top_0"
                                         data-analytics-action="create_account" data-analytics-source="header_cta">
