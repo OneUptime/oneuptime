@@ -589,6 +589,7 @@ export class RenderOption extends Component {
                             <div className="bs-Fieldset-fields">
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
+                                    id="value"
                                     type="text"
                                     name={`${fieldnameprop}.field1`}
                                     component={RenderField}

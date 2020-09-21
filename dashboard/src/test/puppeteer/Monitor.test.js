@@ -394,7 +394,7 @@ describe('Monitor API', () => {
             const dashboard = async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(280000);
+                await page.waitFor(120000);
 
                 await page.waitForSelector(
                     `#more-details-${testServerMonitorName}`
@@ -460,7 +460,7 @@ describe('Monitor API', () => {
             const dashboard = async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(280000);
+                await page.waitFor(120000);
 
                 await page.waitForSelector(
                     `#more-details-${testServerMonitorName}`
@@ -562,6 +562,7 @@ describe('API Monitor API', () => {
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
+    const testMonitorName = utils.generateRandomString();
 
     test(
         'should not add API monitor with invalid url',
@@ -701,9 +702,226 @@ describe('API Monitor API', () => {
     );
 
     test(
-        'should delete API monitor',
+        'should add API monitor with valid url and evaluate response (online criteria) in advance options',
         async () => {
-            expect.assertions(1);
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', testMonitorName);
+                await init.selectByText('#type', 'api', page);
+                await init.selectByText('#method', 'get', page);
+                await page.waitForSelector('#url');
+                await page.click('#url');
+                await page.type('#url', utils.HTTP_TEST_SERVER_URL);
+                await page.waitForSelector('#advanceOptions');
+                await page.click('#advanceOptions');
+
+                // online criteria
+                await page.waitForSelector('#up_1000_addCriteria');
+                await page.click('#up_1000_addCriteria');
+                await page.waitForSelector(
+                    'ul#up_1000 > li:last-of-type #responseType'
+                );
+                await init.selectByText(
+                    'ul#up_1000 > li:last-of-type #responseType',
+                    'evals',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#up_1000 > li:last-of-type #filter'
+                );
+                await init.selectByText(
+                    'ul#up_1000 > li:last-of-type #filter',
+                    'jsExpression',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#up_1000 > li:last-of-type #value'
+                );
+                await page.click('ul#up_1000 > li:last-of-type #value');
+                await page.type(
+                    'ul#up_1000 > li:last-of-type #value',
+                    "response.body.status === 'ok'"
+                );
+
+                // degraded criteria
+                await page.waitForSelector('#degraded_1000_addCriteria');
+                await page.click('#degraded_1000_addCriteria');
+                await page.waitForSelector(
+                    'ul#degraded_1000 > li:last-of-type #responseType'
+                );
+                await init.selectByText(
+                    'ul#degraded_1000 > li:last-of-type #responseType',
+                    'evals',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#degraded_1000 > li:last-of-type #filter'
+                );
+                await init.selectByText(
+                    'ul#degraded_1000 > li:last-of-type #filter',
+                    'jsExpression',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#degraded_1000 > li:last-of-type #value'
+                );
+                await page.click('ul#degraded_1000 > li:last-of-type #value');
+                await page.type(
+                    'ul#degraded_1000 > li:last-of-type #value',
+                    "response.body.message === 'draining'"
+                );
+
+                // offline criteria
+                await page.waitForSelector('#down_1000_addCriteria');
+                await page.click('#down_1000_addCriteria');
+                await page.waitForSelector(
+                    'ul#down_1000 > li:last-of-type #responseType'
+                );
+                await init.selectByText(
+                    'ul#down_1000 > li:last-of-type #responseType',
+                    'evals',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#down_1000 > li:last-of-type #filter'
+                );
+                await init.selectByText(
+                    'ul#down_1000 > li:last-of-type #filter',
+                    'jsExpression',
+                    page
+                );
+                await page.waitForSelector(
+                    'ul#down_1000 > li:last-of-type #value'
+                );
+                await page.click('ul#down_1000 > li:last-of-type #value');
+                await page.type(
+                    'ul#down_1000 > li:last-of-type #value',
+                    "response.body.message === 'offline'"
+                );
+
+                await page.click('button[type=submit]');
+                await page.waitFor(120000);
+
+                let spanElement = await page.waitForSelector(
+                    `#monitor-title-${testMonitorName}`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(testMonitorName);
+
+                let monitorStatusElement = await page.waitForSelector(
+                    `#monitor-status-${testMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
+                );
+                monitorStatusElement = await monitorStatusElement.getProperty(
+                    'innerText'
+                );
+                monitorStatusElement = await monitorStatusElement.jsonValue();
+                monitorStatusElement.should.be.exactly('Online');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should evaluate response (degraded criteria) in advance options',
+        async () => {
+            const testServer = async ({ page }) => {
+                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+                await page.evaluate(
+                    () => (document.getElementById('responseTime').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('body').value = '')
+                );
+                await page.waitForSelector('#responseTime');
+                await page.click('input[name=responseTime]');
+                await page.type('input[name=responseTime]', '5000');
+                await page.waitForSelector('#body');
+                await page.click('textarea[name=body]');
+                await page.type(
+                    'textarea[name=body]',
+                    '{"message":"draining"}'
+                );
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#save-btn');
+                await page.waitForSelector('#save-btn', { visible: true });
+            };
+
+            await cluster.execute(null, testServer);
+
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitFor(120000);
+
+                let monitorStatusElement = await page.waitForSelector(
+                    `#monitor-status-${testMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
+                );
+                monitorStatusElement = await monitorStatusElement.getProperty(
+                    'innerText'
+                );
+                monitorStatusElement = await monitorStatusElement.jsonValue();
+                monitorStatusElement.should.be.exactly('Degraded');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should evaluate response (offline criteria) in advance options',
+        async () => {
+            const testServer = async ({ page }) => {
+                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+                await page.evaluate(
+                    () => (document.getElementById('statusCode').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('body').value = '')
+                );
+                await page.waitForSelector('#statusCode');
+                await page.click('input[name=statusCode]');
+                await page.type('input[name=statusCode]', '400');
+                await page.waitForSelector('#body');
+                await page.click('textarea[name=body]');
+                await page.type('textarea[name=body]', '{"message":"offline"}');
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#save-btn');
+                await page.waitForSelector('#save-btn', { visible: true });
+            };
+
+            await cluster.execute(null, testServer);
+
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitFor(120000);
+
+                let monitorStatusElement = await page.waitForSelector(
+                    `#monitor-status-${testMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
+                );
+                monitorStatusElement = await monitorStatusElement.getProperty(
+                    'innerText'
+                );
+                monitorStatusElement = await monitorStatusElement.jsonValue();
+                monitorStatusElement.should.be.exactly('Offline');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should delete API monitors',
+        async () => {
+            expect.assertions(2);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -712,19 +930,41 @@ describe('API Monitor API', () => {
                     page
                 );
 
-                const deleteButtonSelector = `#delete_${monitorName}`;
-                await page.click(deleteButtonSelector);
+                let deleteButtonSelector = `#delete_${monitorName}`;
+                await page.$eval(deleteButtonSelector, e => e.click());
 
-                const confirmDeleteButtonSelector = '#deleteMonitor';
+                let confirmDeleteButtonSelector = '#deleteMonitor';
                 await page.waitForSelector(confirmDeleteButtonSelector);
                 await page.click(confirmDeleteButtonSelector);
                 await page.waitForSelector(confirmDeleteButtonSelector, {
                     hidden: true,
                 });
 
-                const selector = `span#monitor-title-${monitorName}`;
+                let selector = `span#monitor-title-${monitorName}`;
 
-                const spanElement = await page.$(selector);
+                let spanElement = await page.$(selector);
+                expect(spanElement).toBeNull();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
+
+                deleteButtonSelector = `#delete_${testMonitorName}`;
+                await page.$eval(deleteButtonSelector, e => e.click());
+
+                confirmDeleteButtonSelector = '#deleteMonitor';
+                await page.waitForSelector(confirmDeleteButtonSelector);
+                await page.click(confirmDeleteButtonSelector);
+                await page.waitForSelector(confirmDeleteButtonSelector, {
+                    hidden: true,
+                });
+
+                selector = `span#monitor-title-${testMonitorName}`;
+
+                spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
             });
         },

@@ -65,6 +65,7 @@ export class ResponseComponent extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div>
                                 <button
+                                    id={`${this.props.fieldname}_addCriteria`}
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     onClick={this.addValue}

@@ -194,14 +194,11 @@ module.exports = {
                 },
                 {
                     new: true,
-                },
+                }
             );
             return incidentTimelineModel;
-        } catch( error) {
-            ErrorService.log(
-                'incidentTimelineService.deletedBy',
-                error,
-            );
+        } catch (error) {
+            ErrorService.log('incidentTimelineService.deletedBy', error);
             throw error;
         }
     },
