@@ -221,7 +221,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    it('should not be able to get all monitor categories', function(done) {
+    it('should not be able to get all resource categories', function(done) {
         const authorization = `Basic ${token}`;
         request
             .get(`/resourceCategory/${projectId}`)
@@ -390,7 +390,7 @@ describe('Non-admin user access to create, delete and access resource category.'
                 done();
             });
     });
-    it('should be able to get all monitor categories', function(done) {
+    it('should be able to get all resource categories', function(done) {
         const authorization = `Basic ${token}`;
         request
             .get(`/resourceCategory/${projectId}`)
@@ -480,7 +480,7 @@ describe('Resource Category APIs accesible through API key', function() {
     });
 });
 
-describe('Resource Category API - Check pagination for 12 monitor categories', function() {
+describe('Resource Category API - Check pagination for 12 resource categories', function() {
     this.timeout(40000);
 
     const monitorCategories = [
@@ -566,7 +566,7 @@ describe('Resource Category API - Check pagination for 12 monitor categories', f
         await ResourceCategoryModel.deleteMany({ name: 'testPagination' });
     });
 
-    it('should get first 10 monitor categories with data length 10, skip 0, limit 10 and count 12', async function() {
+    it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/resourceCategory/${projectId}?skip=0&limit=10`)
@@ -590,7 +590,7 @@ describe('Resource Category API - Check pagination for 12 monitor categories', f
             .to.be.equal(10);
     });
 
-    it('should get 2 last monitor categories with data length 2, skip 10, limit 10 and count 12', async function() {
+    it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/resourceCategory/${projectId}?skip=10&limit=10`)
@@ -614,7 +614,7 @@ describe('Resource Category API - Check pagination for 12 monitor categories', f
             .to.be.equal(10);
     });
 
-    it('should get 0 monitor categories with data length 0, skip 20, limit 10 and count 12', async function() {
+    it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/resourceCategory/${projectId}?skip=20&limit=10`)
