@@ -109,13 +109,13 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
+            let applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -123,6 +123,15 @@ module.exports = {
                 { new: true }
             ).populate('gitCredential');
 
+            if (unsetData) {
+                applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
             if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
@@ -131,6 +140,9 @@ module.exports = {
                 throw error;
             }
 
+            applicationSecurity = this.findOneBy({
+                _id: applicationSecurity._id,
+            });
             return applicationSecurity;
         } catch (error) {
             ErrorService.log('applicationSecurityService.updateOneBy', error);
