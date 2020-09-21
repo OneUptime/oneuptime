@@ -9,9 +9,9 @@ const password = '1234567890';
 const componentName = utils.generateRandomString();
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
-const monitorCategory = 'stat';
+const resourceCategory = 'stat';
 
-describe('Monitor Category', () => {
+describe('Resource Category', () => {
     const operationTimeOut = 50000;
 
     let cluster;
@@ -51,7 +51,7 @@ describe('Monitor Category', () => {
     });
 
     test(
-        'should create a new monitor category',
+        'should create a new resource category',
         async () => {
             expect.assertions(1);
 
@@ -60,28 +60,28 @@ describe('Monitor Category', () => {
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('li#monitors a');
-                await page.click('li#monitors a');
-                await page.waitForSelector('#createMonitorCategoryButton');
-                await page.click('#createMonitorCategoryButton');
+                await page.waitForSelector('li#resources a');
+                await page.click('li#resources a');
+                await page.waitForSelector('#createResourceCategoryButton');
+                await page.click('#createResourceCategoryButton');
                 await page.type(
-                    '#monitorCategoryName',
-                    utils.monitorCategoryName
+                    '#resourceCategoryName',
+                    utils.resourceCategoryName
                 );
-                await page.click('#addMonitorCategoryButton');
+                await page.click('#addResourceCategoryButton');
 
-                const createdMonitorCategorySelector =
-                    '#monitorCategoryList #monitor-category-name:nth-child(2)';
+                const createdResourceCategorySelector =
+                    '#resourceCategoryList #monitor-category-name:nth-child(2)';
 
-                await page.waitForSelector(createdMonitorCategorySelector);
+                await page.waitForSelector(createdResourceCategorySelector);
 
-                const createdMonitorCategoryName = await page.$eval(
-                    createdMonitorCategorySelector,
+                const createdResourceCategoryName = await page.$eval(
+                    createdResourceCategorySelector,
                     el => el.textContent
                 );
 
-                expect(createdMonitorCategoryName).toEqual(
-                    utils.monitorCategoryName
+                expect(createdResourceCategoryName).toEqual(
+                    utils.resourceCategoryName
                 );
             });
         },
@@ -89,7 +89,7 @@ describe('Monitor Category', () => {
     );
 
     test(
-        'should show created monitor category in new monitor dropdown',
+        'should show created resource category in new monitor dropdown',
         async () => {
             expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
@@ -97,27 +97,27 @@ describe('Monitor Category', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector('#form-new-monitor');
 
-                let monitorCategoryCheck = false;
+                let resourceCategoryCheck = false;
 
                 await init.selectByText(
-                    '#monitorCategory',
-                    utils.monitorCategoryName,
+                    '#resourceCategory',
+                    utils.resourceCategoryName,
                     page
                 );
 
                 const noOption = await page.$('div.css-1gl4k7y');
 
                 if (!noOption) {
-                    monitorCategoryCheck = true;
+                    resourceCategoryCheck = true;
                 }
-                expect(monitorCategoryCheck).toEqual(true);
+                expect(resourceCategoryCheck).toEqual(true);
             });
         },
         operationTimeOut
     );
 
     test(
-        'should create a new monitor by selecting monitor category from dropdown',
+        'should create a new monitor by selecting resource category from dropdown',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
@@ -127,8 +127,8 @@ describe('Monitor Category', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', utils.monitorName);
                 await init.selectByText(
-                    '#monitorCategory',
-                    utils.monitorCategoryName,
+                    '#resourceCategory',
+                    utils.resourceCategoryName,
                     page
                 );
                 await init.selectByText('#type', 'url', page);
@@ -151,7 +151,7 @@ describe('Monitor Category', () => {
     );
 
     test(
-        'should delete the created monitor category',
+        'should delete the created resource category',
         async () => {
             expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
@@ -159,25 +159,26 @@ describe('Monitor Category', () => {
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('li#monitors a');
-                await page.click('li#monitors a');
+                await page.waitForSelector('li#resources a');
+                await page.click('li#resources a');
 
                 const deleteButtonSelector =
-                    '#deleteMonitorCategoryBtn > button';
+                    '#deleteResourceCategoryBtn > button';
 
                 await page.waitForSelector(deleteButtonSelector);
                 await page.click(deleteButtonSelector);
-                await page.waitForSelector('#deleteMonitorCategory');
-                await page.click('#deleteMonitorCategory');
+                await page.waitForSelector('#deleteResourceCategory');
+                await page.click('#deleteResourceCategory');
                 await page.waitFor(5000);
 
-                const monitorCategoryCounterSelector = '#monitorCategoryCount';
-                const monitorCategoryCount = await page.$eval(
-                    monitorCategoryCounterSelector,
+                const resourceCategoryCounterSelector =
+                    '#resourceCategoryCount';
+                const resourceCategoryCount = await page.$eval(
+                    resourceCategoryCounterSelector,
                     el => el.textContent
                 );
 
-                expect(monitorCategoryCount).toEqual('0 Monitor Category');
+                expect(resourceCategoryCount).toEqual('0 Resource Category');
             });
         },
         operationTimeOut
@@ -223,7 +224,7 @@ describe('Member Restriction', () => {
                     },
                     page
                 );
-                await init.addMonitorCategory(monitorCategory, page);
+                await init.addResourceCategory(resourceCategory, page);
             }
         );
 
@@ -237,7 +238,7 @@ describe('Member Restriction', () => {
     });
 
     test(
-        'should show unauthorised modal when trying to add a monitor category for a member who is not the admin or owner of the project',
+        'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
         async done => {
             cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -257,10 +258,10 @@ describe('Member Restriction', () => {
 
                 await page.waitForSelector('#monitors');
                 await page.click('#monitors');
-                await page.waitForSelector('#createMonitorCategoryButton', {
+                await page.waitForSelector('#createResourceCategoryButton', {
                     visible: true,
                 });
-                await page.click('#createMonitorCategoryButton');
+                await page.click('#createResourceCategoryButton');
                 const modal = await page.waitForSelector('#unauthorisedModal');
                 expect(modal).toBeDefined();
             });
@@ -270,7 +271,7 @@ describe('Member Restriction', () => {
     );
 
     test(
-        'should show unauthorised modal when trying to edit a monitor category for a member who is not the admin or owner of the project',
+        'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async done => {
             cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -290,7 +291,7 @@ describe('Member Restriction', () => {
 
                 await page.waitForSelector('#monitors');
                 await page.click('#monitors');
-                const editBtn = `#edit_${monitorCategory}`;
+                const editBtn = `#edit_${resourceCategory}`;
                 await page.waitForSelector(editBtn, {
                     visible: true,
                 });
@@ -304,7 +305,7 @@ describe('Member Restriction', () => {
     );
 
     test(
-        'should show unauthorised modal when trying to delete a monitor category for a member who is not the admin or owner of the project',
+        'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async done => {
             cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
@@ -324,7 +325,7 @@ describe('Member Restriction', () => {
 
                 await page.waitForSelector('#monitors');
                 await page.click('#monitors');
-                const deleteBtn = `#delete_${monitorCategory}`;
+                const deleteBtn = `#delete_${resourceCategory}`;
                 await page.waitForSelector(deleteBtn, {
                     visible: true,
                 });
