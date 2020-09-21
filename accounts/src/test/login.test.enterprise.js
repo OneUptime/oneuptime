@@ -10,13 +10,14 @@ const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
-    await page.waitForSelector('#settings');
+    await page.waitForSelector('#settings', { visible: true });
     await page.click('#settings');
     await page.waitForSelector('#sso');
     await page.click('#sso');
 };
 
 const createSso = async (page, data) => {
+    await page.waitForSelector('#add-sso', { visible: true });
     await page.click('#add-sso');
     await page.waitForSelector('#save-button');
 
@@ -38,7 +39,7 @@ const createSso = async (page, data) => {
     await page.type('#ipRanges', data.ipRanges);
 
     await page.click('#save-button');
-    await page.waitFor(2000);
+    await page.waitForSelector('#save-button', { hidden: true });
 };
 
 describe('SSO login', () => {
@@ -58,9 +59,7 @@ describe('SSO login', () => {
         cluster.task(async ({ page }) => {
             const user = { email, password };
             await init.registerEnterpriseUser(user, page);
-            await page.waitFor(2000);
             await moveToSsoPage(page);
-            await page.waitFor(2000);
             await createSso(page, {
                 'saml-enabled': false,
                 domain: `disabled-domain.hackerbay.io`,

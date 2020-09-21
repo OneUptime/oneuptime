@@ -40,15 +40,15 @@ describe('Twilio Settings API', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
         'Should not submit empty fields',
-        async () => {
-            expect.assertions(2);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
@@ -77,14 +77,14 @@ describe('Twilio Settings API', () => {
                     await page.$$eval('input', e => e.map(field => field.value))
                 ).toEqual(originalValues);
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should show error message if an invalide account-sid is used.',
-        async () => {
-            expect.assertions(2);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
@@ -111,8 +111,7 @@ describe('Twilio Settings API', () => {
                 await page.type('input[name=alert-limit]', '5');
 
                 await page.click('button[type=submit]');
-                await page.waitFor(2000);
-                await page.waitForSelector('#errors');
+                await page.waitForSelector('#errors', { visible: true });
                 const errorMessage = await page.$eval(
                     '#errors',
                     element => element.textContent
@@ -120,20 +119,23 @@ describe('Twilio Settings API', () => {
                 expect(errorMessage).toEqual('accountSid must start with AC');
                 await page.reload();
 
+                await page.waitForSelector('input[name=account-sid]', {
+                    visible: true,
+                });
                 const value = await page.$eval(
                     'input[name=account-sid]',
                     e => e.value
                 );
                 expect(value).toEqual('');
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should show error if an invalide phone number is used.',
-        async () => {
-            expect.assertions(2);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
@@ -160,8 +162,8 @@ describe('Twilio Settings API', () => {
                 await page.type('input[name=alert-limit]', '5');
 
                 await page.click('button[type=submit]');
-                await page.waitFor(2000);
-                await page.waitForSelector('#errors');
+
+                await page.waitForSelector('#errors', { visible: true });
                 const errorMessage = await page.$eval(
                     '#errors',
                     element => element.textContent
@@ -171,19 +173,23 @@ describe('Twilio Settings API', () => {
                 );
                 await page.reload();
 
+                await page.waitForSelector('input[name=account-sid]', {
+                    visible: true,
+                });
                 const value = await page.$eval(
                     'input[name=account-sid]',
                     e => e.value
                 );
                 expect(value).toEqual('');
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should save valid form data',
-        async () => {
+        async done => {
             expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
@@ -216,9 +222,13 @@ describe('Twilio Settings API', () => {
                 await page.type('input[name=alert-limit]', '5');
 
                 await page.click('button[type=submit]');
-                await page.waitFor(2000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload();
 
+                await page.waitForSelector('input[name=account-sid]', {
+                    visible: true,
+                });
                 const value = await page.$eval(
                     'input[name=account-sid]',
                     e => e.value
@@ -226,14 +236,14 @@ describe('Twilio Settings API', () => {
 
                 expect(value).toEqual(process.env.TEST_TWILIO_ACCOUNT_SID);
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should render an error message if the user try to update his alert phone number without typing the right verification code.',
-        async () => {
-            expect.assertions(1);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#goToUserDashboard');
@@ -251,21 +261,21 @@ describe('Twilio Settings API', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
                 );
                 await page.click('#verify');
-                await page.waitFor('#smsVerificationErrors');
+                await page.waitFor('#smsVerificationErrors', { visible: true });
                 const message = await page.$eval(
                     '#smsVerificationErrors',
                     e => e.textContent
                 );
                 expect(message).toEqual('Invalid code !');
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should set the alert phone number if the user types the right verification code.',
-        async () => {
-            expect.assertions(1);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#goToUserDashboard');
@@ -281,6 +291,9 @@ describe('Twilio Settings API', () => {
                 await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
                 await page.type('input[type=tel]', phoneNumber);
+                await page.waitForSelector('#sendVerificationSMS', {
+                    visible: true,
+                });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
                 await page.type(
@@ -288,7 +301,7 @@ describe('Twilio Settings API', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor('#successMessage');
+                await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent
@@ -297,14 +310,14 @@ describe('Twilio Settings API', () => {
                     'Verification successful, this number has been updated.'
                 );
             });
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should update alert phone number if user types the right verification code.',
-        async () => {
-            expect.assertions(1);
+        async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#goToUserDashboard');
@@ -320,6 +333,9 @@ describe('Twilio Settings API', () => {
                 await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
                 await page.type('input[type=tel]', phoneNumber);
+                await page.waitForSelector('#sendVerificatioinSMS', {
+                    visible: true,
+                });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
                 await page.type(
@@ -327,7 +343,7 @@ describe('Twilio Settings API', () => {
                     process.env.TWILIO_SMS_VERIFICATION_CODE
                 );
                 await page.click('#verify');
-                await page.waitFor('#successMessage');
+                await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
                     '#successMessage',
                     e => e.textContent
@@ -336,6 +352,7 @@ describe('Twilio Settings API', () => {
                     'Verification successful, this number has been updated.'
                 );
             });
+            done();
         },
         operationTimeOut
     );

@@ -11,9 +11,8 @@ const request = chai.request.agent(app);
 const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
 
-let projectId, newProjectId, userRole, token, airtableId, newAirtableId;
+let projectId, newProjectId, userRole, token;
 
 describe('Enterprise User API', function() {
     this.timeout(20000);
@@ -25,7 +24,6 @@ describe('Enterprise User API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userRole = res.body.role;
-                airtableId = res.body.airtableId;
 
                 request
                     .post('/user/login')
@@ -51,8 +49,6 @@ describe('Enterprise User API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await AirtableService.deleteUser(airtableId);
-        await AirtableService.deleteUser(newAirtableId);
     });
 
     it('should sign up initial user as `master-admin`', function() {
@@ -73,7 +69,6 @@ describe('Enterprise User API', function() {
         createEnterpriseUser(request, data.newUser, function(err, res) {
             const project = res.body.project;
             newProjectId = project._id;
-            newAirtableId = res.body.airtableId;
             expect(res).to.have.status(200);
             expect(res.body.email).to.equal(data.newUser.email);
             expect(res.body.role).to.equal('user');
