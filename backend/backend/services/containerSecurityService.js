@@ -137,6 +137,9 @@ module.exports = {
                 throw error;
             }
 
+            containerSecurity = this.findOneBy({
+                _id: containerSecurity._id,
+            });
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateOneBy', error);
