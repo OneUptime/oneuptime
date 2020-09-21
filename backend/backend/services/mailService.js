@@ -1353,7 +1353,7 @@ const _this = {
             return info;
         } catch (error) {
             ErrorService.log(
-                'mailService.sendIncidentCreatedMailToSubscriber',
+                'mailService.sendIncidentResolvedMailToSubscriber',
                 error
             );
             await EmailStatusService.create({
