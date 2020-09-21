@@ -94,8 +94,6 @@ describe('Monitor API', () => {
                     visible: true,
                     timeout: operationTimeOut,
                 });
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let lighthousePerformanceElement = await page.waitForSelector(
                     `#lighthouse-performance-${monitorName}`,
@@ -167,9 +165,6 @@ describe('Monitor API', () => {
 
                 expect(probe0).toBeDefined();
                 expect(probe1).toBeDefined();
-
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 const monitorStatus = await page.waitForSelector(
                     `#monitor-status-${monitorName}`
@@ -250,8 +245,6 @@ describe('Monitor API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 // await page.waitFor(10000);
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${monitorName}`,
@@ -282,9 +275,6 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', utils.HTTP_TEST_SERVER_URL);
                 await page.click('button[type=submit]');
-
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${testServerMonitorName}`,
@@ -317,9 +307,6 @@ describe('Monitor API', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://self-signed.badssl.com');
                 await page.click('button[type=submit]');
-
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let sslStatusElement = await page.waitForSelector(
                     `#ssl-status-${selfSignedMonitorName}`,
@@ -401,9 +388,6 @@ describe('Monitor API', () => {
                 );
                 await page.click(`#more-details-${testServerMonitorName}`);
 
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
-
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testServerMonitorName}`,
                     { visible: true, timeout: operationTimeOut }
@@ -466,9 +450,6 @@ describe('Monitor API', () => {
                     `#more-details-${testServerMonitorName}`
                 );
                 await page.click(`#more-details-${testServerMonitorName}`);
-
-                await page.waitForSelector('#probes-btn2', { visible: true });
-                await page.click('#probes-btn2');
 
                 let monitorStatusElement = await page.waitForSelector(
                     `#monitor-status-${testServerMonitorName}`,

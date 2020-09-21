@@ -43,8 +43,15 @@ describe('Scheduled Event Note', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            // Create component and monitor
-            await init.addMonitorToComponent(componentName, monitorName, page);
+            // Create component
+            await init.addComponent(componentName, page);
+            // Create monitor
+            await init.addMonitorToComponent(
+                null,
+                monitorName,
+                page,
+                componentName
+            );
             // Create a scheduled event
             await init.addScheduledEvent(monitorName, scheduledEventName, page);
         });
