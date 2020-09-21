@@ -51,6 +51,16 @@ router.post(
                 });
             }
 
+            if (
+                data.resourceCategoryId &&
+                typeof data.resourceCategoryId !== 'string'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Resource Category ID is not of string type.',
+                });
+            }
+
             const containerSecurity = await ContainerSecurityService.create(
                 data
             );
