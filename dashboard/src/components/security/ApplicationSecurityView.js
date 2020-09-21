@@ -88,7 +88,7 @@ const ApplicationSecurityView = ({
                                         </span>
                                     </div>
                                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                    <ShouldRender
+                                        <ShouldRender
                                             if={
                                                 applicationSecurity &&
                                                 applicationSecurity.resourceCategoryId
