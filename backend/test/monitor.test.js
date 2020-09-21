@@ -22,8 +22,8 @@ let ComponentModel = require('../backend/models/component');
 
 let token, userId, airtableId, projectId, monitorId, resourceCategoryId;
 
-let monitorCategory = {
-    monitorCategoryName: 'New Monitor Category',
+let resourceCategory = {
+    resourceCategoryName: 'New Monitor Category',
 };
 
 let componentId;
@@ -592,7 +592,7 @@ describe('API Monitor API', function() {
     });
 });
 
-describe('Monitor API with monitor Category', function() {
+describe('Monitor API with resource Category', function() {
     this.timeout(30000);
 
     before(function(done) {
@@ -620,9 +620,9 @@ describe('Monitor API with monitor Category', function() {
                                     token = res.body.tokens.jwtAccessToken;
                                     let authorization = `Basic ${token}`;
                                     request
-                                        .post(`/monitorCategory/${projectId}`)
+                                        .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
-                                        .send(monitorCategory)
+                                        .send(resourceCategory)
                                         .end(function(err, res) {
                                             resourceCategoryId = res.body._id;
                                             done();
@@ -640,7 +640,7 @@ describe('Monitor API with monitor Category', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
-    it('should create a new monitor when the monitor Category is provided by an authenticated user', function(done) {
+    it('should create a new monitor when the resource Category is provided by an authenticated user', function(done) {
         let authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
