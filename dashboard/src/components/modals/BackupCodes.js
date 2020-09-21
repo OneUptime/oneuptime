@@ -54,7 +54,7 @@ class BackupCodesModal extends React.Component {
     };
 
     render() {
-        const { generateBackupCodes, closeThisDialog } = this.props;
+        const { generateBackupCodes } = this.props;
         const backupCodes = this.refineCodes();
 
         return (
