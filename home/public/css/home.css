@@ -11,6 +11,15 @@ main a{
     color:#797979
 }
 
+
+.checkbox-text{
+    color: black;
+    font-weight: 400;
+    line-height: 1.2;
+    font-size: 18px;
+    margin-left: 5px;
+  }
+
 main h2[class^=common-Uppercase]{
     color:#000000
 }
@@ -113,18 +122,49 @@ main header{
 #intro{
     position:relative
 }
+
+@media (min-width:800px){
+    .checkbox-feature{
+        width:25%; 
+        display: flex; 
+        justify-content: center;
+    }
+
+    .mobile-collapse{
+        display: flex !important;
+    }
+
+    .mobile-collapse-block{
+        display: block !important;
+    }
+}
+
+.checkbox-feature{
+    width:50%; 
+    display: flex; 
+    justify-content: center;
+}
+
+.mobile-collapse{
+    display: none;
+}
+
+.mobile-collapse-block{
+    display: none;
+}
+
 @media (min-width:670px){
     #intro{
         display:-ms-flexbox;
         display:flex;
         -ms-flex-align:center;
         align-items:center;
-        height:600px
+        height:750px
     }
 }
 @media (min-width:880px){
     #intro{
-        height:650px
+        height:750px
     }
 }
 #intro .container-lg{
@@ -208,6 +248,32 @@ main header{
     #introimage{
         left:57vw;
         width:360px;
+    }
+}
+
+.cta-button-style{
+
+    margin-left: calc(50% - 75px); 
+    margin-top: 70px;
+}
+
+.stars-panel{
+    display:flex;
+    justify-content: space-evenly;
+    margin-top: 100px;
+}
+
+
+@media (min-width:670px){
+    .cta-button-style{
+        margin-left: calc(50% - 200px); 
+        margin-top: 70px;
+    }
+
+    .stars-panel{
+        display:flex;
+        justify-content: space-evenly;
+        margin-top: 200px;
     }
 }
 
