@@ -9,6 +9,11 @@ const INITIAL_STATE = {
         success: false,
         data: {},
     },
+    backupCodes: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
     changePasswordSetting: {
         error: null,
         requesting: false,
@@ -106,6 +111,38 @@ export default function profileSettings(state = INITIAL_STATE, action) {
                 ...INITIAL_STATE,
             });
 
+        // Update backup codes
+        case types.GENERATE_BACKUP_CODES_REQUEST:
+            return Object.assign({}, state, {
+                backupCodes: {
+                    error: null,
+                    requesting: true,
+                    success: false,
+                },
+            });
+        case types.GENERATE_BACKUP_CODES_SUCCESS:
+            return Object.assign({}, state, {
+                backupCodes: {
+                    error: null,
+                    requesting: false,
+                    success: true,
+                },
+                profileSetting: {
+                    ...state.profileSetting,
+                    data: {
+                        ...state.profileSetting.data,
+                        backupCodes: action.payload,
+                    },
+                },
+            });
+        case types.GENERATE_BACKUP_CODES_FAILURE:
+            return Object.assign({}, state, {
+                backupCodes: {
+                    error: action.payload,
+                    requesting: false,
+                    success: false,
+                },
+            });
         // update change password setting.
         case types.UPDATE_CHANGE_PASSWORD_SETTING_REQUEST:
             return Object.assign({}, state, {
