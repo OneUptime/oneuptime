@@ -15,6 +15,10 @@ const containerSecuritySchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'Component',
         },
+        resourceCategoryId: {
+            type: Schema.Types.ObjectId,
+            ref: 'ResourceCategory',
+        },
         deleted: {
             type: Boolean,
             default: false,
