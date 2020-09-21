@@ -356,8 +356,10 @@ const mapStateToProps = state => {
                 state.security.containerSecurity.dockerCredential._id,
             imagePath: state.security.containerSecurity.imagePath,
             imageTags: state.security.containerSecurity.imageTags,
-            resourceCategoryId:
-                state.security.containerSecurity.resourceCategoryId,
+            resourceCategoryId: state.security.containerSecurity
+                .resourceCategoryId
+                ? state.security.containerSecurity.resourceCategoryId._id
+                : '',
         },
         dockerCredentials: state.credential.dockerCredentials,
         resourceCategoryList:
