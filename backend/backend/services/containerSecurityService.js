@@ -4,6 +4,7 @@ const moment = require('moment');
 const { decrypt } = require('../config/encryptDecrypt');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const DockerCredentialService = require('./dockerCredentialService');
+const ResourceCategoryService = require('./resourceCategoryService');
 
 module.exports = {
     create: async function(data) {
@@ -42,6 +43,12 @@ module.exports = {
                 );
                 error.code = 400;
                 throw error;
+            }
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategoryId,
+            });
+            if (!resourceCategory) {
+                delete data.resourceCategoryId;
             }
 
             const containerSecurity = await ContainerSecurityModel.create(data);
