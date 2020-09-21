@@ -224,6 +224,16 @@ class ResourceTabularList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Resource Category</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Resource Type</span>
                                         </span>
                                     </div>
@@ -329,6 +339,25 @@ class ResourceTabularList extends Component {
                                                             className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                         >
                                                             <span
+                                                                id={`resource_category_${componentResource.name}`}
+                                                                className={`Badge-text Text-lineHeight--16 Text-typeface--capitalize`}
+                                                            >
+                                                                {
+                                                                    componentResource.category
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td
+                                                    className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    style={{ height: '1px' }}
+                                                >
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        <div
+                                                            className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                        >
+                                                            <span
                                                                 id={`resource_type_${componentResource.name}`}
                                                                 className={`Badge-text Text-lineHeight--16 Text-typeface--capitalize`}
                                                             >
@@ -340,6 +369,7 @@ class ResourceTabularList extends Component {
                                                         </div>
                                                     </div>
                                                 </td>
+                                                
                                                 <td
                                                     className="Table-cell Table-cell--align--right  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell Padding-right--20"
                                                     style={{
