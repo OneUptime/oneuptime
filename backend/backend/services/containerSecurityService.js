@@ -68,6 +68,7 @@ module.exports = {
                 query
             )
                 .populate('componentId')
+                .populate('resourceCategoryId', 'name')
                 .populate('dockerCredential');
 
             return containerSecurity;
@@ -95,6 +96,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId')
+                .populate('resourceCategoryId', 'name')
                 .populate('dockerCredential');
 
             return containerSecurities;
