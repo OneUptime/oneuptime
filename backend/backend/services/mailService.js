@@ -1049,7 +1049,7 @@ const _this = {
     }) {
         let mailOptions = {};
         try {
-            const accountMail = await _this.getSmtpSettings();
+            const accountMail = await _this.getProjectSmtpSettings(projectId);
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
@@ -1070,7 +1070,7 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
+            const mailer = await _this.createMailer(accountMail);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
