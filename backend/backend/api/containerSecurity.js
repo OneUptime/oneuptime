@@ -6,6 +6,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
 const ProbeService = require('../services/probeService');
 const RealTimeService = require('../services/realTimeService');
+const ResourceCategoryService = require('../services/resourceCategoryService');
 
 const router = express.Router();
 
@@ -84,7 +85,13 @@ router.put(
     async (req, res) => {
         try {
             const { componentId, containerSecurityId } = req.params;
-            const { name, dockerCredential, imagePath, imageTags } = req.body;
+            const {
+                name,
+                dockerCredential,
+                imagePath,
+                imageTags,
+                resourceCategoryId,
+            } = req.body;
             const data = {};
 
             if (name) {
@@ -102,10 +109,24 @@ router.put(
             if (imageTags) {
                 data.imageTags = imageTags;
             }
+            let unsetData;
+            if (!resourceCategoryId || resourceCategoryId === '') {
+                unsetData = { resourceCategoryId: '' };
+            } else {
+                const resourceCategory = await ResourceCategoryService.findBy({
+                    _id: resourceCategoryId,
+                });
+                if (resourceCategory) {
+                    data.resourceCategoryId = resourceCategoryId;
+                } else {
+                    unsetData = { resourceCategoryId: '' };
+                }
+            }
 
             const containerSecurity = await ContainerSecurityService.updateOneBy(
                 { _id: containerSecurityId, componentId },
-                data
+                data,
+                unsetData
             );
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {

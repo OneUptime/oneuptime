@@ -103,19 +103,29 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
+            let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
             ).populate('dockerCredential');
+
+            if (unsetData) {
+                containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
 
             if (!containerSecurity) {
                 const error = new Error(
