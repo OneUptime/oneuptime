@@ -13,8 +13,7 @@ module.exports = {
     ) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const balance = project.balance;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        const countryType = getCountryType(countryCode);
+        const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         if (balance > alertChargeAmount.minimumBalance) {
             await PaymentService.chargeAlert(
@@ -1291,8 +1290,7 @@ module.exports = {
     getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const balance = project.balance;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        const countryType = getCountryType(countryCode);
+        const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         return {
             chargeAmount: alertChargeAmount.price,
