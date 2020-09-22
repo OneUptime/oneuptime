@@ -93,7 +93,7 @@ export class EmailSmtpBox extends Component {
             } else {
                 postSmtpConfig(currentProject._id, values);
             }
-        } else if (smtpConfigurations.config._id) {
+        } else {
             this.props.deleteSmtpConfig(
                 this.props.currentProject._id,
                 smtpConfigurations.config._id,
@@ -111,6 +111,7 @@ export class EmailSmtpBox extends Component {
 
     render() {
         const { handleSubmit } = this.props;
+
         return (
             <div
                 className="db-World-contentPane Box-root"
