@@ -90,7 +90,7 @@ function capitalize(words) {
 
 const cardNumber = '4111111111111111';
 
-const monitorCategoryName = 'e2e_monitor_category';
+const resourceCategoryName = 'e2e_monitor_category';
 
 const monitorName = 'e2e_monitor';
 
@@ -159,7 +159,7 @@ module.exports = {
     expiryDate,
     cardNumber,
     generateWrongEmail,
-    monitorCategoryName,
+    resourceCategoryName,
     monitorName,
     monitorUrl,
     scheduledEventName,
