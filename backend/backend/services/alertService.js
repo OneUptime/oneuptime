@@ -756,7 +756,7 @@ module.exports = {
         const date = new Date();
         const monitorId = monitor._id;
 
-        if (!project.alertEnable) {
+        if (IS_SAAS_SERVICE && !project.alertEnable) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
