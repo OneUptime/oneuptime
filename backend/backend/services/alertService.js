@@ -34,8 +34,7 @@ module.exports = {
     ) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const alertOptions = project.alertOptions;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        let countryType = getCountryType(countryCode);
+        let countryType = getCountryType(alertPhoneNumber);
         if (countryType === 'us') {
             countryType = 'billingUS';
         } else if (countryType === 'non-us') {
