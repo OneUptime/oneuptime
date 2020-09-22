@@ -54,19 +54,14 @@ describe('API test', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#probe');
                 await page.click('#probe a');
-                await page.waitFor(5000);
-                await page.waitForSelector('#probe_0');
+                await page.waitForSelector('#probe_0', { visible: true });
                 const elementHandle = await page.$('#offline_0 > span > span');
-                const modalTitle = await page.$(
-                    'div.bs-Modal-header-copy > span > span'
-                );
-                await page.click('#probe_0');
                 if (elementHandle) {
                     // Probe is offline
-                    expect(modalTitle).toBeDefined();
+                    expect(elementHandle).toBeDefined();
                 } else {
                     // Probe is online
-                    expect(modalTitle).toBeNull();
+                    expect(elementHandle).toBeNull();
                 }
             });
         },
