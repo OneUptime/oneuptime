@@ -635,7 +635,7 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
 
-        if (!project.alertEnable) {
+        if (IS_SAAS_SERVICE && !project.alertEnable) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
