@@ -793,13 +793,18 @@ module.exports = {
                 AlertType.SMS
             );
         }
-        const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-            incident.projectId,
-            user.alertPhoneNumber
-        );
+        let doesPhoneNumberComplyWithHighRiskConfig;
+
+        if (IS_SAAS_SERVICE) {
+            doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                incident.projectId,
+                user.alertPhoneNumber
+            );
+        }
+
         if (
-            (hasEnoughBalance || !IS_SAAS_SERVICE) &&
-            doesPhoneNumberComplyWithHighRiskConfig
+            !IS_SAAS_SERVICE ||
+            (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
         ) {
             let alertStatus = await TwilioService.sendIncidentCreatedMessage(
                 date,
