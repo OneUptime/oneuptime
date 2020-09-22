@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import { ListLoader } from '../basic/Loader.js';
 import ShouldRender from '../basic/ShouldRender';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { generateBackupCodes } from '../../actions/profile.js';
 
 class BackupCodesModal extends React.Component {
     state = {
@@ -53,7 +54,7 @@ class BackupCodesModal extends React.Component {
     };
 
     render() {
-        const { closeThisDialog } = this.props;
+        const { generateBackupCodes } = this.props;
         const backupCodes = this.refineCodes();
 
         return (
@@ -127,7 +128,15 @@ class BackupCodesModal extends React.Component {
                                                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                                                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-align--center">
                                                                                             <div className="Margin-right--7">
-                                                                                                <span>
+                                                                                                <span
+                                                                                                    className={
+                                                                                                        code[0] &&
+                                                                                                        code[0]
+                                                                                                            .used
+                                                                                                            ? 'cm-strikethrough'
+                                                                                                            : ''
+                                                                                                    }
+                                                                                                >
                                                                                                     {code[0]
                                                                                                         ? code[0]
                                                                                                               .code
@@ -147,7 +156,15 @@ class BackupCodesModal extends React.Component {
                                                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                                                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-align--center">
                                                                                             <div className="Margin-right--7">
-                                                                                                <span>
+                                                                                                <span
+                                                                                                    className={
+                                                                                                        code[1] &&
+                                                                                                        code[1]
+                                                                                                            .used
+                                                                                                            ? 'cm-strikethrough'
+                                                                                                            : ''
+                                                                                                    }
+                                                                                                >
                                                                                                     {code[1]
                                                                                                         ? code[1]
                                                                                                               .code
@@ -178,8 +195,8 @@ class BackupCodesModal extends React.Component {
                             <div className="bs-Modal-footer-actions">
                                 <ShouldRender
                                     if={
-                                        this.props.profileSettings &&
-                                        this.props.profileSettings.error
+                                        this.props.backupCodesState &&
+                                        this.props.backupCodesState.error
                                     }
                                 >
                                     <div className="bs-Tail-copy">
@@ -194,7 +211,7 @@ class BackupCodesModal extends React.Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .profileSettings
+                                                            .backupCodesState
                                                             .error
                                                     }
                                                 </span>
@@ -205,9 +222,9 @@ class BackupCodesModal extends React.Component {
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     type="button"
-                                    onClick={closeThisDialog}
+                                    onClick={generateBackupCodes}
                                 >
-                                    <span>Cancel</span>
+                                    <span>Generate new codes</span>
                                 </button>
                                 <CopyToClipboard text={this.state.codes}>
                                     <button
@@ -235,16 +252,24 @@ BackupCodesModal.displayName = 'BackupCodesModal';
 
 BackupCodesModal.propTypes = {
     closeThisDialog: PropTypes.func,
+    generateBackupCodes: PropTypes.func,
     profileSettings: PropTypes.object,
+    backupCodesState: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators(
+        {
+            generateBackupCodes,
+        },
+        dispatch
+    );
 };
 
 const mapStateToProps = state => {
     return {
         profileSettings: state.profileSettings.profileSetting,
+        backupCodesState: state.profileSettings.backupCodes,
     };
 };
 
