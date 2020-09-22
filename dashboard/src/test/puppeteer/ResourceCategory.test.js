@@ -256,8 +256,8 @@ describe('Member Restriction', () => {
                 });
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
                 await page.waitForSelector('#createResourceCategoryButton', {
                     visible: true,
                 });
@@ -289,8 +289,8 @@ describe('Member Restriction', () => {
                 });
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
                 const editBtn = `#edit_${resourceCategory}`;
                 await page.waitForSelector(editBtn, {
                     visible: true,
@@ -323,8 +323,8 @@ describe('Member Restriction', () => {
                 });
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
+                await page.waitForSelector('#resources');
+                await page.click('#resources');
                 const deleteBtn = `#delete_${resourceCategory}`;
                 await page.waitForSelector(deleteBtn, {
                     visible: true,
