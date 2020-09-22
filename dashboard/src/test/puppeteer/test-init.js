@@ -271,10 +271,8 @@ module.exports = {
         await page.waitForSelector('#AccountSwitcherId', { visible: true });
         await page.click('#AccountSwitcherId');
         await page.waitForSelector(`#accountSwitcher div#${projectName}`);
-        await Promise.all([
-            page.click(`#accountSwitcher div#${projectName}`),
-            page.waitForNavigation({ waitUntil: 'networkidle0' }),
-        ]);
+        await page.click(`#accountSwitcher div#${projectName}`);
+        await page.waitForSelector('#components', { visible: true });
     },
     renameProject: async function(newProjectName, page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -352,7 +350,9 @@ module.exports = {
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
-        await page.waitFor(5000);
+        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+            visible: true,
+        });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
         const createIncidentSelector = await page.$(
@@ -367,7 +367,6 @@ module.exports = {
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
-            await page.waitFor(5000);
         } else {
             await page.waitForSelector('#incidentLog a');
             await page.$eval('#incidentLog a', e => e.click());
@@ -378,8 +377,8 @@ module.exports = {
             await page.waitForSelector('#frmIncident');
             await this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
-            await page.waitFor(5000);
         }
+        await page.waitForSelector('#createIncident', { hidden: true });
     },
     addIncidentPriority: async function(incidentPriority, page) {
         await page.goto(utils.DASHBOARD_URL, {
