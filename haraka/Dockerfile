@@ -6,6 +6,7 @@
 ###
 #Important: Highly dependent on *-alpine image.
 ###
+
 FROM node:12.16.1-alpine
 
 #set language enviroments
@@ -30,7 +31,7 @@ RUN apk upgrade --update && \
     python && \
     addgroup -g 88 -S smtp && \
     adduser -u 88 -D -S -G smtp -h /data smtp && \
-#install haraka
+# Install haraka
     npm install -g --unsafe-perm Haraka toobusy-js && \
 #  # Cleaning up
     apk del --purge -r .fetch-deps && \
