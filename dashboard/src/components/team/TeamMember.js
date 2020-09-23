@@ -143,7 +143,12 @@ export class TeamMember extends Component {
                     </div>
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
-                    <div className="bs-ObjectList-cell-row">
+                    <div
+                        id={`${this.props.role}_${
+                            this.props.email.split('@')[0]
+                        }`}
+                        className="bs-ObjectList-cell-row"
+                    >
                         {this.props.role}
                     </div>
                 </div>
@@ -174,7 +179,9 @@ export class TeamMember extends Component {
                                 <Dropdown disabled={updating}>
                                     {!updating && (
                                         <Dropdown.Toggle
-                                            id={`changeRole_${this.props.email}`}
+                                            id={`changeRole_${
+                                                this.props.email.split('@')[0]
+                                            }`}
                                             title="Change Role"
                                             className="bs-Button bs-DeprecatedButton"
                                         />
@@ -253,6 +260,9 @@ export class TeamMember extends Component {
                                     </Dropdown.Menu>
                                 </Dropdown>
                                 <button
+                                    id={`removeMember__${
+                                        this.props.email.split('@')[0]
+                                    }`}
                                     title="delete"
                                     disabled={deleting}
                                     className="bs-Button bs-DeprecatedButton Margin-left--8"
