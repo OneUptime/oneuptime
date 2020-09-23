@@ -900,6 +900,56 @@ describe('API Monitor API', () => {
     );
 
     test(
+        'should display offline status if evaluate response does not match in criteria',
+        async () => {
+            const testServer = async ({ page }) => {
+                await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
+                await page.evaluate(
+                    () => (document.getElementById('responseTime').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('statusCode').value = '')
+                );
+                await page.evaluate(
+                    () => (document.getElementById('body').value = '')
+                );
+                await page.waitForSelector('#responseTime');
+                await page.click('input[name=responseTime]');
+                await page.type('input[name=responseTime]', '0');
+                await page.waitForSelector('#statusCode');
+                await page.click('input[name=statusCode]');
+                await page.type('input[name=statusCode]', '200');
+                await page.waitForSelector('#body');
+                await page.click('textarea[name=body]');
+                await page.type('textarea[name=body]', '{"status":"not ok"}');
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#save-btn');
+                await page.waitForSelector('#save-btn', { visible: true });
+            };
+
+            await cluster.execute(null, testServer);
+
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitFor(120000);
+
+                let monitorStatusElement = await page.waitForSelector(
+                    `#monitor-status-${testMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
+                );
+                monitorStatusElement = await monitorStatusElement.getProperty(
+                    'innerText'
+                );
+                monitorStatusElement = await monitorStatusElement.jsonValue();
+                monitorStatusElement.should.be.exactly('Offline');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should delete API monitors',
         async () => {
             expect.assertions(2);
