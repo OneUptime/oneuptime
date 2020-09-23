@@ -49,7 +49,7 @@ describe('Container Security Page', () => {
     });
 
     test(
-        'should add container security and ensure it redirects to the details page',
+        'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async done => {
             const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
             const dockerUsername = utils.dockerCredential.dockerUsername;
@@ -58,6 +58,12 @@ describe('Container Security Page', () => {
             const imageTags = utils.dockerCredential.imageTags || '';
             await cluster.execute(null, async ({ page }) => {
                 await init.addComponent(component, page);
+
+                const categoryName = 'Random-Category';
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+                //navigate to component details
+                await init.navigateToComponentDetails(component, page);
 
                 await page.waitForSelector('#security', { visible: true });
                 await page.click('#security');
@@ -86,6 +92,11 @@ describe('Container Security Page', () => {
 
                 await page.click('#name');
                 await page.type('#name', containerSecurityName);
+                await init.selectByText(
+                    '#resourceCategoryId',
+                    categoryName,
+                    page
+                ); // add category
                 await page.click('#dockerCredential');
                 await page.type('#dockerCredential', dockerUsername);
                 await page.keyboard.press('Enter');
@@ -107,6 +118,14 @@ describe('Container Security Page', () => {
                     `#edit_${containerSecurityName}`
                 );
                 expect(editContainerElement).toBeDefined();
+
+                // confirm the category shows in the details page.
+                let spanElement = await page.$(
+                    `#${containerSecurityName}-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
             });
             done();
         },
