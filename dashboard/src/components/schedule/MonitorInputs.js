@@ -39,7 +39,9 @@ function MonitorInputs({ monitors, subProject, currentProject }) {
                                   <div className="Checkbox-label Box-root Margin-left--8">
                                       <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                           <span title={monitor.name}>
-                                              {monitor.name}
+                                              {monitor.componentId.name +
+                                                  ' / ' +
+                                                  monitor.name}
                                           </span>
                                       </span>
                                   </div>
