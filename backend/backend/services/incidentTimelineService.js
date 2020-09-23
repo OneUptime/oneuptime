@@ -46,6 +46,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(
                 query,
@@ -68,6 +69,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             let incidentTimelines = await IncidentTimelineModel.updateMany(
                 query,
@@ -95,6 +97,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             const incidentTimelines = await IncidentTimelineModel.find(query)
                 .sort([['createdAt', -1]])
@@ -115,6 +118,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             const incidentTimeline = await IncidentTimelineModel.findOne(query)
                 .populate('createdById', 'name')
@@ -132,6 +136,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            query.deleted = false;
 
             const count = await IncidentTimelineModel.countDocuments(query);
 
@@ -168,6 +173,32 @@ module.exports = {
                 'incidentTimelineService.statusPageTimelines',
                 error
             );
+            throw error;
+        }
+    },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+
+            const incidentTimelineModel = await IncidentTimelineModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return incidentTimelineModel;
+        } catch (error) {
+            ErrorService.log('incidentTimelineService.deletedBy', error);
             throw error;
         }
     },

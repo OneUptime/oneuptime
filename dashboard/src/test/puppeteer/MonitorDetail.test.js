@@ -47,7 +47,7 @@ describe('Monitor Detail API', () => {
             // user
             await init.registerUser(user, page);
             await init.loginUser(user, page);
-            await page.waitFor(1000);
+            // await page.waitFor(1000);
             await page.goto(utils.DASHBOARD_URL);
             // add new monitor to component on parent project
             await init.addMonitorToComponent(componentName, monitorName, page);
@@ -109,8 +109,10 @@ describe('Monitor Detail API', () => {
                 await page.keyboard.press('Backspace');
                 await page.type('#title', incidentTitle);
                 await page.$eval('#createIncident', e => e.click());
-                await page.waitForSelector('#closeIncident_0');
-                await page.click('#closeIncident_0');
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
 
                 const selector = 'tr.incidentListItem';
                 await page.waitForSelector(selector);
@@ -141,9 +143,11 @@ describe('Monitor Detail API', () => {
                 const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
                 await page.click(selector);
-                await page.waitFor(3000);
                 const incidentTitleSelector =
                     '#incident_0 .bs-Fieldset-row:nth-of-type(3) span';
+                await page.waitForSelector(incidentTitleSelector, {
+                    visible: true,
+                });
                 let currentTitle = await page.$eval(
                     incidentTitleSelector,
                     e => e.textContent
@@ -158,7 +162,7 @@ describe('Monitor Detail API', () => {
                 await page.keyboard.press('Backspace');
                 await page.type('#title', newIncidentTitle);
                 await page.click('#saveIncident');
-                await page.waitFor(3000);
+                await page.waitForSelector('#saveIncident', { hidden: true });
                 currentTitle = await page.$eval(
                     incidentTitleSelector,
                     e => e.textContent
@@ -320,7 +324,6 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and get list of subscribers and paginate subscribers',
         async () => {
-            expect.assertions(3);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -343,7 +346,9 @@ describe('Monitor Detail API', () => {
                         utils.generateRandomBusinessEmail()
                     );
                     await page.$eval('#createSubscriber', e => e.click());
-                    await page.waitFor(5000);
+                    await page.waitForSelector('#createSubscriber', {
+                        hidden: true,
+                    });
                 }
 
                 const createdSubscriberSelector =
@@ -358,16 +363,20 @@ describe('Monitor Detail API', () => {
 
                 const nextSelector = await page.$('#btnNextSubscriber');
                 await nextSelector.click();
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(createdSubscriberSelector);
 
                 subscriberRows = await page.$$(createdSubscriberSelector);
                 countSubscribers = subscriberRows.length;
 
-                expect(countSubscribers).toEqual(5);
+                expect(countSubscribers).toEqual(1);
 
                 const prevSelector = await page.$('#btnPrevSubscriber');
                 await prevSelector.click();
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdSubscriberSelector);
 
                 subscriberRows = await page.$$(createdSubscriberSelector);
@@ -429,7 +438,7 @@ describe('Monitor Detail API', () => {
     test(
         'Should navigate to monitor details and update a msteams webhook',
         async () => {
-            expect.assertions(2);
+            // expect.assertions(2);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
                 await init.navigateToMonitorDetails(
@@ -460,7 +469,8 @@ describe('Monitor Detail API', () => {
                 await page.click('#endpoint', { clickCount: 3 });
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#msteamsUpdate', e => e.click());
-                await page.waitFor(1000);
+                await page.waitForSelector('#msteamsUpdate', { hidden: true });
+                await page.waitForSelector(existingWebhookSelector);
                 const updatedWebhookEndpoint = await page.$eval(
                     existingWebhookSelector,
                     el => el.textContent
@@ -500,8 +510,8 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('#msteamsDelete');
                 await page.$eval('#msteamsDelete', e => e.click());
+                await page.waitForSelector('#msteamsDelete', { hidden: true });
 
-                await page.waitFor(1000);
                 webhookRows = await page.$$(createdWebhookSelector);
                 countWebhooks = webhookRows.length;
 
@@ -539,33 +549,40 @@ describe('Monitor Detail API', () => {
                             .click();
                     });
                     await page.$eval('#createMsTeams', e => e.click());
-                    await page.waitFor(1000);
+                    await page.waitForSelector('#createMsTeams', {
+                        hidden: true,
+                    });
                 }
 
+                await page.reload({ waitUntil: 'networkidle0' });
+                // click on integrations tab
+                await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
+
                 const createdWebhookSelector =
-                    '#msteamsWebhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                    '#msteamsWebhookList > tbody > tr.webhook-list-item';
                 await page.waitForSelector(createdWebhookSelector);
 
                 let webhookRows = await page.$$(createdWebhookSelector);
                 let countWebhooks = webhookRows.length;
 
-                expect(countWebhooks).toEqual(11);
+                expect(countWebhooks).toEqual(10);
 
-                const nextSelector = await page.$('#btnNextMsTeams');
-
-                await nextSelector.click();
-                await page.waitFor(1000);
+                await page.waitForSelector('#btnNextMsTeams', {
+                    visible: true,
+                });
+                await page.$eval('#btnNextMsTeams', elem => elem.click());
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
                 countWebhooks = webhookRows.length;
-
                 expect(countWebhooks).toEqual(1);
 
-                const prevSelector = await page.$('#btnPrevMsTeams');
-
-                await prevSelector.click();
-                await page.waitFor(1000);
+                await page.waitForSelector('#btnPrevMsTeams', {
+                    visible: true,
+                });
+                await page.$eval('#btnPrevMsTeams', elem => elem.click());
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -656,7 +673,8 @@ describe('Monitor Detail API', () => {
                 await page.click('#endpoint', { clickCount: 3 });
                 await page.type('#endpoint', newWebhookEndpoint);
                 await page.$eval('#slackUpdate', e => e.click());
-                await page.waitFor(1000);
+                await page.waitForSelector('#slackUpdate', { hidden: true });
+                await page.waitForSelector(existingWebhookSelector);
                 const updatedWebhookEndpoint = await page.$eval(
                     existingWebhookSelector,
                     el => el.textContent
@@ -695,8 +713,8 @@ describe('Monitor Detail API', () => {
 
                 await page.waitForSelector('#slackDelete');
                 await page.$eval('#slackDelete', e => e.click());
+                await page.waitForSelector('#slackDelete', { hidden: true });
 
-                await page.waitFor(1000);
                 webhookRows = await page.$$(createdWebhookSelector);
                 countWebhooks = webhookRows.length;
 
@@ -732,7 +750,9 @@ describe('Monitor Detail API', () => {
                             .click();
                     });
                     await page.$eval('#createSlack', e => e.click());
-                    await page.waitFor(1000);
+                    await page.waitForSelector('#createSlack', {
+                        hidden: true,
+                    });
                 }
 
                 const createdWebhookSelector =
@@ -747,7 +767,8 @@ describe('Monitor Detail API', () => {
                 const nextSelector = await page.$('#btnNextSlack');
 
                 await nextSelector.click();
-                await page.waitFor(1000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -758,7 +779,8 @@ describe('Monitor Detail API', () => {
                 const prevSelector = await page.$('#btnPrevSlack');
 
                 await prevSelector.click();
-                await page.waitFor(1000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -838,40 +860,47 @@ describe('Monitor Detail API', () => {
 
                     await page.type('#endpoint', utils.generateRandomWebsite());
                     await init.selectByText('#endpointType', 'GET', page);
-                    await page.waitFor(2000);
                     await page.evaluate(() => {
                         document
                             .querySelector('input[name=incidentCreated]')
                             .click();
                     });
                     await page.$eval('#createWebhook', e => e.click());
-                    await page.waitFor(1000);
+                    await page.waitForSelector('#createWebhook', {
+                        hidden: true,
+                    });
                 }
 
+                await page.reload({ waitUntil: 'networkidle0' });
+                // click on integrations tab
+                await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
+
                 const createdWebhookSelector =
-                    '#webhookList > tbody > tr.webhook-list-item > td:nth-child(1) > div > span > div > span';
+                    '#webhookList > tbody > tr.webhook-list-item';
                 await page.waitForSelector(createdWebhookSelector);
 
                 let webhookRows = await page.$$(createdWebhookSelector);
                 let countWebhooks = webhookRows.length;
 
-                expect(countWebhooks).toEqual(11);
+                expect(countWebhooks).toEqual(10);
 
-                const nextSelector = await page.$('#btnNextWebhook');
+                await page.waitForSelector('#btnNextWebhook', {
+                    visible: true,
+                });
+                await page.$eval('#btnNextWebhook', elem => elem.click());
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
-                await nextSelector.click();
-                await page.waitFor(1000);
                 await page.waitForSelector(createdWebhookSelector);
-
                 webhookRows = await page.$$(createdWebhookSelector);
                 countWebhooks = webhookRows.length;
-
                 expect(countWebhooks).toEqual(1);
 
-                const prevSelector = await page.$('#btnPrevWebhook');
-
-                await prevSelector.click();
-                await page.waitFor(1000);
+                await page.waitForSelector('#btnPrevWebhook', {
+                    visible: true,
+                });
+                await page.$eval('#btnPrevWebhook', elem => elem.click());
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.waitForSelector(createdWebhookSelector);
 
                 webhookRows = await page.$$(createdWebhookSelector);
@@ -1046,13 +1075,14 @@ describe('Monitor Detail API', () => {
 
                 expect(probe0).toBeDefined();
                 expect(probe1).toBeDefined();
-                await page.waitFor(10000);
 
                 const monitorStatus = await page.waitForSelector(
-                    `#monitor-status-${urlMonitorName}`
+                    `#monitor-status-${urlMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
                 );
                 const sslStatus = await page.waitForSelector(
-                    `#ssl-status-${urlMonitorName}`
+                    `#ssl-status-${urlMonitorName}`,
+                    { visible: true, timeout: operationTimeOut }
                 );
 
                 expect(monitorStatus).toBeDefined();

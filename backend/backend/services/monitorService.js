@@ -132,6 +132,13 @@ module.exports = {
                     }
                     const savedMonitor = await monitor.save();
                     monitor = await _this.findOneBy({ _id: savedMonitor._id });
+                    if (data.type === 'manual') {
+                        await MonitorStatusService.create({
+                            monitorId: monitor._id,
+                            manuallyCreated: true,
+                            status: 'online',
+                        });
+                    }
                     return monitor;
                 } else {
                     const error = new Error(

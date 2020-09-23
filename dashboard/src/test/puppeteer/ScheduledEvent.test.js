@@ -43,7 +43,12 @@ describe('Scheduled event', () => {
             await init.loginUser(user, page);
             // Create component
             await init.addComponent(componentName, page);
-            await init.addMonitorToComponent(null, monitorName, page);
+            await init.addMonitorToComponent(
+                null,
+                monitorName,
+                page,
+                componentName
+            );
         });
     });
 
@@ -85,17 +90,23 @@ describe('Scheduled event', () => {
                     '#description',
                     'This is an example description for a test'
                 );
-                await page.waitForSelector('input[name=startDate]');
-                await page.click('input[name=startDate]');
-                await page.click(
-                    'div.MuiDialogActions-root button:nth-child(2)'
-                );
-                await page.waitFor(1000); // needed because of the date picker
-                await page.click('input[name=endDate]');
-                await page.click(
-                    'div.MuiDialogActions-root button:nth-child(2)'
-                );
-                await page.waitFor(1000); // needed because of the date picker
+
+                /**
+                 * commented the code below because the current date is the default selection
+                 * and to reduce the amount of time for a test
+                 */
+
+                // await page.waitForSelector('input[name=startDate]');
+                // await page.click('input[name=startDate]');
+                // await page.click(
+                //     'div.MuiDialogActions-root button:nth-child(2)'
+                // );
+                // await page.waitFor(1000); // needed because of the date picker
+                // await page.click('input[name=endDate]');
+                // await page.click(
+                //     'div.MuiDialogActions-root button:nth-child(2)'
+                // );
+                // await page.waitFor(1000); // needed because of the date picker
                 await page.click('#createScheduledEventButton');
                 const monitorError = await page.waitForSelector(
                     '#monitorError',
@@ -137,17 +148,23 @@ describe('Scheduled event', () => {
                     '#description',
                     'This is an example description for a test'
                 );
-                await page.waitForSelector('input[name=startDate]');
-                await page.click('input[name=startDate]');
-                await page.click(
-                    'div.MuiDialogActions-root button:nth-child(2)'
-                );
-                await page.waitFor(1000); // needed because of the date picker
-                await page.click('input[name=endDate]');
-                await page.click(
-                    'div.MuiDialogActions-root button:nth-child(2)'
-                );
-                await page.waitFor(1000); // needed because of the date picker
+
+                /**
+                 * commented the code below because the current date is the default selection
+                 * and to reduce the amount of time for a test
+                 */
+
+                // await page.waitForSelector('input[name=startDate]');
+                // await page.click('input[name=startDate]');
+                // await page.click(
+                //     'div.MuiDialogActions-root button:nth-child(2)'
+                // );
+                // await page.waitFor(1000); // needed because of the date picker
+                // await page.click('input[name=endDate]');
+                // await page.click(
+                //     'div.MuiDialogActions-root button:nth-child(2)'
+                // );
+                // await page.waitFor(1000); // needed because of the date picker
                 await page.click('#createScheduledEventButton');
                 await page.waitForSelector('#scheduledEventForm', {
                     hidden: true,

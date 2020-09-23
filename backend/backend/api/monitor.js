@@ -507,7 +507,7 @@ router.post(
             } else if (validUp) {
                 data.status = 'online';
             } else {
-                data.status = 'unknown';
+                data.status = 'offline';
             }
 
             const log = await ProbeService.saveMonitorLog(data);

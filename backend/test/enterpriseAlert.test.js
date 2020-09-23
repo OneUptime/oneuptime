@@ -15,10 +15,9 @@ const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
 const IncidentService = require('../backend/services/incidentService');
 const AlertService = require('../backend/services/alertService');
-const AirtableService = require('../backend/services/airtableService');
 const ComponentModel = require('../backend/models/component');
 
-let token, projectId, airtableId, monitorId, incidentId, alertId;
+let token, projectId, monitorId, incidentId, alertId;
 
 describe('Enterprise Alert API', function() {
     this.timeout(30000);
@@ -29,7 +28,6 @@ describe('Enterprise Alert API', function() {
             createEnterpriseUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                airtableId = res.body.airtableId;
 
                 ComponentModel.create({ name: 'New Component' }).then(
                     component => {
@@ -71,7 +69,6 @@ describe('Enterprise Alert API', function() {
         await UserService.hardDeleteBy({ email: userData.user.email });
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await AlertService.hardDeleteBy({ _id: alertId });
-        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create alert with valid details for project with no billing plan', function(done) {

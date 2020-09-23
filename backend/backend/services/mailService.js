@@ -21,14 +21,7 @@ const options = {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let {
-            user,
-            pass,
-            host,
-            port,
-            from,
-            secure,
-        } = await _this.getSmtpSettings();
+        let user, pass, host, port, from, secure;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
             enabled: true,
@@ -1056,7 +1049,7 @@ const _this = {
     }) {
         let mailOptions = {};
         try {
-            const accountMail = await _this.getSmtpSettings();
+            const accountMail = await _this.getProjectSmtpSettings(projectId);
             mailOptions = {
                 from: '"Fyipe " <' + accountMail.from + '>',
                 to: email,
@@ -1077,7 +1070,7 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
+            const mailer = await _this.createMailer(accountMail);
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1328,7 +1321,7 @@ const _this = {
             const smtpSettings = await _this.getProjectSmtpSettings(
                 incident.projectId
             );
-            const privateMailer = await _this.createMailer({});
+            const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
                 from: '"Fyipe " <' + smtpSettings.from + '>',
                 to: email,
@@ -1360,7 +1353,7 @@ const _this = {
             return info;
         } catch (error) {
             ErrorService.log(
-                'mailService.sendIncidentCreatedMailToSubscriber',
+                'mailService.sendIncidentResolvedMailToSubscriber',
                 error
             );
             await EmailStatusService.create({

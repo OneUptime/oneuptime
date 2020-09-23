@@ -6,6 +6,11 @@ const UserList = ({ users }) =>
     users.map((user, k) => {
         return (
             <Link
+                id={
+                    user.deleted
+                        ? `deleted__${user.email.split('@')[0]}`
+                        : `${user.email.split('@')[0]}`
+                }
                 to={`/admin/users/${user._id}`}
                 key={k}
                 className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"

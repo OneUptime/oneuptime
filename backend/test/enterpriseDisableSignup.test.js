@@ -10,7 +10,6 @@ const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
-const AirtableService = require('../backend/services/airtableService');
 
 describe('Disable Sign up test', function() {
     this.timeout(200000);
@@ -19,7 +18,6 @@ describe('Disable Sign up test', function() {
         this.timeout(400000);
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
-        await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.initTestConfig();
         await createUser(request, data.adminUser);
         const res = await request.post('/user/login').send({
@@ -33,7 +31,6 @@ describe('Disable Sign up test', function() {
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
-        await AirtableService.deleteAll({ tableName: 'User' });
         process.env.DISABLE_SIGNUP = undefined;
     });
 
