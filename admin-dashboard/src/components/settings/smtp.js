@@ -76,8 +76,14 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'from-name',
-        label: 'From Name',
+        key: 'smtp-server',
+        label: 'SMTP Server',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'smtp-port',
+        label: 'SMTP Port',
         type: 'text',
         component: RenderField,
     },
@@ -88,14 +94,8 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'smtp-server',
-        label: 'SMTP Server',
-        type: 'text',
-        component: RenderField,
-    },
-    {
-        key: 'smtp-port',
-        label: 'SMTP Port',
+        key: 'from-name',
+        label: 'From Name',
         type: 'text',
         component: RenderField,
     },
