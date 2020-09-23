@@ -16,7 +16,7 @@ router.post(
             const { gitUsername, gitPassword } = req.body;
             const { projectId } = req.params;
 
-            if (!gitUsername.trim()) {
+            if (!gitUsername || !gitUsername.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Git Username is required',
