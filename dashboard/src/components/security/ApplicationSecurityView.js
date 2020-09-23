@@ -95,7 +95,10 @@ const ApplicationSecurityView = ({
                                             }
                                         >
                                             <div className="Box-root Padding-right--8">
-                                                <Badge color={'slate5'}>
+                                                <Badge
+                                                    id={`${applicationSecurity.name}-badge`}
+                                                    color={'slate5'}
+                                                >
                                                     {applicationSecurity &&
                                                     applicationSecurity.resourceCategoryId
                                                         ? applicationSecurity

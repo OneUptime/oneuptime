@@ -91,7 +91,10 @@ const ContainerSecurityView = ({
                                             }
                                         >
                                             <div className="Box-root Padding-right--8">
-                                                <Badge color={'slate5'}>
+                                                <Badge
+                                                    id={`${containerSecurity.name}-badge`}
+                                                    color={'slate5'}
+                                                >
                                                     {containerSecurity &&
                                                     containerSecurity.resourceCategoryId
                                                         ? containerSecurity
