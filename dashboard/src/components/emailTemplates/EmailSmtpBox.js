@@ -586,8 +586,9 @@ function mapStateToProps(state) {
         user: '',
         pass: '',
         host: '',
-        from: '',
         port: '',
+        from: '',
+        name: '',
         secure: true,
     };
     if (showEmailSmtpConfiguration) {
@@ -596,8 +597,9 @@ function mapStateToProps(state) {
             user: smtpConfigurations.config.user,
             pass: smtpConfigurations.config.pass,
             host: smtpConfigurations.config.host,
-            from: smtpConfigurations.config.from,
             port: smtpConfigurations.config.port,
+            from: smtpConfigurations.config.from,
+            name: smtpConfigurations.config.name,
             secure: smtpConfigurations.config.secure,
         };
     }
