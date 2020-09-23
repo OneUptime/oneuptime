@@ -21,7 +21,7 @@ const options = {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let user, pass, host, port, from, secure;
+        let user, pass, host, port, from, fromName, secure;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
             enabled: true,
@@ -37,6 +37,7 @@ const _this = {
             host = smtpDb.host;
             port = smtpDb.port;
             from = smtpDb.from;
+            fromName = smtpDb.fromName || "Fyipe";
             secure = smtpDb.secure;
         } else {
             const globalSettings = await _this.getSmtpSettings();
@@ -45,10 +46,11 @@ const _this = {
             host = globalSettings.host;
             port = globalSettings.port;
             from = globalSettings.from;
+            fromName = globalSettings.fromName;
             secure = globalSettings.secure;
         }
 
-        return { user, pass, host, port, from, secure };
+        return { user, pass, host, port, from, fromName, secure };
     },
 
     createMailer: async function({ host, port, user, pass, secure }) {
