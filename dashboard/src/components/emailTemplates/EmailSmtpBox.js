@@ -31,7 +31,7 @@ export class EmailSmtpBox extends Component {
         const errors = {};
         if (this.props.showEmailSmtpConfiguration) {
             if (values.user) {
-                if (!Validate.text(values.user)) {
+                if (!Validate.email(values.user)) {
                     errors.user = 'Please input username in text format .';
                 }
             } else {
@@ -67,6 +67,14 @@ export class EmailSmtpBox extends Component {
             } else {
                 errors.from =
                     'Please input from address this cannot be left blank.';
+            }
+
+            if (values.name) {
+                if (!Validate.text(values.name)) {
+                    errors.from = 'Please input name in proper format .';
+                }
+            } else {
+                errors.name = 'Please input name this cannot be left blank.';
             }
         }
         return errors;
