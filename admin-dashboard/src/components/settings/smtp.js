@@ -27,6 +27,10 @@ function validate(values) {
         errors['from-name'] = 'Name is not valid.';
     }
 
+    if (!Validate.email(values['from'])) {
+        errors['from'] = 'Email is not valid.';
+    }
+
     if (!Validate.text(values['smtp-server'])) {
         errors['smtp-server'] = 'SMTP Server is not valid.';
     }
@@ -74,6 +78,12 @@ const fields = [
     {
         key: 'from-name',
         label: 'From Name',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'from',
+        label: 'From Email',
         type: 'text',
         component: RenderField,
     },
