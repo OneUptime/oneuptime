@@ -150,6 +150,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
             // eslint-disable-next-line no-console
             console.log([...upReasons, ...degradedReasons, ...downReasons]);
+            // eslint-disable-next-line no-console
+            console.log(upReasons, degradedReasons, downReasons);
         }
         if (type === 'script') {
             const { stat: validUp, reasons: upReasons } = await (monitor &&
