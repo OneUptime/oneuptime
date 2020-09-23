@@ -220,7 +220,7 @@ export class EmailSmtpBox extends Component {
                                                         >
                                                             <div className="bs-Fieldset-row">
                                                                 <label className="bs-Fieldset-label">
-                                                                    Username
+                                                                    Email
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
