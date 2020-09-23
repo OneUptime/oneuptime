@@ -383,6 +383,41 @@ export class EmailSmtpBox extends Component {
                                                                 </div>
                                                             </div>
                                                             <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    From Name
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="name"
+                                                                        id="name"
+                                                                        placeholder="From Name"
+                                                                        required="required"
+                                                                        disabled={
+                                                                            this
+                                                                                .props
+                                                                                .smtpConfigurations
+                                                                                .requesting
+                                                                        }
+                                                                    />
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        <span>
+                                                                            Name
+                                                                            that
+                                                                            will
+                                                                            be
+                                                                            used
+                                                                            in
+                                                                            emails.
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     <div
                                                                         data-test="RetrySettings-failedPaymentsRow"
