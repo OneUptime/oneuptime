@@ -387,13 +387,18 @@ module.exports = {
         }
     },
 
-    generateUserBackupCodes: async function(secretKey, numberOfCodes) {
+    generateUserBackupCodes: async function(
+        secretKey,
+        numberOfCodes,
+        firstCounter = 0
+    ) {
         hotp.options = { digits: 8 };
         const backupCodes = [];
 
         for (let i = 0; i < numberOfCodes; i++) {
-            const token = hotp.generate(secretKey, i);
-            backupCodes.push({ code: token, counter: i });
+            const counter = firstCounter + i;
+            const token = hotp.generate(secretKey, counter);
+            backupCodes.push({ code: token, counter });
         }
         return backupCodes;
     },

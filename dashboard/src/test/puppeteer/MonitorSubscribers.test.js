@@ -73,14 +73,17 @@ describe('Monitor Detail API', () => {
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
-                await page.waitFor(5000);
 
+                await page.waitForSelector('#fileInput', { visible: true });
                 const input = await page.$('#fileInput');
                 await input.uploadFile(csvFile);
                 await input.evaluate(upload =>
                     upload.dispatchEvent(new Event('change', { bubbles: true }))
                 );
                 await page.click('#importCsvButton');
+                await page.waitForSelector('#importCsvButton', {
+                    hidden: true,
+                });
 
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item';
@@ -109,8 +112,8 @@ describe('Monitor Detail API', () => {
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
-                await page.waitFor(5000);
 
+                await page.waitForSelector('#fileInput', { visible: true });
                 const input = await page.$('#fileInput');
                 await input.uploadFile(emptyFile);
                 await input.evaluate(upload =>
@@ -143,14 +146,17 @@ describe('Monitor Detail API', () => {
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
-                await page.waitFor(5000);
 
+                await page.waitForSelector('#fileInput', { visible: true });
                 const input = await page.$('#fileInput');
                 await input.uploadFile(csvFile);
                 await input.evaluate(upload =>
                     upload.dispatchEvent(new Event('change', { bubbles: true }))
                 );
                 await page.click('#importCsvButton');
+                await page.waitForSelector('#importCsvButton', {
+                    hidden: true,
+                });
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item';
                 await page.waitForSelector(createdSubscriberSelector);
@@ -178,15 +184,17 @@ describe('Monitor Detail API', () => {
                 const importFileSelector = '#importFromCsv';
                 await page.waitForSelector(importFileSelector);
                 await page.click(importFileSelector);
-                await page.waitFor(5000);
 
+                await page.waitForSelector('#fileInput', { visible: true });
                 const input = await page.$('#fileInput');
                 await input.uploadFile(existingSubscribers);
                 await input.evaluate(upload =>
                     upload.dispatchEvent(new Event('change', { bubbles: true }))
                 );
                 await page.click('#importCsvButton');
-                await page.waitFor(5000);
+                await page.waitForSelector('#importCsvButton', {
+                    hidden: true,
+                });
                 const createdSubscriberSelector =
                     '#subscribersList > tbody > tr.subscriber-list-item';
                 await page.waitForSelector(createdSubscriberSelector);
@@ -222,6 +230,9 @@ describe('Monitor Detail API', () => {
                 await page.click('button[id=deleteSubscriber_0]');
                 await page.waitForSelector('#deleteSubscriber');
                 await page.click('#deleteSubscriber');
+                await page.waitForSelector('#deleteSubscriber', {
+                    hidden: true,
+                });
                 await page.waitForSelector('#subscribersList');
 
                 let finalSubscribers =

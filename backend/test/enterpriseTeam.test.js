@@ -11,9 +11,8 @@ const request = chai.request.agent(app);
 const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
 
-let token, projectId, newProjectId, airtableId;
+let token, projectId, newProjectId;
 
 describe('Enterprise Team API', function() {
     this.timeout(30000);
@@ -24,7 +23,6 @@ describe('Enterprise Team API', function() {
             createEnterpriseUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                airtableId = res.body.airtableId;
 
                 request
                     .post('/user/login')
@@ -46,7 +44,6 @@ describe('Enterprise Team API', function() {
             _id: { $in: [projectId, newProjectId] },
         });
         await UserService.hardDeleteBy({ email: userData.user.email });
-        await AirtableService.deleteUser(airtableId);
     });
 
     it('should add new user with valid details for project with no billing plan', function(done) {

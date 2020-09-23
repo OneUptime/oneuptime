@@ -55,6 +55,7 @@ describe('Audit Logs', () => {
                 await page.click('#deleteLog');
                 await page.waitForSelector('#confirmDelete');
                 await page.click('#confirmDelete');
+                await page.waitForSelector('#confirmDelete', { hidden: true });
 
                 const rowNum = await page.$$eval(
                     'tbody tr.Table-row',

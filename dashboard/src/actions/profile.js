@@ -646,3 +646,47 @@ export function deleteAccount(userId, confirmation) {
         return promise;
     };
 }
+
+// Generate backup codes
+const generateBackupCodesRequest = () => ({
+    type: types.GENERATE_BACKUP_CODES_REQUEST,
+});
+
+const generateBackupCodesSuccess = payload => ({
+    type: types.GENERATE_BACKUP_CODES_SUCCESS,
+    payload,
+});
+
+const generateBackupCodesFailure = payload => ({
+    type: types.GENERATE_BACKUP_CODES_FAILURE,
+    payload,
+});
+
+export const generateBackupCodes = () => {
+    return function(dispatch) {
+        const promise = postApi(`user/generate/backupCode`);
+        dispatch(generateBackupCodesRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(generateBackupCodesSuccess(response.data));
+                return response;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(generateBackupCodesFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+};
