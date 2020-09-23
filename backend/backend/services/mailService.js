@@ -87,7 +87,8 @@ const _this = {
                 pass: document.value.password,
                 host: document.value['smtp-server'],
                 port: document.value['smtp-port'],
-                from: document.value['from-name'],
+                from: document.value['from'],
+                fromName: document.value['from-name'],
                 secure: document.value['smtp-secure'],
                 'email-enabled': document.value['email-enabled'],
             };
