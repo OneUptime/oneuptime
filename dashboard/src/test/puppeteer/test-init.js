@@ -550,8 +550,8 @@ module.exports = {
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
 
-        await page.waitForSelector('li#monitors a');
-        await page.click('li#monitors a');
+        await page.waitForSelector('li#resources a');
+        await page.click('li#resources a');
         await page.waitForSelector('#createResourceCategoryButton');
         await page.click('#createResourceCategoryButton');
         await page.waitForSelector('#resourceCategoryName');
@@ -559,7 +559,7 @@ module.exports = {
         await page.click('#addResourceCategoryButton');
 
         const createdResourceCategorySelector =
-            '#resourceCategoryList #monitor-category-name';
+            '#resourceCategoryList #resource-category-name';
         await page.waitForSelector(createdResourceCategorySelector, {
             visible: true,
         });
