@@ -34,7 +34,9 @@ class NewApplicationLog extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name`];
-        postObj.resourceCategoryId = values[`resourceCategoryId`];
+        if (values[`resourceCategoryId`]) {
+            postObj.resourceCategoryId = values[`resourceCategoryId`];
+        }
         if (!this.props.edit) {
             this.props
                 .createApplicationLog(
