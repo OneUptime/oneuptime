@@ -6,19 +6,16 @@
 ###
 #Important: Highly dependent on *-alpine image.
 ###
+
 FROM node:12.16.1-alpine
 
 #set language enviroments
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
-    TIMEZONE="Asia/Shanghai" \
-    PORT=25 \
+    TIMEZONE="America/New_York" \
+    SMTP_PORT=25 \
     LOGLEVEL=warn \
     DATADIR=/data \
-    DOMAIN="fyipe.com" \
     HEADER="Haraka Server" 
-
-# install software
-COPY run.sh /
 
 # install dependence
 RUN apk upgrade --update && \
@@ -30,11 +27,17 @@ RUN apk upgrade --update && \
     python && \
     addgroup -g 88 -S smtp && \
     adduser -u 88 -D -S -G smtp -h /data smtp && \
-#install haraka
-    npm install -g --unsafe-perm Haraka toobusy-js && \
+# Install haraka
+    npm install -g --unsafe-perm Haraka && \
 #  # Cleaning up
     apk del --purge -r .fetch-deps && \
     apk add --no-cache tzdata openssl execline ca-certificates && \
-    rm -rf /var/cache/apk/* /tmp/* ~/.pearrc && chmod 755 /run.sh
+    rm -rf /var/cache/apk/* /tmp/* ~/.pearrc
+
+RUN apk add bash
+
+# install software
+COPY run.sh /
+RUN chmod 755 /run.sh
 
 CMD ["/run.sh"]

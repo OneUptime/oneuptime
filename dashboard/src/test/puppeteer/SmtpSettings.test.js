@@ -74,11 +74,12 @@ describe('Custom SMTP Settings', () => {
                 await page.type('#from', smtpData.from);
                 await page.$eval('#secure', elem => elem.click());
                 await page.click('#saveSmtp');
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload();
-                await page.waitForSelector('#host');
+                await page.waitForSelector('#host', { visible: true });
                 const host = await page.$eval('#host', elem => elem.value);
-                expect(host).toBe(smtpData.host);
+                expect(host).toEqual(smtpData.host);
             });
 
             done();
@@ -102,11 +103,12 @@ describe('Custom SMTP Settings', () => {
                 await page.click('#from', { clickCount: 3 });
                 await page.type('#from', from);
                 await page.click('#saveSmtp');
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload();
-                await page.waitForSelector('#from');
+                await page.waitForSelector('#from', { visible: true });
                 const fromVal = await page.$eval('#from', elem => elem.value);
-                expect(fromVal).toBe(from);
+                expect(fromVal).toEqual(from);
             });
 
             done();
