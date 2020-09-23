@@ -15,7 +15,7 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 90000;
 
     let cluster;
 
@@ -103,6 +103,39 @@ describe('Log Containers', () => {
                     `#key_${applicationLogName}`
                 );
                 expect(logKeyElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should create new resource category then redirect to application log page to create a container under that',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Random-Category';
+                const appLogName = `${applicationLogName}-sample`;
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+                //navigate to component details
+                await init.navigateToComponentDetails(componentName, page);
+                // go to logs
+                await page.click('#logs');
+                // create a new log and select the category
+                // Fill and submit New Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', appLogName);
+                await init.selectByText(
+                    '#resourceCategoryId',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+                await page.waitFor(5000);
+                // confirm the category shows in the details page.
+                let spanElement = await page.$(`#${appLogName}-badge`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
             });
         },
         operationTimeOut
