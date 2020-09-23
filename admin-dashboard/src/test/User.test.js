@@ -49,8 +49,10 @@ describe('SMTP Settings API', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
-                await page.waitForSelector('#user_1');
-                await page.click('#user_1');
+                await page.waitForSelector('.bs-ObjectList-rows > a');
+                const users = await page.$$('.bs-ObjectList-rows > a');
+                await users[1].click();
+                await page.waitFor(5000);
                 await page.waitForSelector('#disableUser2fa');
                 await page.click('#disableUser2fa');
 
