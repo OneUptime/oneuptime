@@ -393,7 +393,7 @@ export const groups = [
                         shortcut: 'f+e',
                     },
                     {
-                        title: 'SMS',
+                        title: 'SMS & Calls',
                         path: '/dashboard/project/:projectId/settings/sms',
                         icon: 'sms',
                         visible: true,

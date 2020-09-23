@@ -63,7 +63,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
-                await page.click('#sms');
+                await page.click('#smsCalls');
                 await page.waitForSelector('label[for=enabled]', {
                     visible: true,
                 });
