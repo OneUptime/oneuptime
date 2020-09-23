@@ -484,21 +484,22 @@ router.post(
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-            const validUp = await (monitor &&
+            const { stat: validUp, reasons: upReasons } = await (monitor &&
             monitor.criteria &&
             monitor.criteria.up
                 ? ProbeService.conditions(data, null, monitor.criteria.up)
-                : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(data, null, monitor.criteria.degraded)
-                : false);
-            const validDown = await (monitor &&
+                : { stat: false, reasons: [] });
+            const { stat: validDown, reasons: downReasons } = await (monitor &&
             monitor.criteria &&
             monitor.criteria.down
                 ? ProbeService.conditions(data, null, monitor.criteria.down)
-                : false);
+                : { stat: false, reasons: [] });
 
             if (validDown) {
                 data.status = 'offline';
@@ -509,7 +510,8 @@ router.post(
             } else {
                 data.status = 'unknown';
             }
-
+            // eslint-disable-next-line no-console
+            console.log([...upReasons, ...degradedReasons, ...downReasons]);
             const log = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
