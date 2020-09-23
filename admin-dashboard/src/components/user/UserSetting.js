@@ -164,6 +164,7 @@ export class UserSetting extends Component {
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 <label
+                                                    id="disableUser2fa"
                                                     className="Toggler-wrap"
                                                     style={{
                                                         marginTop: '10px',
