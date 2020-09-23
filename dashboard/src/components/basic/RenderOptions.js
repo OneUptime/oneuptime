@@ -16,7 +16,7 @@ const flexStyle = {
     padding: '10px 4px',
 };
 const flexStylehidden = {
-    display: 'inline-block',
+    display: 'none',
     padding: '10px 4px',
     visibility: 'hidden',
 };
@@ -909,88 +909,100 @@ export class RenderOption extends Component {
                 ) : (
                     ''
                 )}
-
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => addField()}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/plus.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
+                <div style={{ marginLeft: 'auto', paddingRight: 16 }}>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => addField()}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/plus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => removeField(removeArrayField)}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/minus.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() =>
+                                        removeField(removeArrayField)
+                                    }
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => addArrayField(fieldnameprop)}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/more.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => addArrayField(fieldnameprop)}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/more.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
