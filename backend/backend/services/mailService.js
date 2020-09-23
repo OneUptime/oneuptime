@@ -21,7 +21,7 @@ const options = {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let user, pass, host, port, from, fromName, secure;
+        let user, pass, host, port, from, name, secure;
         const smtpDb = await EmailSmtpService.findOneBy({
             projectId,
             enabled: true,
@@ -37,7 +37,7 @@ const _this = {
             host = smtpDb.host;
             port = smtpDb.port;
             from = smtpDb.from;
-            fromName = smtpDb.fromName || 'Fyipe';
+            name = smtpDb.name || 'Fyipe';
             secure = smtpDb.secure;
         } else {
             const globalSettings = await _this.getSmtpSettings();
@@ -46,11 +46,11 @@ const _this = {
             host = globalSettings.host;
             port = globalSettings.port;
             from = globalSettings.from;
-            fromName = globalSettings.fromName;
+            name = globalSettings.name;
             secure = globalSettings.secure;
         }
 
-        return { user, pass, host, port, from, fromName, secure };
+        return { user, pass, host, port, from, name, secure };
     },
 
     createMailer: async function({ host, port, user, pass, secure }) {
@@ -90,7 +90,7 @@ const _this = {
                 host: document.value['smtp-server'],
                 port: document.value['smtp-port'],
                 from: document.value['from'],
-                fromName: document.value['from-name'] || 'Fyipe',
+                name: document.value['from-name'] || 'Fyipe',
                 secure: document.value['smtp-secure'],
                 'email-enabled': document.value['email-enabled'],
             };
@@ -135,7 +135,7 @@ const _this = {
         let mailOptions = {};
         try {
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
                 subject: 'Welcome to Fyipe.',
                 template: 'sign_up_body',
@@ -187,7 +187,7 @@ const _this = {
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: '[Fyipe] Verify your Email',
                 template: 'send_verification_email',
@@ -235,7 +235,7 @@ const _this = {
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: 'noreply@fyipe.com',
                 subject: 'New Lead Added',
                 template: 'lead_to_fyipe_team',
@@ -286,7 +286,7 @@ const _this = {
         const accountMail = await _this.getSmtpSettings();
         try {
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: userEmail,
                 subject: 'Thank you for your feedback!',
                 template: 'feedback_response',
@@ -341,7 +341,7 @@ const _this = {
             } else {
                 const accountMail = await _this.getSmtpSettings();
                 mailOptions = {
-                    from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
                     cc: 'noreply@fyipe.com',
                     to: to,
                     subject: 'Thank you for your demo request.',
@@ -409,7 +409,7 @@ const _this = {
                 } else {
                     const accountMail = await _this.getSmtpSettings();
                     mailOptions = {
-                        from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                        from: `"${accountMail.name}" <${accountMail.from}>`,
                         cc: 'noreply@fyipe.com',
                         to: to,
                         subject: "Here's your Whitepaper",
@@ -470,7 +470,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'Password Reset for Fyipe',
                 template: 'forgot_password_body',
@@ -525,7 +525,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'Your password has been changed.',
                 template: 'reset_password_body',
@@ -583,7 +583,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been added to a project on Fyipe",
                 template: 'new_user_added_to_project_body',
@@ -640,7 +640,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been added to a project on Fyipe",
                 template: 'existing_user_added_to_project_body',
@@ -697,7 +697,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been added to a sub-project on Fyipe",
                 template: 'existing_viewer_added_to_project_body',
@@ -753,7 +753,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been added to a subproject on Fyipe",
                 template: 'existing_user_added_to_subproject_body',
@@ -806,7 +806,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been added to a project on Fyipe",
                 template: 'new_viewer_added_to_project',
@@ -861,7 +861,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been assigned a new role",
                 template: 'change_role',
@@ -918,7 +918,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been removed from a project on Fyipe",
                 template: 'removed_from_project',
@@ -977,7 +977,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: "You've been removed from a subproject on Fyipe",
                 template: 'removed_from_subproject',
@@ -1054,7 +1054,7 @@ const _this = {
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: `${projectName}/${monitorName} is ${incidentType}`,
                 template: 'new_incident_created',
@@ -1151,7 +1151,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.fromName}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
@@ -1239,7 +1239,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.fromName}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
@@ -1326,7 +1326,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.fromName}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
@@ -1434,7 +1434,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'Change of Subscription Plan',
                 template: 'changed_subscription_plan',
@@ -1488,7 +1488,7 @@ const _this = {
             const accountMail = await _this.getSmtpSettings();
 
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'New Project',
                 template: 'create_project',
@@ -1539,7 +1539,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'New Sub-Project',
                 template: 'create_subproject',
@@ -1594,7 +1594,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: 'support@fyipe.com',
                 subject: 'Upgrade to enterprise plan request from ' + email,
                 template: 'enterprise_upgrade',
@@ -1650,7 +1650,7 @@ const _this = {
         try {
             const accountMail = await _this.getSmtpSettings();
             mailOptions = {
-                from: `"${accountMail.fromName}" <${accountMail.from}>`,
+                from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
                 subject: 'Subscription Payment Failed',
                 template: 'subscription_payment_failed',
