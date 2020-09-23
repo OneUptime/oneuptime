@@ -71,7 +71,7 @@ describe('Resource Category', () => {
                 await page.click('#addResourceCategoryButton');
 
                 const createdResourceCategorySelector =
-                    '#resourceCategoryList #monitor-category-name:nth-child(2)';
+                    '#resourceCategoryList #resource-category-name:nth-child(2)';
 
                 await page.waitForSelector(createdResourceCategorySelector);
 
