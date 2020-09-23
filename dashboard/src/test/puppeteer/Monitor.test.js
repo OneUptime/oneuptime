@@ -444,7 +444,7 @@ describe('Monitor API', () => {
             const dashboard = async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
-                await page.waitFor(120000);
+                await page.waitFor(280000);
 
                 await page.waitForSelector(
                     `#more-details-${testServerMonitorName}`
