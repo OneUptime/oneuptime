@@ -8,6 +8,7 @@ import {
     postSmtpConfig,
     deleteSmtpConfig,
     updateSmtpConfig,
+    deleteSmtpConfigError,
 } from '../../actions/emailTemplates';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -107,6 +108,7 @@ export class EmailSmtpBox extends Component {
 
     changeValue = e => {
         this.props.setSmtpConfig(e.target.checked);
+        this.props.deleteSmtpConfigError('');
     };
 
     render() {
@@ -149,6 +151,7 @@ export class EmailSmtpBox extends Component {
                                                                     className="Box-root"
                                                                 >
                                                                     <label
+                                                                        id="showsmtpForm"
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
@@ -382,6 +385,7 @@ export class EmailSmtpBox extends Component {
                                                                         className="Box-root"
                                                                     >
                                                                         <label
+                                                                            id="enableSecureTransport"
                                                                             className="Checkbox responsive"
                                                                             htmlFor="secure"
                                                                             style={{
@@ -569,6 +573,7 @@ EmailSmtpBox.propTypes = {
     handleSubmit: PropTypes.func,
     showEmailSmtpConfiguration: PropTypes.bool,
     emailSmtpDelete: PropTypes.object,
+    deleteSmtpConfigError: PropTypes.func,
 };
 
 const EmailSmtpBoxForm = reduxForm({
@@ -584,6 +589,7 @@ const mapDispatchToProps = dispatch => {
             postSmtpConfig,
             deleteSmtpConfig,
             updateSmtpConfig,
+            deleteSmtpConfigError,
         },
         dispatch
     );
