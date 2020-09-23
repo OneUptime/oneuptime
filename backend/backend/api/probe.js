@@ -145,7 +145,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             } else if (validUp) {
                 status = 'online';
             } else {
-                status = 'unknown';
+                status = 'offline';
             }
         }
         if (type === 'script') {
@@ -180,7 +180,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             } else if (validUp) {
                 status = 'success';
             } else {
-                status = 'unknown';
+                status = 'failed';
             }
             resp.status = null;
         }
