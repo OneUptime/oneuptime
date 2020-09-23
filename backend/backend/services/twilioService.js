@@ -51,34 +51,6 @@ const _this = {
         throw error;
     },
 
-    sendResponseMessage: async function(to, body) {
-        try {
-            const creds = await _this.getSettings();
-
-            const options = {
-                body,
-                from: creds.phone,
-                to,
-            };
-
-            const twilioClient = _this.getClient(
-                creds['account-sid'],
-                creds['authentication-token']
-            );
-
-            if (creds['sms-enabled']) {
-                const message = await twilioClient.messages.create(options);
-                return message;
-            } else {
-                const error = new Error('SMS Not Enabled');
-                error.code = 400;
-                return error;
-            }
-        } catch (error) {
-            ErrorService.log('twillioService.sendResponseMessage', error);
-            throw error;
-        }
-    },
     sendIncidentCreatedMessage: async function(
         incidentTime,
         monitorName,
