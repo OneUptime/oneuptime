@@ -130,8 +130,10 @@ module.exports = {
             await this.selectByText('#subProjectId', projectName, page);
         }
 
-        await page.$eval('button[type=submit]', e => e.click());
-        await page.waitForNavigation();
+        await Promise.all([
+            page.$eval('button[type=submit]', e => e.click()),
+            page.waitForNavigation(),
+        ]);
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -335,6 +337,9 @@ module.exports = {
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
+        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+            visible: true,
+        });
     },
     addMonitorToSubProject: async function(
         monitorName,
