@@ -9,7 +9,7 @@ const applicationLogSchema = new Schema({
     }, //which component this application log belongs to.
     name: String,
     key: String,
-    resourceCategoryId: {
+    resourceCategory: {
         type: Schema.Types.ObjectId,
         ref: 'ResourceCategory',
     },

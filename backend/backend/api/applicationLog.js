@@ -53,8 +53,8 @@ router.post(
                 });
             }
             if (
-                data.resourceCategoryId &&
-                typeof data.resourceCategoryId !== 'string'
+                data.resourceCategory &&
+                typeof data.resourceCategory !== 'string'
             ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -338,8 +338,8 @@ router.put(
             name: data.name,
             componentId: req.params.componentId,
         };
-        if (data.resourceCategoryId != '') {
-            existingQuery.resourceCategoryId = data.resourceCategoryId;
+        if (data.resourceCategory != '') {
+            existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingApplicationLog = await ApplicationLogService.findBy(
             existingQuery
@@ -348,7 +348,7 @@ router.put(
         if (
             existingApplicationLog &&
             existingApplicationLog.length > 0 &&
-            data.resourceCategoryId != ''
+            data.resourceCategory != ''
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -362,17 +362,16 @@ router.put(
         };
 
         let unsetData;
-        if (!data.resourceCategoryId || data.resourceCategoryId === '') {
-            unsetData = { resourceCategoryId: '' };
+        if (!data.resourceCategory || data.resourceCategory === '') {
+            unsetData = { resourceCategory: '' };
         } else {
             const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategoryId,
+                _id: data.resourceCategory,
             });
             if (resourceCategory) {
-                applicationLogUpdate.resourceCategoryId =
-                    data.resourceCategoryId;
+                applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
-                unsetData = { resourceCategoryId: '' };
+                unsetData = { resourceCategory: '' };
             }
         }
 

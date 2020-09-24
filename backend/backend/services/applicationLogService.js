@@ -27,7 +27,7 @@ module.exports = {
                 throw error;
             }
             const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategoryId,
+                _id: data.resourceCategory,
             });
             // prepare application log model
             let applicationLog = new ApplicationLogModel();
@@ -36,7 +36,7 @@ module.exports = {
             applicationLog.componentId = data.componentId;
             applicationLog.createdById = data.createdById;
             if (resourceCategory) {
-                applicationLog.resourceCategoryId = data.resourceCategoryId;
+                applicationLog.resourceCategory = data.resourceCategory;
             }
             const savedApplicationLog = await applicationLog.save();
             applicationLog = await _this.findOneBy({
@@ -73,7 +73,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId', 'name')
-                .populate('resourceCategoryId', 'name');
+                .populate('resourceCategory', 'name');
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);
@@ -90,7 +90,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             const applicationLog = await ApplicationLogModel.findOne(query)
                 .populate('componentId', 'name')
-                .populate('resourceCategoryId', 'name');
+                .populate('resourceCategory', 'name');
             return applicationLog;
         } catch (error) {
             ErrorService.log('applicationLogService.findOneBy', error);
