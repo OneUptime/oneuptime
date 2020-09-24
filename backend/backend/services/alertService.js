@@ -1098,6 +1098,23 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
+                if (IS_SAAS_SERVICE && !project.alertEnable) {
+                    return await SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.SMS,
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: "Alert Disabled",
+                        eventType:
+                            templateType === 'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType === 'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
+                    });
+                }
                 const countryCode = await _this.mapCountryShortNameToCountryCode(
                     subscriber.countryCode
                 );
