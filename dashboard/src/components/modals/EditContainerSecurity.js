@@ -136,8 +136,8 @@ class EditContainerSecurity extends Component {
                                                                         component={
                                                                             RenderSelect
                                                                         }
-                                                                        name="resourceCategoryId"
-                                                                        id="resourceCategoryId"
+                                                                        name="resourceCategory"
+                                                                        id="resourceCategory"
                                                                         placeholder="Choose Category"
                                                                         disabled={
                                                                             isRequesting
@@ -356,9 +356,8 @@ const mapStateToProps = state => {
                 state.security.containerSecurity.dockerCredential._id,
             imagePath: state.security.containerSecurity.imagePath,
             imageTags: state.security.containerSecurity.imageTags,
-            resourceCategoryId: state.security.containerSecurity
-                .resourceCategoryId
-                ? state.security.containerSecurity.resourceCategoryId._id
+            resourceCategory: state.security.containerSecurity.resourceCategory
+                ? state.security.containerSecurity.resourceCategory._id
                 : '',
         },
         dockerCredentials: state.credential.dockerCredentials,

@@ -87,7 +87,7 @@ const ContainerSecurityView = ({
                                         <ShouldRender
                                             if={
                                                 containerSecurity &&
-                                                containerSecurity.resourceCategoryId
+                                                containerSecurity.resourceCategory
                                             }
                                         >
                                             <div className="Box-root Padding-right--8">
@@ -96,9 +96,9 @@ const ContainerSecurityView = ({
                                                     color={'slate5'}
                                                 >
                                                     {containerSecurity &&
-                                                    containerSecurity.resourceCategoryId
+                                                    containerSecurity.resourceCategory
                                                         ? containerSecurity
-                                                              .resourceCategoryId
+                                                              .resourceCategory
                                                               .name
                                                         : ''}
                                                 </Badge>

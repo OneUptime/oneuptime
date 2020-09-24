@@ -113,8 +113,8 @@ class NewMonitor extends Component {
             : this.props.edit
             ? this.props.editMonitorProp.type
             : this.props.type;
-        postObj.resourceCategoryId =
-            values[`resourceCategoryId_${this.props.index}`];
+        postObj.resourceCategory =
+            values[`resourceCategory_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (postObj.type === 'manual')
             postObj.data.description =
@@ -546,7 +546,7 @@ class NewMonitor extends Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                name={`resourceCategoryId_${this.props.index}`}
+                                                                name={`resourceCategory_${this.props.index}`}
                                                                 id="resourceCategory"
                                                                 placeholder="Choose Resource Category"
                                                                 disabled={
@@ -1384,7 +1384,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
-    const category = selector(state, 'resourceCategoryId_1000');
+    const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
     let projectId = null;
 

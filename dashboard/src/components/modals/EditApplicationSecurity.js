@@ -136,8 +136,8 @@ class EditApplicationSecurity extends Component {
                                                                         component={
                                                                             RenderSelect
                                                                         }
-                                                                        name="resourceCategoryId"
-                                                                        id="resourceCategoryId"
+                                                                        name="resourceCategory"
+                                                                        id="resourceCategory"
                                                                         placeholder="Choose Category"
                                                                         disabled={
                                                                             isRequesting
@@ -335,9 +335,9 @@ const mapStateToProps = state => {
             gitRepositoryUrl:
                 state.security.applicationSecurity.gitRepositoryUrl,
             gitCredential: state.security.applicationSecurity.gitCredential._id,
-            resourceCategoryId: state.security.applicationSecurity
-                .resourceCategoryId
-                ? state.security.applicationSecurity.resourceCategoryId._id
+            resourceCategory: state.security.applicationSecurity
+                .resourceCategory
+                ? state.security.applicationSecurity.resourceCategory._id
                 : '',
         },
         gitCredentials: state.credential.gitCredentials,

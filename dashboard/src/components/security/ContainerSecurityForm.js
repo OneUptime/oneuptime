@@ -136,8 +136,8 @@ class ContainerSecurityForm extends Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                name="resourceCategoryId"
-                                                                id="resourceCategoryId"
+                                                                name="resourceCategory"
+                                                                id="resourceCategory"
                                                                 placeholder="Choose Category"
                                                                 disabled={
                                                                     addingContainer

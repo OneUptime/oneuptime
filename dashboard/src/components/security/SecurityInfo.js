@@ -138,15 +138,14 @@ const SecurityInfo = ({
                                     <ShouldRender
                                         if={
                                             security &&
-                                            security.resourceCategoryId
+                                            security.resourceCategory
                                         }
                                     >
                                         <div className="Box-root Padding-right--8">
                                             <Badge color={'slate5'}>
                                                 {security &&
-                                                security.resourceCategoryId
-                                                    ? security
-                                                          .resourceCategoryId
+                                                security.resourceCategory
+                                                    ? security.resourceCategory
                                                           .name
                                                     : ''}
                                             </Badge>

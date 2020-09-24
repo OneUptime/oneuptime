@@ -91,7 +91,7 @@ const ApplicationSecurityView = ({
                                         <ShouldRender
                                             if={
                                                 applicationSecurity &&
-                                                applicationSecurity.resourceCategoryId
+                                                applicationSecurity.resourceCategory
                                             }
                                         >
                                             <div className="Box-root Padding-right--8">
@@ -100,9 +100,9 @@ const ApplicationSecurityView = ({
                                                     color={'slate5'}
                                                 >
                                                     {applicationSecurity &&
-                                                    applicationSecurity.resourceCategoryId
+                                                    applicationSecurity.resourceCategory
                                                         ? applicationSecurity
-                                                              .resourceCategoryId
+                                                              .resourceCategory
                                                               .name
                                                         : ''}
                                                 </Badge>
