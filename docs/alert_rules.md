@@ -1,37 +1,35 @@
 <table>
-<th>
   <tr>
-    <td rowspan="2">
+    <th rowspan="2">
       Running mode
-    </td>
-    <td rowspan="2">
+    </th>
+    <th rowspan="2">
       Rules order
-    </td>
-    <td colspan="2">
+    </th>
+    <th colspan="2">
       Fyipe level configurations
-    </td>
-    <td clospan="2">
+    </th>
+    <th colspan="2">
       Project level configurations
-    </td>
-    <td rowspan="2">
+    </th>
+    <th rowspan="2">
       Results
-    </td>
+    </th>
   </tr>
   <tr>
-    <td>
+    <th>
       Twilio credentials
-    </td>
-    <td>
+    </th>
+    <th>
       Enabled SMS/Call
-    </td>
-    <td>
+    </th>
+    <th>
       Twilio credentials + enable “send SMS with Twlio accounts”
-    </td>
-    <td>
+    </th>
+    <th>
       Enabled SMS/Call alerts (Billing page)
-    </td>
+    </th>
   </tr>
-</th>
 <tbody>
   <tr>
     <td rowspan="4">
@@ -133,8 +131,8 @@
     <td>
     Set
     </td>
-    <td>
-        X
+    <td rowspan="3">
+        Hidden
     </td>
     <td>
     Success (without checking daily limits)
@@ -154,10 +152,7 @@
     *
     </td>
     <td>
-    X
-    </td>
-    <td>
-    Success (check daily limits)
+    Success (After checking the daily limits)
     </td>
   </tr>
   <tr>
@@ -172,9 +167,6 @@
     </td>
     <td>
     *
-    </td>
-    <td>
-    X
     </td>
     <td>
     Failure
