@@ -34,8 +34,8 @@ class NewApplicationLog extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name`];
-        if (values[`resourceCategoryId`]) {
-            postObj.resourceCategoryId = values[`resourceCategoryId`];
+        if (values[`resourceCategory`]) {
+            postObj.resourceCategory = values[`resourceCategory`];
         }
         if (!this.props.edit) {
             this.props
@@ -177,9 +177,9 @@ class NewApplicationLog extends Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                name="resourceCategoryId"
-                                                                id="resourceCategoryId"
-                                                                placeholder="Choose  Category"
+                                                                name="resourceCategory"
+                                                                id="resourceCategory"
+                                                                placeholder="Choose Category"
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -334,9 +334,9 @@ const mapStateToProps = (state, ownProps) => {
     const currentProject = state.project.currentProject;
     const initialValues = {
         name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
-        resourceCategoryId: ownProps.applicationLog
-            ? ownProps.applicationLog.resourceCategoryId
-                ? ownProps.applicationLog.resourceCategoryId._id
+        resourceCategory: ownProps.applicationLog
+            ? ownProps.applicationLog.resourceCategory
+                ? ownProps.applicationLog.resourceCategory._id
                 : ''
             : '',
     };

@@ -51,7 +51,7 @@ class ApplicationLogHeader extends Component {
                                 <ShouldRender
                                     if={
                                         applicationLog &&
-                                        applicationLog.resourceCategoryId
+                                        applicationLog.resourceCategory
                                     }
                                 >
                                     <div className="Box-root">
@@ -60,9 +60,9 @@ class ApplicationLogHeader extends Component {
                                             id={`${applicationLog.name}-badge`}
                                         >
                                             {applicationLog &&
-                                            applicationLog.resourceCategoryId
+                                            applicationLog.resourceCategory
                                                 ? applicationLog
-                                                      .resourceCategoryId.name
+                                                      .resourceCategory.name
                                                 : ''}
                                         </Badge>
                                     </div>
