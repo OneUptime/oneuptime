@@ -33,28 +33,32 @@ module.exports = {
                 page.waitForSelector(`form#card-form`),
                 page.click('button[type=submit]'),
             ]);
-            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame6]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame7]');
+            await page.waitForSelector('.__PrivateStripeElement > iframe', {
+                visible: true,
+                timeout: 200000,
+            });
+            const stripeIframeElements = await page.$$(
+                '.__PrivateStripeElement > iframe'
+            );
 
             await page.click('input[name=cardName]');
             await page.type('input[name=cardName]', 'Test name');
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
+            elementHandle = stripeIframeElements[0]; // card element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
+            elementHandle = stripeIframeElements[1]; // cvc element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
+            elementHandle = stripeIframeElements[2]; // exp element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
@@ -126,8 +130,10 @@ module.exports = {
             await this.selectByText('#subProjectId', projectName, page);
         }
 
-        await page.$eval('button[type=submit]', e => e.click());
-        await page.waitForNavigation();
+        await Promise.all([
+            page.$eval('button[type=submit]', e => e.click()),
+            page.waitForNavigation(),
+        ]);
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -331,6 +337,9 @@ module.exports = {
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
+        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+            visible: true,
+        });
     },
     addMonitorToSubProject: async function(
         monitorName,
