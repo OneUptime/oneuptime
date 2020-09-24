@@ -52,6 +52,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         }}
                                                     ></span>
                                                     <span
+                                                        id={`priority_${incidentPriority.name}_${index}`}
                                                         className="Text-fontWeight--medium"
                                                         style={{
                                                             color: `rgba(${incidentPriority.color.r},${incidentPriority.color.g},${incidentPriority.color.b},${incidentPriority.color.a})`,
@@ -66,6 +67,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                             <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                                 <div className="Box-root">
                                                     <button
+                                                        id={`priorityEdit_${incidentPriority.name}_${index}`}
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() =>
@@ -85,6 +87,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                 </div>
                                                 <div className="Box-root Margin-left--8">
                                                     <button
+                                                        id={`priorityDelete_${incidentPriority.name}_${index}`}
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() => {
