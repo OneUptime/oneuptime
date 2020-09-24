@@ -15,7 +15,7 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 90000;
+    const operationTimeOut = 900000;
 
     let cluster;
 
