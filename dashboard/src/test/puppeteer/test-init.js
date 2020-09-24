@@ -678,8 +678,8 @@ module.exports = {
             visible: true,
         });
         await page.click('#projectSettings');
-        await page.waitForSelector('#sms');
-        await page.click('#sms');
+        await page.waitForSelector('#smsCalls');
+        await page.click('#smsCalls');
         await page.waitForSelector('label[for=enabled]', {
             visible: true,
         });
