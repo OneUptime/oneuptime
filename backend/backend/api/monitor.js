@@ -54,8 +54,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         } */
 
         if (
-            data.resourceCategoryId &&
-            typeof data.resourceCategoryId !== 'string'
+            data.resourceCategory &&
+            typeof data.resourceCategory !== 'string'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -306,8 +306,8 @@ router.put(
                 }
             }
             let unsetData;
-            if (!data.resourceCategoryId || data.resourceCategoryId === '') {
-                unsetData = { resourceCategoryId: '' };
+            if (!data.resourceCategory || data.resourceCategory === '') {
+                unsetData = { resourceCategory: '' };
             }
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },

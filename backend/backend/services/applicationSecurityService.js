@@ -45,10 +45,10 @@ module.exports = {
                 throw error;
             }
             const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategoryId,
+                _id: data.resourceCategory,
             });
             if (!resourceCategory) {
-                delete data.resourceCategoryId;
+                delete data.resourceCategory;
             }
 
             const applicationSecurity = await ApplicationSecurityModel.create(
@@ -70,7 +70,7 @@ module.exports = {
                 query
             )
                 .populate('componentId')
-                .populate('resourceCategoryId', 'name')
+                .populate('resourceCategory', 'name')
                 .populate('gitCredential');
 
             return applicationSecurity;
@@ -100,7 +100,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId')
-                .populate('resourceCategoryId', 'name')
+                .populate('resourceCategory', 'name')
                 .populate('gitCredential');
 
             return applicationSecurities;

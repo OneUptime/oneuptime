@@ -11,7 +11,7 @@ const applicationSecuritySchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'Component',
         },
-        resourceCategoryId: {
+        resourceCategory: {
             type: Schema.Types.ObjectId,
             ref: 'ResourceCategory',
         },

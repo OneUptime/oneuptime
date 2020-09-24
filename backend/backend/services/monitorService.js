@@ -57,7 +57,7 @@ module.exports = {
                 projectId: { $in: subProjectIds },
             });
             const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategoryId,
+                _id: data.resourceCategory,
             });
             let plan = Plans.getPlanById(project.stripePlanId);
             // null plan => enterprise plan
@@ -100,7 +100,7 @@ module.exports = {
                         monitor.data.script = data.data.script;
                     }
                     if (resourceCategory) {
-                        monitor.resourceCategoryId = data.resourceCategoryId;
+                        monitor.resourceCategory = data.resourceCategory;
                     }
                     monitor.visibleOnStatusPage = data.visibleOnStatusPage;
                     monitor.componentId = data.componentId;
@@ -236,7 +236,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('resourceCategoryId', 'name');
+                .populate('resourceCategory', 'name');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -254,7 +254,7 @@ module.exports = {
             const monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('resourceCategoryId', 'name');
+                .populate('resourceCategory', 'name');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);

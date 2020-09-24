@@ -52,8 +52,8 @@ router.post(
                 });
             }
             if (
-                data.resourceCategoryId &&
-                typeof data.resourceCategoryId !== 'string'
+                data.resourceCategory &&
+                typeof data.resourceCategory !== 'string'
             ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -88,7 +88,7 @@ router.put(
                 name,
                 gitRepositoryUrl,
                 gitCredential,
-                resourceCategoryId,
+                resourceCategory,
             } = req.body;
             const data = {};
 
@@ -104,16 +104,16 @@ router.put(
                 data.gitCredential = gitCredential;
             }
             let unsetData;
-            if (!resourceCategoryId || resourceCategoryId === '') {
-                unsetData = { resourceCategoryId: '' };
+            if (!resourceCategory || resourceCategory === '') {
+                unsetData = { resourceCategory: '' };
             } else {
                 const resourceCategory = await ResourceCategoryService.findBy({
-                    _id: resourceCategoryId,
+                    _id: resourceCategory,
                 });
                 if (resourceCategory) {
-                    data.resourceCategoryId = resourceCategoryId;
+                    data.resourceCategory = resourceCategory;
                 } else {
-                    unsetData = { resourceCategoryId: '' };
+                    unsetData = { resourceCategory: '' };
                 }
             }
 

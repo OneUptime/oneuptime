@@ -18,7 +18,7 @@ const monitorSchema = new Schema({
         type: String,
         enum: ['url', 'device', 'manual', 'api', 'server-monitor', 'script'],
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
-    resourceCategoryId: {
+    resourceCategory: {
         type: String,
         ref: 'ResourceCategory',
     },

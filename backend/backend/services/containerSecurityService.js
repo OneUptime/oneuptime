@@ -45,10 +45,10 @@ module.exports = {
                 throw error;
             }
             const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategoryId,
+                _id: data.resourceCategory,
             });
             if (!resourceCategory) {
-                delete data.resourceCategoryId;
+                delete data.resourceCategory;
             }
 
             const containerSecurity = await ContainerSecurityModel.create(data);
@@ -68,7 +68,7 @@ module.exports = {
                 query
             )
                 .populate('componentId')
-                .populate('resourceCategoryId', 'name')
+                .populate('resourceCategory', 'name')
                 .populate('dockerCredential');
 
             return containerSecurity;
@@ -96,7 +96,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId')
-                .populate('resourceCategoryId', 'name')
+                .populate('resourceCategory', 'name')
                 .populate('dockerCredential');
 
             return containerSecurities;
