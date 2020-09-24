@@ -3,28 +3,25 @@
 const cacheName = 'Fyipe-home';
 const filesToCache = [];
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   self.skipWaiting();
+});
+
+self.addEventListener('activate', function (event) {
+  if (!event) { return }
+
   event.waitUntil(
-    caches.open(cacheName)
-    .then(function(cache) {
-      return cache.addAll(filesToCache);
+    caches.keys().then(function (cacheNames) {
+      return Promise.all(
+        cacheNames.filter(function (cacheName) {
+          // return true if you want to delete this cache. 
+          return true; 
+        }).map(function (cacheName) {
+          return caches.delete(cacheName);
+        })
+      );
     })
   );
-});
 
-self.addEventListener('activate', function(event) {
-  if (!event) { return} 
   return self.clients.claim();
-});
-
-self.addEventListener('fetch', event => {
-	//To tell browser to evaluate the result of event
-	event.respondWith(
-		caches.match(event.request) //To match current request with cached request it
-		.then(function(response) {
-			//If response found return it, else fetch again.
-			return response || fetch(event.request);
-		})
-  );
 });
