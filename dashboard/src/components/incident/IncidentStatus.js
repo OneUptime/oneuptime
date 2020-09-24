@@ -341,6 +341,23 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                 </div>
                                             )}
+                                            {this.props.incident.reason && (
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Reason :
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            marginTop: '6px',
+                                                        }}
+                                                    >
+                                                        <ReactMarkdown
+                                                            source={`This incident for **${this.props.incident.monitorId.name}** is created because **${this.props.incident.reason}**.`}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
                                             {this.props.incident
                                                 .incidentPriority && (
                                                 <div className="bs-Fieldset-row">

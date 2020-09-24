@@ -104,7 +104,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 ) {
     try {
         const { monitor, res, resp, rawResp, type, retryCount } = req.body;
-        let status, log;
+        let status, log, reason;
 
         if (type === 'api' || type === 'url') {
             const { stat: validUp, reasons: upReasons } = await (monitor &&
@@ -141,17 +141,17 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             if (validDown) {
                 status = 'offline';
+                reason = [...upReasons];
             } else if (validDegraded) {
                 status = 'degraded';
+                reason = [...upReasons, ...downReasons];
             } else if (validUp) {
                 status = 'online';
+                reason = [...degradedReasons, ...downReasons];
             } else {
                 status = 'offline';
+                reason = [...upReasons, ...degradedReasons, ...downReasons];
             }
-            // eslint-disable-next-line no-console
-            console.log([...upReasons, ...degradedReasons, ...downReasons]);
-            // eslint-disable-next-line no-console
-            console.log(upReasons, degradedReasons, downReasons);
         }
         if (type === 'script') {
             const { stat: validUp, reasons: upReasons } = await (monitor &&
@@ -181,16 +181,18 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             if (validDown) {
                 status = 'failed';
+                reason = [...upReasons];
             } else if (validDegraded) {
                 status = 'degraded';
+                reason = [...upReasons, ...downReasons];
             } else if (validUp) {
                 status = 'success';
+                reason = [...degradedReasons, ...downReasons];
             } else {
                 status = 'failed';
+                reason = [...upReasons, ...degradedReasons, ...downReasons];
             }
             resp.status = null;
-            // eslint-disable-next-line no-console
-            console.log([...upReasons, ...degradedReasons, ...downReasons]);
         }
         if (type === 'device') {
             if (res) {
@@ -222,6 +224,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
         data.retryCount = retryCount || 0;
+        data.reason = reason;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {
