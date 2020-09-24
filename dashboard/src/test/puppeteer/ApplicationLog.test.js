@@ -495,4 +495,43 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
+    test(
+        'Should update category for created log container',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    `${applicationLogName}-new`,
+                    page
+                );
+                await page.waitForSelector(`#edit_${applicationLogName}-new`);
+                await page.click(`#edit_${applicationLogName}-new`);
+                // Fill and submit edit Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                // change category here
+                await init.selectByText(
+                    '#resourceCategoryId',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+
+                await page.click('#logs');
+
+                // confirm the new category shows in the details page.
+                let spanElement = await page.$(
+                    `#${applicationLogName}-new-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+            });
+        },
+        operationTimeOut
+    );
 });
+// });
