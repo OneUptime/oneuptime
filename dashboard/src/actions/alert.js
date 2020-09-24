@@ -123,7 +123,6 @@ export function fetchProjectAlert(projectId, skip, limit) {
 }
 
 // Incidents Alert
-
 export function incidentResetAlert() {
     return {
         type: types.INCIDENTS_ALERT_FETCH_RESET,

@@ -13,7 +13,10 @@ const TeamMemberProjectBox = props => (
             <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                 <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                     <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                        <span style={{ textTransform: 'capitalize' }}>
+                        <span
+                            id={`project_${props.subProjectName}`}
+                            style={{ textTransform: 'capitalize' }}
+                        >
                             {props.currentProjectId !== props.teamMembers._id
                                 ? props.subProjectName
                                 : props.subProjects.length > 0
@@ -169,7 +172,7 @@ const TeamMemberProjectBox = props => (
                 }
             >
                 <div className="bs-Tail-copy">
-                    <span>
+                    <span id={`count_${props.subProjectName}`}>
                         {props.teamMembers.count} Team Member
                         {props.teamMembers.count > 1 ? 's' : ''}
                     </span>

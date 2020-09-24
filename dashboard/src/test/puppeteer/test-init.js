@@ -251,7 +251,7 @@ module.exports = {
             await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
         }
-        await page.waitFor(5000);
+        await page.waitFor('#btnAddSubProjects', { hidden: true });
     },
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
@@ -669,8 +669,8 @@ module.exports = {
             visible: true,
         });
         await page.click('#projectSettings');
-        await page.waitForSelector('#sms');
-        await page.click('#sms');
+        await page.waitForSelector('#smsCalls');
+        await page.click('#smsCalls');
         await page.waitForSelector('label[for=enabled]', {
             visible: true,
         });

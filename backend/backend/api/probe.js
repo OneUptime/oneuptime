@@ -146,7 +146,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             } else if (validUp) {
                 status = 'online';
             } else {
-                status = 'unknown';
+                status = 'offline';
             }
             // eslint-disable-next-line no-console
             console.log([...upReasons, ...degradedReasons, ...downReasons]);
@@ -186,7 +186,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             } else if (validUp) {
                 status = 'success';
             } else {
-                status = 'unknown';
+                status = 'failed';
             }
             resp.status = null;
             // eslint-disable-next-line no-console

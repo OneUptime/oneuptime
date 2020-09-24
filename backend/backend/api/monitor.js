@@ -508,7 +508,7 @@ router.post(
             } else if (validUp) {
                 data.status = 'online';
             } else {
-                data.status = 'unknown';
+                data.status = 'offline';
             }
             // eslint-disable-next-line no-console
             console.log([...upReasons, ...degradedReasons, ...downReasons]);

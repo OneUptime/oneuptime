@@ -43,7 +43,7 @@ class SmsTemplates extends Component {
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="SMS" />
+                    <BreadCrumbItem route={pathname} name="SMS &#38; Calls" />
                     <SmsTemplatesBox />
                     <SmsSmtpBox />
                 </Fade>
