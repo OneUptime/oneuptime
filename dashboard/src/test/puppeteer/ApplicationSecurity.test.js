@@ -12,7 +12,7 @@ const component = 'TestComponent';
 const applicationSecurityName = 'Test';
 
 describe('Application Security Page', () => {
-    const operationTimeOut = 500000;
+    const operationTimeOut = 900000;
 
     let cluster;
     beforeAll(async done => {
