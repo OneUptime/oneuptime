@@ -511,7 +511,7 @@ module.exports = {
                 continue;
             }
 
-            if (escalation.sms && shouldSendCallReminder) {
+            if (escalation.sms && shouldSendSMSReminder) {
                 _this.sendSMSAlert({
                     incident,
                     user,
@@ -535,7 +535,7 @@ module.exports = {
                 });
             }
 
-            if (escalation.call && shouldSendSMSReminder) {
+            if (escalation.call && shouldSendCallReminder) {
                 _this.sendCallAlert({
                     incident,
                     user,
@@ -578,7 +578,7 @@ module.exports = {
         }
 
         try {
-            MailService.sendIncidentCreatedMail({
+            await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
                 email: user.email,
@@ -642,7 +642,7 @@ module.exports = {
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 monitorId,
-                alertVia: AlertType.Email,
+                alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus: 'Alerts Disabled',
@@ -656,7 +656,7 @@ module.exports = {
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 monitorId,
-                alertVia: AlertType.Email,
+                alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus: 'No Phone Number',
@@ -763,7 +763,7 @@ module.exports = {
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 monitorId,
-                alertVia: AlertType.Email,
+                alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus: 'Alerts Disabled',
@@ -777,7 +777,7 @@ module.exports = {
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
                 monitorId,
-                alertVia: AlertType.Email,
+                alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus: 'No Phone Number',

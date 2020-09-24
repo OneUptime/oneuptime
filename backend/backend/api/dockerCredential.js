@@ -20,14 +20,14 @@ router.post(
             } = req.body;
             const { projectId } = req.params;
 
-            if (!dockerRegistryUrl.trim()) {
+            if (!dockerRegistryUrl || !dockerRegistryUrl.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Docker Registry URL is required',
                 });
             }
 
-            if (!dockerUsername.trim()) {
+            if (!dockerUsername || !dockerUsername.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Docker Username is required',

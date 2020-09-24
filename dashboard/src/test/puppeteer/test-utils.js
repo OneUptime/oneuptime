@@ -147,6 +147,11 @@ const incidentTabIndexes = {
     INCIDENT_NOTES: 8,
     ADVANCE: 10,
 };
+const scheduleEventTabIndexes = {
+    BASIC: 0,
+    NOTES: 2,
+    ADVANCE: 4,
+};
 
 module.exports = {
     ACCOUNTS_URL,
@@ -178,4 +183,5 @@ module.exports = {
     capitalize,
     monitorTabIndexes,
     incidentTabIndexes,
+    scheduleEventTabIndexes,
 };

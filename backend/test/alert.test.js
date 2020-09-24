@@ -19,12 +19,10 @@ let StatusPageService = require('../backend/services/statusPageService');
 let MonitorService = require('../backend/services/monitorService');
 let AlertService = require('../backend/services/alertService');
 let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
 const ComponentModel = require('../backend/models/component');
 
 let token,
     userId,
-    airtableId,
     projectId,
     subProjectId,
     incidentId,
@@ -47,7 +45,6 @@ describe('Alert API', function() {
                     let project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
-                    airtableId = res.body.airtableId;
 
                     ComponentModel.create({ name: 'Test Component' }).then(
                         component => {
@@ -99,7 +96,6 @@ describe('Alert API', function() {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
             await AlertService.hardDeleteBy({ _id: alertId });
-            await AirtableService.deleteUser(airtableId);
             await GlobalConfig.removeTestConfig();
         });
 

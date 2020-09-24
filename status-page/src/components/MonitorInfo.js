@@ -30,7 +30,24 @@ const calculateTime = (statuses, start, range) => {
             status: null,
             emptytime: dayStart.toISOString(),
         };
-
+        /**
+         * If two incidents of the same time overlap, we merge them
+         * If two incidents of different type overlap, The priority will be:
+         * offline, degraded and online.
+         *      if the less important incident starts after and finish before the other incident, we remove it.
+         *      if the less important incident overlaps with the other incident, we update its start/end time.
+         *      if the less important incident start before and finish after the other incident, we divide it into two parts
+         *          the first part ends before the important incident,
+         *          the second part start after the important incident.
+         * The time report will be generate after the following steps:
+         * 1- selecting the incident that happendend during the selected day.
+         *   In other words: The incidents that overlap with `dayStartIn` and `dayEnd`.
+         * 2- Sorting them, to reduce the complexity of the next step (https://www.geeksforgeeks.org/merging-intervals/).
+         * 3- Checking for overlaps between incidents. Merge incidents of the same type, reduce the time of the less important incidents.
+         * 4- Fill the timeObj
+         */
+        //First step
+        let incidentsHappenedDuringTheDay = [];
         reversedStatuses.forEach(monitor => {
             const monitorStatus = Object.assign({}, monitor);
             if (monitorStatus.endTime === null) {
@@ -60,23 +77,129 @@ const calculateTime = (statuses, start, range) => {
                     ? dayEnd
                     : moment(monitorStatus.endTime);
 
-                if (monitorStatus.status === 'offline') {
-                    timeObj.downTime =
-                        timeObj.downTime + end.diff(start, 'seconds');
-                }
-                if (monitorStatus.status === 'degraded') {
-                    timeObj.degradedTime =
-                        timeObj.degradedTime + end.diff(start, 'seconds');
-                }
-                if (monitorStatus.status === 'online') {
-                    timeObj.upTime =
-                        timeObj.upTime + end.diff(start, 'seconds');
-                }
+                incidentsHappenedDuringTheDay.push({
+                    start,
+                    end,
+                    status: monitorStatus.status,
+                });
 
                 timeObj.date = end.toISOString();
                 timeObj.emptytime = null;
             }
         });
+        //Second step
+        incidentsHappenedDuringTheDay.sort((a, b) =>
+            moment(a.start).isSame(b.start)
+                ? 0
+                : moment(a.start).isAfter(b.start)
+                ? 1
+                : -1
+        );
+        //Third step
+        for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
+            const firstIncidentIndex = i;
+            const nextIncidentIndex = i + 1;
+            const firstIncident =
+                incidentsHappenedDuringTheDay[firstIncidentIndex];
+            const nextIncident =
+                incidentsHappenedDuringTheDay[nextIncidentIndex];
+            if (moment(firstIncident.end).isSameOrBefore(nextIncident.start))
+                continue;
+
+            if (firstIncident.status === nextIncident.status) {
+                const end = moment(firstIncident.end).isAfter(nextIncident.end)
+                    ? firstIncident.end
+                    : nextIncident.end;
+                firstIncident.end = end;
+                incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
+            } else {
+                //if the firstIncident has a higher priority
+                if (
+                    firstIncident.status === 'offline' ||
+                    (firstIncident.status === 'degraded' &&
+                        nextIncident.status === 'online')
+                ) {
+                    if (moment(firstIncident.end).isAfter(nextIncident.end)) {
+                        incidentsHappenedDuringTheDay.splice(
+                            nextIncidentIndex,
+                            1
+                        );
+                    } else {
+                        nextIncident.start = firstIncident.end;
+                        //we will need to shift the next incident to keep the array sorted.
+                        incidentsHappenedDuringTheDay.splice(
+                            nextIncidentIndex,
+                            1
+                        );
+                        let j = nextIncidentIndex;
+                        while (j < incidentsHappenedDuringTheDay.length) {
+                            if (
+                                moment(nextIncident.start).isBefore(
+                                    incidentsHappenedDuringTheDay[j].start
+                                )
+                            )
+                                break;
+                            j += 1;
+                        }
+                        incidentsHappenedDuringTheDay.splice(
+                            j,
+                            0,
+                            nextIncident
+                        );
+                    }
+                } else {
+                    if (moment(firstIncident.end).isBefore(nextIncident.end)) {
+                        firstIncident.end = nextIncident.start;
+                    } else {
+                        /**
+                         * The firstIncident is less important than the next incident,
+                         * it also starts before and ends after the nextIncident.
+                         * In the case The first incident needs to be devided into to two parts.
+                         * The first part comes before the nextIncident,
+                         * the second one comes after the nextIncident.
+                         */
+                        const newIncident = {
+                            start: nextIncident.end,
+                            end: firstIncident.end,
+                            status: firstIncident.status,
+                        };
+                        firstIncident.end = nextIncident.start;
+                        let j = nextIncidentIndex + 1;
+                        while (j < incidentsHappenedDuringTheDay.length) {
+                            if (
+                                moment(newIncident.start).isBefore(
+                                    incidentsHappenedDuringTheDay[j].start
+                                )
+                            )
+                                break;
+                            j += 1;
+                        }
+                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
+                    }
+                }
+            }
+            i--;
+        }
+        //Remove events having start and end time equal.
+        incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
+            event => !moment(event.start).isSame(event.end)
+        );
+        //Last step
+        for (const incident of incidentsHappenedDuringTheDay) {
+            const { start, end, status } = incident;
+            if (status === 'offline') {
+                timeObj.downTime =
+                    timeObj.downTime + end.diff(start, 'seconds');
+                timeObj.date = end.toISOString();
+            }
+            if (status === 'degraded') {
+                timeObj.degradedTime =
+                    timeObj.degradedTime + end.diff(start, 'seconds');
+            }
+            if (status === 'online') {
+                timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
+            }
+        }
 
         totalUptime = totalUptime + timeObj.upTime;
         totalTime =

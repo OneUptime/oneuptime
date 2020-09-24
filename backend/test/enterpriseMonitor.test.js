@@ -12,11 +12,10 @@ const { createEnterpriseUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const MonitorService = require('../backend/services/monitorService');
-const AirtableService = require('../backend/services/airtableService');
 
 const ComponentModel = require('../backend/models/component');
 
-let token, projectId, newProjectId, airtableId, monitorId;
+let token, projectId, newProjectId, monitorId;
 
 describe('Enterprise Monitor API', function() {
     this.timeout(30000);
@@ -27,7 +26,6 @@ describe('Enterprise Monitor API', function() {
             createEnterpriseUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                airtableId = res.body.airtableId;
 
                 request
                     .post('/user/login')
@@ -50,7 +48,6 @@ describe('Enterprise Monitor API', function() {
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({ email: userData.user.email });
-        await AirtableService.deleteUser(airtableId);
     });
 
     it('should create a new monitor for project with no billing plan', function(done) {

@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { RenderField } from '../basic/RenderField';
+import { FormLoader } from '../basic/Loader';
 
 const SmtpTestModal = ({
     confirmThisDialog,
@@ -66,8 +67,11 @@ const SmtpTestModal = ({
                                 </div>
                             </div>
                         </div>
-                        <div className="bs-Modal-footer">
-                            <div className="Flex-flex Flex-direction--column Flex-justifyContent--center Table-cell--width--maximized">
+                        <div
+                            className="bs-Modal-footer"
+                            style={{ wordBreak: 'break-word' }}
+                        >
+                            <div className="Flex-flex Flex-direction--row Flex-justifyContent--flexEnd Table-cell--width--maximized">
                                 <ShouldRender if={testError}>
                                     <div className="bs-Tail-copy">
                                         <div
@@ -80,45 +84,53 @@ const SmtpTestModal = ({
                                                     style={{ marginTop: '2px' }}
                                                 ></div>
                                             </div>
-                                            <div className="Box-root">
-                                                <span style={{ color: 'red' }}>
+                                            <div className="Box-root Margin-right--8">
+                                                <span
+                                                    style={{
+                                                        color: 'red',
+                                                    }}
+                                                >
                                                     {testError}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                 </ShouldRender>
-                                <div className="Margin-top--8 bs-u-self--end">
-                                    <button
-                                        id="cancelSmtpTest"
-                                        className={`bs-Button ${testing &&
-                                            'bs-is-disabled'}`}
-                                        type="button"
-                                        onClick={closeThisDialog}
-                                        disabled={testing}
-                                    >
-                                        <span>Cancel</span>
-                                    </button>
-                                    <button
-                                        id="confirmSmtpTest"
-                                        className={`bs-Button bs-Button--blue ${testing &&
-                                            'bs-is-disabled'}`}
-                                        onClick={() => {
-                                            // prevent form submission if form field is empty or invalid
-                                            if (!smtp.values) return;
-                                            if (
-                                                smtp.syncErrors &&
-                                                smtp.syncErrors['test-email']
-                                            )
-                                                return;
+                                <button
+                                    id="cancelSmtpTest"
+                                    className={`bs-Button ${testing &&
+                                        'bs-is-disabled'}`}
+                                    type="button"
+                                    onClick={closeThisDialog}
+                                    disabled={testing}
+                                    style={{ height: '33px' }}
+                                >
+                                    <span>Cancel</span>
+                                </button>
+                                <button
+                                    id="confirmSmtpTest"
+                                    className={`bs-Button bs-Button--blue ${testing &&
+                                        'bs-is-disabled'}`}
+                                    onClick={() => {
+                                        // prevent form submission if form field is empty or invalid
+                                        if (!smtp.values) return;
+                                        if (
+                                            smtp.syncErrors &&
+                                            smtp.syncErrors['test-email']
+                                        )
+                                            return;
 
-                                            confirmThisDialog(smtp.values);
-                                        }}
-                                        disabled={testing}
-                                    >
+                                        confirmThisDialog(smtp.values);
+                                    }}
+                                    disabled={testing}
+                                    style={{ height: '33px' }}
+                                >
+                                    {testing ? (
+                                        <FormLoader />
+                                    ) : (
                                         <span>Test</span>
-                                    </button>
-                                </div>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>

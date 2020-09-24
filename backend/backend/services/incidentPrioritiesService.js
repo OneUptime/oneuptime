@@ -43,7 +43,7 @@ module.exports = {
 
             return count;
         } catch (error) {
-            ErrorService.log('incidentMessageService.countBy', error);
+            ErrorService.log('IncidentPrioritiesService.countBy', error);
             throw error;
         }
     },

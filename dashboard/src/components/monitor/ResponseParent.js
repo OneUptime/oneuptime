@@ -27,7 +27,7 @@ export class ResponseParent extends Component {
             });
         }
         return (
-            <ul>
+            <ul id={fields.name}>
                 {bodyfield && bodyfield.length
                     ? fields.map((newval, j) => {
                           return (

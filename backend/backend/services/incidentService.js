@@ -181,6 +181,15 @@ module.exports = {
                     const { _id } = monitorStatus;
                     await MonitorStatusService.deleteBy({ _id }, userId);
                 }
+                const incidentTimeline = await IncidentTimelineService.findBy({
+                    incidentId: incident._id,
+                });
+                for (const event of incidentTimeline) {
+                    await IncidentTimelineService.deleteBy(
+                        { _id: event._id },
+                        userId
+                    );
+                }
             }
             return incident;
         } catch (error) {

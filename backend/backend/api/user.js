@@ -614,6 +614,54 @@ router.post('/verify/backupCode', async function(req, res) {
 });
 
 // Route
+// Description: generate a new set of backup code.
+// Params:
+// None
+// Return: return the new list of backup codes.
+router.post('/generate/backupCode', getUser, async function(req, res) {
+    const userId = req.user.id || null;
+    const user = await UserService.findOneBy({ _id: userId });
+    if (!user) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Provide a valid user Id',
+        });
+    }
+    const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes } = user;
+    if (!twoFactorAuthEnabled) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: '2FA is not enabled',
+        });
+    }
+    if (!twoFactorSecretCode || !twoFactorSecretCode.trim()) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'SecretCode is not defined',
+        });
+    }
+    const numberOfCodes = 8;
+    let firstCounter = 0;
+    if (Array.isArray(backupCodes) && backupCodes.length) {
+        firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
+    }
+    const newBackupCodes = await UserService.generateUserBackupCodes(
+        twoFactorSecretCode,
+        numberOfCodes,
+        firstCounter
+    );
+    try {
+        await UserService.updateOneBy(
+            { _id: userId },
+            { backupCodes: newBackupCodes }
+        );
+        return sendItemResponse(req, res, newBackupCodes);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// Route
 // Description: generate user secret token for creating QRcode
 // Params:
 // Param 1: req.params-> {userId}
