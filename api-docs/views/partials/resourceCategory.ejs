@@ -1,11 +1,11 @@
-<article id="monitor-category" class="cf-grid-container dev-doc-item-container">
+<article id="resource-category" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
     <b>
-      <h1>Monitor Category</h1>
+      <h1>Resource Category</h1>
     </b>
     <p>
-      <p>Monitor Category API will allow you to group monitors by categories on Status Page. You can categorize monitors
-        by location, e.g. US, EU. You can also categorize monitors by project.</p>
+      <p>Resource Category API will allow you to group resources by categories on Status Page. You can categorize resources
+        by location, e.g. US, EU. You can also categorize resources by project.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -15,7 +15,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/monitorCategory/</span>
+                <span>https://fyipe.com/api/resourceCategory/</span>
               </div>
             </div>
           </div>
@@ -30,11 +30,11 @@
   </section>
 </article>
 
-<article id="create-monitor-category" class="cf-grid-container dev-doc-item-container">
+<article id="create-resource-category" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Create Monitor Category<span class="requestType">POST</span></h3>
+    <h3>Create Resource Category<span class="requestType">POST</span></h3>
     <p>
-      <p>Create Monitor Category by Project ID.</p>
+      <p>Create Resource Category by Project ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -45,7 +45,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/monitorCategory/:projectId</span>
+                <span>https://fyipe.com/api/resourceCategory/:projectId</span>
               </div>
             </div>
           </div>
@@ -105,14 +105,14 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/monitorCategory/5e089f94b400211639928c94</p>
+          <p class="url">https://fyipe.com/api/resourceCategory/5e089f94b400211639928c94</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p>
 {
-  "monitorCategoryName": "US EAST"
+  "resourceCategoryName": "US EAST"
 }
               </p>
             </code>
@@ -144,11 +144,11 @@
   </section>
 </article>
 
-<article id="get-all-monitor-categories" class="cf-grid-container dev-doc-item-container">
+<article id="get-all-resource-categories" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get All Monitor Categories<span class="requestType">GET</span></h3>
+    <h3>Get All Resource Categories<span class="requestType">GET</span></h3>
     <p>
-      <p>Get All Monitor Categories by Project ID. Return by skipping and limiting the number of results.</p>
+      <p>Get All Resource Categories by Project ID. Return by skipping and limiting the number of results.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -159,7 +159,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/monitorCategory/:projectId</span>
+                <span>https://fyipe.com/api/resourceCategory/:projectId</span>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/monitorCategory/5e089f94b400211639928c94?skip=0&limit=5</p>
+          <p class="url">https://fyipe.com/api/resourceCategory/5e089f94b400211639928c94?skip=0&limit=5</p>
         </div>
       </div>
 
@@ -270,11 +270,11 @@
   </section>
 </article>
 
-<article id="edit-monitor-category" class="cf-grid-container dev-doc-item-container">
+<article id="edit-resource-category" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Edit Monitor Category<span class="requestType">PUT</span></h3>
+    <h3>Edit Resource Category<span class="requestType">PUT</span></h3>
     <p>
-      <p>Edit Monitor Category by Project ID and Monitor Category ID.</p>
+      <p>Edit Resource Category by Project ID and Resource Category ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -285,7 +285,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/monitorCategory/:projectId/:monitorCategoryId</span>
+                <span>https://fyipe.com/api/resourceCategory/:projectId/:resourceCategoryId</span>
               </div>
             </div>
           </div>
@@ -316,13 +316,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>monitorCategoryId</span>
+                <span>resourceCategoryId</span>
                 <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The monitor category id of the monitor category.</p>
+                <p>The resource category id of the resource category.</p>
               </div>
             </div>
           </div>
@@ -360,7 +360,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/monitorCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
+          <p class="url">https://fyipe.com/api/resourceCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
 
           <p>Request Body</p>
           <pre>
@@ -406,11 +406,11 @@
   </section>
 </article>
 
-<article id="delete-monitor-category" class="cf-grid-container dev-doc-item-container">
+<article id="delete-resource-category" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Delete Monitor Category<span class="requestType">DELETE</span></h3>
+    <h3>Delete Resource Category<span class="requestType">DELETE</span></h3>
     <p>
-      <p>Delete Monitor Category by Project ID and Monitor Category ID.</p>
+      <p>Delete Resource Category by Project ID and Resource Category ID.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -421,7 +421,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/monitorCategory/:projectId/:monitorCategoryId</span>
+                <span>https://fyipe.com/api/resourceCategory/:projectId/:resourceCategoryId</span>
               </div>
             </div>
           </div>
@@ -452,13 +452,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>monitorCategoryId</span>
+                <span>resourceCategoryId</span>
                 <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The monitor category id of the monitor category.</p>
+                <p>The resource category id of the resource category.</p>
               </div>
             </div>
           </div>
@@ -474,7 +474,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/monitorCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
+          <p class="url">https://fyipe.com/api/resourceCategory/5e089f94b400211639928c94/5e1cedace6a0421634359441</p>
         </div>
       </div>
 
