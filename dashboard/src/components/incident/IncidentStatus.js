@@ -353,7 +353,7 @@ export class IncidentStatus extends Component {
                                                         }}
                                                     >
                                                         <ReactMarkdown
-                                                            source={`This incident for **${this.props.incident.monitorId.name}** is created because **${this.props.incident.reason}**.`}
+                                                            source={`This ${this.props.incident.incidentType} incident was created because the monitor's ${this.props.incident.reason}.`}
                                                         />
                                                     </div>
                                                 </div>

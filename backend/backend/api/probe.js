@@ -144,7 +144,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 reason = [...upReasons];
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = [...upReasons, ...downReasons];
+                reason = [...upReasons];
             } else if (validUp) {
                 status = 'online';
                 reason = [...degradedReasons, ...downReasons];
@@ -184,7 +184,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 reason = [...upReasons];
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = [...upReasons, ...downReasons];
+                reason = [...upReasons];
             } else if (validUp) {
                 status = 'success';
                 reason = [...degradedReasons, ...downReasons];

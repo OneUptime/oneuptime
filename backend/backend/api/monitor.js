@@ -503,15 +503,22 @@ router.post(
 
             if (validDown) {
                 data.status = 'offline';
+                data.reason = [...upReasons];
             } else if (validDegraded) {
                 data.status = 'degraded';
+                data.reason = [...upReasons];
             } else if (validUp) {
                 data.status = 'online';
+                data.reason = [...degradedReasons, ...downReasons];
             } else {
                 data.status = 'offline';
+                data.reason = [
+                    ...upReasons,
+                    ...degradedReasons,
+                    ...downReasons,
+                ];
             }
-            // eslint-disable-next-line no-console
-            console.log([...upReasons, ...degradedReasons, ...downReasons]);
+
             const log = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {

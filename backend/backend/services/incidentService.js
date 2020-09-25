@@ -68,9 +68,7 @@ module.exports = {
                 incident.incidentType = data.incidentType;
                 incident.manuallyCreated = data.manuallyCreated || false;
                 if (data.reason && data.reason.length > 0) {
-                    incident.reason = data.reason
-                        .join(', ')
-                        .replace(/, (?!.*, )/, ' and ');
+                    incident.reason = data.reason.join('\n');
                 }
                 incident.idNumber =
                     incidentsCountInProject +

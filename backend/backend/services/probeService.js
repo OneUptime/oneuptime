@@ -1022,9 +1022,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not greater than ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (
                 con[i] &&
@@ -1040,9 +1038,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not less than ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (
                 con[i] &&
@@ -1060,9 +1056,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not in between ${con[i].field1} ms and ${con[i].field2} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1074,9 +1068,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not equal to ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (
                 con[i] &&
@@ -1092,9 +1084,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is equal to ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (
                 con[i] &&
@@ -1110,9 +1100,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not greater than or equal to ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             } else if (
                 con[i] &&
@@ -1128,21 +1116,19 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response time ${payload} ms is not less than or equal to ${con[i].field1} ms`
-                    );
+                    reasons.push(`Response Time was ${payload} ms`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
             if (con[i] && con[i].filter && con[i].filter === 'isUp') {
                 if (!(con[i] && con[i].filter && payload)) {
                     validity = false;
-                    reasons.push(`it is offline`);
+                    reasons.push(`Offline`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (!(con[i] && con[i].filter && !payload)) {
                     validity = false;
-                    reasons.push(`it is online`);
+                    reasons.push(`Online`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -1154,7 +1140,7 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'isValid') {
                 if (!(ssl && !ssl.selfSigned)) {
                     validity = false;
-                    reasons.push(`the ssl certificate is not valid`);
+                    reasons.push(`SSL Certificate was not valid`);
                 }
             } else if (
                 con[i] &&
@@ -1163,7 +1149,7 @@ const checkAnd = async (
             ) {
                 if (ssl) {
                     validity = false;
-                    reasons.push(`the ssl certificate is present`);
+                    reasons.push(`SSL Certificate was present`);
                 }
             } else if (
                 con[i] &&
@@ -1172,7 +1158,7 @@ const checkAnd = async (
             ) {
                 if (!(ssl && ssl.selfSigned)) {
                     validity = false;
-                    reasons.push(`the ssl certificate is not self signed`);
+                    reasons.push(`SSL Certificate was not Self-Signed`);
                 }
             } else if (
                 con[i] &&
@@ -1182,7 +1168,7 @@ const checkAnd = async (
                 if (!(ssl && !ssl.selfSigned && expiresIn < 30)) {
                     validity = false;
                     reasons.push(
-                        `the ssl certificate expires in ${expiresIn} days`
+                        `SSL Certificate expires in ${expiresIn} days`
                     );
                 }
             } else if (
@@ -1193,7 +1179,7 @@ const checkAnd = async (
                 if (!(ssl && !ssl.selfSigned && expiresIn < 10)) {
                     validity = false;
                     reasons.push(
-                        `the ssl certificate expires in ${expiresIn} days`
+                        `SSL Certificate expires in ${expiresIn} days`
                     );
                 }
             }
@@ -1208,9 +1194,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not greater than ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (
                 con[i] &&
@@ -1226,9 +1210,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not less than ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (
                 con[i] &&
@@ -1246,9 +1228,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not in between ${con[i].field1} and ${con[i].field2}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1260,9 +1240,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not equal to ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (
                 con[i] &&
@@ -1278,9 +1256,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is equal to ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (
                 con[i] &&
@@ -1296,9 +1272,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not greater than or equal to ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             } else if (
                 con[i] &&
@@ -1314,9 +1288,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the status code ${statusCode} is not less than or equal to ${con[i].field1}`
-                    );
+                    reasons.push(`Status Code was ${statusCode}`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'cpuLoad') {
@@ -1330,9 +1302,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not greater than ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (
                 con[i] &&
@@ -1348,9 +1318,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not less than ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (
                 con[i] &&
@@ -1368,9 +1336,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not in between ${con[i].field1}% and ${con[i].field2} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1382,9 +1348,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not equal to ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (
                 con[i] &&
@@ -1400,9 +1364,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is equal to ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (
                 con[i] &&
@@ -1418,9 +1380,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not greater than or equal to ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             } else if (
                 con[i] &&
@@ -1436,9 +1396,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not less than or equal to ${con[i].field1} %`
-                    );
+                    reasons.push(`CPU Load was ${payload.cpuLoad} %`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -1453,7 +1411,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not greater than ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (
@@ -1471,7 +1429,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not less than ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (
@@ -1491,7 +1449,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not in between ${con[i].field1} gb and ${con[i].field2} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
@@ -1505,7 +1463,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not equal to ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (
@@ -1523,7 +1481,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is equal to ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (
@@ -1541,7 +1499,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not greater than or equal to ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             } else if (
@@ -1559,7 +1517,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not less than or equal to ${con[i].field1} gb`
+                        `Memory Used was ${formatBytes(payload.memoryUsed)}`
                     );
                 }
             }
@@ -1570,9 +1528,7 @@ const checkAnd = async (
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (!(con[i] && con[i].field1 && free > con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not greater than ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (
                 con[i] &&
@@ -1581,9 +1537,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].field1 && free < con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not less than ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (
                 con[i] &&
@@ -1600,16 +1554,12 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not in between ${con[i].field1} gb and ${con[i].field2} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (!(con[i] && con[i].field1 && free === con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not equal to ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (
                 con[i] &&
@@ -1618,9 +1568,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].field1 && free !== con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is equal to ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (
                 con[i] &&
@@ -1629,9 +1577,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].field1 && free >= con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not greater than or equal to ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             } else if (
                 con[i] &&
@@ -1640,9 +1586,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].field1 && free <= con[i].field1)) {
                     validity = false;
-                    reasons.push(
-                        `the free storage ${free} gb is not less than or equal to ${con[i].field1} gb`
-                    );
+                    reasons.push(`Free Storage was ${formatBytes(free)}`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -1656,9 +1600,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not greater than ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (
                 con[i] &&
@@ -1674,9 +1616,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not less than ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (
                 con[i] &&
@@ -1694,9 +1634,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not in between ${con[i].field1} C and ${con[i].field2} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1708,9 +1646,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not equal to ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (
                 con[i] &&
@@ -1726,9 +1662,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is equal to ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (
                 con[i] &&
@@ -1744,9 +1678,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not greater than or equal to ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             } else if (
                 con[i] &&
@@ -1762,9 +1694,7 @@ const checkAnd = async (
                     )
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not less than or equal to ${con[i].field1} C`
-                    );
+                    reasons.push(`Temperature was ${payload.mainTemp} °C`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
@@ -1772,7 +1702,7 @@ const checkAnd = async (
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
                     reasons.push(
-                        `the response body did not contain ${con[i].field1}`
+                        `Response Body did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1784,9 +1714,7 @@ const checkAnd = async (
                     !(con[i] && con[i].field1 && body && !body[con[i].field1])
                 ) {
                     validity = false;
-                    reasons.push(
-                        `the response body contained ${con[i].field1}`
-                    );
+                    reasons.push(`Response Body contains ${con[i].field1}`);
                 }
             } else if (
                 con[i] &&
@@ -1803,13 +1731,13 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `the response body did not have javascript expression ${con[i].field1}`
+                        `Response Body did not have Javascript expression \`${con[i].field1}\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
-                    reasons.push(`the response body is not empty`);
+                    reasons.push(`Response Body was not empty`);
                 }
             } else if (
                 con[i] &&
@@ -1818,7 +1746,7 @@ const checkAnd = async (
             ) {
                 if (!(con[i] && con[i].filter && body && !_.isEmpty(body))) {
                     validity = false;
-                    reasons.push(`the response body is empty`);
+                    reasons.push(`Response Body was empty`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'evals') {
@@ -1839,11 +1767,15 @@ const checkAnd = async (
                         )
                     ) {
                         validity = false;
-                        reasons.push(`it did not evaluate ${con[i].field1}`);
+                        reasons.push(
+                            `Response Body did not evaluate \`${con[i].field1}\``
+                        );
                     }
                 } catch (e) {
                     validity = false;
-                    reasons.push(`it did not evaluate ${con[i].field1}`);
+                    reasons.push(
+                        `Response Body did not evaluate \`${con[i].field1}\``
+                    );
                 }
             }
         }
@@ -1908,9 +1840,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not greater than ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1925,9 +1857,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not less than ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1944,9 +1876,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not in between ${con[i].field1} ms and ${con[i].field2} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -1957,9 +1889,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not equal to ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1974,9 +1906,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is equal to ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -1991,9 +1923,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not greater than or equal to ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2008,9 +1940,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response time ${payload} ms is not less than or equal to ${con[i].field1} ms`
-                    );
+                    if (payload) {
+                        reasons.push(`Response Time was ${payload} ms`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'doesRespond') {
@@ -2018,13 +1950,13 @@ const checkOr = async (
                 if (con[i] && con[i].filter && payload) {
                     validity = true;
                 } else {
-                    reasons.push(`it is offline`);
+                    reasons.push(`Offline`);
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'isDown') {
                 if (con[i] && con[i].filter && !payload) {
                     validity = true;
                 } else {
-                    reasons.push(`it is online`);
+                    reasons.push(`Online`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'ssl') {
@@ -2037,7 +1969,7 @@ const checkOr = async (
                 if (ssl && !ssl.selfSigned) {
                     validity = true;
                 } else {
-                    reasons.push(`the ssl certificate is not valid`);
+                    reasons.push(`SSL Certificate was not valid`);
                 }
             } else if (
                 con[i] &&
@@ -2047,7 +1979,7 @@ const checkOr = async (
                 if (!ssl) {
                     validity = true;
                 } else {
-                    reasons.push(`the ssl certificate is present`);
+                    reasons.push(`SSL Certificate was present`);
                 }
             } else if (
                 con[i] &&
@@ -2057,7 +1989,7 @@ const checkOr = async (
                 if (ssl && ssl.selfSigned) {
                     validity = true;
                 } else {
-                    reasons.push(`the ssl certificate is not self signed`);
+                    reasons.push(`SSL Certificate was not Self-Signed`);
                 }
             } else if (
                 con[i] &&
@@ -2067,9 +1999,11 @@ const checkOr = async (
                 if (ssl && !ssl.selfSigned && expiresIn < 30) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the ssl certificate expires in ${expiresIn} days`
-                    );
+                    if (expiresIn) {
+                        reasons.push(
+                            `SSL Certificate expires in ${expiresIn} days`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2079,9 +2013,11 @@ const checkOr = async (
                 if (ssl && !ssl.selfSigned && expiresIn < 10) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the ssl certificate expires in ${expiresIn} days`
-                    );
+                    if (expiresIn) {
+                        reasons.push(
+                            `SSL Certificate expires in ${expiresIn} days`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'statusCode') {
@@ -2094,9 +2030,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not greater than ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2111,9 +2047,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not less than ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2130,9 +2066,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not in between ${con[i].field1} and ${con[i].field2}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2143,9 +2079,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not equal to ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2160,9 +2096,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is equal to ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2177,9 +2113,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not greater than or equal to ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2194,9 +2130,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the status code ${statusCode} is not less than or equal to ${con[i].field1}`
-                    );
+                    if (statusCode) {
+                        reasons.push(`Status Code was ${statusCode}`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'cpuLoad') {
@@ -2209,9 +2145,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not greater than ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2226,9 +2162,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not less than ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2245,9 +2181,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not in between ${con[i].field1}% and ${con[i].field2} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2258,9 +2194,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not equal to ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2275,9 +2211,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is equal to ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2292,9 +2228,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not greater than or equal to ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2309,9 +2245,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the cpu load ${payload.cpuLoad} % is not less than or equal to ${con[i].field1} %`
-                    );
+                    if (payload.cpuLoad) {
+                        reasons.push(`CPU Load was ${payload.cpuLoad} %`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
@@ -2324,9 +2260,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not greater than ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2341,9 +2279,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not less than ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2360,9 +2300,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not in between ${con[i].field1} gb and ${con[i].field2} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2373,9 +2315,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not equal to ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2390,9 +2334,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is equal to ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2407,9 +2353,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not greater than or equal to ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2424,9 +2372,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the memory used ${payload.memoryUsed} gb is not less than or equal to ${con[i].field1} gb`
-                    );
+                    if (payload.memoryUsed) {
+                        reasons.push(
+                            `Memory Used was ${formatBytes(payload.memoryUsed)}`
+                        );
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
@@ -2437,9 +2387,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not greater than ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2449,9 +2399,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free < con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not less than ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2467,17 +2417,17 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not in between ${con[i].field1} gb and ${con[i].field2} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (con[i] && con[i].field1 && free === con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not equal to ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2487,9 +2437,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free !== con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is equal to ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2499,9 +2449,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free >= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not greater than or equal to ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2511,9 +2461,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free <= con[i].field1) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the free storage ${free} gb is not less than or equal to ${con[i].field1} gb`
-                    );
+                    if (free) {
+                        reasons.push(`Free Storage was ${formatBytes(free)}`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -2526,9 +2476,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not greater than ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2543,9 +2493,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not less than ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2562,9 +2512,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not in between ${con[i].field1} C and ${con[i].field2} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2575,9 +2525,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not equal to ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2592,9 +2542,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is equal to ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2609,9 +2559,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not greater than or equal to ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2626,9 +2576,9 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the temperature ${payload.mainTemp} C is not less than or equal to ${con[i].field1} C`
-                    );
+                    if (payload.mainTemp) {
+                        reasons.push(`Temperature was ${payload.mainTemp} °C`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {
@@ -2636,9 +2586,11 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && body && body[con[i].field1]) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response body did not contain ${con[i].field1}`
-                    );
+                    if (con[i].field1) {
+                        reasons.push(
+                            `Response Body did not contain ${con[i].field1}`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2648,9 +2600,9 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && body && !body[con[i].field1]) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response body contained ${con[i].field1}`
-                    );
+                    if (con[i].field1) {
+                        reasons.push(`Response Body contains ${con[i].field1}`);
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2665,15 +2617,17 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(
-                        `the response body did not have javascript expression ${con[i].field1}`
-                    );
+                    if (con[i].field1) {
+                        reasons.push(
+                            `Response Body did not have Javascript expression \`${con[i].field1}\``
+                        );
+                    }
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (con[i] && con[i].filter && body && _.isEmpty(body)) {
                     validity = true;
                 } else {
-                    reasons.push(`the response body is not empty`);
+                    reasons.push(`Response Body was not empty`);
                 }
             } else if (
                 con[i] &&
@@ -2683,7 +2637,7 @@ const checkOr = async (
                 if (con[i] && con[i].filter && body && !_.isEmpty(body)) {
                     validity = true;
                 } else {
-                    reasons.push(`the response body is empty`);
+                    reasons.push(`Response Body was empty`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'evals') {
@@ -2703,11 +2657,19 @@ const checkOr = async (
                     ) {
                         validity = true;
                     } else {
-                        reasons.push(`it did not evaluate ${con[i].field1}`);
+                        if (con[i].field1) {
+                            reasons.push(
+                                `Response Body did not evaluate \`${con[i].field1}\``
+                            );
+                        }
                     }
                 } catch (e) {
                     // validity = false;
-                    reasons.push(`it did not evaluate ${con[i].field1}`);
+                    if (con[i].field1) {
+                        reasons.push(
+                            `Response Body did not evaluate \`${con[i].field1}\``
+                        );
+                    }
                 }
             }
         }
@@ -2770,7 +2732,9 @@ const checkScriptAnd = async (payload, con, statusCode, body, reasons) => {
                     )
                 ) {
                     validity = false;
-                    reasons.push(`it did not execute in ${con[i].field1}`);
+                    reasons.push(
+                        `Script did not execute in ${con[i].field1} ms`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2786,14 +2750,16 @@ const checkScriptAnd = async (payload, con, statusCode, body, reasons) => {
                     )
                 ) {
                     validity = false;
-                    reasons.push(`it executed in ${con[i].field1}`);
+                    reasons.push(`Script executed in ${con[i].field1} ms`);
                 }
             }
         } else if (con[i] && con[i].responseType === 'error') {
             if (con[i] && con[i].filter && con[i].filter === 'throwsError') {
                 if (!(con[i] && con[i].filter && body && !body.error)) {
                     validity = false;
-                    reasons.push(`did not throw error ${body.error}`);
+                    reasons.push(
+                        `Script did not throw error \`${body.error}\``
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2802,13 +2768,13 @@ const checkScriptAnd = async (payload, con, statusCode, body, reasons) => {
             ) {
                 if (!(con[i] && con[i].filter && body && body.error)) {
                     validity = false;
-                    reasons.push(`it threw error ${body.error}`);
+                    reasons.push(`Script threw error \`${body.error}\``);
                 }
             }
         } else if (con[i] && con[i].responseType === 'javascriptExpression') {
             if (con[i] && con[i].filter && con[i].filter !== body) {
                 validity = false;
-                reasons.push(`it did not have javascript expression`);
+                reasons.push(`Script did not have Javascript expression`);
             }
         }
         if (
@@ -2861,7 +2827,11 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(`it did not execute in ${con[i].field1}`);
+                    if (con[i].field1) {
+                        reasons.push(
+                            `Script did not execute in ${con[i].field1} ms`
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2876,7 +2846,9 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
                 ) {
                     validity = true;
                 } else {
-                    reasons.push(`it executed in ${con[i].field1}`);
+                    if (con[i].field1) {
+                        reasons.push(`Script executed in ${con[i].field1} ms`);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'error') {
@@ -2884,7 +2856,11 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
                 if (con[i] && con[i].filter && body && !body.error) {
                     validity = true;
                 } else {
-                    reasons.push(`it did not throw error ${body.error}`);
+                    if (body && body.error) {
+                        reasons.push(
+                            `Script did not throw error \`${body.error}\``
+                        );
+                    }
                 }
             } else if (
                 con[i] &&
@@ -2894,14 +2870,16 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
                 if (con[i] && con[i].filter && body && body.error) {
                     validity = true;
                 } else {
-                    reasons.push(`it threw error ${body.error}`);
+                    if (body && body.error) {
+                        reasons.push(`Script threw error \`${body.error}\``);
+                    }
                 }
             }
         } else if (con[i] && con[i].responseType === 'javascriptExpression') {
             if (con[i] && con[i].filter && con[i].filter !== body) {
                 validity = true;
             } else {
-                reasons.push(`it did not have javascript expression`);
+                reasons.push(`Script did not have Javascript expression`);
             }
         }
         if (
@@ -2939,6 +2917,53 @@ const checkScriptOr = async (payload, con, statusCode, body, reasons) => {
         }
     }
     return validity;
+};
+
+const formatDecimal = (value, decimalPlaces, roundType) => {
+    let formattedNumber;
+    switch (roundType) {
+        case 'up':
+            formattedNumber = Math.ceil(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+            break;
+        case 'down':
+            formattedNumber = Math.floor(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+            break;
+        default:
+            formattedNumber = Math.round(
+                parseFloat(value + 'e' + decimalPlaces)
+            );
+    }
+    return Number(formattedNumber + 'e-' + decimalPlaces).toFixed(
+        decimalPlaces
+    );
+};
+
+const formatBytes = (a, b, c, d, e) => {
+    let value = a;
+    let decimalPlaces;
+    let roundType;
+    if (typeof a === 'object') {
+        value = a.value;
+        decimalPlaces = a.decimalPlaces;
+        roundType = a.roundType;
+    }
+    return (
+        formatDecimal(
+            ((b = Math),
+            (c = b.log),
+            (d = 1e3),
+            (e = (c(value) / c(d)) | 0),
+            value / b.pow(d, e)),
+            decimalPlaces >= 0 ? decimalPlaces : 2,
+            roundType
+        ) +
+        ' ' +
+        (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
+    );
 };
 
 function createDir(dirPath) {
