@@ -87,7 +87,7 @@ describe('Application Security Page', () => {
                 await page.click('#name');
                 await page.type('#name', applicationSecurityName);
                 await init.selectByText(
-                    '#resourceCategoryId',
+                    '#resourceCategory',
                     categoryName,
                     page
                 ); // add category

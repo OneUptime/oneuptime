@@ -93,7 +93,7 @@ describe('Container Security Page', () => {
                 await page.click('#name');
                 await page.type('#name', containerSecurityName);
                 await init.selectByText(
-                    '#resourceCategoryId',
+                    '#resourceCategory',
                     categoryName,
                     page
                 ); // add category

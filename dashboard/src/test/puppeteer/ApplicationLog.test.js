@@ -125,7 +125,7 @@ describe('Log Containers', () => {
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', appLogName);
                 await init.selectByText(
-                    '#resourceCategoryId',
+                    '#resourceCategory',
                     categoryName,
                     page
                 );
@@ -514,7 +514,7 @@ describe('Log Containers', () => {
                 await page.waitForSelector('#form-new-application-log');
                 // change category here
                 await init.selectByText(
-                    '#resourceCategoryId',
+                    '#resourceCategory',
                     categoryName,
                     page
                 );
