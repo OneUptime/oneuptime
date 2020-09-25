@@ -10,16 +10,16 @@ async function run() {
 
     // get all monitors that have a monitorCategoryId
     const monitors = await find(monitorCollection, {
-        monitorCategoryId: { $type: 'string' },
+        monitorCategoryId: { $exists: true },
     });
     monitors.forEach(async monitor => {
-        const resourceCategoryId = monitor.monitorCategoryId;
+        const resourceCategory = monitor.monitorCategoryId;
 
-        // set their resourceCategoryId as the monitorCategoryId
+        // set their resourceCategory as the monitorCategoryId
         await update(
             monitorCollection,
             { _id: monitor._id },
-            { resourceCategoryId }
+            { resourceCategory }
         );
 
         // remove the monitorCategoryId field
