@@ -53,6 +53,9 @@ describe('Schedule', () => {
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
+                await page.waitForSelector('#onCallSchedules a', {
+                    visible: true,
+                });
                 await page.$eval('#onCallSchedules a', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
                 await page.waitForSelector(createScheduleBtn, {
@@ -87,6 +90,9 @@ describe('Schedule', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#onCallSchedules a', {
+                    visible: true,
+                });
                 await page.$eval('#onCallSchedules a', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
