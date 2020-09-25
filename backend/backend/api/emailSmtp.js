@@ -187,6 +187,8 @@ router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function(
 ) {
     try {
         const data = req.body;
+        data.deleted = true;
+        data.enabled = false;
         const emailSmtpId = req.params.emailSmtpId;
         const emailSmtp = await EmailSmtpService.updateOneBy(
             { _id: emailSmtpId },
