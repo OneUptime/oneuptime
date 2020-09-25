@@ -144,6 +144,15 @@ describe('Project Settings', () => {
                 });
                 await page.click('#btnDeleteProject');
                 await page.waitFor(8000);
+
+                // find the button for creating a project and expect it to be defined
+                const createProjectBtn = await page.waitForSelector(
+                    '#createButton',
+                    {
+                        visible: true,
+                    }
+                );
+                expect(createProjectBtn).toBeDefined();
             });
             done();
         },
