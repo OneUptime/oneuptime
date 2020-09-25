@@ -365,10 +365,10 @@ router.put(
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
-            const resourceCategory = await ResourceCategoryService.findBy({
+            const resourceCategoryModel = await ResourceCategoryService.findBy({
                 _id: data.resourceCategory,
             });
-            if (resourceCategory) {
+            if (resourceCategoryModel) {
                 applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };

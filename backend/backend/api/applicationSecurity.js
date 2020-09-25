@@ -107,10 +107,12 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategory = await ResourceCategoryService.findBy({
-                    _id: resourceCategory,
-                });
-                if (resourceCategory) {
+                const resourceCategoryModel = await ResourceCategoryService.findBy(
+                    {
+                        _id: resourceCategory,
+                    }
+                );
+                if (resourceCategoryModel) {
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
