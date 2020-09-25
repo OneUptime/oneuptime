@@ -523,9 +523,7 @@ describe('Log Containers', () => {
                 await page.click('#logs');
 
                 // confirm the new category shows in the details page.
-                let spanElement = await page.$(
-                    `#${applicationLogName}-new-badge`
-                );
+                let spanElement = await page.$(`#${applicationLogName}-new`);
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(categoryName.toUpperCase());
