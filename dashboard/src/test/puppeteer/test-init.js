@@ -33,29 +33,27 @@ module.exports = {
                 page.waitForSelector(`form#card-form`),
                 page.click('button[type=submit]'),
             ]);
-            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame6]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame7]');
+            await page.waitForSelector('iframe[name^="__privateStripeFrame"]');
+            elementHandle = await page.$$(
+                'iframe[name^="__privateStripeFrame"]'
+            );
 
             await page.click('input[name=cardName]');
             await page.type('input[name=cardName]', 'Test name');
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
-            frame = await elementHandle.contentFrame();
+            frame = await elementHandle[0].contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
-            frame = await elementHandle.contentFrame();
+            frame = await elementHandle[1].contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
-            frame = await elementHandle.contentFrame();
+            frame = await elementHandle[2].contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
                 delay: 150,
