@@ -236,9 +236,6 @@ router.get(
                     }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
-                    category: elem.resourceCategoryId
-                        ? elem.resourceCategoryId.name
-                        : '',
                 };
                 // add it to the total resources
                 totalResources.push(newElement);
@@ -266,9 +263,6 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'docker',
                         securityLog,
-                        category: elem.resourceCategoryId
-                            ? elem.resourceCategoryId.name
-                            : '',
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -298,9 +292,6 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'security',
                         securityLog,
-                        category: elem.resourceCategoryId
-                            ? elem.resourceCategoryId.name
-                            : '',
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -332,9 +323,6 @@ router.get(
                         createdAt: elem.createdAt,
                         icon: 'appLog',
                         status: logStatus,
-                        category: elem.resourceCategoryId
-                            ? elem.resourceCategoryId.name
-                            : '',
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
