@@ -180,3 +180,5 @@
 -   In SaaS mode - we only charge for alerts ONLY IF global config is used.
 -   Check limits for global config in both Enterprise and SaaS
 -   Ideally in Enterprise Mode - Enable Alerts in Project Billing Page should be hidden. So, you should NOT check if the alerts are enabled or disabled for the project. Just check if the alerts are enabled / disabled in admin dashboard (if using global config). If using local config (project config) - do not check if the alerts are enabled or disabled.
+
+Return back to the [main README](../README.md)
