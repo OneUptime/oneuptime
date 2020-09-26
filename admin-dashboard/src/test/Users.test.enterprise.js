@@ -75,10 +75,10 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                     waitUntil: 'networkidle0',
                 });
 
-                await page.waitForSelector(
-                    '.bs-ObjectList-rows>a:last-of-type'
-                );
-                await page.click('.bs-ObjectList-rows>a:last-of-type');
+                const userSelector = '#masteradmin';
+                await page.waitForSelector(userSelector);
+                await page.click(userSelector);
+                await page.waitFor(1000); // wait for the contents to load in the background
                 await page.waitForSelector('#delete');
                 await page.click('#delete');
                 await page.waitForSelector('#confirmDelete');
@@ -86,7 +86,10 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
                 await page.waitForSelector('#confirmDelete', { hidden: true });
                 await page.waitForSelector('#users');
                 await page.click('#users');
-                await page.waitForSelector('#login-button');
+                const loginBtn = await page.waitForSelector('#login-button', {
+                    visible: true,
+                });
+                expect(loginBtn).toBeDefined();
             });
             done();
         },

@@ -66,7 +66,7 @@ describe('Sub-Project API', () => {
                     { visible: true }
                 );
 
-                expect(pricingPlanModal).toBeTruthy();
+                expect(pricingPlanModal).toBeDefined();
             });
         },
         operationTimeOut
@@ -112,6 +112,8 @@ describe('Member Restriction', () => {
                     },
                     page
                 );
+
+                await init.logout(page);
             }
         );
 
@@ -127,17 +129,9 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal to a team member who is not an admin or owner of the project',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
-                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });
@@ -152,6 +146,7 @@ describe('Member Restriction', () => {
                 );
 
                 expect(unauthorisedModal).toBeDefined();
+                await init.logout(page);
             });
             done();
         },
@@ -161,13 +156,6 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email, password }, page);
 
@@ -181,7 +169,6 @@ describe('Member Restriction', () => {
 
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
-                await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings', {
                     visible: true,
                 });

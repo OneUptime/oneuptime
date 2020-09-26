@@ -84,8 +84,8 @@ class NewMonitor extends Component {
             }
         }
 
-        if (!values['monitorCategoriesId']) {
-            errors.monitorCategories = 'Monitor Category is required';
+        if (!values['resourceCategoriesId']) {
+            errors.resourceCategories = 'Resource Category is required';
         }
 
         return errors;
@@ -113,8 +113,8 @@ class NewMonitor extends Component {
             : this.props.edit
             ? this.props.editMonitorProp.type
             : this.props.type;
-        postObj.monitorCategoryId =
-            values[`monitorCategoryId_${this.props.index}`];
+        postObj.resourceCategory =
+            values[`resourceCategory_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (postObj.type === 'manual')
             postObj.data.description =
@@ -429,7 +429,7 @@ class NewMonitor extends Component {
             handleSubmit,
             subProjects,
             schedules,
-            monitorCategoryList,
+            resourceCategoryList,
             monitor,
             project,
             currentPlanId,
@@ -531,14 +531,14 @@ class NewMonitor extends Component {
                                                 </div>
                                                 <ShouldRender
                                                     if={
-                                                        monitorCategoryList &&
-                                                        monitorCategoryList.length >
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
                                                             0
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Monitor Category
+                                                            Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field
@@ -546,9 +546,9 @@ class NewMonitor extends Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                name={`monitorCategoryId_${this.props.index}`}
-                                                                id="monitorCategory"
-                                                                placeholder="Choose Monitor Category"
+                                                                name={`resourceCategory_${this.props.index}`}
+                                                                id="resourceCategory"
+                                                                placeholder="Choose Resource Category"
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -557,12 +557,12 @@ class NewMonitor extends Component {
                                                                         value:
                                                                             '',
                                                                         label:
-                                                                            'Select monitor category',
+                                                                            'Select resource category',
                                                                     },
-                                                                    ...(monitorCategoryList &&
-                                                                    monitorCategoryList.length >
+                                                                    ...(resourceCategoryList &&
+                                                                    resourceCategoryList.length >
                                                                         0
-                                                                        ? monitorCategoryList.map(
+                                                                        ? resourceCategoryList.map(
                                                                               category => ({
                                                                                   value:
                                                                                       category._id,
@@ -1384,7 +1384,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
-    const category = selector(state, 'monitorCategoryId_1000');
+    const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
     let projectId = null;
 
@@ -1421,9 +1421,9 @@ const mapStateToProps = (state, ownProps) => {
             schedule,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
-            monitorCategoryList:
-                state.monitorCategories.monitorCategoryListForNewMonitor
-                    .monitorCategories,
+            resourceCategoryList:
+                state.resourceCategories.resourceCategoryListForNewResource
+                    .resourceCategories,
             monitorId,
             project: state.project.currentProject
                 ? state.project.currentProject
@@ -1440,9 +1440,9 @@ const mapStateToProps = (state, ownProps) => {
             type,
             category,
             schedule,
-            monitorCategoryList:
-                state.monitorCategories.monitorCategoryListForNewMonitor
-                    .monitorCategories,
+            resourceCategoryList:
+                state.resourceCategories.resourceCategoryListForNewResource
+                    .resourceCategories,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             project: state.project.currentProject
@@ -1475,7 +1475,7 @@ NewMonitor.propTypes = {
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
-    monitorCategoryList: PropTypes.array,
+    resourceCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
     setMonitorCriteria: PropTypes.func,

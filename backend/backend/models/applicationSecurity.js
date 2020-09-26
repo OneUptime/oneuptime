@@ -11,6 +11,10 @@ const applicationSecuritySchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'Component',
         },
+        resourceCategory: {
+            type: Schema.Types.ObjectId,
+            ref: 'ResourceCategory',
+        },
         deleted: {
             type: Boolean,
             default: false,

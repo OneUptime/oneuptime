@@ -68,12 +68,20 @@ describe('New Monitor API', () => {
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(
-                    null,
-                    monitorName,
-                    page,
-                    componentName
-                );
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${componentName}`);
+
+                await page.waitForSelector('input[id=name]');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'device', page);
+                await page.waitForSelector('#deviceId');
+                await page.click('#deviceId');
+                await page.type('#deviceId', utils.generateRandomString());
+                await page.click('button[type=submit]');
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',
@@ -112,12 +120,20 @@ describe('New Monitor API', () => {
 
                 // try to add more monitor
                 const monitorName = utils.generateRandomString();
-                await init.addMonitorToComponent(
-                    null,
-                    monitorName,
-                    page,
-                    componentName
-                );
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+                await page.waitForSelector('#component0', { visible: true });
+                await page.click(`#more-details-${componentName}`);
+
+                await page.waitForSelector('input[id=name]');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', monitorName);
+                await init.selectByText('#type', 'device', page);
+                await page.waitForSelector('#deviceId');
+                await page.click('#deviceId');
+                await page.type('#deviceId', utils.generateRandomString());
+                await page.click('button[type=submit]');
 
                 const pricingPlanModal = await page.waitForSelector(
                     '#pricingPlanModal',

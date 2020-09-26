@@ -23,7 +23,7 @@ import Profile from './Profile';
 import Settings from './Settings';
 
 import Billing from './Billing';
-import Monitors from './Monitors';
+import Resources from './Resources';
 import Component from './Component';
 import Integrations from './Integrations';
 
@@ -67,7 +67,7 @@ export default {
     Incident,
     IncidentSettings,
     Billing,
-    Monitors,
+    Resources,
     Schedule,
     Integrations,
     EmailTemplates,

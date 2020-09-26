@@ -152,6 +152,7 @@ class _CardForm extends React.Component {
                                                 <div className="Box-root">
                                                     <span
                                                         style={{ color: 'red' }}
+                                                        id="cardError"
                                                     >
                                                         {error}
                                                     </span>

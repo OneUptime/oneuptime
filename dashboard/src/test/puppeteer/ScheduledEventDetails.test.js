@@ -458,7 +458,9 @@ describe('Scheduled Event Note ==> Pagination and Deletion', () => {
                 });
                 await page.click('#deleteScheduleModalBtn');
                 // confirm that the element is deleted and redirected to the list of all schedule event page
-                await page.waitFor(2000);
+                await page.waitForSelector('#deleteScheduleModalBtn', {
+                    hidden: true,
+                });
                 const scheduledEventList = await page.waitForSelector(
                     '.scheduled-event-list-item',
                     {
