@@ -1136,7 +1136,7 @@ module.exports = {
                 let hasEnoughBalance;
                 let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    const owner = project.users.filter(user => user.role === 'owner')[0];
+                    const owner = project.users.filter(user => user.role === 'Owner')[0];
                     hasEnoughBalance = await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
