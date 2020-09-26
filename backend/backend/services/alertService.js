@@ -1131,6 +1131,24 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
+                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(incident.projectId);
+
+                let hasEnoughBalance;
+                let doesPhoneNumberComplyWithHighRiskConfig;
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                    const owner = project.users.filter(user => user.role === 'owner')[0];
+                    hasEnoughBalance = await _this.hasEnoughBalance(
+                        incident.projectId,
+                        contactPhone,
+                        owner.userId,
+                        AlertType.SMS
+                    );
+                    doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                        incident.projectId,
+                        contactPhone
+                    );
+                }
+
                 let sendResult;
                 const smsTemplate = await SmsTemplateService.findOneBy({
                     projectId: incident.projectId,
