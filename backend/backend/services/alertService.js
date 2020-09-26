@@ -665,7 +665,7 @@ module.exports = {
         }
 
         let hasEnoughBalance;
-        if (IS_SAAS_SERVICE) {
+        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             hasEnoughBalance = await _this.hasEnoughBalance(
                 project._id,
                 user.alertPhoneNumber,
@@ -673,7 +673,11 @@ module.exports = {
                 AlertType.Call
             );
         }
-        if (hasEnoughBalance || !IS_SAAS_SERVICE) {
+        if (
+            !IS_SAAS_SERVICE ||
+            hasCustomTwilioSettings ||
+            hasEnoughBalance
+        ) {
             const alertStatus = await TwilioService.sendIncidentCreatedCall(
                 date,
                 monitor.name,
