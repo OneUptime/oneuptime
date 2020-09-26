@@ -20,7 +20,7 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
-const validate = (values, props ) => {
+const validate = (values, props) => {
     const errors = {};
     if (props.showEmailSmtpConfiguration) {
         if (values.user) {
@@ -28,13 +28,11 @@ const validate = (values, props ) => {
                 errors.user = 'Please input username in text format .';
             }
         } else {
-            errors.user =
-                'Please input username this cannot be left blank.';
+            errors.user = 'Please input username this cannot be left blank.';
         }
 
         if (!values.pass || !values.pass.length) {
-            errors.pass =
-                'Please input password this cannot be left blank.';
+            errors.pass = 'Please input password this cannot be left blank.';
         }
 
         if (values.port) {
