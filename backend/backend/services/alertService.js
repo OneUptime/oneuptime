@@ -786,17 +786,14 @@ module.exports = {
         }
 
         let hasEnoughBalance;
-        if (IS_SAAS_SERVICE) {
+        let doesPhoneNumberComplyWithHighRiskConfig;
+        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             hasEnoughBalance = await _this.hasEnoughBalance(
                 incident.projectId,
                 user.alertPhoneNumber,
                 user._id,
                 AlertType.SMS
             );
-        }
-        let doesPhoneNumberComplyWithHighRiskConfig;
-
-        if (IS_SAAS_SERVICE) {
             doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
                 incident.projectId,
                 user.alertPhoneNumber
@@ -805,6 +802,7 @@ module.exports = {
 
         if (
             !IS_SAAS_SERVICE ||
+            hasCustomTwilioSettings ||
             (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
         ) {
             let alertStatus = await TwilioService.sendIncidentCreatedMessage(
