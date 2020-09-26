@@ -634,9 +634,15 @@ module.exports = {
             userId: user._id,
             expiresIn: 12 * 60 * 60 * 1000,
         });
-        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(incident.projectId);
+        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+            incident.projectId
+        );
 
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings && !project.alertEnable) {
+        if (
+            IS_SAAS_SERVICE &&
+            !hasCustomTwilioSettings &&
+            !project.alertEnable
+        ) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -673,11 +679,7 @@ module.exports = {
                 AlertType.Call
             );
         }
-        if (
-            !IS_SAAS_SERVICE ||
-            hasCustomTwilioSettings ||
-            hasEnoughBalance
-        ) {
+        if (!IS_SAAS_SERVICE || hasCustomTwilioSettings || hasEnoughBalance) {
             const alertStatus = await TwilioService.sendIncidentCreatedCall(
                 date,
                 monitor.name,
@@ -760,9 +762,15 @@ module.exports = {
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
-        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(projectId);
+        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+            projectId
+        );
 
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings && !project.alertEnable) {
+        if (
+            IS_SAAS_SERVICE &&
+            !hasCustomTwilioSettings &&
+            !project.alertEnable
+        ) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -1107,8 +1115,14 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(incident.projectId);
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings && !project.alertEnable) {
+                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+                    incident.projectId
+                );
+                if (
+                    IS_SAAS_SERVICE &&
+                    !hasCustomTwilioSettings &&
+                    !project.alertEnable
+                ) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -1116,11 +1130,12 @@ module.exports = {
                         alertVia: AlertType.SMS,
                         alertStatus: null,
                         error: true,
-                        errorMessage: "Alert Disabled",
+                        errorMessage: 'Alert Disabled',
                         eventType:
                             templateType === 'Subscriber Incident Acknowldeged'
                                 ? 'acknowledged'
-                                : templateType === 'Subscriber Incident Resolved'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
                                 ? 'resolved'
                                 : 'identified',
                     });
@@ -1136,7 +1151,9 @@ module.exports = {
                 let hasEnoughBalance;
                 let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    const owner = project.users.filter(user => user.role === 'Owner')[0];
+                    const owner = project.users.filter(
+                        user => user.role === 'Owner'
+                    )[0];
                     hasEnoughBalance = await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
@@ -1348,8 +1365,10 @@ module.exports = {
     //Return true, if the limit is not reached yet.
     checkPhoneAlertsLimit: async function(projectId) {
         const _this = this;
-        const hasCustomSettings = await TwilioService.hasCustomSettings(projectId);
-        if(hasCustomSettings){
+        const hasCustomSettings = await TwilioService.hasCustomSettings(
+            projectId
+        );
+        if (hasCustomSettings) {
             return true;
         }
         const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
