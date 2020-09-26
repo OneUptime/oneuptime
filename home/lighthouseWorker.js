@@ -82,7 +82,7 @@ process.on('message', function(data) {
             );
             scores.seo = Math.ceil(results.lhr.categories.seo.score * 100);
             if (
-                scores.performance < 70 ||
+                scores.performance < 50 ||
                 scores.accessibility < 70 ||
                 scores.bestPractices < 70 ||
                 scores.seo < 80
