@@ -1107,7 +1107,8 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                if (IS_SAAS_SERVICE && !project.alertEnable) {
+                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(incident.projectId);
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings && !project.alertEnable) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
                         incidentId: incident._id,
@@ -1131,7 +1132,6 @@ module.exports = {
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
-                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(incident.projectId);
 
                 let hasEnoughBalance;
                 let doesPhoneNumberComplyWithHighRiskConfig;
