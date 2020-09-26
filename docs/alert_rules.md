@@ -48,7 +48,7 @@
     Set
     </td>
     <td>
-    Enabled - DO NOT CHARGE FOR ALERTS
+    *
     </td>
     <td>
     Success (without checking daily limits)
