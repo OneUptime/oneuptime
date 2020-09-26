@@ -18,6 +18,7 @@ function MonitorInputs({ monitors, subProject, currentProject }) {
                               <label
                                   className="Checkbox"
                                   htmlFor={`monitor_${index}`}
+                                  id={`scheduleMonitor_${index}`}
                               >
                                   <Field
                                       component="input"
