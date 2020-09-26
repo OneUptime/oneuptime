@@ -713,7 +713,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: 'Success',
                 });
-                if (IS_SAAS_SERVICE) {
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     balanceStatus = await _this.getBalanceStatus(
                         project._id,
                         user.alertPhoneNumber,
