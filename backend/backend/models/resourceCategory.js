@@ -1,7 +1,7 @@
 const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
-const monitorCategorySchema = new Schema({
+const resourceCategorySchema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
@@ -29,4 +29,4 @@ const monitorCategorySchema = new Schema({
     },
 });
 
-module.exports = mongoose.model('MonitorCategory', monitorCategorySchema);
+module.exports = mongoose.model('ResourceCategory', resourceCategorySchema);

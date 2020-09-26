@@ -28,6 +28,19 @@ async function removeField(collection, query, field) {
         .updateOne(query, { $unset: field }, { multi: true });
 }
 
+async function rename(oldCollectionName, newCollectionName) {
+    return global.db
+        .listCollections({ name: oldCollectionName })
+        .next(function(err, collinfo) {
+            if (collinfo) {
+                // The collection exists
+                global.db
+                    .collection(oldCollectionName)
+                    .rename(newCollectionName);
+            }
+        });
+}
+
 async function getVersion() {
     const docs = await global.db
         .collection('globalconfigs')
@@ -48,4 +61,5 @@ module.exports = {
     update,
     getVersion,
     removeField,
+    rename,
 };

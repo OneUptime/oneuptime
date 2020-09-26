@@ -9,7 +9,7 @@ let browser;
 let page;
 
 const email = utils.generateRandomBusinessEmail();
-const password = utils.generateRandomString();
+const password = '1234567890';
 const user = {
     email,
     password,
@@ -31,13 +31,9 @@ describe('Reset Password API', () => {
 
     it('Should reset password successfully', async () => {
         await init.registerUser(user, page);
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -53,13 +49,9 @@ describe('Reset Password API', () => {
     }, 160000);
 
     it('User cannot reset password with non-existing email', async () => {
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', utils.generateWrongEmail());

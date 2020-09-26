@@ -40,7 +40,7 @@ describe('Login API', () => {
         await page.click('#signUpLink a');
         await page.waitForSelector('#loginLink');
         await page.click('#loginLink a');
-        await page.waitFor(3000);
+        await page.waitForSelector('input[name=email]', { visible: true });
         const email = await page.$eval(
             'input[name=email]',
             element => element.value
@@ -54,13 +54,9 @@ describe('Login API', () => {
     }, 160000);
 
     it('Users cannot login with incorrect credentials', async () => {
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/login', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#login-button');
         await page.click('input[name=email]');
         await page.type('input[name=email]', user.email);
@@ -78,7 +74,7 @@ describe('Login API', () => {
         await init.registerUser(user, page);
         await init.loginUser(user, page);
 
-        await page.waitFor(10000);
+        await page.waitForSelector('#components', { visible: true });
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -89,7 +85,6 @@ describe('Login API', () => {
             return json;
         });
 
-        await page.waitFor(10000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL);
@@ -105,7 +100,7 @@ describe('Login API', () => {
             utils.ACCOUNTS_URL1 + '/accounts/login'
         );
 
-        await page.waitFor(10000);
+        await page.waitForSelector('#components', { visible: true });
 
         const localStorageData = await page.evaluate(() => {
             const json = {};
@@ -116,7 +111,6 @@ describe('Login API', () => {
             return json;
         });
 
-        await page.waitFor(10000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property('email', email);
         page.url().should.containEql(utils.DASHBOARD_URL1);

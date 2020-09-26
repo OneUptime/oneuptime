@@ -15,7 +15,7 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 900000;
 
     let cluster;
 
@@ -103,6 +103,39 @@ describe('Log Containers', () => {
                     `#key_${applicationLogName}`
                 );
                 expect(logKeyElement).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should create new resource category then redirect to application log page to create a container under that',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Random-Category';
+                const appLogName = `${applicationLogName}-sample`;
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+                //navigate to component details
+                await init.navigateToComponentDetails(componentName, page);
+                // go to logs
+                await page.click('#logs');
+                // create a new log and select the category
+                // Fill and submit New Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', appLogName);
+                await init.selectByText(
+                    '#resourceCategory',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+                await page.waitFor(5000);
+                // confirm the category shows in the details page.
+                let spanElement = await page.$(`#${appLogName}-badge`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
             });
         },
         operationTimeOut
@@ -462,4 +495,41 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
+    test(
+        'Should update category for created log container',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    `${applicationLogName}-new`,
+                    page
+                );
+                await page.waitForSelector(`#edit_${applicationLogName}-new`);
+                await page.click(`#edit_${applicationLogName}-new`);
+                // Fill and submit edit Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                // change category here
+                await init.selectByText(
+                    '#resourceCategory',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+
+                await page.click('#logs');
+
+                // confirm the new category shows in the details page.
+                let spanElement = await page.$(`#${applicationLogName}-new`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+            });
+        },
+        operationTimeOut
+    );
 });
+// });

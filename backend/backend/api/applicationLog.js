@@ -22,6 +22,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const ResourceCategoryService = require('../services/resourceCategoryService');
 const uuid = require('uuid');
 
 // Route
@@ -49,6 +50,15 @@ router.post(
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Application Log Name is required.',
+                });
+            }
+            if (
+                data.resourceCategory &&
+                typeof data.resourceCategory !== 'string'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Resource Category ID is not of string type.',
                 });
             }
 
@@ -324,11 +334,22 @@ router.put(
         }
 
         // try to find in the application log if the name already exist for that component
-        const existingApplicationLog = await ApplicationLogService.findBy({
+        const existingQuery = {
             name: data.name,
             componentId: req.params.componentId,
-        });
-        if (existingApplicationLog && existingApplicationLog.length > 0) {
+        };
+        if (data.resourceCategory != '') {
+            existingQuery.resourceCategory = data.resourceCategory;
+        }
+        const existingApplicationLog = await ApplicationLogService.findBy(
+            existingQuery
+        );
+
+        if (
+            existingApplicationLog &&
+            existingApplicationLog.length > 0 &&
+            data.resourceCategory != ''
+        ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Application Log with that name already exists.',
@@ -336,14 +357,29 @@ router.put(
         }
 
         // application Log is valid
-        const newName = {
+        const applicationLogUpdate = {
             name: data.name,
         };
+
+        let unsetData;
+        if (!data.resourceCategory || data.resourceCategory === '') {
+            unsetData = { resourceCategory: '' };
+        } else {
+            const resourceCategoryModel = await ResourceCategoryService.findBy({
+                _id: data.resourceCategory,
+            });
+            if (resourceCategoryModel) {
+                applicationLogUpdate.resourceCategory = data.resourceCategory;
+            } else {
+                unsetData = { resourceCategory: '' };
+            }
+        }
 
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
-                newName
+                applicationLogUpdate,
+                unsetData
             );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {

@@ -143,3 +143,12 @@
     background-image: url('../img/arrow-right.svg');
     background-repeat: no-repeat;
 }
+
+#dropZone #fileInput {
+    display: block !important;
+    /* visually hide the input element and not removing it from the dom
+    ** due to puppeteer test 
+    */
+    position: absolute;
+    top: -100%;
+}

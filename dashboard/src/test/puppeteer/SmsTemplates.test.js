@@ -54,8 +54,8 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#sms');
-                await page.click('#sms');
+                await page.waitForSelector('#smsCalls');
+                await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
@@ -84,8 +84,8 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#sms');
-                await page.click('#sms');
+                await page.waitForSelector('#smsCalls');
+                await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
@@ -128,8 +128,8 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#sms');
-                await page.click('#sms');
+                await page.waitForSelector('#smsCalls');
+                await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',
@@ -154,8 +154,8 @@ describe('SMS Templates API', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
-                await page.waitForSelector('#sms');
-                await page.click('#sms');
+                await page.waitForSelector('#smsCalls');
+                await page.click('#smsCalls');
                 await page.waitForSelector('#type');
                 await init.selectByText(
                     '#type',

@@ -4,6 +4,7 @@ const moment = require('moment');
 const { decrypt } = require('../config/encryptDecrypt');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const DockerCredentialService = require('./dockerCredentialService');
+const ResourceCategoryService = require('./resourceCategoryService');
 
 module.exports = {
     create: async function(data) {
@@ -43,6 +44,12 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategory,
+            });
+            if (!resourceCategory) {
+                delete data.resourceCategory;
+            }
 
             const containerSecurity = await ContainerSecurityModel.create(data);
             return containerSecurity;
@@ -61,6 +68,7 @@ module.exports = {
                 query
             )
                 .populate('componentId')
+                .populate('resourceCategory', 'name')
                 .populate('dockerCredential');
 
             return containerSecurity;
@@ -88,6 +96,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId')
+                .populate('resourceCategory', 'name')
                 .populate('dockerCredential');
 
             return containerSecurities;
@@ -96,19 +105,29 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
+            let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
             ).populate('dockerCredential');
+
+            if (unsetData) {
+                containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
 
             if (!containerSecurity) {
                 const error = new Error(
@@ -118,6 +137,9 @@ module.exports = {
                 throw error;
             }
 
+            containerSecurity = this.findOneBy({
+                _id: containerSecurity._id,
+            });
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateOneBy', error);
