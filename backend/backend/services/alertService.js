@@ -755,8 +755,9 @@ module.exports = {
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
+        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(projectId);
 
-        if (IS_SAAS_SERVICE && !project.alertEnable) {
+        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings && !project.alertEnable) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
