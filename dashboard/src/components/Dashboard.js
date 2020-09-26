@@ -22,6 +22,7 @@ import { SHOULD_LOG_ANALYTICS, User } from '../config';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
+import { closeModal } from '../actions/modal';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -89,11 +90,17 @@ export class DashboardApp extends Component {
             case 'Escape':
                 this.props.closeNotificationMenu();
                 this.props.hideProfileMenu();
+                this.closeModal();
                 return true;
             default:
                 return false;
         }
     };
+
+    closeModal = () =>
+        this.props.closeModal({
+            id: Object.values(this.props.currentModal)[0],
+        });
 
     render() {
         const {
@@ -344,12 +351,18 @@ DashboardApp.propTypes = {
     location: PropTypes.object.isRequired,
     children: PropTypes.any,
     ready: PropTypes.func,
+    currentModal: PropTypes.object,
+    closeModal: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
     notification: state.notifications,
+    currentModal:
+        state.modal.modals && state.modal.modals.length > 0
+            ? state.modal.modals[state.modal.modals.length - 1]
+            : '',
 });
 
 const mapDispatchToProps = dispatch =>
@@ -359,6 +372,7 @@ const mapDispatchToProps = dispatch =>
             showForm,
             hideProfileMenu,
             closeNotificationMenu,
+            closeModal,
         },
         dispatch
     );

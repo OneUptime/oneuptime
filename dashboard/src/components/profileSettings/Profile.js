@@ -234,7 +234,7 @@ export class ProfileSetting extends Component {
             });
         } else {
             openModal({
-                twoFactorAuthId: data.id,
+                id: data.id,
                 onClose: () => '',
                 content: DataPathHoC(TwoFactorAuthModal, {}),
             });
@@ -247,7 +247,7 @@ export class ProfileSetting extends Component {
             openModal,
         } = this.props;
         openModal({
-            twoFactorAuthId: data.id,
+            id: data.id,
             onClose: () => '',
             content: DataPathHoC(BackupCodesModal, {}),
         });
