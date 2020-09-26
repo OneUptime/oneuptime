@@ -9,11 +9,11 @@ const password = '1234567890';
 
 describe('Stripe cards API', () => {
     const operationTimeOut = 60000;
-
+    let cluster;
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -24,8 +24,7 @@ describe('Stripe cards API', () => {
             throw err;
         });
 
-        // Register user
-        await cluster.task(async ({ page, data }) => {
+        await cluster.execute({ email, password }, async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
@@ -35,67 +34,50 @@ describe('Stripe cards API', () => {
             await init.registerUser(user, page);
             await init.loginUser(user, page);
         });
-
-        await cluster.queue({ email, password });
-
-        await cluster.idle();
-        await cluster.close();
         done();
     });
 
     afterAll(async done => {
+        await cluster.idle();
+        await cluster.close();
         done();
     });
 
     test(
         'should add a valid card',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 60000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings');
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(
                     `${utils.DASHBOARD_URL}/dashboard/profile/billing`
                 );
                 await page.waitForSelector('#addCardButton');
                 await page.click('#addCardButton');
-                await page.waitFor(3000);
                 await page.waitForSelector(
-                    'iframe[name=__privateStripeFrame5]'
+                    '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
+                    {
+                        visible: true,
+                        timeout: operationTimeOut,
+                    }
                 );
-
-                let frame = await page.$('iframe[name=__privateStripeFrame5]');
-
-                frame = await frame.contentFrame();
+                const stripeIframe = await page.$(
+                    '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
+                );
+                const frame = await stripeIframe.contentFrame();
                 frame.waitForSelector('input[name=cardnumber]');
-                await frame.type('input[name=cardnumber]', '6011111111111117', {
-                    delay: 50,
+                await frame.type('input[name=cardnumber]', '5555555555554444', {
+                    delay: 150,
                 });
                 frame.waitForSelector('input[name=exp-date]');
-                await frame.type('input[name=exp-date]', '1123');
+                await frame.type('input[name=exp-date]', '11/23');
                 frame.waitForSelector('input[name=cvc]');
                 await frame.type('input[name=cvc]', '100');
                 frame.waitForSelector('input[name=postal]');
                 await frame.type('input[name=postal]', '11234');
                 await page.click('#addCardButtonSubmit');
-                await page.waitFor(20000);
+                await page.waitForSelector('#addCardButtonSubmit', {
+                    hidden: true,
+                    timeout: operationTimeOut,
+                });
 
                 const cardsCount = await page.$eval(
                     '#cardsCount',
@@ -104,10 +86,6 @@ describe('Stripe cards API', () => {
 
                 expect(cardsCount).toEqual('2 Cards');
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -116,27 +94,7 @@ describe('Stripe cards API', () => {
     test(
         'should delete card',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 50000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings');
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(
                     `${utils.DASHBOARD_URL}/dashboard/profile/billing`
                 );
@@ -144,7 +102,9 @@ describe('Stripe cards API', () => {
                 await page.click('#deleteCard1');
                 await page.waitForSelector('#deleteCardButton');
                 await page.click('#deleteCardButton');
-                await page.waitFor(4000);
+                await page.waitForSelector('#deleteCardButton', {
+                    hidden: true,
+                });
 
                 const cardsCount = await page.$eval(
                     '#cardsCount',
@@ -153,10 +113,6 @@ describe('Stripe cards API', () => {
 
                 expect(cardsCount).toEqual('1 Card');
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -165,27 +121,7 @@ describe('Stripe cards API', () => {
     test(
         'should not delete card when there is only one card left',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 50000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings');
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(
                     `${utils.DASHBOARD_URL}/dashboard/profile/billing`
                 );
@@ -193,7 +129,14 @@ describe('Stripe cards API', () => {
                 await page.click('#deleteCard0');
                 await page.waitForSelector('#deleteCardButton');
                 await page.click('#deleteCardButton');
-                await page.waitFor(4000);
+                const deleteError = await page.waitForSelector(
+                    '#deleteCardError',
+                    {
+                        visible: true,
+                        timeout: operationTimeOut,
+                    }
+                );
+                expect(deleteError).toBeDefined();
                 await page.click('#deleteCardCancel');
 
                 const cardsCount = await page.$eval(
@@ -203,10 +146,6 @@ describe('Stripe cards API', () => {
 
                 expect(cardsCount).toEqual('1 Card');
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -215,54 +154,40 @@ describe('Stripe cards API', () => {
     test(
         'should not add an invalid card',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 50000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#projectSettings');
+            await cluster.execute(null, async ({ page }) => {
                 await page.goto(
                     `${utils.DASHBOARD_URL}/dashboard/profile/billing`
                 );
                 await page.waitForSelector('#addCardButton');
                 await page.click('#addCardButton');
-                await page.waitFor(2000);
                 await page.waitForSelector(
-                    'iframe[name=__privateStripeFrame5]'
+                    '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]',
+                    {
+                        visible: true,
+                        timeout: operationTimeOut,
+                    }
+                );
+                const stripeIframe = await page.$(
+                    '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
                 );
 
-                let frame = await page.$('iframe[name=__privateStripeFrame5]');
-
-                frame = await frame.contentFrame();
+                const frame = await stripeIframe.contentFrame();
                 frame.waitForSelector('input[name=cardnumber]');
                 await frame.type('input[name=cardnumber]', '4242424242424241', {
-                    delay: 20,
+                    delay: 150,
                 });
                 frame.waitForSelector('input[name=exp-date]');
-                await frame.type('input[name=exp-date]', '1123');
+                await frame.type('input[name=exp-date]', '11/23');
                 frame.waitForSelector('input[name=cvc]');
                 await frame.type('input[name=cvc]', '100');
                 frame.waitForSelector('input[name=postal]');
                 await frame.type('input[name=postal]', '11234');
                 await page.click('#addCardButtonSubmit');
+                const error = await page.waitForSelector('#cardError', {
+                    visible: true,
+                });
+                expect(error).toBeDefined();
             });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut

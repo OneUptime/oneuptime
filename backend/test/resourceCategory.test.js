@@ -11,20 +11,20 @@ const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const MonitorCategoryService = require('../backend/services/monitorCategoryService');
-const MonitorCategoryModel = require('../backend/models/monitorCategory');
+const ResourceCategoryService = require('../backend/services/resourceCategoryService');
+const ResourceCategoryModel = require('../backend/models/resourceCategory');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, monitorCategoryId, apiKey;
-const monitorCategory = {
-    monitorCategoryName: 'New Monitor Category',
+let token, userId, airtableId, projectId, resourceCategoryId, apiKey;
+const resourceCategory = {
+    resourceCategoryName: 'New Resource Category',
 };
 const payment = require('../backend/config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 
-describe('Monitor Category API', function() {
+describe('Resource Category API', function() {
     this.timeout(20000);
 
     before(function(done) {
@@ -72,15 +72,15 @@ describe('Monitor Category API', function() {
                 ],
             },
         });
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await AirtableService.deleteUser(airtableId);
     });
 
     it('should reject the request of an unauthenticated user', function(done) {
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .send({
-                monitorCategoryName: 'unauthenticated user',
+                resourceCategoryName: 'unauthenticated user',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(401);
@@ -88,13 +88,13 @@ describe('Monitor Category API', function() {
             });
     });
 
-    it('should not create a monitor category when the `monitorCategoryName` field is null', function(done) {
+    it('should not create a resource category when the `resourceCategoryName` field is null', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                monitorCategoryName: null,
+                resourceCategoryName: null,
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -102,17 +102,17 @@ describe('Monitor Category API', function() {
             });
     });
 
-    it('should create a new monitor Category when proper `monitorCategoryName` field is given by an authenticated user', function(done) {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            .send(monitorCategory)
+            .send(resourceCategory)
             .end(function(err, res) {
-                monitorCategoryId = res.body._id;
+                resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
-                    monitorCategory.monitorCategoryName
+                    resourceCategory.resourceCategoryName
                 );
                 done();
             });
@@ -121,7 +121,7 @@ describe('Monitor Category API', function() {
     it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/monitorCategory/${projectId}`)
+            .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -135,10 +135,10 @@ describe('Monitor Category API', function() {
             });
     });
 
-    it('should delete a monitor category when monitorCategoryId is valid', function(done) {
+    it('should delete a resource category when resourceCategoryId is valid', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/monitorCategory/${projectId}/${monitorCategoryId}`)
+            .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -197,34 +197,34 @@ describe('User from other project have access to read / write and delete API.', 
                 ],
             },
         });
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new monitor category', function(done) {
+    it('should not be able to create new resource category', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            .send(monitorCategory)
+            .send(resourceCategory)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    it('should not be able to delete a monitor category', function(done) {
+    it('should not be able to delete a resource category', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/monitorCategory/${projectId}/${monitorCategoryId}`)
+            .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    it('should not be able to get all monitor categories', function(done) {
+    it('should not be able to get all resource categories', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/monitorCategory/${projectId}`)
+            .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -233,7 +233,7 @@ describe('User from other project have access to read / write and delete API.', 
     });
 });
 
-describe('Non-admin user access to create, delete and access monitor category.', function() {
+describe('Non-admin user access to create, delete and access resource category.', function() {
     this.timeout(60000);
 
     let projectIdSecondUser = '';
@@ -264,11 +264,11 @@ describe('Non-admin user access to create, delete and access monitor category.',
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
-                                        .post(`/monitorCategory/${projectId}`)
+                                        .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
-                                        .send(monitorCategory)
+                                        .send(resourceCategory)
                                         .end(function(err, res) {
-                                            monitorCategoryId = res.body._id;
+                                            resourceCategoryId = res.body._id;
                                             createUser(
                                                 request,
                                                 userData.newUser,
@@ -366,34 +366,34 @@ describe('Non-admin user access to create, delete and access monitor category.',
                 ],
             },
         });
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new monitor category', function(done) {
+    it('should not be able to create new resource category', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            .send(monitorCategory)
+            .send(resourceCategory)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    it('should not be able to delete a monitor category', function(done) {
+    it('should not be able to delete a resource category', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/monitorCategory/${projectId}/${monitorCategoryId}`)
+            .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    it('should be able to get all monitor categories', function(done) {
+    it('should be able to get all resource categories', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/monitorCategory/${projectId}`)
+            .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -408,7 +408,7 @@ describe('Non-admin user access to create, delete and access monitor category.',
     });
 });
 
-describe('Monitor Category APIs accesible through API key', function() {
+describe('Resource Category APIs accesible through API key', function() {
     this.timeout(20000);
 
     before(function(done) {
@@ -435,19 +435,19 @@ describe('Monitor Category APIs accesible through API key', function() {
                 ],
             },
         });
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should create a new monitor Category when proper `monitorCategoryName` field is given by an authenticated user', function(done) {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
         request
-            .post(`/monitorCategory/${projectId}`)
+            .post(`/resourceCategory/${projectId}`)
             .set('apiKey', apiKey)
-            .send(monitorCategory)
+            .send(resourceCategory)
             .end(function(err, res) {
-                monitorCategoryId = res.body._id;
+                resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
-                    monitorCategory.monitorCategoryName
+                    resourceCategory.resourceCategoryName
                 );
                 done();
             });
@@ -455,7 +455,7 @@ describe('Monitor Category APIs accesible through API key', function() {
 
     it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
         request
-            .get(`/monitorCategory/${projectId}`)
+            .get(`/resourceCategory/${projectId}`)
             .set('apiKey', apiKey)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -469,9 +469,9 @@ describe('Monitor Category APIs accesible through API key', function() {
             });
     });
 
-    it('should delete a monitor category when monitorCategoryId is valid', function(done) {
+    it('should delete a resource category when resourceCategoryId is valid', function(done) {
         request
-            .delete(`/monitorCategory/${projectId}/${monitorCategoryId}`)
+            .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('apiKey', apiKey)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -480,7 +480,7 @@ describe('Monitor Category APIs accesible through API key', function() {
     });
 });
 
-describe('Monitor Category API - Check pagination for 12 monitor categories', function() {
+describe('Resource Category API - Check pagination for 12 resource categories', function() {
     this.timeout(40000);
 
     const monitorCategories = [
@@ -539,11 +539,11 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
         const authorization = `Basic ${token}`;
 
         const createdMonitorCategories = monitorCategories.map(
-            async monitorCategoryName => {
+            async resourceCategoryName => {
                 const sentRequests = await request
-                    .post(`/monitorCategory/${projectId}`)
+                    .post(`/resourceCategory/${projectId}`)
                     .set('Authorization', authorization)
-                    .send({ monitorCategoryName });
+                    .send({ resourceCategoryName });
                 return sentRequests;
             }
         );
@@ -562,14 +562,14 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
                 ],
             },
         });
-        await MonitorCategoryService.hardDeleteBy({ _id: monitorCategoryId });
-        await MonitorCategoryModel.deleteMany({ name: 'testPagination' });
+        await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
+        await ResourceCategoryModel.deleteMany({ name: 'testPagination' });
     });
 
-    it('should get first 10 monitor categories with data length 10, skip 0, limit 10 and count 12', async function() {
+    it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
-            .get(`/monitorCategory/${projectId}?skip=0&limit=10`)
+            .get(`/resourceCategory/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
@@ -590,10 +590,10 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
             .to.be.equal(10);
     });
 
-    it('should get 2 last monitor categories with data length 2, skip 10, limit 10 and count 12', async function() {
+    it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
-            .get(`/monitorCategory/${projectId}?skip=10&limit=10`)
+            .get(`/resourceCategory/${projectId}?skip=10&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
@@ -614,10 +614,10 @@ describe('Monitor Category API - Check pagination for 12 monitor categories', fu
             .to.be.equal(10);
     });
 
-    it('should get 0 monitor categories with data length 0, skip 20, limit 10 and count 12', async function() {
+    it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
-            .get(`/monitorCategory/${projectId}?skip=20&limit=10`)
+            .get(`/resourceCategory/${projectId}?skip=20&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');

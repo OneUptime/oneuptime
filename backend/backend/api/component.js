@@ -305,6 +305,7 @@ router.get(
                 limit,
                 skip
             );
+
             await Promise.all(
                 applicationLogs.map(async elem => {
                     let logStatus = 'No logs yet';

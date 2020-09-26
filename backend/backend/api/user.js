@@ -557,7 +557,8 @@ router.post('/verify/backupCode', async function(req, res) {
         if (backupCode.length > 0 && backupCode[0].used) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'This backup code was used once, show another code.',
+                message:
+                    'This backup code was used once, use another backup code.',
             });
         }
         if (backupCode.length > 0)

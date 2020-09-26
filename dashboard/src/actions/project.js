@@ -11,9 +11,9 @@ import {
 } from './monitor';
 import { fetchTutorial, resetFetchTutorial } from './tutorial';
 import {
-    fetchMonitorCategories,
-    fetchMonitorCategoriesForNewMonitor,
-} from './monitorCategories';
+    fetchResourceCategories,
+    fetchResourceCategoriesForNewResource,
+} from './resourceCategories';
 import {
     fetchSubProjectSchedules,
     resetSubProjectSchedule,
@@ -249,8 +249,8 @@ export function switchProject(dispatch, project) {
     fetchSubProjectStatusPages(project._id)(dispatch);
     fetchComponents(project._id)(dispatch);
     fetchMonitors(project._id)(dispatch);
-    fetchMonitorCategories(project._id)(dispatch);
-    fetchMonitorCategoriesForNewMonitor(project._id)(dispatch);
+    fetchResourceCategories(project._id)(dispatch);
+    fetchResourceCategoriesForNewResource(project._id)(dispatch);
     fetchUnresolvedIncidents(project._id)(dispatch);
     fetchSchedules(project._id)(dispatch);
     fetchSubProjectSchedules(project._id)(dispatch);

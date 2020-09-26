@@ -135,6 +135,22 @@ const SecurityInfo = ({
                                     </span>
                                 </div>
                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                    <ShouldRender
+                                        if={
+                                            security &&
+                                            security.resourceCategory
+                                        }
+                                    >
+                                        <div className="Box-root Padding-right--8">
+                                            <Badge color={'slate5'}>
+                                                {security &&
+                                                security.resourceCategory
+                                                    ? security.resourceCategory
+                                                          .name
+                                                    : ''}
+                                            </Badge>
+                                        </div>
+                                    </ShouldRender>
                                     <div className="Box-root">
                                         <Badge color={'green'}>
                                             {type} Security

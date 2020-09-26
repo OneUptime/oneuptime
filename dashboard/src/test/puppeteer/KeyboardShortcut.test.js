@@ -204,7 +204,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
     );
 
     test(
-        'should navigate to monitors category page with keyboard shortcut (f + m)',
+        'should navigate to resource category page with keyboard shortcut (f + m)',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -213,11 +213,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 });
                 await page.keyboard.press('f');
                 await page.keyboard.press('m');
-                const monitorCategory = await page.waitForSelector(
-                    '#monitorCategories',
+                const resourceCategory = await page.waitForSelector(
+                    '#resourceCategories',
                     { visible: true }
                 );
-                expect(monitorCategory).toBeDefined();
+                expect(resourceCategory).toBeDefined();
             });
             done();
         },
