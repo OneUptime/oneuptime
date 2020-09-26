@@ -188,7 +188,7 @@ export class MonitorCategories extends Component {
                                                             {this.props.name}
                                                         </div>
                                                         <div
-                                                            id="monitor-category-name"
+                                                            id={`monitor-category-${name}`}
                                                             className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
                                                         >
                                                             {name}

@@ -53,15 +53,13 @@ describe('Monitor Category', () => {
     test(
         'should create a new monitor category',
         async () => {
-            expect.assertions(1);
-
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
                 await page.click('#projectSettings');
 
-                await page.waitForSelector('li#monitors a');
-                await page.click('li#monitors a');
+                await page.waitForSelector('#monitors a');
+                await page.click('#monitors a');
                 await page.waitForSelector('#createMonitorCategoryButton');
                 await page.click('#createMonitorCategoryButton');
                 await page.type(
@@ -69,10 +67,11 @@ describe('Monitor Category', () => {
                     utils.monitorCategoryName
                 );
                 await page.click('#addMonitorCategoryButton');
+                await page.waitForSelector('#addMonitorCategoryButton', {
+                    hidden: true,
+                });
 
-                const createdMonitorCategorySelector =
-                    '#monitorCategoryList #monitor-category-name:nth-child(2)';
-
+                const createdMonitorCategorySelector = `#monitorCategoryList #monitor-category-${utils.monitorCategoryName}`;
                 await page.waitForSelector(createdMonitorCategorySelector);
 
                 const createdMonitorCategoryName = await page.$eval(
@@ -91,7 +90,6 @@ describe('Monitor Category', () => {
     test(
         'should show created monitor category in new monitor dropdown',
         async () => {
-            expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
@@ -136,9 +134,12 @@ describe('Monitor Category', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
 
                 const createdMonitorSelector = `#monitor-title-${utils.monitorName}`;
+                await page.waitForSelector(createdMonitorSelector, {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
                 const createdMonitorName = await page.$eval(
                     createdMonitorSelector,
                     el => el.textContent
@@ -153,7 +154,6 @@ describe('Monitor Category', () => {
     test(
         'should delete the created monitor category',
         async () => {
-            expect.assertions(1);
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#projectSettings');
@@ -162,16 +162,19 @@ describe('Monitor Category', () => {
                 await page.waitForSelector('li#monitors a');
                 await page.click('li#monitors a');
 
-                const deleteButtonSelector =
-                    '#deleteMonitorCategoryBtn > button';
+                const deleteButtonSelector = `#deleteMonitorCategoryBtn #delete_${utils.monitorCategoryName}`;
 
                 await page.waitForSelector(deleteButtonSelector);
                 await page.click(deleteButtonSelector);
                 await page.waitForSelector('#deleteMonitorCategory');
                 await page.click('#deleteMonitorCategory');
-                await page.waitFor(5000);
+                await page.waitForSelector('#deleteMonitorCategory', {
+                    hidden: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
 
                 const monitorCategoryCounterSelector = '#monitorCategoryCount';
+                await page.waitForSelector(monitorCategoryCounterSelector);
                 const monitorCategoryCount = await page.$eval(
                     monitorCategoryCounterSelector,
                     el => el.textContent
@@ -224,6 +227,7 @@ describe('Member Restriction', () => {
                     page
                 );
                 await init.addMonitorCategory(monitorCategory, page);
+                await init.logout(page);
             }
         );
 
@@ -239,13 +243,6 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when trying to add a monitor category for a member who is not the admin or owner of the project',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
@@ -263,6 +260,7 @@ describe('Member Restriction', () => {
                 await page.click('#createMonitorCategoryButton');
                 const modal = await page.waitForSelector('#unauthorisedModal');
                 expect(modal).toBeDefined();
+                await init.logout(page);
             });
             done();
         },
@@ -272,13 +270,6 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when trying to edit a monitor category for a member who is not the admin or owner of the project',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
@@ -297,6 +288,7 @@ describe('Member Restriction', () => {
                 await page.click(editBtn);
                 const modal = await page.waitForSelector('#unauthorisedModal');
                 expect(modal).toBeDefined();
+                await init.logout(page);
             });
             done();
         },
@@ -306,13 +298,6 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when trying to delete a monitor category for a member who is not the admin or owner of the project',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);

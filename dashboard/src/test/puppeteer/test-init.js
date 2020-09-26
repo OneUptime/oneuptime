@@ -566,8 +566,7 @@ module.exports = {
         await page.type('#monitorCategoryName', monitorCategory);
         await page.click('#addMonitorCategoryButton');
 
-        const createdMonitorCategorySelector =
-            '#monitorCategoryList #monitor-category-name';
+        const createdMonitorCategorySelector = `#monitorCategoryList #monitor-category-${monitorCategory}`;
         await page.waitForSelector(createdMonitorCategorySelector, {
             visible: true,
         });

@@ -31,30 +31,37 @@ module.exports = {
             await page.type('input[name=password]', '1234567890');
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
-            await page.click('button[type=submit]');
-            await page.waitFor(15000);
 
-            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame6]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame7]');
+            await Promise.all([
+                page.waitForSelector(`form#card-form`),
+                page.click('button[type=submit]'),
+            ]);
+
+            await page.waitForSelector('.__PrivateStripeElement > iframe', {
+                visible: true,
+            });
+            const stripeIframeElements = await page.$$(
+                '.__PrivateStripeElement > iframe'
+            );
+
             await page.click('input[name=cardName]');
             await page.type('input[name=cardName]', 'Test name');
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
+            elementHandle = stripeIframeElements[0]; // card element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 50,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
+            elementHandle = stripeIframeElements[1]; // cvc element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 50,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
+            elementHandle = stripeIframeElements[2]; // exp element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {

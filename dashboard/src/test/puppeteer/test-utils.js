@@ -90,9 +90,9 @@ function capitalize(words) {
 
 const cardNumber = '4111111111111111';
 
-const monitorCategoryName = 'e2e_monitor_category';
+const monitorCategoryName = 'newCategory';
 
-const monitorName = 'e2e_monitor';
+const monitorName = 'newMonitor';
 
 const monitorUrl = 'https://www.test.com';
 

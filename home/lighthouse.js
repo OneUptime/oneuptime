@@ -56,8 +56,8 @@ child.on('message', function(score) {
     ];
     table.push(scores);
     if (
-        score.performance < 50 ||
-        score.accessibility < 80 ||
+        score.performance < 70 ||
+        score.accessibility < 70 ||
         score.bestPractices < 70 ||
         score.seo < 80
     ) {
