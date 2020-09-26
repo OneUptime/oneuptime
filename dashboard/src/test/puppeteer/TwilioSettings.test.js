@@ -63,7 +63,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
-                await page.click('#sms');
+                await page.click('#smsCalls');
                 await page.waitForSelector('label[for=enabled]', {
                     visible: true,
                 });
@@ -99,7 +99,7 @@ describe('Custom Twilio Settings', () => {
                     monitorName,
                     page
                 );
-                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS);
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 await page.waitForSelector('#addSubscriberButton');
                 await page.click('#addSubscriberButton');
                 await init.selectByText('#alertViaId', 'SMS', page);
@@ -111,7 +111,7 @@ describe('Custom Twilio Settings', () => {
                     hidden: true,
                 });
 
-                await init.gotoTab(utils.monitorTabIndexes.BASIC);
+                await init.gotoTab(utils.monitorTabIndexes.BASIC, page);
                 await page.waitForSelector(`#createIncident_${monitorName}`);
                 await page.click(`#createIncident_${monitorName}`);
                 await page.waitForSelector('#createIncident');
@@ -128,7 +128,7 @@ describe('Custom Twilio Settings', () => {
                 );
                 await page.waitForSelector('#incident_0');
 
-                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );
@@ -170,7 +170,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );
@@ -213,7 +213,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
 
-                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS);
+                await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
                 await page.waitForSelector(
                     '#subscriberAlertTable > tbody > tr'
                 );

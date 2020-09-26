@@ -88,6 +88,26 @@ const ApplicationSecurityView = ({
                                         </span>
                                     </div>
                                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                        <ShouldRender
+                                            if={
+                                                applicationSecurity &&
+                                                applicationSecurity.resourceCategory
+                                            }
+                                        >
+                                            <div className="Box-root Padding-right--8">
+                                                <Badge
+                                                    id={`${applicationSecurity.name}-badge`}
+                                                    color={'slate5'}
+                                                >
+                                                    {applicationSecurity &&
+                                                    applicationSecurity.resourceCategory
+                                                        ? applicationSecurity
+                                                              .resourceCategory
+                                                              .name
+                                                        : ''}
+                                                </Badge>
+                                            </div>
+                                        </ShouldRender>
                                         <div className="Box-root">
                                             <Badge color={'green'}>
                                                 Application Security

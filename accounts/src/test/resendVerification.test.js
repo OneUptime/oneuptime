@@ -9,7 +9,7 @@ let browser;
 let page;
 
 const email = utils.generateRandomBusinessEmail();
-const password = utils.generateRandomString();
+const password = '1234567890';
 const user = { email, password };
 
 describe('Resend Verification API', () => {
@@ -27,13 +27,9 @@ describe('Resend Verification API', () => {
     });
 
     it('Should not resend verification token if a user associated with the email does not exist', async () => {
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', 'invalid@email.com');
@@ -48,13 +44,9 @@ describe('Resend Verification API', () => {
 
     it('Should resend verification token successfully', async () => {
         await init.registerUser(user, page);
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/user-verify/resend', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);

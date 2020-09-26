@@ -278,7 +278,7 @@ export class MonitorDetail extends Component {
                             </Badge>
                         </div>
                     </ShouldRender>
-                    <ShouldRender if={monitor && monitor.monitorCategoryId}>
+                    <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
                             className={`Box-root Padding-top--20 ${
                                 this.props.shouldRenderProjectType
@@ -287,8 +287,8 @@ export class MonitorDetail extends Component {
                             }`}
                         >
                             <Badge color={'slate5'}>
-                                {monitor && monitor.monitorCategoryId
-                                    ? monitor.monitorCategoryId.name
+                                {monitor && monitor.resourceCategory
+                                    ? monitor.resourceCategory.name
                                     : ''}
                             </Badge>
                         </div>

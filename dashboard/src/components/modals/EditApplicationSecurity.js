@@ -57,6 +57,7 @@ class EditApplicationSecurity extends Component {
             handleSubmit,
             propArr,
             gitCredentials,
+            resourceCategoryList,
         } = this.props;
         const { applicationSecurityId } = propArr[0];
 
@@ -118,6 +119,53 @@ class EditApplicationSecurity extends Component {
                                                                 />
                                                             </div>
                                                         </div>
+                                                        <ShouldRender
+                                                            if={
+                                                                resourceCategoryList &&
+                                                                resourceCategoryList.length >
+                                                                    0
+                                                            }
+                                                        >
+                                                            <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Category
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="resourceCategory"
+                                                                        id="resourceCategory"
+                                                                        placeholder="Choose Category"
+                                                                        disabled={
+                                                                            isRequesting
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    '',
+                                                                                label:
+                                                                                    'Select category',
+                                                                            },
+                                                                            ...(resourceCategoryList &&
+                                                                            resourceCategoryList.length >
+                                                                                0
+                                                                                ? resourceCategoryList.map(
+                                                                                      category => ({
+                                                                                          value:
+                                                                                              category._id,
+                                                                                          label:
+                                                                                              category.name,
+                                                                                      })
+                                                                                  )
+                                                                                : []),
+                                                                        ]}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
                                                                 Git Repository
@@ -275,6 +323,7 @@ EditApplicationSecurity.propTypes = {
     handleSubmit: PropTypes.func,
     editApplicationSecurity: PropTypes.func,
     gitCredentials: PropTypes.array,
+    resourceCategoryList: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -286,8 +335,15 @@ const mapStateToProps = state => {
             gitRepositoryUrl:
                 state.security.applicationSecurity.gitRepositoryUrl,
             gitCredential: state.security.applicationSecurity.gitCredential._id,
+            resourceCategory: state.security.applicationSecurity
+                .resourceCategory
+                ? state.security.applicationSecurity.resourceCategory._id
+                : '',
         },
         gitCredentials: state.credential.gitCredentials,
+        resourceCategoryList:
+            state.resourceCategories.resourceCategoryListForNewResource
+                .resourceCategories,
     };
 };
 

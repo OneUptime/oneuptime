@@ -16,7 +16,7 @@ const flexStyle = {
     padding: '10px 4px',
 };
 const flexStylehidden = {
-    display: 'inline-block',
+    display: 'none',
     padding: '10px 4px',
     visibility: 'hidden',
 };
@@ -570,11 +570,7 @@ export class RenderOption extends Component {
                             style={
                                 filterval !== '' &&
                                 firstField.indexOf(filterval) > -1
-                                    ? filterval === 'jsExpression'
-                                        ? Object.assign({}, flexStyle, {
-                                              width: '426px',
-                                          })
-                                        : flexStyle
+                                    ? flexStyle
                                     : flexStylehidden
                             }
                         >
@@ -586,7 +582,7 @@ export class RenderOption extends Component {
                                     ? mapValue[filterval]
                                     : ''}
                             </label>
-                            <div className="bs-Fieldset-fields">
+                            <div className="bs-Fieldset-fields Flex-direction--row">
                                 <Field
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     id="value"
@@ -618,19 +614,7 @@ export class RenderOption extends Component {
                                               ]
                                             : ''
                                     }
-                                    style={
-                                        filterval !== '' &&
-                                        filterval === 'jsExpression'
-                                            ? { width: '426px' }
-                                            : bodyfield &&
-                                              filterval !== '' &&
-                                              (bodyfield.responseType ===
-                                                  'responseTime' ||
-                                                  bodyfield.responseType ===
-                                                      'executes')
-                                            ? { width: '180px' }
-                                            : { width: '200px' }
-                                    }
+                                    style={{ width: '220px' }}
                                 />
                                 <ShouldRender
                                     if={
@@ -819,214 +803,206 @@ export class RenderOption extends Component {
                     </>
                 )}
 
-                {filterval !== '' && filterval === 'jsExpression' ? (
-                    ''
-                ) : (
-                    <>
-                        <div
-                            className="bs-Fieldset-row"
-                            style={
+                <div
+                    className="bs-Fieldset-row"
+                    style={
+                        filterval !== '' && filterval === 'inBetween'
+                            ? flexStyle
+                            : flexStylehidden
+                    }
+                >
+                    <label
+                        className="bs-Fieldset-label"
+                        style={{ padding: '6px' }}
+                    >
+                        End Value
+                    </label>
+                    <div className="bs-Fieldset-fields">
+                        <Field
+                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                            type="text"
+                            name={`${fieldnameprop}.field2`}
+                            component={RenderField}
+                            validate={
                                 filterval !== '' && filterval === 'inBetween'
-                                    ? flexStyle
-                                    : flexStylehidden
+                                    ? [
+                                          ValidateField.required,
+                                          ValidateField.maxValue20000,
+                                      ]
+                                    : undefined
                             }
-                        >
-                            <label
-                                className="bs-Fieldset-label"
-                                style={{ padding: '6px' }}
-                            >
-                                End Value
-                            </label>
-                            <div className="bs-Fieldset-fields">
-                                <Field
-                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                    type="text"
-                                    name={`${fieldnameprop}.field2`}
-                                    component={RenderField}
-                                    validate={
-                                        filterval !== '' &&
-                                        filterval === 'inBetween'
-                                            ? [
-                                                  ValidateField.required,
-                                                  ValidateField.maxValue20000,
-                                              ]
-                                            : undefined
-                                    }
-                                    placeholder={
-                                        bodyfield &&
-                                        filterval &&
-                                        bodyfield.responseType &&
-                                        placeholderfilter.indexOf(filterval) <=
-                                            -1 &&
-                                        placeholders[filterval][
-                                            bodyfield.responseType
-                                        ]
-                                            ? placeholders['lessThan'][
-                                                  bodyfield.responseType
-                                              ]
-                                            : ''
-                                    }
-                                    style={
-                                        bodyfield &&
-                                        filterval !== '' &&
-                                        (bodyfield.responseType ===
-                                            'responseTime' ||
-                                            bodyfield.responseType ===
-                                                'executes') &&
-                                        filterval === 'inBetween'
-                                            ? { width: '180px' }
-                                            : { width: '200px' }
-                                    }
-                                />
+                            placeholder={
+                                bodyfield &&
+                                filterval &&
+                                bodyfield.responseType &&
+                                placeholderfilter.indexOf(filterval) <= -1 &&
+                                placeholders[filterval][bodyfield.responseType]
+                                    ? placeholders['lessThan'][
+                                          bodyfield.responseType
+                                      ]
+                                    : ''
+                            }
+                            style={{ width: '220px' }}
+                        />
+                    </div>
+                </div>
+
+                {bodyfield &&
+                filterval !== '' &&
+                (bodyfield.responseType === 'responseTime' ||
+                    bodyfield.responseType === 'executes') &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        ms
+                    </span>
+                ) : (
+                    ''
+                )}
+                {bodyfield &&
+                filterval !== '' &&
+                bodyfield.responseType === 'cpuLoad' &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        %
+                    </span>
+                ) : (
+                    ''
+                )}
+                {bodyfield &&
+                filterval !== '' &&
+                (bodyfield.responseType === 'memoryUsage' ||
+                    bodyfield.responseType === 'storageUsage') &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        gb
+                    </span>
+                ) : (
+                    ''
+                )}
+                {bodyfield &&
+                filterval !== '' &&
+                bodyfield.responseType === 'temperature' &&
+                filterval === 'inBetween' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        &deg;c
+                    </span>
+                ) : (
+                    ''
+                )}
+                <div style={{ marginLeft: 'auto', paddingRight: 16 }}>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => addField()}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/plus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
                             </div>
                         </div>
-
-                        {bodyfield &&
-                        filterval !== '' &&
-                        (bodyfield.responseType === 'responseTime' ||
-                            bodyfield.responseType === 'executes') &&
-                        filterval === 'inBetween' ? (
-                            <span
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '37px',
-                                }}
-                            >
-                                ms
-                            </span>
-                        ) : (
-                            ''
-                        )}
-                        {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'cpuLoad' &&
-                        filterval === 'inBetween' ? (
-                            <span
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '37px',
-                                }}
-                            >
-                                %
-                            </span>
-                        ) : (
-                            ''
-                        )}
-                        {bodyfield &&
-                        filterval !== '' &&
-                        (bodyfield.responseType === 'memoryUsage' ||
-                            bodyfield.responseType === 'storageUsage') &&
-                        filterval === 'inBetween' ? (
-                            <span
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '37px',
-                                }}
-                            >
-                                gb
-                            </span>
-                        ) : (
-                            ''
-                        )}
-                        {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'temperature' &&
-                        filterval === 'inBetween' ? (
-                            <span
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '37px',
-                                }}
-                            >
-                                &deg;c
-                            </span>
-                        ) : (
-                            ''
-                        )}
-                    </>
-                )}
-
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => addField()}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/plus.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
+                    </div>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() =>
+                                        removeField(removeArrayField)
+                                    }
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => removeField(removeArrayField)}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/minus.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="bs-Fieldset-row"
-                    style={{ display: 'inline-block', padding: '4px' }}
-                >
-                    <label
-                        className="bs-Fieldset-label"
-                        style={{ padding: '6px' }}
-                    ></label>
-                    <div className="bs-Fieldset-fields">
-                        <div className="Box-root Flex-flex Flex-alignItems--center">
-                            <button
-                                className="bs-Button bs-DeprecatedButton"
-                                type="button"
-                                onClick={() => addArrayField(fieldnameprop)}
-                                style={{
-                                    borderRadius: '50%',
-                                    padding: '0px 6px',
-                                }}
-                            >
-                                <img
-                                    src="/dashboard/assets/img/more.svg"
-                                    style={{ height: '10px', width: '10px' }}
-                                    alt=""
-                                />
-                            </button>
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ display: 'inline-block', padding: '4px' }}
+                    >
+                        <label
+                            className="bs-Fieldset-label"
+                            style={{ padding: '6px' }}
+                        ></label>
+                        <div className="bs-Fieldset-fields">
+                            <div className="Box-root Flex-flex Flex-alignItems--center">
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => addArrayField(fieldnameprop)}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0px 6px',
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/more.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

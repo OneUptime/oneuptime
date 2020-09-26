@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings, testSmtp } from '../../actions/settings';
 import { openModal, closeModal } from '../../actions/modal';
 import SmtpTestModal from './smtpTestModal';
+import MessageModal from './MessageModal';
 
 // Client side validation
 function validate(values) {
@@ -122,7 +123,10 @@ const fields = [
 export class Component extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { testModalId: uuid.v4() };
+        this.state = {
+            testModalId: uuid.v4(),
+            messageModalId: uuid.v4(),
+        };
     }
 
     async componentDidMount() {
@@ -154,12 +158,19 @@ export class Component extends React.Component {
                     if (res && typeof res === 'string') {
                         // prevent dismissal of modal if errored
                         // res will only be a string if errored
-                        return this.handleTestSmtp();
+                        return this.props.openModal({
+                            id: this.state.messageModalId,
+                            content: MessageModal,
+                        });
                     }
 
                     if (window.location.href.indexOf('localhost') <= -1) {
                         thisObj.context.mixpanel.track('Sent SMTP settings');
                     }
+                    return this.props.openModal({
+                        id: this.state.messageModalId,
+                        content: MessageModal,
+                    });
                 });
             },
             content: SmtpTestModal,
@@ -257,6 +268,7 @@ export class Component extends React.Component {
                             <span className="db-SettingsForm-footerMessage"></span>
                             <div>
                                 <button
+                                    id="testSmtpSettingsButton"
                                     className="bs-Button"
                                     disabled={settings && settings.requesting}
                                     onClick={this.handleTestSmtp}

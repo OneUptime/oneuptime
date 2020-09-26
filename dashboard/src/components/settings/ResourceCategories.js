@@ -5,12 +5,12 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import {
-    fetchMonitorCategories,
-    deleteMonitorCategory,
-} from '../../actions/monitorCategories';
-import AddMonitorCategoryForm from '../../components/modals/AddMonitorCategory';
-import RemoveMonitorCategory from '../../components/modals/RemoveMonitorCategory';
-import EditMonitorCategory from '../../components/modals/EditMonitorCategory';
+    fetchResourceCategories,
+    deleteResourceCategory,
+} from '../../actions/resourceCategories';
+import AddResourceCategoryForm from '../modals/AddResourceCategory';
+import RemoveResourceCategory from '../modals/RemoveResourceCategory';
+import EditResourceCategory from '../modals/EditResourceCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import uuid from 'uuid';
@@ -18,18 +18,18 @@ import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 
-export class MonitorCategories extends Component {
+export class ResourceCategories extends Component {
     state = {
-        CreateMonitorCategoryModalId: uuid.v4(),
-        EditMonitorCategoryModalId: uuid.v4(),
-        removeMonitorCategoryModalId: uuid.v4(),
+        CreateResourceCategoryModalId: uuid.v4(),
+        EditResourceCategoryModalId: uuid.v4(),
+        removeResourceCategoryModalId: uuid.v4(),
     };
 
-    handleDeleteMonitorCategory(_id) {
-        this.props.deleteMonitorCategory(_id, this.props.projectId);
+    handleDeleteResourceCategory(_id) {
+        this.props.deleteResourceCategory(_id, this.props.projectId);
     }
     prevClicked = () => {
-        this.props.fetchMonitorCategories(
+        this.props.fetchResourceCategories(
             this.props.projectId,
             this.props.skip ? parseInt(this.props.skip, 10) - 10 : 10,
             10
@@ -37,22 +37,22 @@ export class MonitorCategories extends Component {
     };
 
     nextClicked = () => {
-        this.props.fetchMonitorCategories(
+        this.props.fetchResourceCategories(
             this.props.projectId,
             this.props.skip ? parseInt(this.props.skip, 10) + 10 : 10,
             10
         );
     };
 
-    handleCreateMonitorCategory = userId => {
+    handleCreateResourceCategory = userId => {
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
-                  id: this.state.CreateMonitorCategoryModalId,
-                  content: AddMonitorCategoryForm,
+                  id: this.state.CreateResourceCategoryModalId,
+                  content: AddResourceCategoryForm,
               })
             : openModal({
-                  id: this.state.CreateMonitorCategoryModalId,
+                  id: this.state.CreateResourceCategoryModalId,
                   content: Unauthorised,
               });
     };
@@ -61,13 +61,13 @@ export class MonitorCategories extends Component {
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
-                  id: this.state.EditMonitorCategoryModalId,
-                  content: DataPathHoC(EditMonitorCategory, {
-                      monitorCategoryId: _id,
+                  id: this.state.EditResourceCategoryModalId,
+                  content: DataPathHoC(EditResourceCategory, {
+                      resourceCategoryId: _id,
                   }),
               })
             : openModal({
-                  id: this.state.CreateMonitorCategoryModalId,
+                  id: this.state.CreateResourceCategoryModalId,
                   content: Unauthorised,
               });
     };
@@ -76,18 +76,18 @@ export class MonitorCategories extends Component {
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
-                  id: this.state.removeMonitorCategoryModalId,
+                  id: this.state.removeResourceCategoryModalId,
                   onClose: () => '',
                   onConfirm: () => {
                       return new Promise(resolve => {
-                          this.handleDeleteMonitorCategory(_id);
+                          this.handleDeleteResourceCategory(_id);
                           resolve(true);
                       });
                   },
-                  content: RemoveMonitorCategory,
+                  content: RemoveResourceCategory,
               })
             : openModal({
-                  id: this.state.CreateMonitorCategoryModalId,
+                  id: this.state.CreateResourceCategoryModalId,
                   content: Unauthorised,
               });
     };
@@ -100,9 +100,9 @@ export class MonitorCategories extends Component {
                 ? true
                 : false;
         let canPrev = parseInt(this.props.skip) <= 0 ? false : true;
-        const { isRequesting, error, monitorCategories } = this.props;
+        const { isRequesting, error, resourceCategories } = this.props;
 
-        if (isRequesting || !monitorCategories) {
+        if (isRequesting || !resourceCategories) {
             canNext = false;
             canPrev = false;
         }
@@ -116,12 +116,12 @@ export class MonitorCategories extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Monitor Categories</span>
+                                    <span>Resource Categories</span>
                                 </span>
                                 <p>
                                     <span>
                                         {
-                                            'Monitor Categories lets you group monitors by categories on Status Page.'
+                                            'Resource Categories lets you group resources by categories on Status Page.'
                                         }
                                     </span>
                                 </p>
@@ -130,7 +130,7 @@ export class MonitorCategories extends Component {
                                 <div className="Box-root">
                                     <button
                                         onClick={() => {
-                                            this.handleCreateMonitorCategory(
+                                            this.handleCreateResourceCategory(
                                                 userId
                                             );
                                         }}
@@ -142,11 +142,11 @@ export class MonitorCategories extends Component {
                                                 <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                             </div>
                                             <span
-                                                id="createMonitorCategoryButton"
+                                                id="createResourceCategoryButton"
                                                 className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                             >
                                                 <span>
-                                                    Create Monitor Category
+                                                    Create Resource Category
                                                 </span>
                                             </span>
                                         </div>
@@ -155,7 +155,7 @@ export class MonitorCategories extends Component {
                             </div>
                         </div>
                         <div
-                            id="monitorCategoryList"
+                            id="resourceCategoryList"
                             className="bs-ContentSection-content Box-root"
                         >
                             <div className="bs-ObjectList db-UserList">
@@ -168,7 +168,7 @@ export class MonitorCategories extends Component {
                                     <div className="bs-ObjectList-rows">
                                         <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                             <div className="bs-ObjectList-cell">
-                                                Monitor category
+                                                Resource category
                                             </div>
                                             <div className="bs-ObjectList-cell">
                                                 Created
@@ -177,7 +177,7 @@ export class MonitorCategories extends Component {
                                                 Action
                                             </div>
                                         </header>
-                                        {monitorCategories.map(
+                                        {resourceCategories.map(
                                             ({ createdAt, name, _id }) => (
                                                 <div
                                                     key={_id}
@@ -188,7 +188,7 @@ export class MonitorCategories extends Component {
                                                             {this.props.name}
                                                         </div>
                                                         <div
-                                                            id="monitor-category-name"
+                                                            id="resource-category-name"
                                                             className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
                                                         >
                                                             {name}
@@ -226,7 +226,7 @@ export class MonitorCategories extends Component {
                                                             </div>
                                                             <div
                                                                 className="Box-root Margin-left--8"
-                                                                id="deleteMonitorCategoryBtn"
+                                                                id="deleteResourceCategoryBtn"
                                                             >
                                                                 <button
                                                                     onClick={() => {
@@ -256,8 +256,8 @@ export class MonitorCategories extends Component {
                                         <ShouldRender
                                             if={
                                                 !(
-                                                    (!monitorCategories ||
-                                                        monitorCategories.length ===
+                                                    (!resourceCategories ||
+                                                        resourceCategories.length ===
                                                             0) &&
                                                     !isRequesting &&
                                                     !error
@@ -274,8 +274,8 @@ export class MonitorCategories extends Component {
                         </div>
                         <ShouldRender
                             if={
-                                (!monitorCategories ||
-                                    monitorCategories.length === 0) &&
+                                (!resourceCategories ||
+                                    resourceCategories.length === 0) &&
                                 !isRequesting &&
                                 !error
                             }
@@ -288,11 +288,11 @@ export class MonitorCategories extends Component {
                                     padding: '0 10px',
                                 }}
                             >
-                                {(!monitorCategories ||
-                                    monitorCategories.length === 0) &&
+                                {(!resourceCategories ||
+                                    resourceCategories.length === 0) &&
                                 !isRequesting &&
                                 !error
-                                    ? 'You have no monitor category at this time'
+                                    ? 'You have no resource category at this time'
                                     : null}
                                 {error ? error : null}
                             </div>
@@ -302,15 +302,15 @@ export class MonitorCategories extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
                                         <span
-                                            id="monitorCategoryCount"
+                                            id="resourceCategoryCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
                                             {this.props.count
                                                 ? this.props.count +
                                                   (this.props.count > 1
-                                                      ? ' Monitor Categories'
-                                                      : ' Monitor Category')
-                                                : '0 Monitor Category'}
+                                                      ? ' Resource Categories'
+                                                      : ' Resource Category')
+                                                : '0 Resource Category'}
                                         </span>
                                     </span>
                                 </span>
@@ -363,14 +363,14 @@ export class MonitorCategories extends Component {
     }
 }
 
-MonitorCategories.displayName = 'MonitorCategories';
+ResourceCategories.displayName = 'ResourceCategories';
 
-MonitorCategories.propTypes = {
+ResourceCategories.propTypes = {
     projectId: PropTypes.string,
-    monitorCategories: PropTypes.array,
+    resourceCategories: PropTypes.array,
     isRequesting: PropTypes.bool,
-    deleteMonitorCategory: PropTypes.func.isRequired,
-    fetchMonitorCategories: PropTypes.func.isRequired,
+    deleteResourceCategory: PropTypes.func.isRequired,
+    fetchResourceCategories: PropTypes.func.isRequired,
     skip: PropTypes.number,
     count: PropTypes.number,
     limit: PropTypes.number,
@@ -383,8 +383,8 @@ MonitorCategories.propTypes = {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            fetchMonitorCategories,
-            deleteMonitorCategory,
+            fetchResourceCategories,
+            deleteResourceCategory,
             openModal,
             closeModal,
         },
@@ -395,13 +395,13 @@ const mapStateToProps = state => ({
     projectId:
         state.project.currentProject !== null &&
         state.project.currentProject._id,
-    monitorCategories:
-        state.monitorCategories.monitorCategoryList.monitorCategories,
-    skip: state.monitorCategories.monitorCategoryList.skip,
-    limit: state.monitorCategories.monitorCategoryList.limit,
-    count: state.monitorCategories.monitorCategoryList.count,
-    isRequesting: state.monitorCategories.monitorCategoryList.requesting,
+    resourceCategories:
+        state.resourceCategories.resourceCategoryList.resourceCategories,
+    skip: state.resourceCategories.resourceCategoryList.skip,
+    limit: state.resourceCategories.resourceCategoryList.limit,
+    count: state.resourceCategories.resourceCategoryList.count,
+    isRequesting: state.resourceCategories.resourceCategoryList.requesting,
     currentProject: state.project.currentProject,
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonitorCategories);
+export default connect(mapStateToProps, mapDispatchToProps)(ResourceCategories);

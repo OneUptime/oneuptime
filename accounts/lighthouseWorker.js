@@ -8,7 +8,6 @@ const ora = require('ora');
  * @see https://crbug.com/721112
  * @see https://docs.google.com/document/d/10lfVdS1iDWCRKQXPfbxEn4Or99D64mvNlugP1AQuFlE/edit
  */
-const DEVTOOLS_RTT_ADJUSTMENT_FACTOR = 3.75;
 const DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR = 0.9;
 
 const config = {
@@ -19,11 +18,11 @@ const config = {
         throttling: {
             rttMs: 40,
             throughputKbps: 10 * 1024,
-            requestLatencyMs: 150 * DEVTOOLS_RTT_ADJUSTMENT_FACTOR,
+            cpuSlowdownMultiplier: 1,
+            requestLatencyMs: 0, // 0 means unset
             downloadThroughputKbps:
                 1.6 * 1024 * DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR,
             uploadThroughputKbps: 750 * DEVTOOLS_THROUGHPUT_ADJUSTMENT_FACTOR,
-            cpuSlowdownMultiplier: 4,
         },
         skipAudits: ['uses-http2', 'is-on-https', 'largest-contentful-paint'],
         onlyCategories: [
@@ -83,8 +82,8 @@ process.on('message', function(data) {
             );
             scores.seo = Math.ceil(results.lhr.categories.seo.score * 100);
             if (
-                scores.performance < 50 ||
-                scores.accessibility < 80 ||
+                scores.performance < 70 ||
+                scores.accessibility < 70 ||
                 scores.bestPractices < 70 ||
                 scores.seo < 80
             ) {

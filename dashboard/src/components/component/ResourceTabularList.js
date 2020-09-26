@@ -340,6 +340,7 @@ class ResourceTabularList extends Component {
                                                         </div>
                                                     </div>
                                                 </td>
+
                                                 <td
                                                     className="Table-cell Table-cell--align--right  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell Padding-right--20"
                                                     style={{

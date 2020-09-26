@@ -8,6 +8,7 @@ import {
     postSmtpConfig,
     deleteSmtpConfig,
     updateSmtpConfig,
+    deleteSmtpConfigError,
 } from '../../actions/emailTemplates';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -101,7 +102,7 @@ export class EmailSmtpBox extends Component {
             } else {
                 postSmtpConfig(currentProject._id, values);
             }
-        } else if (smtpConfigurations.config._id) {
+        } else {
             this.props.deleteSmtpConfig(
                 this.props.currentProject._id,
                 smtpConfigurations.config._id,
@@ -115,10 +116,12 @@ export class EmailSmtpBox extends Component {
 
     changeValue = e => {
         this.props.setSmtpConfig(e.target.checked);
+        this.props.deleteSmtpConfigError('');
     };
 
     render() {
         const { handleSubmit } = this.props;
+
         return (
             <div
                 className="db-World-contentPane Box-root"
@@ -156,6 +159,7 @@ export class EmailSmtpBox extends Component {
                                                                     className="Box-root"
                                                                 >
                                                                     <label
+                                                                        id="showsmtpForm"
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
@@ -424,6 +428,7 @@ export class EmailSmtpBox extends Component {
                                                                         className="Box-root"
                                                                     >
                                                                         <label
+                                                                            id="enableSecureTransport"
                                                                             className="Checkbox responsive"
                                                                             htmlFor="secure"
                                                                             style={{
@@ -458,6 +463,18 @@ export class EmailSmtpBox extends Component {
                                                                                         Transport
                                                                                     </span>
                                                                                 </span>
+                                                                                <label className="bs-Fieldset-explanation">
+                                                                                    <span>
+                                                                                        Enabled
+                                                                                        for
+                                                                                        port
+                                                                                        465,
+                                                                                        disabled
+                                                                                        for
+                                                                                        port
+                                                                                        587
+                                                                                    </span>
+                                                                                </label>
                                                                             </div>
                                                                         </label>
                                                                         <div className="Box-root Padding-left--24">
@@ -599,6 +616,7 @@ EmailSmtpBox.propTypes = {
     handleSubmit: PropTypes.func,
     showEmailSmtpConfiguration: PropTypes.bool,
     emailSmtpDelete: PropTypes.object,
+    deleteSmtpConfigError: PropTypes.func,
 };
 
 const EmailSmtpBoxForm = reduxForm({
@@ -614,6 +632,7 @@ const mapDispatchToProps = dispatch => {
             postSmtpConfig,
             deleteSmtpConfig,
             updateSmtpConfig,
+            deleteSmtpConfigError,
         },
         dispatch
     );

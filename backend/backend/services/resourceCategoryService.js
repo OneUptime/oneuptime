@@ -1,33 +1,36 @@
 module.exports = {
     create: async function(data) {
         try {
-            const existingMonitorCategory = await this.findBy({
+            const existingResourceCategory = await this.findBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (existingMonitorCategory && existingMonitorCategory.length > 0) {
+            if (
+                existingResourceCategory &&
+                existingResourceCategory.length > 0
+            ) {
                 const error = new Error(
-                    'A monitor category with that name already exists.'
+                    'A resource category with that name already exists.'
                 );
                 error.code = 400;
-                ErrorService.log('monitorCategoryService.create', error);
+                ErrorService.log('resourceCategoryService.create', error);
                 throw error;
             }
-            let monitorCategory = new MonitorCategoryModel();
-            monitorCategory.projectId = data.projectId;
-            monitorCategory.createdById = data.createdById;
-            monitorCategory.name = data.name;
-            monitorCategory = await monitorCategory.save();
-            return monitorCategory;
+            let resourceCategory = new ResourceCategoryModel();
+            resourceCategory.projectId = data.projectId;
+            resourceCategory.createdById = data.createdById;
+            resourceCategory.name = data.name;
+            resourceCategory = await resourceCategory.save();
+            return resourceCategory;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.create', error);
+            ErrorService.log('resourceCategoryService.create', error);
             throw error;
         }
     },
 
     deleteBy: async function(query, userId) {
         try {
-            const monitorCategory = await MonitorCategoryModel.findOneAndUpdate(
+            const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
                 query,
                 {
                     $set: {
@@ -40,17 +43,17 @@ module.exports = {
             );
 
             await MonitorModel.updateMany(
-                { monitorCategoryId: query._id },
+                { resourceCategoryId: query._id },
                 {
                     $set: {
-                        monitorCategoryId: null,
+                        resourceCategoryId: null,
                     },
                 }
             );
 
-            return monitorCategory;
+            return resourceCategory;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.deleteBy', error);
+            ErrorService.log('resourceCategoryService.deleteBy', error);
             throw error;
         }
     },
@@ -74,42 +77,45 @@ module.exports = {
             }
 
             query.deleted = false;
-            let monitorCategories = await MonitorCategoryModel.find(query)
+            let resourceCategories = await ResourceCategoryModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
-            monitorCategories = monitorCategories.map(monitorCategory => ({
-                name: monitorCategory.name,
-                _id: monitorCategory._id,
-                createdAt: monitorCategory.createdAt,
+            resourceCategories = resourceCategories.map(resourceCategory => ({
+                name: resourceCategory.name,
+                _id: resourceCategory._id,
+                createdAt: resourceCategory.createdAt,
             }));
-            return monitorCategories;
+            return resourceCategories;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.findBy', error);
+            ErrorService.log('resourceCategoryService.findBy', error);
             throw error;
         }
     },
 
     updateOneBy: async function(query, data) {
         try {
-            const existingMonitorCategory = await this.findBy({
+            const existingResourceCategory = await this.findBy({
                 name: data.name,
                 projectId: data.projectId,
                 _id: { $not: { $eq: data._id } },
             });
-            if (existingMonitorCategory && existingMonitorCategory.length > 0) {
+            if (
+                existingResourceCategory &&
+                existingResourceCategory.length > 0
+            ) {
                 const error = new Error(
-                    'A monitor category with that name already exists.'
+                    'A resource category with that name already exists.'
                 );
                 error.code = 400;
-                ErrorService.log('monitorCategoryService.updateOneBy', error);
+                ErrorService.log('resourceCategoryService.updateOneBy', error);
                 throw error;
             }
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const monitorCategory = await MonitorCategoryModel.findOneAndUpdate(
+            const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -118,9 +124,9 @@ module.exports = {
                     new: true,
                 }
             );
-            return monitorCategory;
+            return resourceCategory;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.updateOneBy', error);
+            ErrorService.log('resourceCategoryService.updateOneBy', error);
             throw error;
         }
     },
@@ -132,13 +138,13 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            let updatedData = await MonitorCategoryModel.updateMany(query, {
+            let updatedData = await ResourceCategoryModel.updateMany(query, {
                 $set: data,
             });
             updatedData = await this.findBy(query);
             return updatedData;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.updateMany', error);
+            ErrorService.log('resourceCategoryService.updateMany', error);
             throw error;
         }
     },
@@ -150,24 +156,24 @@ module.exports = {
             }
 
             query.deleted = false;
-            const count = await MonitorCategoryModel.countDocuments(query);
+            const count = await ResourceCategoryModel.countDocuments(query);
             return count;
         } catch (error) {
-            ErrorService.log('monitorCategoryService.countBy', error);
+            ErrorService.log('resourceCategoryService.countBy', error);
             throw error;
         }
     },
     hardDeleteBy: async function(query) {
         try {
-            await MonitorCategoryModel.deleteMany(query);
-            return 'Monitor Categories(s) removed successfully!';
+            await ResourceCategoryModel.deleteMany(query);
+            return 'Resource Categories(s) removed successfully!';
         } catch (error) {
-            ErrorService.log('monitorCategoryService.hardDeleteBy', error);
+            ErrorService.log('resourceCategoryService.hardDeleteBy', error);
             throw error;
         }
     },
 };
 
-const MonitorCategoryModel = require('../models/monitorCategory');
+const ResourceCategoryModel = require('../models/resourceCategory');
 const MonitorModel = require('../models/monitor');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('./errorService');

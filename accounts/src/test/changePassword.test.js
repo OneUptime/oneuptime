@@ -6,7 +6,7 @@ let browser;
 let page;
 
 const email = utils.generateRandomBusinessEmail();
-const password = utils.generateRandomString();
+const password = '1234567890';
 const user = {
     email,
     password,
@@ -27,14 +27,10 @@ describe('Change Password API', () => {
     });
 
     it('Should not allow change of password if password and confirm password do not math', async () => {
-        try {
-            await page.goto(
-                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-                { waitUntil: 'networkidle2' }
-            );
-        } catch (e) {
-            //
-        }
+        await page.goto(
+            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+            { waitUntil: 'networkidle2' }
+        );
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', user.password);
@@ -56,14 +52,10 @@ describe('Change Password API', () => {
     }, 160000);
 
     it('Should submit if password is less than 8 characters', async () => {
-        try {
-            await page.goto(
-                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-                { waitUntil: 'networkidle2' }
-            );
-        } catch (e) {
-            //
-        }
+        await page.goto(
+            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+            { waitUntil: 'networkidle2' }
+        );
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', '123456');
@@ -83,14 +75,10 @@ describe('Change Password API', () => {
     }, 160000);
 
     it('Should submit if password is missing', async () => {
-        try {
-            await page.goto(
-                utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
-                { waitUntil: 'networkidle2' }
-            );
-        } catch (e) {
-            //
-        }
+        await page.goto(
+            utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
+            { waitUntil: 'networkidle2' }
+        );
         await page.waitForSelector('#password');
         await page.click('input[name=password]');
         await page.type('input[name=password]', '');

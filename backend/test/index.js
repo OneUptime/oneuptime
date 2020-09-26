@@ -17,7 +17,7 @@ try {
     require('./jwttoken.test');
     require('./lead.test');
     require('./monitor.test');
-    require('./monitorCategory.test');
+    require('./resourceCategory.test');
     require('./monitorCriteria.test');
     require('./notification.test');
     require('./probe.test');
@@ -37,8 +37,8 @@ try {
     require('./user.test');
     require('./version.test');
     require('./applicationLog.test');
-    // require('./slack.test');
-    require('./webhooks.test');
+    require('./slack.test');
+    require('./webhook.test');
     require('./zapier.test');
     require('./rateLimit.test');
 } catch (error) {

@@ -136,7 +136,10 @@ describe('Monitor API With SubProjects', () => {
                 await page.click('#url');
                 await page.type('#url', 'https://google.com');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForSelector(
+                    `#monitor-title-${subProjectMonitorName}`,
+                    { visible: true }
+                );
                 let spanElement = await page.$(
                     `#monitor-title-${subProjectMonitorName}`
                 );
@@ -171,7 +174,10 @@ describe('Monitor API With SubProjects', () => {
                     await page.type('input[id=name]', data.monitorName);
                     await init.selectByText('#type', 'manual', page);
                     await page.click('button[type=submit]');
-                    await page.waitFor(5000);
+                    await page.waitForSelector(
+                        `#monitor-title-${data.monitorName}`,
+                        { visible: true, timeout: operationTimeOut }
+                    );
                     let spanElement = await page.$(
                         `#monitor-title-${data.monitorName}`
                     );
@@ -217,6 +223,10 @@ describe('Monitor API With SubProjects', () => {
 
                     expect(projectBadgeSelector).toEqual(null);
 
+                    await page.waitForSelector(
+                        `#badge_${data.subProjectName}`,
+                        { visible: true }
+                    );
                     const subProjectBadgeSelector = await page.$(
                         `#badge_${data.subProjectName}`
                     );

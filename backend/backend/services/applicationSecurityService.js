@@ -4,6 +4,7 @@ const moment = require('moment');
 const { decrypt } = require('../config/encryptDecrypt');
 const ApplicationSecurityLogService = require('./applicationSecurityLogService');
 const GitCredentialService = require('./gitCredentialService');
+const ResourceCategoryService = require('./resourceCategoryService');
 
 module.exports = {
     create: async function(data) {
@@ -43,6 +44,12 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategory,
+            });
+            if (!resourceCategory) {
+                delete data.resourceCategory;
+            }
 
             const applicationSecurity = await ApplicationSecurityModel.create(
                 data
@@ -63,6 +70,7 @@ module.exports = {
                 query
             )
                 .populate('componentId')
+                .populate('resourceCategory', 'name')
                 .populate('gitCredential');
 
             return applicationSecurity;
@@ -92,6 +100,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('componentId')
+                .populate('resourceCategory', 'name')
                 .populate('gitCredential');
 
             return applicationSecurities;
@@ -100,13 +109,13 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
+            let applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -114,6 +123,15 @@ module.exports = {
                 { new: true }
             ).populate('gitCredential');
 
+            if (unsetData) {
+                applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
             if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
@@ -122,6 +140,9 @@ module.exports = {
                 throw error;
             }
 
+            applicationSecurity = this.findOneBy({
+                _id: applicationSecurity._id,
+            });
             return applicationSecurity;
         } catch (error) {
             ErrorService.log('applicationSecurityService.updateOneBy', error);
