@@ -1322,8 +1322,13 @@ module.exports = {
         };
     },
 
+    //Return true, if the limit is not reached yet.
     checkPhoneAlertsLimit: async function(projectId) {
         const _this = this;
+        const hasCustomSettings = await TwilioService.hasCustomSettings(projectId);
+        if(hasCustomSettings){
+            return true;
+        }
         const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
         const alerts = await _this.countBy({
             projectId: projectId,
