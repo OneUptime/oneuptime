@@ -250,7 +250,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type(
                     '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
+                    '654321'
                 );
                 await page.click('#verify');
                 await page.waitFor('#smsVerificationErrors');
@@ -285,7 +285,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type(
                     '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                    '123456'
                 );
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
@@ -327,7 +327,7 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#otp');
                 await page.type(
                     '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
+                    '123456'
                 );
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
