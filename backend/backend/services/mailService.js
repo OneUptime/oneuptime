@@ -1375,7 +1375,7 @@ const _this = {
         try {
             const privateMailer = await _this.createMailer(data);
             mailOptions = {
-                from: '"Fyipe " <' + data.from + '>',
+                from: `"${data.name}" <${data.from}>`,
                 to: data.email,
                 subject: 'Email Smtp Settings Test',
                 template: 'smtp_test',
