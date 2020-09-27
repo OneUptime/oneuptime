@@ -20,66 +20,63 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
+const validate = (values, props) => {
+    const errors = {};
+    if (props.showEmailSmtpConfiguration) {
+        if (values.user) {
+            if (!Validate.text(values.user)) {
+                errors.user = 'Please input username in text format .';
+            }
+        } else {
+            errors.user = 'Please input username this cannot be left blank.';
+        }
+
+        if (!values.pass || !values.pass.length) {
+            errors.pass = 'Please input password this cannot be left blank.';
+        }
+
+        if (values.port) {
+            if (!Validate.number(values.port)) {
+                errors.port = 'Please input port in number format .';
+            }
+        } else {
+            errors.port = 'Please input port this cannot be left blank.';
+        }
+
+        if (values.host) {
+            if (!Validate.text(values.host)) {
+                errors.host = 'Please input host in proper format .';
+            }
+        } else {
+            errors.host = 'Please input host this cannot be left blank.';
+        }
+
+        if (values.from) {
+            if (!Validate.email(values.from)) {
+                errors.from = 'Please input from in proper format .';
+            }
+        } else {
+            errors.from =
+            'Please input from address this cannot be left blank.';
+        }
+
+        if (values.name) {
+            if (!Validate.text(values.name)) {
+                errors.from = 'Please input name in proper format .';
+            }
+        } else {
+            errors.name = 'Please input name this cannot be left blank.';
+        }
+    }
+    return errors;
+};
+
 export class EmailSmtpBox extends Component {
     constructor(props) {
         super(props);
         this.changeValue = this.changeValue.bind(this);
         this.submitForm = this.submitForm.bind(this);
     }
-
-    //Client side validation
-    validate = values => {
-        const errors = {};
-        if (this.props.showEmailSmtpConfiguration) {
-            if (values.user) {
-                if (!Validate.email(values.user)) {
-                    errors.user = 'Please input username in text format .';
-                }
-            } else {
-                errors.user =
-                    'Please input username this cannot be left blank.';
-            }
-
-            if (!values.pass || !values.pass.length) {
-                errors.pass =
-                    'Please input password this cannot be left blank.';
-            }
-
-            if (values.port) {
-                if (!Validate.number(values.port)) {
-                    errors.port = 'Please input port in number format .';
-                }
-            } else {
-                errors.port = 'Please input port this cannot be left blank.';
-            }
-
-            if (values.host) {
-                if (!Validate.text(values.host)) {
-                    errors.host = 'Please input host in proper format .';
-                }
-            } else {
-                errors.host = 'Please input host this cannot be left blank.';
-            }
-
-            if (values.from) {
-                if (!Validate.email(values.from)) {
-                    errors.from = 'Please input from in proper format .';
-                }
-            } else {
-                errors.from =
-                    'Please input from address this cannot be left blank.';
-            }
-
-            if (values.name) {
-                if (!Validate.text(values.name)) {
-                    errors.from = 'Please input name in proper format .';
-                }
-            } else {
-                errors.name = 'Please input name this cannot be left blank.';
-            }
-        }
-        return errors;
-    };
 
     submitForm = values => {
         const {
@@ -622,7 +619,7 @@ EmailSmtpBox.propTypes = {
 const EmailSmtpBoxForm = reduxForm({
     form: 'EmailSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
-    validate: EmailSmtpBox.validate, // <--- validation function given to redux-for
+    validate, // <--- validation function given to redux-for
 })(EmailSmtpBox);
 
 const mapDispatchToProps = dispatch => {
