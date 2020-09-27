@@ -149,10 +149,11 @@ export class Component extends React.Component {
                     'smtp-server': host,
                     'smtp-port': port,
                     'smtp-secure': secure,
-                    'from-name': from,
+                    'from': from,
+                    'from-name': name,
                 } = smtpForm.values;
 
-                const payload = { user, pass, host, port, secure, from, email };
+                const payload = { user, pass, host, port, secure, from, name, email };
 
                 return testSmtp(payload).then(res => {
                     if (res && typeof res === 'string') {
