@@ -91,7 +91,8 @@ describe('Email SMTP Api Test', function() {
                 pass: value.password,
                 host: value['smtp-server'],
                 port: value['smtp-port'],
-                from: value['from-name'],
+                from: value['from'],
+                name: value['from-name'],
                 secure: value['smtp-secure'],
                 email: testemail,
             };
