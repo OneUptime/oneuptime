@@ -684,6 +684,38 @@ module.exports = {
         await page.reload();
         await page.waitForSelector('#accountSid');
     },
+    addGlobalTwilioSettings: async function(
+        enableSms,
+        enableCalls,
+        accountSid,
+        authToken,
+        phoneNumber,
+        alertLimit,
+        page
+    ) {
+        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.waitForSelector('#settings', {
+            visible: true,
+        });
+        await page.click('#settings');
+        await page.waitForSelector('#twilio');
+        await page.click('#twilio');
+        await page.waitForSelector('#call-enabled');
+        if (enableCalls) {
+            await page.$eval('#call-enabled', element => element.click());
+        }
+        if (enableSms) {
+            await page.$eval('#sms-enabled', element => element.click());
+        }
+        await page.type('#account-sid', accountSid);
+        await page.type('#authentication-token', authToken);
+        await page.type('#phone',phoneNumber);
+        await page.type('#alert-limit', alertLimit);
+        await page.click('button[type=submit]');
+        await page.waitFor(5000);
+        await page.reload();
+        await page.type('#account-sid', accountSid);
+    },
     addSmtpSettings: async function(
         enable,
         user,
