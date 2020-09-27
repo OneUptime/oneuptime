@@ -175,6 +175,13 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
             });
         }
 
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'name is required.',
+            });
+        }
+
         const testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
             // Call the EmailTemplateService
