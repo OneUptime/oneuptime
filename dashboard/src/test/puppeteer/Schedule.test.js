@@ -9,6 +9,9 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+const componentName = utils.generateRandomString();
+const monitorName = utils.generateRandomString();
+
 describe('Schedule', () => {
     const operationTimeOut = 1000000;
 
@@ -108,6 +111,42 @@ describe('Schedule', () => {
                     visible: true,
                 });
                 expect(modal).toBeDefined();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show the component name on the monitors',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await init.addComponent(componentName, page);
+                await init.addMonitorToComponent(
+                    null,
+                    monitorName,
+                    page,
+                    componentName
+                );
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#onCallSchedules a', {
+                    visible: true,
+                });
+                await page.$eval('#onCallSchedules a', elem => elem.click());
+
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.evaluate(() => {
+                    let elem = document.querySelectorAll('.Table > tbody tr');
+                    elem = Array.from(elem);
+                    elem[0].click();
+                });
+                await page.waitFor(5000);
+
+                let monitor = await page.$(
+                    `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
+                );
+                monitor = await monitor.getProperty('innerText');
+                monitor = await monitor.jsonValue();
+                expect(monitor).toEqual(`${componentName} / ${monitorName}`);
             });
         },
         operationTimeOut
