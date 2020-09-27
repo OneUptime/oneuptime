@@ -484,39 +484,37 @@ router.post(
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-            const { stat: validUp, reasons: upReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(data, null, monitor.criteria.up)
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedReasons,
+                reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(data, null, monitor.criteria.degraded)
                 : { stat: false, reasons: [] });
-            const { stat: validDown, reasons: downReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(data, null, monitor.criteria.down)
                 : { stat: false, reasons: [] });
 
             if (validDown) {
                 data.status = 'offline';
-                data.reason = [...upReasons];
+                data.reason = upFailedReasons;
             } else if (validDegraded) {
                 data.status = 'degraded';
-                data.reason = [...upReasons];
+                data.reason = upFailedReasons;
             } else if (validUp) {
                 data.status = 'online';
-                data.reason = [...degradedReasons, ...downReasons];
+                data.reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
                 data.status = 'offline';
-                data.reason = [
-                    ...upReasons,
-                    ...degradedReasons,
-                    ...downReasons,
-                ];
+                data.reason = upFailedReasons;
             }
 
             const log = await ProbeService.saveMonitorLog(data);

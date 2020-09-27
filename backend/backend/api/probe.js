@@ -107,9 +107,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         let status, log, reason;
 
         if (type === 'api' || type === 'url') {
-            const { stat: validUp, reasons: upReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(
                       res,
                       resp,
@@ -119,7 +120,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedReasons,
+                reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(
                       res,
@@ -128,9 +129,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                       rawResp
                   )
                 : { stat: false, reasons: [] });
-            const { stat: validDown, reasons: downReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(
                       res,
                       resp,
@@ -141,27 +143,28 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             if (validDown) {
                 status = 'offline';
-                reason = [...upReasons];
+                reason = upFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = [...upReasons];
+                reason = upFailedReasons;
             } else if (validUp) {
                 status = 'online';
-                reason = [...degradedReasons, ...downReasons];
+                reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
                 status = 'offline';
-                reason = [...upReasons, ...degradedReasons, ...downReasons];
+                reason = upFailedReasons;
             }
         }
         if (type === 'script') {
-            const { stat: validUp, reasons: upReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.scriptConditions(res, resp, monitor.criteria.up)
                 : { stat: false, reasons: [] });
             const {
                 stat: validDegraded,
-                reasons: degradedReasons,
+                reasons: degradedFailedReasons,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.scriptConditions(
                       res,
@@ -169,9 +172,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                       monitor.criteria.degraded
                   )
                 : { stat: false, reasons: [] });
-            const { stat: validDown, reasons: downReasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.scriptConditions(
                       res,
                       resp,
@@ -181,16 +185,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             if (validDown) {
                 status = 'failed';
-                reason = [...upReasons];
+                reason = upFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
-                reason = [...upReasons];
+                reason = upFailedReasons;
             } else if (validUp) {
                 status = 'success';
-                reason = [...degradedReasons, ...downReasons];
+                reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
                 status = 'failed';
-                reason = [...upReasons, ...degradedReasons, ...downReasons];
+                reason = upFailedReasons;
             }
             resp.status = null;
         }
