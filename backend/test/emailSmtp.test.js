@@ -274,6 +274,25 @@ describe('Email SMTP Api Test', function() {
             });
     });
 
+    it('should not save custom SMTP settings if name is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let name;
+        const data = {
+            ...smtpCredential,
+            name,
+        };
+
+        request
+            .post(`/emailSmtp/${projectId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('name is required.');
+                done();
+            });
+    });
+
     it('should update a custom SMTP settings', done => {
         const authorization = `Basic ${jwtToken}`;
         const data = { ...smtpCredential, from: 'info@gmail.com' };
