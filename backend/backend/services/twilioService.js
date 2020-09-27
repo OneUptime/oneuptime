@@ -511,9 +511,8 @@ const _this = {
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
-            const alertPhoneVerificationCode = process.env
-                .TWILIO_SMS_VERIFICATION_CODE
-                ? process.env.TWILIO_SMS_VERIFICATION_CODE
+            const alertPhoneVerificationCode = IS_TESTING
+                ? '123456'
                 : Math.random()
                       .toString(10)
                       .substr(2, 6);
@@ -591,3 +590,4 @@ const _this = {
 };
 
 module.exports = _this;
+const { IS_TESTING } = process.env;
