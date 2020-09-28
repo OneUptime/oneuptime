@@ -418,10 +418,6 @@ describe('Incident Timeline API', () => {
             }
 
             // click on timeline tab
-            await init.gotoTab(
-                utils.incidentTabIndexes.INCIDENT_TIMELINE,
-                page
-            );
             await page.reload({ waitUntil: 'networkidle0' });
             await init.gotoTab(
                 utils.incidentTabIndexes.INCIDENT_TIMELINE,
@@ -457,4 +453,84 @@ describe('Incident Timeline API', () => {
             expect(countIncidentTimelines).toEqual(10);
         });
     }, 300000);
+
+    test(
+        'should show the incident timeline when an incident is acknowledged',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
+                // click on incident notes tab
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+                await page.waitFor(1000);
+                await page.waitForSelector('label[id=btnAcknowledge_0]');
+                await page.click('label[id=btnAcknowledge_0]');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
+                    page
+                );
+                await page.waitForSelector(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                const incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                const countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(10);
+            });
+        },
+
+        operationTimeOut
+    );
+
+    test(
+        'should show the incident timeline when an incident is resolved',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                // navigate to monitor details
+                await page.waitForSelector(
+                    `#more-details-${projectMonitorName}`
+                );
+                await page.click(`#more-details-${projectMonitorName}`);
+
+                await page.waitForSelector(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
+                // click on incident notes tab
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+                await page.waitFor(1000);
+                await page.waitForSelector('label[id=btnResolve_0]');
+                await page.click('label[id=btnResolve_0]');
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
+                    page
+                );
+                await page.waitForSelector(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                const incidentTimelineRows = await page.$$(
+                    '#incidentTimeline tr.incidentListItem'
+                );
+                const countIncidentTimelines = incidentTimelineRows.length;
+                expect(countIncidentTimelines).toEqual(10);
+            });
+        },
+
+        operationTimeOut
+    );
 });
