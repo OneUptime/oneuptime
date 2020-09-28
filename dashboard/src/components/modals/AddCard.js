@@ -119,7 +119,6 @@ class _CardForm extends React.Component {
         return (
             <form onSubmit={this.handleSubmit}>
                 <div
-                    onKeyDown={this.handleKeyBoard}
                     className="ModalLayer-contents"
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
