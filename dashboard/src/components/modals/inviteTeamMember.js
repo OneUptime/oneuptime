@@ -40,6 +40,14 @@ export class FormModal extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             teamCreate,
@@ -136,7 +144,6 @@ export class FormModal extends Component {
         const { handleSubmit, closeThisDialog, data } = this.props;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}

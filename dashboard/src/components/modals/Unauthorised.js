@@ -2,6 +2,14 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 class Unauthorised extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -14,7 +22,6 @@ class Unauthorised extends Component {
     render() {
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
                 id="unauthorisedModal"
             >

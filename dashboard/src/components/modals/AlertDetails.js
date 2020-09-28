@@ -3,11 +3,27 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 
 class AlertDetailsModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { closeThisDialog } = this.props;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}

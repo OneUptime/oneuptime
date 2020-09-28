@@ -11,6 +11,14 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 
 class RemoveSubProject extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -46,10 +54,7 @@ class RemoveSubProject extends Component {
             resetDeleteSubProject,
         } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

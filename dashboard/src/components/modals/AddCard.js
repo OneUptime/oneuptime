@@ -40,6 +40,25 @@ const createOptions = (fontSize, padding) => {
 };
 
 class _CardForm extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.CreateCardModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     handleSubmit = async e => {
         const {
             userId,

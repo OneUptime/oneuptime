@@ -6,6 +6,26 @@ import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
 
 class ProbeDetail extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        const { ProbeDetailModalId, closeModal } = this.props.data;
+        switch (e.key) {
+            case 'Escape':
+                return closeModal({
+                    id: ProbeDetailModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { ProbeDetailModalId, closeModal, probesData } = this.props.data;
         const isOffline =

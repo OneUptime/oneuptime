@@ -4,6 +4,14 @@ import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 
 class RemoveResourceCategory extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -17,10 +25,7 @@ class RemoveResourceCategory extends Component {
         const { deleteResourceCategory } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

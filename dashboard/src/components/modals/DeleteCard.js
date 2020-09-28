@@ -9,6 +9,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
 class DeleteCard extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         const { deleteCardModalId } = this.props;
         switch (e.key) {
@@ -39,10 +47,7 @@ class DeleteCard extends Component {
     render() {
         const { requesting, deleteCardModalId, error } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

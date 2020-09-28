@@ -6,6 +6,14 @@ import { closeModal } from '../../actions/modal';
 import ReactJson from 'react-json-view';
 
 class ViewJsonLogs extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         const { data, closeModal } = this.props;
         switch (e.key) {
@@ -21,10 +29,7 @@ class ViewJsonLogs extends Component {
     render() {
         const { viewJsonModalId, title, jsonLog, rootName } = this.props.data;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

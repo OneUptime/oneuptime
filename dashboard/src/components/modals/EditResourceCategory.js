@@ -24,6 +24,14 @@ export class EditResourceCategoryForm extends React.Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const { _id } = this.props.initialValues;
         if (this.props.initialValues.name === values.name) {
@@ -56,10 +64,7 @@ export class EditResourceCategoryForm extends React.Component {
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}

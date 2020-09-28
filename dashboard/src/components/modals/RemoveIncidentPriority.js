@@ -7,6 +7,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteIncidentPriority as deleteIncidentPriorityAction } from '../../actions/incidentPriorities';
 
 class RemoveIncidentPriority extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleSubmit() {
         this.props
             .deleteIncidentPriorityAction(this.props.currentProject._id, {
@@ -14,6 +22,15 @@ class RemoveIncidentPriority extends Component {
             })
             .then(() => this.props.closeThisDialog());
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
 
     render() {
         return (

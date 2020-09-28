@@ -14,6 +14,14 @@ import {
 } from '../../actions/credential';
 
 class DockerCredentialModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     componentDidUpdate(prevProps) {
         const {
             propArr,
@@ -80,7 +88,6 @@ class DockerCredentialModal extends Component {
         return (
             <div
                 id="dockerCredentialModal"
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >
                 <div

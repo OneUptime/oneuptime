@@ -12,6 +12,23 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class EditIncident extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     submitForm = values => {
         const { incidentId } = this.props.data;
         const projectId = this.props.currentProject._id;
@@ -31,7 +48,6 @@ class EditIncident extends Component {
         const { handleSubmit, editIncident, incidentPriorities } = this.props;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
