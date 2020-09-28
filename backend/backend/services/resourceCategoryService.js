@@ -43,10 +43,37 @@ module.exports = {
             );
 
             await MonitorModel.updateMany(
-                { resourceCategoryId: query._id },
+                { resourceCategory: query._id },
                 {
                     $set: {
-                        resourceCategoryId: null,
+                        resourceCategory: null,
+                    },
+                }
+            );
+
+            await ApplicationLogModel.updateMany(
+                { resourceCategory: query._id },
+                {
+                    $set: {
+                        resourceCategory: null,
+                    },
+                }
+            );
+
+            await ApplicationSecurityModel.updateMany(
+                { resourceCategory: query._id },
+                {
+                    $set: {
+                        resourceCategory: null,
+                    },
+                }
+            );
+
+            await ContainerSecurityModel.updateMany(
+                { resourceCategory: query._id },
+                {
+                    $set: {
+                        resourceCategory: null,
                     },
                 }
             );
@@ -177,3 +204,6 @@ module.exports = {
 const ResourceCategoryModel = require('../models/resourceCategory');
 const MonitorModel = require('../models/monitor');
 const ErrorService = require('./errorService');
+const ApplicationLogModel = require('../models/applicationLog');
+const ApplicationSecurityModel = require('../models/applicationSecurity');
+const ContainerSecurityModel = require('../models/containerSecurity');
