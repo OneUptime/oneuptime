@@ -373,6 +373,7 @@ export class IncidentStatus extends Component {
                                                                 marginTop:
                                                                     '6px',
                                                             }}
+                                                            id={`${monitorName}_IncidentReport`}
                                                         >
                                                             <ReactMarkdown
                                                                 source={`This ${
