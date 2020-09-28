@@ -171,15 +171,17 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#nextFormButton');
 
                 // enter a random verification code
-                await page.waitForSelector('input[name=token]');
-                await page.type('input[name=token]', '021196');
+                await page.waitForSelector('#token');
+                await page.type('#token', '021196');
 
                 // click the verification button
                 await page.waitForSelector('#enableTwoFactorAuthButton');
                 await page.click('#enableTwoFactorAuthButton');
 
                 // verify there is an error message
-                let spanElement = await page.waitForSelector('#modal-message');
+                let spanElement = await page.waitForSelector('#modal-message', {
+                    visible: true,
+                });
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('Invalid token.');

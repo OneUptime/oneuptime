@@ -64,6 +64,9 @@ describe('Incident Created test', () => {
                 await page.type('input[name=project_name]', projectName);
                 await page.waitForSelector('button[id=btnCreateProject]');
                 await page.click('button[id=btnCreateProject]');
+                await page.waitForSelector(`#cb${projectName}`, {
+                    visible: true,
+                });
 
                 await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(
@@ -117,8 +120,7 @@ describe('Incident Created test', () => {
                 // Switch projects
                 await init.switchProject(projectName, page);
                 const viewIncidentButton = await page.$(
-                    'button[id=viewIncident-0]',
-                    { visible: true }
+                    'button[id=viewIncident-0]'
                 );
                 expect(viewIncidentButton).toBe(null);
                 await init.logout(page);
@@ -219,9 +221,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
                 });
-                let activeIncidents = await page.$('span#activeIncidentsText', {
-                    visible: true,
-                });
+                let activeIncidents = await page.$('span#activeIncidentsText');
                 activeIncidents = await activeIncidents.getProperty(
                     'innerText'
                 );
@@ -483,6 +483,7 @@ describe('Incident Created test', () => {
                 await init.selectByText('#incidentTypeId', 'Online', page);
                 await init.selectByText('#incidentPriority', 'Low', page);
                 await page.click('#createIncident');
+                await page.waitForSelector('#createIncident', { hidden: true });
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval(
                     `button[id=${monitorName2}_ViewIncidentDetails]`,

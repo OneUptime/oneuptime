@@ -49,23 +49,34 @@ describe('BreadCrumb Component test', () => {
     test(
         'Should navigate between pages from the breadcrumbs',
         async () => {
+            const componentName = utils.generateRandomString();
+            const monitorName = utils.generateRandomString();
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#projectSettings');
-                await page.click('#projectSettings');
-                await page.waitForSelector('#monitors');
-                await page.click('#monitors');
-                let currentPage = await page.waitForSelector('#cbMonitors');
-                currentPage = await currentPage.getProperty('innerText');
-                currentPage = await currentPage.jsonValue();
-                expect(currentPage).toBe('Monitors');
+                await init.addMonitorToComponent(
+                    componentName,
+                    monitorName,
+                    page
+                );
 
-                await page.waitForSelector('#cbProjectSettings');
-                await page.click('#cbProjectSettings');
-                currentPage = await page.waitForSelector('#cbProjectSettings');
-                currentPage = await currentPage.getProperty('innerText');
-                currentPage = await currentPage.jsonValue();
-                expect(currentPage).toBe('Project Settings');
+                const monitorBreadcrumb = await page.waitForSelector(
+                    `#cb${monitorName}`,
+                    {
+                        visible: true,
+                    }
+                );
+                const componentBreadcrumb = await page.waitForSelector(
+                    '#cbMonitors'
+                );
+                expect(monitorBreadcrumb).toBeDefined();
+                expect(componentBreadcrumb).toBeDefined();
+                await page.click('#cbMonitors');
+
+                const monitorTitle = await page.waitForSelector(
+                    `#monitor-title-${monitorName}`,
+                    { visible: true }
+                );
+                expect(monitorTitle).toBeDefined();
             });
         },
         operationTimeOut
