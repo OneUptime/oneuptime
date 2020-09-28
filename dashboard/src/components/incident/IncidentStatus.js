@@ -10,6 +10,7 @@ import {
     acknowledgeIncident,
     resolveIncident,
     closeIncident,
+    getIncidentTimeline,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -33,12 +34,21 @@ export class IncidentStatus extends Component {
     }
     acknowledge = () => {
         const userId = User.getUserId();
-        this.props.acknowledgeIncident(
-            this.props.incident.projectId,
-            this.props.incident._id,
-            userId,
-            this.props.multiple
-        );
+        this.props
+            .acknowledgeIncident(
+                this.props.incident.projectId,
+                this.props.incident._id,
+                userId,
+                this.props.multiple
+            )
+            .then(() => {
+                this.props.getIncidentTimeline(
+                    this.props.currentProject._id,
+                    this.props.incident._id,
+                    parseInt(0),
+                    parseInt(10)
+                );
+            });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT ACKNOWLEDGED',
@@ -64,6 +74,12 @@ export class IncidentStatus extends Component {
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
+                );
+                this.props.getIncidentTimeline(
+                    this.props.currentProject._id,
+                    this.props.incident._id,
+                    parseInt(0),
+                    parseInt(10)
                 );
             });
         if (SHOULD_LOG_ANALYTICS) {
@@ -977,6 +993,7 @@ const mapDispatchToProps = dispatch => {
             closeIncident,
             openModal,
             markAsRead,
+            getIncidentTimeline,
         },
         dispatch
     );
@@ -1000,6 +1017,7 @@ IncidentStatus.propTypes = {
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
     markAsRead: PropTypes.func,
+    getIncidentTimeline: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
