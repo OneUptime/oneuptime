@@ -18,7 +18,10 @@ function validate(values) {
 export function DeleteCaution(props) {
     const { hide, requesting, deleteProject, handleSubmit } = props;
     return (
-        <form onSubmit={handleSubmit(deleteProject.bind(this))}>
+        <form
+            onSubmit={handleSubmit(deleteProject.bind(this))}
+            id="delete-project-form"
+        >
             <div className="bs-Modal bs-Modal--medium">
                 <div className="bs-Modal-header">
                     <div className="bs-Modal-header-copy">
@@ -60,6 +63,7 @@ export function DeleteCaution(props) {
                                 'bs-is-disabled'}`}
                             disabled={requesting}
                             type="submit"
+                            id="btnDeleteProject"
                         >
                             <ShouldRender if={requesting}>
                                 <Spinner />
