@@ -248,10 +248,7 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    '654321'
-                );
+                await page.type('#otp', '654321');
                 await page.click('#verify');
                 await page.waitFor('#smsVerificationErrors');
                 const message = await page.$eval(
@@ -283,10 +280,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    '123456'
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
@@ -325,10 +319,7 @@ describe('Custom Twilio Settings', () => {
                 });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    '123456'
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
