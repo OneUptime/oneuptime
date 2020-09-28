@@ -15,7 +15,7 @@ const applicationLogName = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = 50000;
+    const operationTimeOut = 900000;
 
     let cluster;
 
@@ -39,9 +39,10 @@ describe('Log Containers', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
@@ -59,13 +60,15 @@ describe('Log Containers', () => {
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
-                await page.click('button[type=submit]');
+                await page.click('#addComponentButton');
+                await page.waitForSelector('#form-new-monitor', {
+                    visible: true,
+                });
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
 
-                let spanElement;
-                spanElement = await page.waitForSelector(
+                let spanElement = await page.waitForSelector(
                     `span#component-title-${componentName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
@@ -81,6 +84,7 @@ describe('Log Containers', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector('#logs');
                 await page.click('#logs');
 
                 // Fill and submit New Application  log form
@@ -90,8 +94,7 @@ describe('Log Containers', () => {
                 await page.click('button[type=submit]');
                 //await page.goto(utils.DASHBOARD_URL);
 
-                let spanElement;
-                spanElement = await page.waitForSelector(
+                let spanElement = await page.waitForSelector(
                     `span#application-log-title-${applicationLogName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
@@ -108,11 +111,48 @@ describe('Log Containers', () => {
         operationTimeOut
     );
     test(
+        'Should create new resource category then redirect to application log page to create a container under that',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Random-Category';
+                const appLogName = `${applicationLogName}-sample`;
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+                //navigate to component details
+                await init.navigateToComponentDetails(componentName, page);
+                // go to logs
+                await page.waitForSelector('#logs');
+                await page.click('#logs');
+                // create a new log and select the category
+                // Fill and submit New Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', appLogName);
+                await init.selectByText(
+                    '#resourceCategory',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+                // confirm the category shows in the details page.
+                await page.waitForSelector(`#${appLogName}-badge`, {
+                    visible: true,
+                });
+                let spanElement = await page.$(`#${appLogName}-badge`);
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+            });
+        },
+        operationTimeOut
+    );
+    test(
         'Should not create new log container',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
+                await page.waitForSelector('#logs');
                 await page.click('#logs');
 
                 // Fill and submit New Application  log form
@@ -121,6 +161,10 @@ describe('Log Containers', () => {
                 await page.type('input[id=name]', '');
                 await page.click('button[type=submit]');
 
+                await page.waitForSelector(
+                    '#form-new-application-log span#field-error',
+                    { visible: true }
+                );
                 let spanElement = await page.$(
                     '#form-new-application-log span#field-error'
                 );
@@ -300,7 +344,6 @@ describe('Log Containers', () => {
                 await page.click(
                     `#show_application_log_key_${applicationLogName}`
                 );
-                await page.waitFor(2000);
 
                 // get log container key
                 let spanElement = await page.waitForSelector(
@@ -308,6 +351,7 @@ describe('Log Containers', () => {
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 applicationLogKey = await spanElement.jsonValue();
+                expect(spanElement).toBeDefined();
 
                 // click cancel
                 await page.waitForSelector(
@@ -331,7 +375,6 @@ describe('Log Containers', () => {
                 );
                 await page.waitForSelector(`#key_${applicationLogName}`);
                 await page.click(`#key_${applicationLogName}`);
-                await page.waitFor(1000);
 
                 // click show applicaion log key
                 await page.waitForSelector(
@@ -340,7 +383,10 @@ describe('Log Containers', () => {
                 await page.click(
                     `#show_application_log_key_${applicationLogName}`
                 );
-                await page.waitFor(2000);
+                let spanElement = await page.waitForSelector(
+                    `#application_log_key_${applicationLogName}`
+                );
+                expect(spanElement).toBeDefined();
 
                 // find the eye icon to hide log container key
                 await page.waitForSelector(
@@ -350,7 +396,7 @@ describe('Log Containers', () => {
                     `#hide_application_log_key_${applicationLogName}`
                 );
 
-                let spanElement = await page.waitForSelector(
+                spanElement = await page.waitForSelector(
                     `#show_application_log_key_${applicationLogName}`
                 );
                 spanElement = await spanElement.getProperty('innerText');
@@ -381,7 +427,6 @@ describe('Log Containers', () => {
                 await page.click(
                     `#show_application_log_key_${applicationLogName}`
                 );
-                await page.waitFor(2000);
 
                 // get log container key
                 let spanElement = await page.waitForSelector(
@@ -397,7 +442,6 @@ describe('Log Containers', () => {
                 await page.click(
                     `#reset_application_log_key_${applicationLogName}`
                 );
-                await page.waitFor(1000);
 
                 // click confirm reset key
                 await page.waitForSelector(
@@ -406,8 +450,11 @@ describe('Log Containers', () => {
                 await page.click(
                     `#confirm_reset_application_log_key_${applicationLogName}`
                 );
+                await page.waitForSelector(
+                    `#confirm_reset_application_log_key_${applicationLogName}`,
+                    { hidden: true }
+                );
 
-                await page.waitFor(2000);
                 // open modal
                 await page.waitForSelector(`#key_${applicationLogName}`);
                 await page.click(`#key_${applicationLogName}`);
@@ -427,7 +474,7 @@ describe('Log Containers', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
 
-                spanElement.should;
+                expect(spanElement).toBeDefined();
                 spanElement.should.not.be.equal(applicationLogKey);
             });
         },
@@ -448,16 +495,60 @@ describe('Log Containers', () => {
                 await page.waitForSelector('#form-new-application-log');
                 await page.type('input[id=name]', '-new');
                 await page.click('button[type=submit]');
+                await page.waitForSelector('#addApplicationLogButton', {
+                    hidden: true,
+                });
 
+                await page.waitForSelector('#logs');
                 await page.click('#logs');
-
-                let spanElement;
-                spanElement = await page.waitForSelector(
+                let spanElement = await page.waitForSelector(
                     `#application-log-title-${applicationLogName}-new`
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(`${applicationLogName}-new`);
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should update category for created log container',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+                // create a new resource category
+                await init.addResourceCategory(categoryName, page);
+
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    `${applicationLogName}-new`,
+                    page
+                );
+                await page.waitForSelector(`#edit_${applicationLogName}-new`);
+                await page.click(`#edit_${applicationLogName}-new`);
+                // Fill and submit edit Application  log form
+                await page.waitForSelector('#form-new-application-log');
+                // change category here
+                await init.selectByText(
+                    '#resourceCategory',
+                    categoryName,
+                    page
+                );
+                await page.click('button[type=submit]');
+                await page.waitForSelector('#addApplicationLogButton', {
+                    hidden: true,
+                });
+
+                await page.waitForSelector(`#${applicationLogName}-new-badge`, {
+                    visible: true,
+                });
+                // confirm the new category shows in the details page.
+                let spanElement = await page.$(
+                    `#${applicationLogName}-new-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
             });
         },
         operationTimeOut

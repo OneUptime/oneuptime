@@ -8,7 +8,7 @@ let browser;
 let page;
 
 const email = utils.generateRandomBusinessEmail();
-const password = utils.generateRandomString();
+const password = '1234567890';
 const user = {
     email,
     password,
@@ -48,6 +48,7 @@ describe('Registration API', () => {
         await page.type('input[name=confirmPassword]', user.password);
         await page.click('button[type=submit]');
 
+        await page.waitForSelector('#email_error');
         const errorMsg = await page.$eval(
             '#email_error',
             elem => elem.textContent
@@ -75,6 +76,7 @@ describe('Registration API', () => {
         await page.type('input[name=confirmPassword]', user.password);
         await page.click('button[type=submit]');
 
+        await page.waitForSelector('#email_error');
         const errorMsg = await page.$eval(
             '#email_error',
             elem => elem.textContent
@@ -104,7 +106,7 @@ describe('Registration API', () => {
         await page.waitForSelector('#signUpLink a');
         await page.click('#signUpLink a');
 
-        await page.waitFor(5000);
+        await page.waitForSelector('input[name=email]');
         const email = await page.$eval(
             'input[name=email]',
             element => element.value
@@ -139,7 +141,7 @@ describe('Registration API', () => {
         await page.waitForSelector('#signUpLink a');
         await page.click('#signUpLink a');
 
-        await page.waitFor(5000);
+        await page.waitForSelector('input[name=email]');
         const email = await page.$eval(
             'input[name=email]',
             element => element.value
@@ -149,8 +151,7 @@ describe('Registration API', () => {
 
     it('Should register User with valid details', async () => {
         await init.registerUser(user, page);
-        await page.waitFor(15000);
-        const html = await page.$eval('#main-body', e => {
+        const html = await page.$eval('#success-step', e => {
             return e.innerHTML;
         });
         html.should.containEql('Activate your Fyipe account');

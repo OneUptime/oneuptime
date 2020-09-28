@@ -165,6 +165,7 @@ module.exports = {
         await this.navigateToComponentDetails(component, page);
 
         // then goto list of log containers
+        await page.waitForSelector('#logs');
         await page.click('#logs');
 
         // Navigate to details page of log container assumed created
@@ -553,22 +554,25 @@ module.exports = {
         await page.click('#changePlanBtn');
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
-    addMonitorCategory: async function(monitorCategory, page) {
+    addResourceCategory: async function(resourceCategory, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
 
-        await page.waitForSelector('li#monitors a');
-        await page.click('li#monitors a');
-        await page.waitForSelector('#createMonitorCategoryButton');
-        await page.click('#createMonitorCategoryButton');
-        await page.waitForSelector('#monitorCategoryName');
-        await page.type('#monitorCategoryName', monitorCategory);
-        await page.click('#addMonitorCategoryButton');
+        await page.waitForSelector('li#resources a');
+        await page.click('li#resources a');
+        await page.waitForSelector('#createResourceCategoryButton');
+        await page.click('#createResourceCategoryButton');
+        await page.waitForSelector('#resourceCategoryName');
+        await page.type('#resourceCategoryName', resourceCategory);
+        await page.click('#addResourceCategoryButton');
+        await page.waitForSelector('#addResourceCategoryButton', {
+            hidden: true,
+        });
 
-        const createdMonitorCategorySelector =
-            '#monitorCategoryList #monitor-category-name';
-        await page.waitForSelector(createdMonitorCategorySelector, {
+        const createdResourceCategorySelector =
+            '#resourceCategoryList #resource-category-name';
+        await page.waitForSelector(createdResourceCategorySelector, {
             visible: true,
         });
     },

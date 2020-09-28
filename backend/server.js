@@ -167,8 +167,8 @@ app.use(
 );
 app.use(['/smsSmtp', '/api/smsSmtp'], require('./backend/api/smsSmtp'));
 app.use(
-    ['/monitorCategory', '/api/monitorCategory'],
-    require('./backend/api/monitorCategory')
+    ['/resourceCategory', '/api/resourceCategory'],
+    require('./backend/api/resourceCategory')
 );
 app.use(
     ['/monitorCriteria', '/api/monitorCriteria'],

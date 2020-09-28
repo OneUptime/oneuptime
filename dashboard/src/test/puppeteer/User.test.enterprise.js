@@ -11,7 +11,7 @@ const admin = {
 };
 // user credentials
 const user = {
-    email: utils.generateRandomBusinessEmail(),
+    email: `test${utils.generateRandomBusinessEmail()}`,
     password: '1234567890',
 };
 

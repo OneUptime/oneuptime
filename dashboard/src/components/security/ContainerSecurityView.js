@@ -84,6 +84,26 @@ const ContainerSecurityView = ({
                                         </span>
                                     </div>
                                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                        <ShouldRender
+                                            if={
+                                                containerSecurity &&
+                                                containerSecurity.resourceCategory
+                                            }
+                                        >
+                                            <div className="Box-root Padding-right--8">
+                                                <Badge
+                                                    id={`${containerSecurity.name}-badge`}
+                                                    color={'slate5'}
+                                                >
+                                                    {containerSecurity &&
+                                                    containerSecurity.resourceCategory
+                                                        ? containerSecurity
+                                                              .resourceCategory
+                                                              .name
+                                                        : ''}
+                                                </Badge>
+                                            </div>
+                                        </ShouldRender>
                                         <div className="Box-root">
                                             <Badge color={'green'}>
                                                 Container Security

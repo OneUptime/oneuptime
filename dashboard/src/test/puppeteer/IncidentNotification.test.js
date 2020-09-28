@@ -64,6 +64,9 @@ describe('Incident Created test', () => {
                 await page.type('input[name=project_name]', projectName);
                 await page.waitForSelector('button[id=btnCreateProject]');
                 await page.click('button[id=btnCreateProject]');
+                await page.waitForSelector(`#cb${projectName}`, {
+                    visible: true,
+                });
 
                 await init.addComponent(componentName, page);
                 await init.addMonitorToComponent(
@@ -117,8 +120,7 @@ describe('Incident Created test', () => {
                 // Switch projects
                 await init.switchProject(projectName, page);
                 const viewIncidentButton = await page.$(
-                    'button[id=viewIncident-0]',
-                    { visible: true }
+                    'button[id=viewIncident-0]'
                 );
                 expect(viewIncidentButton).toBe(null);
                 await init.logout(page);
@@ -219,9 +221,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
                 });
-                let activeIncidents = await page.$('span#activeIncidentsText', {
-                    visible: true,
-                });
+                let activeIncidents = await page.$('span#activeIncidentsText');
                 activeIncidents = await activeIncidents.getProperty(
                     'innerText'
                 );
@@ -455,10 +455,45 @@ describe('Incident Created test', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
                 await page.waitForSelector('#closeIncidentButton_0');
                 await page.click('#closeIncidentButton_0');
                 const elementHandle = await page.$('#modal-ok');
                 expect(elementHandle).not.toBe(null);
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should close incident notification when an incident is viewed',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#incidents');
+                await page.click('#incidents');
+                await page.waitForSelector(`#btnCreateIncident_${projectName}`);
+                await page.click(`#btnCreateIncident_${projectName}`);
+                await page.waitForSelector('#frmIncident');
+                await init.selectByText('#monitorList', monitorName2, page);
+                await init.selectByText('#incidentTypeId', 'Online', page);
+                await init.selectByText('#incidentPriority', 'Low', page);
+                await page.click('#createIncident');
+                await page.waitForSelector('#createIncident', { hidden: true });
+                await page.goto(utils.DASHBOARD_URL);
+                await page.$eval(
+                    `button[id=${monitorName2}_ViewIncidentDetails]`,
+                    elem => elem.click()
+                );
+                const closeButton = await page.waitForSelector(
+                    '#closeIncident_0',
+                    { hidden: true }
+                );
+                expect(closeButton).toBeNull();
             });
         },
         operationTimeOut

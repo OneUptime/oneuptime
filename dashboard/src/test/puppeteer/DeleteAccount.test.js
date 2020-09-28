@@ -61,6 +61,9 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.type('input[name=project_name]', projectName);
                 await page.waitForSelector('button[id=btnCreateProject]');
                 await page.click('button[id=btnCreateProject]');
+                await page.waitForSelector(`#cb${projectName}`, {
+                    visible: true,
+                });
 
                 // Invite member on the project
                 await page.waitForSelector('#teamMembers');
@@ -74,17 +77,19 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click(`#${role}_${projectName}`);
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForSelector(`#btn_modal_${projectName}`, {
+                    hidden: true,
+                });
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced');
-                await page.click('#advanced');
-                await page.waitForSelector('button[id=btn_delete_account]');
-                await page.click('button[id=btn_delete_account]');
+                await page.waitForSelector('#advanced a');
+                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#btn_delete_account');
+                await page.click('#btn_delete_account');
                 const deleteButton = await page.$(
                     'button[id=btn_confirm_delete]'
                 );
@@ -115,17 +120,19 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click(`#${role}_${projectName}`);
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForSelector(`#btn_modal_${projectName}`, {
+                    hidden: true,
+                });
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced');
-                await page.click('#advanced');
-                await page.waitForSelector('button[id=btn_delete_account]');
-                await page.click('button[id=btn_delete_account]');
+                await page.waitForSelector('#advanced a');
+                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#btn_delete_account');
+                await page.click('#btn_delete_account');
                 const deleteButton = await page.$(
                     'button[id=btn_confirm_delete]'
                 );
@@ -150,6 +157,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
+                await page.waitFor(2000);
 
                 // Switch projects and change member role -> Owner
                 await init.switchProject(projectName, page);
@@ -159,16 +167,17 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('button[title="Change Role"]');
                 await page.waitForSelector(`div[title="${role}"]`);
                 await page.click(`div[title="${role}"]`);
+                await page.waitFor(2000);
 
                 // Navigate to profile page and delete account
                 await page.waitForSelector('#profile-menu');
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced');
-                await page.click('#advanced');
-                await page.waitForSelector('button[id=btn_delete_account]');
-                await page.click('button[id=btn_delete_account]');
+                await page.waitForSelector('#advanced a');
+                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#btn_delete_account');
+                await page.click('#btn_delete_account');
                 const deleteButton = await page.$(
                     'button[id=btn_confirm_delete]'
                 );
@@ -189,17 +198,18 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced');
-                await page.click('#advanced');
-                await page.waitForSelector('button[id=btn_delete_account]');
-                await page.click('button[id=btn_delete_account]');
+                await page.waitForSelector('#advanced a');
+                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#btn_delete_account');
+                await page.click('#btn_delete_account');
                 await page.waitForSelector('input[name=deleteMyAccount]');
                 await page.type(
                     'input[name=deleteMyAccount]',
                     'DELETE MY ACCOUNT'
                 );
-                await page.waitForSelector('button[id=btn_confirm_delete]');
-                await page.click('button[id=btn_confirm_delete]');
+                await page.waitForSelector('#btn_confirm_delete');
+                await page.click('#btn_confirm_delete');
+                await page.waitForSelector('#login-button', { visible: true });
             });
         },
         operationTimeOut

@@ -15,16 +15,12 @@ module.exports = {
      * @description Registers a new user.
      * @returns { void }
      */
-    registerUser: async function(user, page) {
-        const { email } = user;
+    registerUser: async function(user, page, checkCard = true) {
+        const { email, password } = user;
         let frame, elementHandle;
-        try {
-            await page.goto(utils.ACCOUNTS_URL + '/register', {
-                waitUntil: 'networkidle2',
-            });
-        } catch (e) {
-            //
-        }
+        await page.goto(utils.ACCOUNTS_URL + '/register', {
+            waitUntil: 'networkidle2',
+        });
         await page.waitForSelector('#email');
         await page.click('input[name=email]');
         await page.type('input[name=email]', email);
@@ -35,63 +31,67 @@ module.exports = {
         await page.click('input[name=companyPhoneNumber]');
         await page.type('input[name=companyPhoneNumber]', '99105688');
         await page.click('input[name=password]');
-        await page.type('input[name=password]', '1234567890');
+        await page.type('input[name=password]', password);
         await page.click('input[name=confirmPassword]');
-        await page.type('input[name=confirmPassword]', '1234567890');
-        await page.click('button[type=submit]');
+        await page.type('input[name=confirmPassword]', password);
 
-        await page.waitForSelector('.__PrivateStripeElement > iframe', {
-            visible: true,
-            timeout: 200000,
-        });
-        const stripeIframeElements = await page.$$(
-            '.__PrivateStripeElement > iframe'
-        );
+        if (checkCard) {
+            await Promise.all([
+                page.waitForSelector(`form#card-form`),
+                page.click('button[type=submit]'),
+            ]);
+            await page.waitForSelector('.__PrivateStripeElement > iframe', {
+                visible: true,
+                timeout: 200000,
+            });
+            const stripeIframeElements = await page.$$(
+                '.__PrivateStripeElement > iframe'
+            );
 
-        await page.waitFor(5000);
-        await page.click('input[name=cardName]');
-        await page.type('input[name=cardName]', 'Test name');
+            await page.click('input[name=cardName]');
+            await page.type('input[name=cardName]', 'Test name');
 
-        elementHandle = stripeIframeElements[0]; // card element
-        frame = await elementHandle.contentFrame();
-        await frame.waitForSelector('input[name=cardnumber]');
-        await frame.type(
-            'input[name=cardnumber]',
-            cards[Math.floor(Math.random() * cards.length)],
-            {
-                delay: 50,
-            }
-        );
+            elementHandle = stripeIframeElements[0]; // card element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cardnumber]');
+            await frame.type(
+                'input[name=cardnumber]',
+                cards[Math.floor(Math.random() * cards.length)],
+                {
+                    delay: 150,
+                }
+            );
 
-        elementHandle = stripeIframeElements[1]; // cvc element
-        frame = await elementHandle.contentFrame();
-        await frame.waitForSelector('input[name=cvc]');
-        await frame.type('input[name=cvc]', '123', {
-            delay: 50,
-        });
+            elementHandle = stripeIframeElements[1]; // cvc element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cvc]');
+            await frame.type('input[name=cvc]', '123', {
+                delay: 150,
+            });
 
-        elementHandle = stripeIframeElements[2]; // exp element
-        frame = await elementHandle.contentFrame();
-        await frame.waitForSelector('input[name=exp-date]');
-        await frame.type('input[name=exp-date]', '11/23', {
-            delay: 50,
-        });
-        await page.click('input[name=address1]');
-        await page.type('input[name=address1]', utils.user.address.streetA);
-        await page.click('input[name=address2]');
-        await page.type('input[name=address2]', utils.user.address.streetB);
-        await page.click('input[name=city]');
-        await page.type('input[name=city]', utils.user.address.city);
-        await page.click('input[name=state]');
-        await page.type('input[name=state]', utils.user.address.state);
-        await page.click('input[name=zipCode]');
-        await page.type('input[name=zipCode]', utils.user.address.zipcode);
-        await page.select('#country', 'India');
-        await page.waitFor(60000); //wait for a second because of stripe rate limits.
-        await page.click('button[type=submit]');
-        await page.waitForSelector('.request-reset-step', {
-            timeout: 60000,
-        });
+            elementHandle = stripeIframeElements[2]; // exp element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=exp-date]');
+            await frame.type('input[name=exp-date]', '11/23', {
+                delay: 150,
+            });
+            await page.click('input[name=address1]');
+            await page.type('input[name=address1]', utils.user.address.streetA);
+            await page.click('input[name=address2]');
+            await page.type('input[name=address2]', utils.user.address.streetB);
+            await page.click('input[name=city]');
+            await page.type('input[name=city]', utils.user.address.city);
+            await page.click('input[name=state]');
+            await page.type('input[name=state]', utils.user.address.state);
+            await page.click('input[name=zipCode]');
+            await page.type('input[name=zipCode]', utils.user.address.zipcode);
+            await page.select('#country', 'India');
+        }
+
+        await Promise.all([
+            page.waitForSelector('div#success-step'),
+            page.click('button[type=submit]'),
+        ]);
     },
     loginUser: async function(
         user,

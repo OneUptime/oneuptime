@@ -6,6 +6,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ProbeService = require('../services/probeService');
 const RealTimeService = require('../services/realTimeService');
+const ResourceCategoryService = require('../services/resourceCategoryService');
 
 const router = express.Router();
 
@@ -50,6 +51,15 @@ router.post(
                     message: 'Git Credential is required',
                 });
             }
+            if (
+                data.resourceCategory &&
+                typeof data.resourceCategory !== 'string'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Resource Category ID is not of string type.',
+                });
+            }
 
             const applicationSecurity = await ApplicationSecurityService.create(
                 data
@@ -74,7 +84,12 @@ router.put(
     async (req, res) => {
         try {
             const { componentId, applicationSecurityId } = req.params;
-            const { name, gitRepositoryUrl, gitCredential } = req.body;
+            const {
+                name,
+                gitRepositoryUrl,
+                gitCredential,
+                resourceCategory,
+            } = req.body;
             const data = {};
 
             if (name) {
@@ -88,10 +103,26 @@ router.put(
             if (gitCredential) {
                 data.gitCredential = gitCredential;
             }
+            let unsetData;
+            if (!resourceCategory || resourceCategory === '') {
+                unsetData = { resourceCategory: '' };
+            } else {
+                const resourceCategoryModel = await ResourceCategoryService.findBy(
+                    {
+                        _id: resourceCategory,
+                    }
+                );
+                if (resourceCategoryModel) {
+                    data.resourceCategory = resourceCategory;
+                } else {
+                    unsetData = { resourceCategory: '' };
+                }
+            }
 
             const applicationSecurity = await ApplicationSecurityService.updateOneBy(
                 { _id: applicationSecurityId, componentId },
-                data
+                data,
+                unsetData
             );
             return sendItemResponse(req, res, applicationSecurity);
         } catch (error) {
