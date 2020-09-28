@@ -143,6 +143,7 @@ class UploadFile extends Component {
                         this.props.createSubscriber.requesting ||
                         !this.state.isFileLoaded
                     }
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.createSubscriber.requesting}>
                         <Spinner />

@@ -332,6 +332,7 @@ class EditNoteModal extends Component {
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={updatingInvestigationNote}
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={!updatingInvestigationNote}

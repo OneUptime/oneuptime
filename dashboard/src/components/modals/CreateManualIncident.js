@@ -364,6 +364,7 @@ class CreateManualIncident extends Component {
                                                 newIncident.requesting
                                             }
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             {newIncident &&
                                                 !newIncident.requesting && (

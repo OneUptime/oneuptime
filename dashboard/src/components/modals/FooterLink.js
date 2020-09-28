@@ -165,6 +165,7 @@ class CreateFooterLink extends Component {
                                                 .requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {this.props.statusPage.links &&
                                             !this.props.statusPage.links

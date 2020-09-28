@@ -14,6 +14,7 @@ class AlertDetailsModal extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -177,6 +178,7 @@ class AlertDetailsModal extends Component {
                                     className="bs-Button bs-DeprecatedButton"
                                     type="button"
                                     onClick={closeThisDialog}
+                                    autoFocus={true}
                                 >
                                     <span>Close</span>
                                 </button>

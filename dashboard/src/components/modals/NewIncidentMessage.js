@@ -343,6 +343,7 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-addButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -392,6 +393,7 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-editButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

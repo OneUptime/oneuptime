@@ -111,6 +111,7 @@ class EditComponent extends Component {
                     className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
                     type="save"
                     disabled={this.props.editingComponent.requesting}
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.editingComponent.requesting}>
                         <Spinner />

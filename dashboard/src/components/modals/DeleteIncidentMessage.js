@@ -16,6 +16,8 @@ class DeleteIncidentMessage extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -68,6 +70,7 @@ class DeleteIncidentMessage extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={deleting}
+                                        autoFocus={true}
                                     >
                                         {!deleting && <span>Delete</span>}
                                         {deleting && <FormLoader />}

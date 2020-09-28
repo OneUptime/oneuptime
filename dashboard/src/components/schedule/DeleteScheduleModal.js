@@ -17,6 +17,8 @@ class DeleteScheduleModal extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -93,6 +95,7 @@ class DeleteScheduleModal extends Component {
                                             'bs-is-disabled'}`}
                                         onClick={confirmThisDialog}
                                         disabled={isRequesting}
+                                        autoFocus={true}
                                     >
                                         <ShouldRender if={isRequesting}>
                                             <Spinner />

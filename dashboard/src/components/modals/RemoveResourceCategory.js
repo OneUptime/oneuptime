@@ -16,6 +16,8 @@ class RemoveResourceCategory extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -63,6 +65,7 @@ class RemoveResourceCategory extends Component {
                                         disabled={
                                             deleteResourceCategory.requesting
                                         }
+                                        autoFocus={true}
                                     >
                                         {!deleteResourceCategory.requesting && (
                                             <span>Delete</span>

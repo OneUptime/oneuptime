@@ -745,6 +745,7 @@ class UpdateSchedule extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={requesting}
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {!requesting && <span>Update</span>}
                                         {requesting && <FormLoader />}

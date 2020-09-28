@@ -79,6 +79,7 @@ class DeleteCaution extends Component {
                                     'bs-is-disabled'}`}
                                 disabled={requesting}
                                 type="submit"
+                                autoFocus={true}
                             >
                                 <ShouldRender if={requesting}>
                                     <Spinner />

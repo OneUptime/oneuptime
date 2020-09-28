@@ -270,6 +270,7 @@ class DockerCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue"
                                                 type="submit"
                                                 disabled={updatingCredential}
+                                                autoFocus={true}
                                             >
                                                 {!updatingCredential && (
                                                     <span>
@@ -343,6 +344,7 @@ class DockerCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue"
                                                 type="submit"
                                                 disabled={isRequesting}
+                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
                                                     <span>

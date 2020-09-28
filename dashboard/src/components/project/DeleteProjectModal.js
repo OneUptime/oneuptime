@@ -25,6 +25,14 @@ export class DeleteProjectModal extends Component {
         this.closeNotice = this.closeNotice.bind(this);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     deleteProject(values) {
         const { projectId, deleteProject } = this.props;
 
@@ -55,10 +63,7 @@ export class DeleteProjectModal extends Component {
     render() {
         const { deleted } = this.state;
         return this.props.visible ? (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

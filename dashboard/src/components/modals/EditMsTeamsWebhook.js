@@ -468,6 +468,7 @@ class EditWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="msteamsUpdate"
+                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

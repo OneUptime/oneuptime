@@ -18,6 +18,8 @@ class AddSeats extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -90,6 +92,7 @@ class AddSeats extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={this.props.requesting}
+                                        autoFocus={true}
                                     >
                                         {!this.props.requesting && (
                                             <span>Confirm</span>

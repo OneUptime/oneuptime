@@ -413,6 +413,7 @@ class SubscriberAdvanceOption extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={requesting}
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {!requesting && <span>Save</span>}
                                         {requesting && <FormLoader />}

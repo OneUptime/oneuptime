@@ -16,6 +16,8 @@ export class DeleteSiteUrl extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -59,6 +61,7 @@ export class DeleteSiteUrl extends Component {
                                         onClick={this.props.confirmThisDialog}
                                         disabled={this.props.requesting}
                                         id="websiteUrlDelete"
+                                        autoFocus={true}
                                     >
                                         {!this.props.requesting && (
                                             <span>Delete</span>

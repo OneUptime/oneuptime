@@ -139,6 +139,7 @@ export class AddResourceCategoryForm extends React.Component {
                                                 this.props.resourceCategory
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

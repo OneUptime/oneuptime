@@ -460,6 +460,7 @@ class CreateMsTeams extends React.Component {
                                         }
                                         type="submit"
                                         id="createMsTeams"
+                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

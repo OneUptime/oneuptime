@@ -17,6 +17,8 @@ class ProjectTeamMemberNotification extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -62,6 +64,7 @@ class ProjectTeamMemberNotification extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={team.teamCreate.requesting}
+                                        autoFocus={true}
                                     >
                                         {!team.teamCreate.requesting && (
                                             <span>Continue</span>

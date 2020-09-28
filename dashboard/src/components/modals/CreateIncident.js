@@ -499,6 +499,7 @@ class CreateIncident extends Component {
                                             }
                                             type="submit"
                                             style={{ height: '35px' }}
+                                            autoFocus={true}
                                         >
                                             {this.props.newIncident &&
                                                 !this.props.newIncident

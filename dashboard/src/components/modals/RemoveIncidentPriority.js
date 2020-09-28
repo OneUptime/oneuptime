@@ -27,6 +27,8 @@ class RemoveIncidentPriority extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.handleSubmit();
             default:
                 return false;
         }
@@ -102,6 +104,7 @@ class RemoveIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="RemoveIncidentPriority"
+                                        autoFocus={true}
                                     >
                                         <span>Delete</span>
                                         <ShouldRender

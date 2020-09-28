@@ -15,6 +15,8 @@ class DeleteSlack extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -60,6 +62,7 @@ class DeleteSlack extends Component {
                                         onClick={this.props.confirmThisDialog}
                                         disabled={data.deleting}
                                         id="slackDelete"
+                                        autoFocus={true}
                                     >
                                         {!data.deleting && <span>Delete</span>}
                                         {data.deleting && <FormLoader />}

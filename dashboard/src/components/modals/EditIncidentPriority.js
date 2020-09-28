@@ -205,6 +205,7 @@ class EditIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="EditIncidentPriority"
+                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={

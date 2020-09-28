@@ -17,6 +17,8 @@ class DeleteCredentialModal extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -163,6 +165,7 @@ class DeleteCredentialModal extends Component {
                                                 type="button"
                                                 onClick={confirmThisDialog}
                                                 disabled={isRequesting}
+                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
                                                     <span>Remove</span>

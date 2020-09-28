@@ -467,6 +467,7 @@ class EditWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="slackUpdate"
+                                        autoFocus={true}
                                     >
                                         {this.props.newSlack &&
                                             !this.props.newSlack.requesting && (

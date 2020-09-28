@@ -137,6 +137,7 @@ export class ScheduleForm extends React.Component {
                                                 this.props.schedule.newSchedule
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

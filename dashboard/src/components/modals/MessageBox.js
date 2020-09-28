@@ -17,6 +17,7 @@ class MessageBox extends Component {
         const { messageBoxId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return closeModal({
                     id: messageBoxId,
                 });
@@ -69,6 +70,7 @@ class MessageBox extends Component {
                                                 id: messageBoxId,
                                             })
                                         }
+                                        autoFocus={true}
                                     >
                                         <span>OK</span>
                                     </button>

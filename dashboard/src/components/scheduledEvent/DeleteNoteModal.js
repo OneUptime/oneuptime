@@ -84,6 +84,7 @@ class DeleteNoteModal extends Component {
                                         type="button"
                                         onClick={this.handleDeleteNote}
                                         disabled={deletingNote}
+                                        autoFocus={true}
                                     >
                                         {!deletingNote && <span>Delete</span>}
                                         {deletingNote && <FormLoader />}

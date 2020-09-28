@@ -512,6 +512,7 @@ class CreateWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="createWebhook"
+                                        autoFocus={true}
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook

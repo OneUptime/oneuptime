@@ -18,6 +18,7 @@ class ViewJsonLogs extends Component {
         const { data, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return closeModal({
                     id: data.viewJsonModalId,
                 });
@@ -64,6 +65,7 @@ class ViewJsonLogs extends Component {
                                                 id: viewJsonModalId,
                                             })
                                         }
+                                        autoFocus={true}
                                     >
                                         <span>OK</span>
                                     </button>

@@ -23,6 +23,8 @@ class RemoveSubProject extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.deleteSubProject();
             default:
                 return false;
         }
@@ -102,6 +104,7 @@ class RemoveSubProject extends Component {
                                         type="button"
                                         onClick={() => this.deleteSubProject()}
                                         disabled={subProjectDelete.requesting}
+                                        autoFocus={true}
                                     >
                                         {!subProjectDelete.requesting && (
                                             <span>Remove</span>

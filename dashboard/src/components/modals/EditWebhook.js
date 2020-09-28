@@ -511,6 +511,7 @@ class EditWebHook extends React.Component {
                                             this.props.newWebHook.requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook

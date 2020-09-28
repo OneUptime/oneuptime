@@ -24,6 +24,8 @@ class DeleteCard extends Component {
                 return this.props.closeModal({
                     id: deleteCardModalId,
                 });
+            case 'Enter':
+                return this.handleDelete();
             default:
                 return false;
         }
@@ -113,6 +115,7 @@ class DeleteCard extends Component {
                                     className="bs-Button bs-DeprecatedButton bs-Button--red"
                                     disabled={requesting}
                                     type="submit"
+                                    autoFocus={true}
                                 >
                                     {!requesting && <span>Remove</span>}
                                     {requesting && <FormLoader />}

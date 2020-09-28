@@ -462,6 +462,7 @@ export class FormModal extends Component {
                                                 .requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {!this.props.team.teamCreate
                                             .requesting && <span>Invite</span>}

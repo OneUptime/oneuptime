@@ -259,6 +259,7 @@ class TwoFactorAuthModal extends Component {
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
+                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={

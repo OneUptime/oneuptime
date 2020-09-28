@@ -17,6 +17,8 @@ class ResetAPIKey extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -59,6 +61,7 @@ class ResetAPIKey extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
+                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={!this.props.isRequesting}

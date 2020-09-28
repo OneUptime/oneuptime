@@ -21,6 +21,8 @@ class DeleteApplicationSecurity extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.handleDelete();
             default:
                 return false;
         }
@@ -125,6 +127,7 @@ class DeleteApplicationSecurity extends Component {
                                         type="button"
                                         onClick={this.handleDelete}
                                         disabled={isRequesting}
+                                        autoFocus={true}
                                     >
                                         {!isRequesting && <span>Delete</span>}
                                         {isRequesting && <FormLoader />}

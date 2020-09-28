@@ -15,6 +15,7 @@ export class MonitorUrl extends React.Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -58,6 +59,7 @@ export class MonitorUrl extends React.Component {
                                     className="bs-Button"
                                     type="button"
                                     onClick={closeThisDialog}
+                                    autoFocus={true}
                                 >
                                     <span>OK</span>
                                 </button>

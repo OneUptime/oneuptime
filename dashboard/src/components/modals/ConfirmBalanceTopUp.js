@@ -16,6 +16,8 @@ class ConfirmBalanceTopUp extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -73,6 +75,7 @@ class ConfirmBalanceTopUp extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={recharging}
+                                        autoFocus={true}
                                     >
                                         {!recharging && (
                                             <span>Yes, Recharge Account</span>

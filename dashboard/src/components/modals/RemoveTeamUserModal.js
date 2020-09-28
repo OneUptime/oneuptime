@@ -17,10 +17,15 @@ class RemoveTeamUserModal extends Component {
     }
 
     handleKeyBoard = e => {
+        const { closeModal, data, resetTeamDelete } = this.props;
         switch (e.key) {
             case 'Escape':
-                this.props.resetTeamDelete();
-                return this.props.closeThisDialog();
+                resetTeamDelete();
+                return closeModal({
+                    id: data.removeUserModalId,
+                });
+            case 'Enter':
+                return data.removeTeamMember(data.values);
             default:
                 return false;
         }
@@ -89,6 +94,7 @@ class RemoveTeamUserModal extends Component {
                                         onClick={() =>
                                             data.removeTeamMember(data.values)
                                         }
+                                        autoFocus={true}
                                     >
                                         {!deleting && <span>Remove</span>}
                                         {deleting && <FormLoader />}
@@ -122,7 +128,6 @@ const mapDispatchToProps = dispatch => {
 
 RemoveTeamUserModal.propTypes = {
     closeModal: PropTypes.func,
-    closeThisDialog: PropTypes.func.isRequired,
     data: PropTypes.object,
     deleting: PropTypes.bool,
     resetTeamDelete: PropTypes.any,

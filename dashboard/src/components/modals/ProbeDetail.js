@@ -18,6 +18,7 @@ class ProbeDetail extends Component {
         const { ProbeDetailModalId, closeModal } = this.props.data;
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return closeModal({
                     id: ProbeDetailModalId,
                 });
@@ -132,6 +133,7 @@ class ProbeDetail extends Component {
                                                 id: ProbeDetailModalId,
                                             })
                                         }
+                                        autoFocus={true}
                                     >
                                         <span>OK</span>
                                     </button>

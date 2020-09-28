@@ -797,6 +797,7 @@ class CreateSchedule extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={requesting}
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {!requesting && <span>Create</span>}
                                         {requesting && <FormLoader />}

@@ -179,6 +179,7 @@ class DeleteAccount extends Component {
                                                 className="bs-Button bs-DeprecatedButton bs-Button--red"
                                                 type="submit"
                                                 disabled={deleting}
+                                                autoFocus={true}
                                             >
                                                 {!deleting && (
                                                     <span>Delete</span>

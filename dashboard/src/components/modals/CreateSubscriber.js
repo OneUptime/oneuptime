@@ -315,6 +315,7 @@ class CreateSubscriber extends Component {
                                         }
                                         type="submit"
                                         id="createSubscriber"
+                                        autoFocus={true}
                                     >
                                         {this.props.newSubscriber &&
                                             !this.props.newSubscriber

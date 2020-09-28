@@ -188,6 +188,7 @@ class EditIncident extends Component {
                                             editIncident.requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {editIncident &&
                                             !editIncident.requesting && (

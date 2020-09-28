@@ -250,6 +250,7 @@ class AddNoteModal extends Component {
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={creatingNote}
+                                            autoFocus={true}
                                         >
                                             <ShouldRender if={!creatingNote}>
                                                 <span>Save</span>

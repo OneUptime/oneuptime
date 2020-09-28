@@ -13,6 +13,7 @@ class Unauthorised extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -57,6 +58,7 @@ class Unauthorised extends Component {
                                         }}
                                         type="button"
                                         onClick={this.props.closeThisDialog}
+                                        autoFocus={true}
                                     >
                                         <span>Ok</span>
                                     </button>

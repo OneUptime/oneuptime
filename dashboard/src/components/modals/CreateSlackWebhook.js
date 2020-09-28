@@ -459,6 +459,7 @@ class CreateSlack extends React.Component {
                                         }
                                         type="submit"
                                         id="createSlack"
+                                        autoFocus={true}
                                     >
                                         {this.props.newSlack &&
                                             !this.props.newSlack.requesting && (

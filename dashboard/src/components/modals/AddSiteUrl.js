@@ -129,6 +129,7 @@ export class AddSiteUrl extends React.Component {
                                                 this.props.editMonitor
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
