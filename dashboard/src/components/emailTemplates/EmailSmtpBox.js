@@ -8,6 +8,7 @@ import {
     postSmtpConfig,
     deleteSmtpConfig,
     updateSmtpConfig,
+    deleteSmtpConfigError,
 } from '../../actions/emailTemplates';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -19,58 +20,55 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
+const validate = (values, props) => {
+    const errors = {};
+    if (props.showEmailSmtpConfiguration) {
+        if (values.user) {
+            if (!Validate.text(values.user)) {
+                errors.user = 'Please input username in text format .';
+            }
+        } else {
+            errors.user = 'Please input username this cannot be left blank.';
+        }
+
+        if (!values.pass || !values.pass.length) {
+            errors.pass = 'Please input password this cannot be left blank.';
+        }
+
+        if (values.port) {
+            if (!Validate.number(values.port)) {
+                errors.port = 'Please input port in number format .';
+            }
+        } else {
+            errors.port = 'Please input port this cannot be left blank.';
+        }
+
+        if (values.host) {
+            if (!Validate.text(values.host)) {
+                errors.host = 'Please input host in proper format .';
+            }
+        } else {
+            errors.host = 'Please input host this cannot be left blank.';
+        }
+
+        if (values.from) {
+            if (!Validate.email(values.from)) {
+                errors.from = 'Please input from in proper format .';
+            }
+        } else {
+            errors.from =
+                'Please input from address this cannot be left blank.';
+        }
+    }
+    return errors;
+};
+
 export class EmailSmtpBox extends Component {
     constructor(props) {
         super(props);
         this.changeValue = this.changeValue.bind(this);
         this.submitForm = this.submitForm.bind(this);
     }
-
-    //Client side validation
-    validate = values => {
-        const errors = {};
-        if (this.props.showEmailSmtpConfiguration) {
-            if (values.user) {
-                if (!Validate.text(values.user)) {
-                    errors.user = 'Please input username in text format .';
-                }
-            } else {
-                errors.user =
-                    'Please input username this cannot be left blank.';
-            }
-
-            if (!values.pass || !values.pass.length) {
-                errors.pass =
-                    'Please input password this cannot be left blank.';
-            }
-
-            if (values.port) {
-                if (!Validate.number(values.port)) {
-                    errors.port = 'Please input port in number format .';
-                }
-            } else {
-                errors.port = 'Please input port this cannot be left blank.';
-            }
-
-            if (values.host) {
-                if (!Validate.text(values.host)) {
-                    errors.host = 'Please input host in proper format .';
-                }
-            } else {
-                errors.host = 'Please input host this cannot be left blank.';
-            }
-
-            if (values.from) {
-                if (!Validate.email(values.from)) {
-                    errors.from = 'Please input from in proper format .';
-                }
-            } else {
-                errors.from =
-                    'Please input from address this cannot be left blank.';
-            }
-        }
-        return errors;
-    };
 
     submitForm = values => {
         const {
@@ -93,7 +91,7 @@ export class EmailSmtpBox extends Component {
             } else {
                 postSmtpConfig(currentProject._id, values);
             }
-        } else if (smtpConfigurations.config._id) {
+        } else {
             this.props.deleteSmtpConfig(
                 this.props.currentProject._id,
                 smtpConfigurations.config._id,
@@ -107,10 +105,12 @@ export class EmailSmtpBox extends Component {
 
     changeValue = e => {
         this.props.setSmtpConfig(e.target.checked);
+        this.props.deleteSmtpConfigError('');
     };
 
     render() {
         const { handleSubmit } = this.props;
+
         return (
             <div
                 className="db-World-contentPane Box-root"
@@ -148,6 +148,7 @@ export class EmailSmtpBox extends Component {
                                                                     className="Box-root"
                                                                 >
                                                                     <label
+                                                                        id="showsmtpForm"
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
@@ -381,6 +382,7 @@ export class EmailSmtpBox extends Component {
                                                                         className="Box-root"
                                                                     >
                                                                         <label
+                                                                            id="enableSecureTransport"
                                                                             className="Checkbox responsive"
                                                                             htmlFor="secure"
                                                                             style={{
@@ -415,6 +417,18 @@ export class EmailSmtpBox extends Component {
                                                                                         Transport
                                                                                     </span>
                                                                                 </span>
+                                                                                <label className="bs-Fieldset-explanation">
+                                                                                    <span>
+                                                                                        Enabled
+                                                                                        for
+                                                                                        port
+                                                                                        465,
+                                                                                        disabled
+                                                                                        for
+                                                                                        port
+                                                                                        587
+                                                                                    </span>
+                                                                                </label>
                                                                             </div>
                                                                         </label>
                                                                         <div className="Box-root Padding-left--24">
@@ -556,12 +570,13 @@ EmailSmtpBox.propTypes = {
     handleSubmit: PropTypes.func,
     showEmailSmtpConfiguration: PropTypes.bool,
     emailSmtpDelete: PropTypes.object,
+    deleteSmtpConfigError: PropTypes.func,
 };
 
 const EmailSmtpBoxForm = reduxForm({
     form: 'EmailSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
-    validate: EmailSmtpBox.validate, // <--- validation function given to redux-for
+    validate, // <--- validation function given to redux-for
 })(EmailSmtpBox);
 
 const mapDispatchToProps = dispatch => {
@@ -571,6 +586,7 @@ const mapDispatchToProps = dispatch => {
             postSmtpConfig,
             deleteSmtpConfig,
             updateSmtpConfig,
+            deleteSmtpConfigError,
         },
         dispatch
     );

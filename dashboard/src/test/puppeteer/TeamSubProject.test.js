@@ -21,10 +21,11 @@ const subProjectName = utils.generateRandomString();
 describe('Team API With SubProjects', () => {
     const operationTimeOut = 100000;
 
+    let cluster;
     beforeAll(async done => {
         jest.setTimeout(200000);
 
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_CONTEXT,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -78,37 +79,28 @@ describe('Team API With SubProjects', () => {
             // add sub-project
             await init.addSubProject(subProjectName, page);
         });
+        done();
+    });
 
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
     });
 
-    afterAll(async done => {
-        done();
-    });
-
     test('should add a new user to parent project and all sub-projects (role -> `Administrator`)', async done => {
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 150000,
-            maxConcurrency: 2,
-        });
+        await cluster.execute(
+            { email, password, anotherEmail, projectName, isParentUser: true },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                await page.goto(utils.DASHBOARD_URL);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
+                await init.loginUser(user, page);
+                await init.switchProject(data.projectName, page);
 
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
-            await init.loginUser(user, page);
-            if (data.isParentUser) {
                 const role = 'Administrator';
 
                 await page.waitForSelector('#teamMembers');
@@ -116,85 +108,54 @@ describe('Team API With SubProjects', () => {
                 await page.waitForSelector(`#btn_${data.projectName}`);
                 await page.click(`#btn_${data.projectName}`);
                 await page.waitForSelector(`#frm_${data.projectName}`);
+                await page.waitForSelector(`#emails_${data.projectName}`);
                 await page.click(`#emails_${data.projectName}`);
                 await page.type(
                     `#emails_${data.projectName}`,
                     data.anotherEmail
                 );
                 await page.click(`#${role}_${data.projectName}`);
+                await page.waitForSelector(`#btn_modal_${data.projectName}`);
                 await page.click(`#btn_modal_${data.projectName}`);
                 await page.waitForSelector('#btnConfirmInvite');
                 await page.click('#btnConfirmInvite');
-                await page.waitFor(5000);
-            } else {
-                await cluster.waitForOne();
-                await page.reload({ waitUntil: 'networkidle2' });
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#accountSwitcher');
+                await page.waitForSelector(`#btn_modal_${data.projectName}`, {
+                    hidden: true,
+                });
 
-                const projectSpanSelector = await page.$(
-                    `#span_${data.projectName}`
+                await page.waitForSelector(`#count_${data.projectName}`);
+                const memberCount = await page.$eval(
+                    `#count_${data.projectName}`,
+                    elem => elem.textContent
                 );
-                let textContent = await projectSpanSelector.getProperty(
-                    'innerText'
-                );
-
-                textContent = await textContent.jsonValue();
-                expect(textContent).toEqual(data.projectName);
-
-                const element = await page.$(
-                    `#accountSwitcher > div[title="${data.projectName}"]`
-                );
-
-                await element.click();
-                await page.waitFor(5000);
+                expect(memberCount).toEqual('2 Team Members');
             }
-        });
-
-        cluster.queue({
-            email,
-            password,
-            anotherEmail,
-            projectName,
-            isParentUser: true,
-        });
-        cluster.queue({
-            email: anotherEmail,
-            password: anotherPassword,
-            projectName,
-            isParentUser: false,
-        });
-
-        await cluster.idle();
-        await cluster.close();
+        );
         done();
     }, 200000);
 
     test('should add a new user to sub-project (role -> `Member`)', async done => {
-        const cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_CONTEXT,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: 150000,
-            maxConcurrency: 2,
-        });
+        await cluster.execute(
+            {
+                email,
+                password,
+                newEmail,
+                subProjectName,
+                isParentUser: true,
+                projectName,
+            },
+            async ({ page, data }) => {
+                const user = {
+                    email: data.email,
+                    password: data.password,
+                };
+                await page.goto(utils.DASHBOARD_URL);
+                await init.loginUser(user, page);
+                await init.switchProject(data.projectName, page);
 
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        await cluster.task(async ({ page, data }) => {
-            const user = {
-                email: data.email,
-                password: data.password,
-            };
-
-            await init.loginUser(user, page);
-            if (data.isParentUser) {
                 const role = 'Member';
 
-                await page.waitForSelector('#teamMembers');
+                await page.waitForSelector('#teamMembers', { visible: true });
                 await page.click('#teamMembers');
                 await page.waitForSelector(`#btn_${data.subProjectName}`);
                 await page.click(`#btn_${data.subProjectName}`);
@@ -205,96 +166,58 @@ describe('Team API With SubProjects', () => {
                     data.newEmail
                 );
                 await page.click(`#${role}_${data.subProjectName}`);
+                await page.waitForSelector(`#btn_modal_${data.subProjectName}`);
                 await page.click(`#btn_modal_${data.subProjectName}`);
-                await page.waitFor(5000);
-            } else {
-                await cluster.waitForOne();
-                await page.reload({ waitUntil: 'networkidle2' });
-                await page.waitForSelector('#AccountSwitcherId');
-                await page.click('#AccountSwitcherId');
-                await page.waitForSelector('#accountSwitcher');
-
-                const projectSpanSelector = await page.$(
-                    `#span_${projectName}`
-                );
-                let textContent = await projectSpanSelector.getProperty(
-                    'innerText'
+                await page.waitForSelector(
+                    `#btn_modal_${data.subProjectName}`,
+                    {
+                        hidden: true,
+                    }
                 );
 
-                textContent = await textContent.jsonValue();
-                expect(textContent).toEqual(projectName);
-
-                const element = await page.$(
-                    `#accountSwitcher > div[title="${projectName}"]`
+                await page.waitForSelector(`#count_${data.subProjectName}`);
+                const memberCount = await page.$eval(
+                    `#count_${data.subProjectName}`,
+                    elem => elem.textContent
                 );
-
-                await element.click();
-                await page.waitFor(5000);
+                expect(memberCount).toEqual('3 Team Members');
             }
-        });
-
-        cluster.queue({
-            email,
-            password,
-            newEmail,
-            subProjectName,
-            isParentUser: true,
-        });
-        cluster.queue({
-            email: newEmail,
-            password: newPassword,
-            projectName,
-            isParentUser: false,
-        });
-
-        await cluster.idle();
-        await cluster.close();
+        );
         done();
     }, 200000);
 
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
         async done => {
-            expect.assertions(1);
-
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
             const newRole = 'Member';
+            await cluster.execute(
+                { email, password, newRole, anotherEmail, projectName },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    const emailSelector = data.anotherEmail.split('@')[0];
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+                    await page.goto(utils.DASHBOARD_URL);
+                    await init.loginUser(user, page);
+                    await init.switchProject(data.projectName, page);
+                    await page.waitForSelector('#teamMembers');
+                    await page.click('#teamMembers');
+                    await page.waitForSelector(`#changeRole_${emailSelector}`);
+                    await page.click(`#changeRole_${emailSelector}`);
+                    await page.waitForSelector(`div[title="${data.newRole}"]`);
+                    await page.click(`div[title="${data.newRole}"]`);
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#teamMembers');
-                await page.click('#teamMembers');
-                await page.waitForSelector('button[title="Change Role"]');
-                await page.click('button[title="Change Role"]');
-                await page.waitForSelector(`div[title="${data.newRole}"]`);
-                await page.click(`div[title="${data.newRole}"]`);
-                await page.waitFor(5000);
-
-                const userRoleValue = await page.$eval(
-                    `div[title="${data.newRole}"]`,
-                    el => el.textContent
-                );
-
-                expect(userRoleValue).toBe(data.newRole);
-            });
-
-            cluster.queue({ email, password, newRole });
-            await cluster.idle();
-            await cluster.close();
+                    const member = await page.waitForSelector(
+                        `#${data.newRole}_${emailSelector}`,
+                        {
+                            visible: true,
+                        }
+                    );
+                    expect(member).toBeDefined();
+                }
+            );
             done();
         },
         operationTimeOut
@@ -303,36 +226,38 @@ describe('Team API With SubProjects', () => {
     test(
         'should remove user from project Team Members and all sub-projects.',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
+            await cluster.execute(
+                { email, password, anotherEmail, projectName },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    const emailSelector = data.anotherEmail.split('@')[0];
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
+                    await page.goto(utils.DASHBOARD_URL);
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#teamMembers');
+                    await page.click('#teamMembers');
+                    await page.waitForSelector(
+                        `#removeMember__${emailSelector}`,
+                        { visible: true }
+                    );
+                    await page.click(`#removeMember__${emailSelector}`);
+                    await page.waitForSelector('#removeTeamUser');
+                    await page.click('#removeTeamUser');
+                    await page.waitForSelector('#removeTeamUser', {
+                        hidden: true,
+                    });
 
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#teamMembers');
-                await page.click('#teamMembers');
-                await page.waitForSelector('button[title="delete"]');
-                await page.click('button[title="delete"]');
-                await page.waitForSelector('#removeTeamUser');
-                await page.click('#removeTeamUser');
-                await page.waitFor(5000);
-            });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
+                    await page.waitForSelector(`#count_${data.projectName}`);
+                    const memberCount = await page.$eval(
+                        `#count_${data.projectName}`,
+                        elem => elem.textContent
+                    );
+                    expect(memberCount).toEqual('1 Team Member');
+                }
+            );
             done();
         },
         operationTimeOut
@@ -341,52 +266,40 @@ describe('Team API With SubProjects', () => {
     test(
         'should not add team members without business emails',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-            const role = 'Member';
-            const nonBusinessEmail =
-                utils.generateRandomString() + '@gmail.com';
+            await cluster.execute(
+                { email, password },
+                async ({ page, data }) => {
+                    const user = {
+                        email: data.email,
+                        password: data.password,
+                    };
+                    const role = 'Member';
+                    const nonBusinessEmail =
+                        utils.generateRandomString() + '@gmail.com';
 
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            await cluster.task(async ({ page, data }) => {
-                const user = {
-                    email: data.email,
-                    password: data.password,
-                };
-
-                await init.loginUser(user, page);
-                await page.waitForSelector('#teamMembers');
-                await page.click('#teamMembers');
-                await page.waitForSelector(`button[id=btn_${projectName}]`);
-                await page.click(`button[id=btn_${projectName}]`);
-                await page.waitForSelector('input[name=emails]');
-                await page.click('input[name=emails]');
-                await page.type('input[name=emails]', nonBusinessEmail);
-                await page.waitForSelector(`#${role}_${projectName}`);
-                await page.click(`#${role}_${projectName}`);
-                await page.waitForSelector(`#btn_modal_${projectName}`);
-                await page.click(`#btn_modal_${projectName}`);
-                let spanElement = await page.waitForSelector(
-                    `#frm_${projectName} span#field-error`
-                );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(
-                    'Please enter business emails of the members.'
-                );
-                // await page.waitFor(5000);
-            });
-
-            cluster.queue({ email, password });
-            await cluster.idle();
-            await cluster.close();
+                    await page.goto(utils.DASHBOARD_URL);
+                    await init.loginUser(user, page);
+                    await page.waitForSelector('#teamMembers');
+                    await page.click('#teamMembers');
+                    await page.waitForSelector(`button[id=btn_${projectName}]`);
+                    await page.click(`button[id=btn_${projectName}]`);
+                    await page.waitForSelector('input[name=emails]');
+                    await page.click('input[name=emails]');
+                    await page.type('input[name=emails]', nonBusinessEmail);
+                    await page.waitForSelector(`#${role}_${projectName}`);
+                    await page.click(`#${role}_${projectName}`);
+                    await page.waitForSelector(`#btn_modal_${projectName}`);
+                    await page.click(`#btn_modal_${projectName}`);
+                    let spanElement = await page.waitForSelector(
+                        `#frm_${projectName} span#field-error`
+                    );
+                    spanElement = await spanElement.getProperty('innerText');
+                    spanElement = await spanElement.jsonValue();
+                    spanElement.should.be.exactly(
+                        'Please enter business emails of the members.'
+                    );
+                }
+            );
             done();
         },
         operationTimeOut

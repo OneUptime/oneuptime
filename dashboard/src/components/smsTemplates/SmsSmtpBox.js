@@ -179,10 +179,12 @@ export class SmsSmtpBox extends Component {
                                                                                     <span>
                                                                                         Send
                                                                                         SMS
+                                                                                        and
+                                                                                        Calls
                                                                                         with
                                                                                         my
                                                                                         Twilio
-                                                                                        Account
+                                                                                        Settings
                                                                                     </span>
                                                                                 </span>
                                                                             </div>

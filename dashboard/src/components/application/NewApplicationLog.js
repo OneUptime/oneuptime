@@ -16,6 +16,7 @@ import {
     editApplicationLogSwitch,
     editApplicationLog,
 } from '../../actions/applicationLog';
+import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewApplicationLog');
 
 class NewApplicationLog extends Component {
@@ -33,6 +34,9 @@ class NewApplicationLog extends Component {
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name`];
+        if (values[`resourceCategory`]) {
+            postObj.resourceCategory = values[`resourceCategory`];
+        }
         if (!this.props.edit) {
             this.props
                 .createApplicationLog(
@@ -85,8 +89,13 @@ class NewApplicationLog extends Component {
         }
     };
     render() {
-        const { handleSubmit, requesting, edit, applicationLog } = this.props;
-
+        const {
+            handleSubmit,
+            requesting,
+            edit,
+            applicationLog,
+            resourceCategoryList,
+        } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -151,6 +160,53 @@ class NewApplicationLog extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender
+                                                    if={
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
+                                                            0
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Category
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="resourceCategory"
+                                                                id="resourceCategory"
+                                                                placeholder="Choose Category"
+                                                                disabled={
+                                                                    requesting
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select category',
+                                                                    },
+                                                                    ...(resourceCategoryList &&
+                                                                    resourceCategoryList.length >
+                                                                        0
+                                                                        ? resourceCategoryList.map(
+                                                                              category => ({
+                                                                                  value:
+                                                                                      category._id,
+                                                                                  label:
+                                                                                      category.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                             </div>
                                         </fieldset>
                                     </div>
@@ -278,6 +334,11 @@ const mapStateToProps = (state, ownProps) => {
     const currentProject = state.project.currentProject;
     const initialValues = {
         name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
+        resourceCategory: ownProps.applicationLog
+            ? ownProps.applicationLog.resourceCategory
+                ? ownProps.applicationLog.resourceCategory._id
+                : ''
+            : '',
     };
     return {
         applicationLogState: state.applicationLog,
@@ -286,6 +347,9 @@ const mapStateToProps = (state, ownProps) => {
         requesting,
         currentProject,
         initialValues,
+        resourceCategoryList:
+            state.resourceCategories.resourceCategoryListForNewResource
+                .resourceCategories,
     };
 };
 
@@ -304,6 +368,7 @@ NewApplicationLog.propTypes = {
     edit: PropTypes.bool,
     editApplicationLogSwitch: PropTypes.func,
     editApplicationLog: PropTypes.func,
+    resourceCategoryList: PropTypes.array,
 };
 
 export default connect(

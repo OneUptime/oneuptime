@@ -37,9 +37,10 @@ describe('Profile -> Delete Account Component test', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
@@ -54,12 +55,17 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+                await page.waitForSelector('#profileSettings', {
+                    visible: true,
+                });
+                await page.click('#profileSettings');
                 await page.waitForSelector('input[name=name]');
                 await page.click('input[name=name]', { clickCount: 3 });
                 await page.type('input[name=name]', name);
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
-                await page.waitFor(5000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 let spanElement = await page.waitForSelector(
                     'span#userProfileName'
                 );
@@ -82,7 +88,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('#changePassword');
-                await page.click('#changePassword');
+                await page.$eval('#changePassword > a', elem => elem.click());
                 await page.waitForSelector('input[name=currentPassword]');
                 await page.type('input[name=currentPassword]', user.password);
                 await page.waitForSelector('input[name=newPassword]');
@@ -92,7 +98,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('button[type=submit]');
                 await page.click('button[type=submit]');
                 let spanElement = await page.waitForSelector(
-                    '.bs-Modal-content'
+                    '.bs-Modal-content',
+                    { visible: true, timeout: operationTimeOut }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -115,7 +122,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('#changePassword');
-                await page.click('#changePassword');
+                await page.$eval('#changePassword > a', elem => elem.click());
                 await page.waitForSelector('input[name=currentPassword]');
                 await page.type('input[name=currentPassword]', user.password);
                 await page.waitForSelector('input[name=newPassword]');
@@ -146,7 +153,15 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
 
+                await page.waitForSelector('#profileSettings', {
+                    visible: true,
+                });
+                await page.click('#profileSettings');
+
                 // toggle the google authenticator
+                await page.waitForSelector('input[name=twoFactorAuthEnabled]', {
+                    visible: true,
+                });
                 await page.$eval('input[name=twoFactorAuthEnabled]', e =>
                     e.click()
                 );
@@ -156,15 +171,17 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#nextFormButton');
 
                 // enter a random verification code
-                await page.waitForSelector('input[name=token]');
-                await page.type('input[name=token]', '021196');
+                await page.waitForSelector('#token');
+                await page.type('#token', '021196');
 
                 // click the verification button
                 await page.waitForSelector('#enableTwoFactorAuthButton');
                 await page.click('#enableTwoFactorAuthButton');
 
                 // verify there is an error message
-                let spanElement = await page.waitForSelector('#modal-message');
+                let spanElement = await page.waitForSelector('#modal-message', {
+                    visible: true,
+                });
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly('Invalid token.');

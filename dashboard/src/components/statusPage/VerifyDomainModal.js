@@ -170,7 +170,7 @@ const VerifyDomainModal = ({
                             </div>
                         </div>
                         <div className="bs-Modal-footer">
-                            <div className="Flex-flex Flex-direction--row">
+                            <div className="Flex-flex Flex-direction--row Flex-flex--1">
                                 <ShouldRender
                                     if={
                                         !domainField.requesting &&

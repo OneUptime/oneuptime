@@ -1,5 +1,9 @@
 # Fyipe
 
+## CI/CD Status
+
+[![pipeline status](https://gitlab.com/fyipe-project/app/badges/master/pipeline.svg)](https://gitlab.com/fyipe-project/app/-/commits/master)
+
 ## Contents
 
 -   [Introduction](/docs/introduction.md)

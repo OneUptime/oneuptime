@@ -47,9 +47,10 @@ describe('Incident API With SubProjects', () => {
         });
     });
 
-    afterAll(async () => {
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
+        done();
     });
 
     test(
@@ -63,7 +64,6 @@ describe('Incident API With SubProjects', () => {
                 await init.addSubProject(subProjectName, page);
                 // Create Component
                 await init.addComponent(componentName, page, subProjectName);
-                await page.goto(utils.DASHBOARD_URL);
                 await init.addComponent(newComponentName, page, subProjectName);
                 await page.goto(utils.DASHBOARD_URL);
                 // add new user to sub-project
@@ -95,14 +95,25 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(componentName, page);
                 await page.waitForSelector(
-                    `#create_incident_${projectMonitorName}`
+                    `#create_incident_${projectMonitorName}`,
+                    { visible: true }
                 );
                 await page.click(`#create_incident_${projectMonitorName}`);
                 await page.waitForSelector('#createIncident');
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('#title', 'new incident');
                 await page.click('#createIncident');
-                await page.waitForSelector('#incident_span_0');
+                await page.waitForSelector('#createIncident', { hidden: true });
+
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
+
+                await page.waitForSelector('#incident_span_0', {
+                    visible: true,
+                });
                 const incidentTitleSelector = await page.$('#incident_span_0');
 
                 let textContent = await incidentTitleSelector.getProperty(
@@ -144,6 +155,13 @@ describe('Incident API With SubProjects', () => {
                 await init.loginUser(newUser, page);
                 // switch to invited project for new user
                 await init.switchProject(projectName, page);
+
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
+
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(componentName, page);
                 // create incident
@@ -155,6 +173,14 @@ describe('Incident API With SubProjects', () => {
                 await init.selectByText('#incidentType', 'Offline', page);
                 await page.type('#title', 'new incident');
                 await page.click('#createIncident');
+                await page.waitForSelector('#createIncident', { hidden: true });
+
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
+
                 await page.waitForSelector('#incident_span_0');
                 const incidentTitleSelector = await page.$('#incident_span_0');
 
@@ -181,7 +207,9 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
                 // acknowledge incident
-                await page.waitForSelector('#btnAcknowledge_0');
+                await page.waitForSelector('#btnAcknowledge_0', {
+                    visible: true,
+                });
                 await page.click('#btnAcknowledge_0');
                 await page.waitForSelector('#AcknowledgeText_0', {
                     visible: true,
@@ -191,7 +219,7 @@ describe('Incident API With SubProjects', () => {
                 const acknowledgeTextSelector = await page.$(
                     '#AcknowledgeText_0'
                 );
-                expect(acknowledgeTextSelector).not.toBeNull();
+                expect(acknowledgeTextSelector).toBeDefined();
                 await init.logout(page);
             });
         },
@@ -208,7 +236,7 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of component created
                 await init.navigateToComponentDetails(componentName, page);
                 // resolve incident
-                await page.waitForSelector('#btnResolve_0');
+                await page.waitForSelector('#btnResolve_0', { visible: true });
                 await page.click('#btnResolve_0');
                 await page.waitForSelector('#ResolveText_0', {
                     visible: true,
@@ -216,7 +244,7 @@ describe('Incident API With SubProjects', () => {
                 });
 
                 const resolveTextSelector = await page.$('#ResolveText_0');
-                expect(resolveTextSelector).not.toBeNull();
+                expect(resolveTextSelector).toBeDefined();
                 await init.logout(page);
             });
         },
@@ -258,24 +286,32 @@ describe('Incident API With SubProjects', () => {
                     `#form-new-incident-${type}-message`
                 );
                 await page.click(`textarea[id=new-${type}]`);
-                await page.type(`textarea[id=new-${type}]`, `${internalNote}`);
+                await page.type(`textarea[id=new-${type}]`, internalNote);
                 await init.selectByText(
                     '#incident_state',
                     'investigating',
                     page
                 );
                 await page.click(`#${type}-addButton`);
-                await page.waitFor(2000);
+                await page.waitForSelector(`#${type}-addButton`, {
+                    hidden: true,
+                });
+                await page.reload({ waitUntil: 'networkidle0' });
+                // click on incident notes tab
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 const internalMessage = await page.$(
                     `#content_${type}_incident_message_0`
                 );
                 let internalContent = await internalMessage.getProperty(
-                    'textContent'
+                    'innerText'
                 );
 
                 internalContent = await internalContent.jsonValue();
-                expect(internalContent).toEqual(`${internalNote}`);
+                expect(internalContent).toEqual(internalNote);
 
                 type = 'investigation';
                 // fill investigation message thread form
@@ -285,23 +321,29 @@ describe('Incident API With SubProjects', () => {
                     `#form-new-incident-${type}-message`
                 );
                 await page.click(`textarea[id=new-${type}]`);
-                await page.type(
-                    `textarea[id=new-${type}]`,
-                    `${investigationNote}`
-                );
+                await page.type(`textarea[id=new-${type}]`, investigationNote);
                 await init.selectByText(
                     '#incident_state',
                     'investigating',
                     page
                 );
                 await page.click(`#${type}-addButton`);
-                await page.waitFor(2000);
+                await page.waitForSelector(`#${type}-addButton`, {
+                    hidden: true,
+                });
+
+                await page.reload({ waitUntil: 'networkidle0' });
+                // click on incident notes tab
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
 
                 const investigationMessage = await page.$(
                     `#content_${type}_incident_message_0`
                 );
                 let investigationContent = await investigationMessage.getProperty(
-                    'textContent'
+                    'innerText'
                 );
 
                 investigationContent = await investigationContent.jsonValue();
@@ -351,17 +393,24 @@ describe('Incident API With SubProjects', () => {
                     );
                     await init.selectByText('#incident_state', 'update', page);
                     await page.click(`#${type}-addButton`);
-                    await page.waitFor(2000);
+                    await page.waitForSelector(`#${type}-addButton`, {
+                        hidden: true,
+                    });
                 }
                 // click on incident timeline tab
                 await init.gotoTab(
                     utils.incidentTabIndexes.INCIDENT_TIMELINE,
                     page
                 );
-                await page.waitFor(2000);
+                await page.reload({ waitUntil: 'networkidle0' });
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_TIMELINE,
+                    page
+                );
 
                 await page.waitForSelector(
-                    '#incidentTimeline tr.incidentListItem'
+                    '#incidentTimeline tr.incidentListItem',
+                    { visible: true }
                 );
                 let incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
@@ -371,7 +420,8 @@ describe('Incident API With SubProjects', () => {
                 expect(countIncidentTimelines).toEqual(10);
 
                 await page.$eval('#btnTimelineNext', e => e.click());
-                await page.waitFor(7000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
                 );
@@ -379,7 +429,8 @@ describe('Incident API With SubProjects', () => {
                 expect(countIncidentTimelines).toEqual(5);
 
                 await page.$eval('#btnTimelinePrev', e => e.click());
-                await page.waitFor(7000);
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
                 incidentTimelineRows = await page.$$(
                     '#incidentTimeline tr.incidentListItem'
                 );
@@ -406,8 +457,10 @@ describe('Incident API With SubProjects', () => {
                     subProjectName,
                     page
                 );
-                await page.waitFor(2000);
 
+                await page.waitForSelector('tr.incidentListItem', {
+                    visible: true,
+                });
                 const incidentRows = await page.$$('tr.incidentListItem');
                 const countIncidents = incidentRows.length;
                 expect(countIncidents).toEqual(2);

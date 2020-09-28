@@ -59,8 +59,8 @@ describe('Custom SMTP Settings', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
                 await page.click('#email');
-                await page.waitForSelector('#smtpswitch', { visible: true });
-                await page.$eval('#smtpswitch', elem => elem.click());
+                await page.waitForSelector('label[id=showsmtpForm]');
+                await page.click('label[id=showsmtpForm]');
                 await page.waitForSelector('#user');
                 await page.click('#user');
                 await page.type('#user', smtpData.user);
@@ -74,11 +74,12 @@ describe('Custom SMTP Settings', () => {
                 await page.type('#from', smtpData.from);
                 await page.$eval('#secure', elem => elem.click());
                 await page.click('#saveSmtp');
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload();
-                await page.waitForSelector('#host');
+                await page.waitForSelector('#host', { visible: true });
                 const host = await page.$eval('#host', elem => elem.value);
-                expect(host).toBe(smtpData.host);
+                expect(host).toEqual(smtpData.host);
             });
 
             done();
@@ -102,11 +103,12 @@ describe('Custom SMTP Settings', () => {
                 await page.click('#from', { clickCount: 3 });
                 await page.type('#from', from);
                 await page.click('#saveSmtp');
+                await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload();
-                await page.waitForSelector('#from');
+                await page.waitForSelector('#from', { visible: true });
                 const fromVal = await page.$eval('#from', elem => elem.value);
-                expect(fromVal).toBe(from);
+                expect(fromVal).toEqual(from);
             });
 
             done();
@@ -129,6 +131,63 @@ describe('Custom SMTP Settings', () => {
                 const port = await page.$('#port');
                 await port.click({ clickCount: 3 });
                 await port.press('Backspace'); // clear out the input field
+                await page.click('#saveSmtp');
+                await page.waitForSelector('#field-error', {
+                    visible: true,
+                });
+                const errorMessage = await page.$eval(
+                    '#field-error',
+                    element => element.textContent
+                );
+                expect(errorMessage).toEqual(
+                    'Please input port this cannot be left blank.'
+                );
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should delete custom smtp settings',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#email');
+                await page.click('#email');
+                await page.waitForSelector('label[id=showsmtpForm]');
+                await page.waitForSelector('label[id=enableSecureTransport]');
+                await page.waitForSelector('#saveSmtp');
+                await page.click('label[id=enableSecureTransport]');
+                await page.click('label[id=showsmtpForm]');
+                await page.click('#saveSmtp');
+                await page.reload();
+                const username = await page.$('#user');
+                expect(username).toBe(null);
+            });
+
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should display an error if custom smtp settings is already deleted',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings', {
+                    visible: true,
+                });
+                await page.click('#projectSettings');
+                await page.waitForSelector('#email');
+                await page.click('#email');
+                await page.waitForSelector('#saveSmtp');
                 await page.click('#saveSmtp');
                 const error = await page.waitForSelector('#errorInfo', {
                     visible: true,

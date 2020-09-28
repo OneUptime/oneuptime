@@ -26,12 +26,18 @@ module.exports = {
                 ErrorService.log('applicationLogService.create', error);
                 throw error;
             }
+            const resourceCategory = await ResourceCategoryService.findBy({
+                _id: data.resourceCategory,
+            });
             // prepare application log model
             let applicationLog = new ApplicationLogModel();
             applicationLog.name = data.name;
             applicationLog.key = uuid.v4(); // generate random string here
             applicationLog.componentId = data.componentId;
             applicationLog.createdById = data.createdById;
+            if (resourceCategory) {
+                applicationLog.resourceCategory = data.resourceCategory;
+            }
             const savedApplicationLog = await applicationLog.save();
             applicationLog = await _this.findOneBy({
                 _id: savedApplicationLog._id,
@@ -66,7 +72,8 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('componentId', 'name');
+                .populate('componentId', 'name')
+                .populate('resourceCategory', 'name');
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);
@@ -81,9 +88,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLog = await ApplicationLogModel.findOne(
-                query
-            ).populate('componentId', 'name');
+            const applicationLog = await ApplicationLogModel.findOne(query)
+                .populate('componentId', 'name')
+                .populate('resourceCategory', 'name');
             return applicationLog;
         } catch (error) {
             ErrorService.log('applicationLogService.findOneBy', error);
@@ -164,7 +171,7 @@ module.exports = {
             throw error;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query, data, unsetData = null) {
         try {
             if (!query) {
                 query = {};
@@ -178,6 +185,16 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if (unsetData) {
+                applicationLog = await ApplicationLogModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
 
             applicationLog = await this.findOneBy(query);
 
@@ -219,4 +236,5 @@ const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
+const ResourceCategoryService = require('./resourceCategoryService');
 const uuid = require('uuid');
