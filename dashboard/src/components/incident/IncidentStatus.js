@@ -203,8 +203,15 @@ export class IncidentStatus extends Component {
                                         id={`${monitorName}_ViewIncidentDetails`}
                                         type="button"
                                         onClick={() => {
-                                            history.push(
-                                                `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                            setTimeout(() => {
+                                                history.push(
+                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                );
+                                            }, 100);
+                                            this.props.markAsRead(
+                                                projectId,
+                                                this.props.incident
+                                                    .notificationId
                                             );
                                         }}
                                     >
