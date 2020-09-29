@@ -160,6 +160,10 @@ export class IncidentStatus extends Component {
             : this.props.incidentRequest &&
               !this.props.incidentRequest.resolving;
 
+        const incidentReason =
+            this.props.incident.reason &&
+            this.props.incident.reason.split('\n');
+
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -357,6 +361,48 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                 </div>
                                             )}
+                                            {this.props.incident.incidentType &&
+                                                this.props.incident.reason && (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Reason :
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                marginTop:
+                                                                    '6px',
+                                                            }}
+                                                            id={`${monitorName}_IncidentReport`}
+                                                        >
+                                                            <ReactMarkdown
+                                                                source={`This ${
+                                                                    this.props
+                                                                        .incident
+                                                                        .incidentType
+                                                                } incident was created because the monitor's${
+                                                                    incidentReason &&
+                                                                    incidentReason.length >
+                                                                        1
+                                                                        ? ':\n' +
+                                                                          incidentReason
+                                                                              .map(
+                                                                                  a =>
+                                                                                      '- **&middot; ' +
+                                                                                      a +
+                                                                                      '**.'
+                                                                              )
+                                                                              .join(
+                                                                                  '\n'
+                                                                              )
+                                                                        : ' **' +
+                                                                          incidentReason.pop() +
+                                                                          '**.'
+                                                                }`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             {this.props.incident
                                                 .incidentPriority && (
                                                 <div className="bs-Fieldset-row">
