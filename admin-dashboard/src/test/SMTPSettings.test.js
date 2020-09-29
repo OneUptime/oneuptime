@@ -107,12 +107,14 @@ describe('SMTP Settings API', () => {
                 await page.type('input[name=email]', 'mail@do.io');
                 await page.click('input[name=password]', { clickCount: 3 });
                 await page.type('input[name=password]', '1233|do22');
-                await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type('input[name=from-name]', 'Mael Gibs');
                 await page.click('input[name=smtp-server]', { clickCount: 3 });
                 await page.type('input[name=smtp-server]', 'mail.io');
                 await page.click('input[name=smtp-port]', { clickCount: 3 });
                 await page.type('input[name=smtp-port]', '25');
+                await page.click('input[name=from]', { clickCount: 3 });
+                await page.type('input[name=from]', 'mail1@do.io');
+                await page.click('input[name=from-name]', { clickCount: 3 });
+                await page.type('input[name=from-name]', 'Mael Gibs');
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 await page.reload();
