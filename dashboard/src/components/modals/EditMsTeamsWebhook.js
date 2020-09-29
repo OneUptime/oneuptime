@@ -22,6 +22,14 @@ function validate(values) {
 }
 
 class EditWebHook extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             updateMsTeams,
@@ -83,7 +91,6 @@ class EditWebHook extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -461,6 +468,7 @@ class EditWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="msteamsUpdate"
+                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

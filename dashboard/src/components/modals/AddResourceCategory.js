@@ -24,6 +24,14 @@ export class AddResourceCategoryForm extends React.Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         this.props
             .createResourceCategory(this.props.projectId, values)
@@ -49,10 +57,7 @@ export class AddResourceCategoryForm extends React.Component {
         const { handleSubmit } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -134,6 +139,7 @@ export class AddResourceCategoryForm extends React.Component {
                                                 this.props.resourceCategory
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

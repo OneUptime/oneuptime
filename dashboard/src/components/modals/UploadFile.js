@@ -42,6 +42,26 @@ class UploadFile extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                this.setState({ files: [], isFileLoaded: false });
+                return this.props.closeModal({
+                    id: this.props.uploadSubscriberModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     renderFormHeader = () => (
         <div className="bs-Modal-header Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
             <div className="bs-Modal-header-copy">
@@ -123,6 +143,7 @@ class UploadFile extends Component {
                         this.props.createSubscriber.requesting ||
                         !this.state.isFileLoaded
                     }
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.createSubscriber.requesting}>
                         <Spinner />

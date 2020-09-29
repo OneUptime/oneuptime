@@ -24,6 +24,25 @@ class EditComponent extends Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.editComponentModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     submitForm = values => {
         if (this.props.initialValues.name === values.name) {
             return this.props.closeModal({
@@ -92,6 +111,7 @@ class EditComponent extends Component {
                     className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
                     type="save"
                     disabled={this.props.editingComponent.requesting}
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.editingComponent.requesting}>
                         <Spinner />

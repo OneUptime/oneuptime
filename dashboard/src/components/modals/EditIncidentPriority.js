@@ -56,6 +56,14 @@ class EditIncidentPriority extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm(values) {
         const { name, color } = values;
         this.props
@@ -67,13 +75,21 @@ class EditIncidentPriority extends Component {
             .then(() => this.props.closeThisDialog());
     }
 
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { handleSubmit, closeThisDialog } = this.props;
         const { displayColorPicker } = this.state;
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -189,6 +205,7 @@ class EditIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="EditIncidentPriority"
+                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={
