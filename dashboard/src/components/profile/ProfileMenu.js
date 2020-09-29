@@ -30,7 +30,7 @@ export class ProfileMenu extends Component {
 
     handleShortcut = event => {
         // Only execute keyboard shortcut when profile menu is open
-        if (event.target.localName === 'button' && event.key) {
+        if (this.props.visible) {
             if (event.key === 'p' || event.key === 'P') {
                 this.props.hideProfileMenu();
                 this.props.history.push('/dashboard/profile/settings');
@@ -47,7 +47,6 @@ export class ProfileMenu extends Component {
 
     showAboutModal = () => {
         this.props.hideProfileMenu();
-        window.removeEventListener('keydown', this.handleShortcut);
         this.props.openModal({
             id: this.state.aboutId,
             onClose: () => '',
