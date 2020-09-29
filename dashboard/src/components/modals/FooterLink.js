@@ -147,19 +147,24 @@ class CreateFooterLink extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
-                                        onClick={() => {
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
+                                        onClick={e => {
+                                            e.preventDefault();
                                             this.props.closeModal({
                                                 id: this.props
                                                     .createFooterLinkModalId,
                                             });
                                         }}
+                                        type="button"
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="createFooter"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             this.props.statusPage.links
                                                 .requesting
@@ -170,11 +175,16 @@ class CreateFooterLink extends Component {
                                         {this.props.statusPage.links &&
                                             !this.props.statusPage.links
                                                 .requesting && (
-                                                <span>
-                                                    {data && data.footerName
-                                                        ? 'Update'
-                                                        : 'Add'}
-                                                </span>
+                                                <>
+                                                    <span>
+                                                        {data && data.footerName
+                                                            ? 'Update'
+                                                            : 'Add'}
+                                                    </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {this.props.statusPage.links &&
                                             this.props.statusPage.links

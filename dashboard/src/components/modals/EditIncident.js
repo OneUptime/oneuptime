@@ -173,16 +173,19 @@ class EditIncident extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         onClick={() =>
                                             this.props.closeThisDialog()
                                         }
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="saveIncident"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             editIncident &&
                                             editIncident.requesting
@@ -192,7 +195,12 @@ class EditIncident extends Component {
                                     >
                                         {editIncident &&
                                             !editIncident.requesting && (
-                                                <span>Save</span>
+                                                <>
+                                                    <span>Save</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {editIncident &&
                                             editIncident.requesting && (

@@ -192,12 +192,15 @@ class About extends Component {
                                 </span>
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                         autoFocus={true}
                                     >
                                         <span>Close</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                 </div>
                             </div>

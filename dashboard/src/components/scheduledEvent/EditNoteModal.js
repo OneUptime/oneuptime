@@ -290,16 +290,19 @@ class EditNoteModal extends Component {
                                 <ShouldRender if={type === 'internal'}>
                                     <div>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                             disabled={updatingInternalNote}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id={`${type}-updateButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={updatingInternalNote}
                                         >
@@ -307,6 +310,9 @@ class EditNoteModal extends Component {
                                                 if={!updatingInternalNote}
                                             >
                                                 <span>Update</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender
@@ -320,16 +326,19 @@ class EditNoteModal extends Component {
                                 <ShouldRender if={type === 'investigation'}>
                                     <div>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                             disabled={updatingInvestigationNote}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id={`${type}-updateButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={updatingInvestigationNote}
                                             autoFocus={true}
@@ -338,6 +347,9 @@ class EditNoteModal extends Component {
                                                 if={!updatingInvestigationNote}
                                             >
                                                 <span>Update</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender

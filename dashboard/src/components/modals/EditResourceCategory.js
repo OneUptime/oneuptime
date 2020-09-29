@@ -115,7 +115,7 @@ export class EditResourceCategoryForm extends React.Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${this
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
                                                 .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -132,10 +132,13 @@ export class EditResourceCategoryForm extends React.Component {
                                             }
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="addResourceCategoryButton"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
                                                 .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -155,6 +158,9 @@ export class EditResourceCategoryForm extends React.Component {
                                                 <Spinner />
                                             </ShouldRender>
                                             <span>Update</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
