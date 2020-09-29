@@ -764,4 +764,19 @@ module.exports = {
         await page.click(`#react-tabs-${tabId}`);
         await page.waitFor(2000);
     },
+    setAlertPhoneNumber: async (phoneNumber, code, page) => {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#profile-menu');
+        await page.click('#profile-menu');
+        await page.waitForSelector('#userProfile');
+        await page.click('#userProfile');
+        await page.waitForSelector('input[type=tel]');
+        await page.type('input[type=tel]', phoneNumber);
+        await page.waitForSelector('#sendVerificationSMS');
+        await page.click('#sendVerificationSMS');
+        await page.waitForSelector('#otp');
+        await page.type('#otp', code);
+        await page.click('#verify');
+        await page.waitForSelector('#successMessage');
+    }
 };
