@@ -104,17 +104,18 @@ describe('SMTP Settings API', () => {
                 await page.waitForSelector('#smtp-form');
 
                 await page.click('input[name=email]', { clickCount: 3 });
-                await page.type('input[name=email]', 'mail@do.io');
+                await page.type('input[name=email]', utils.smtpCredential.user);
                 await page.click('input[name=password]', { clickCount: 3 });
-                await page.type('input[name=password]', '1233|do22');
+                await page.type('input[name=password]', utils.smtpCredential.pass);
                 await page.click('input[name=smtp-server]', { clickCount: 3 });
-                await page.type('input[name=smtp-server]', 'mail.io');
+                await page.type('input[name=smtp-server]', utils.smtpCredential.host);
                 await page.click('input[name=smtp-port]', { clickCount: 3 });
-                await page.type('input[name=smtp-port]', '25');
+                await page.type('input[name=smtp-port]', utils.smtpCredential.port);
                 await page.click('input[name=from]', { clickCount: 3 });
-                await page.type('input[name=from]', 'mail1@do.io');
+                await page.type('input[name=from]', randomEmail);
                 await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type('input[name=from-name]', 'Mael Gibs');
+                await page.type('input[name=from-name]', utils.smtpCredential.name);
+                await page.$eval('#smtp-secure', element => element.click());
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 await page.reload();
@@ -124,7 +125,7 @@ describe('SMTP Settings API', () => {
                     e => e.value
                 );
 
-                expect(value).toEqual('mail@do.io');
+                expect(value).toEqual(utils.smtpCredential.user);
             });
         },
         operationTimeOut
