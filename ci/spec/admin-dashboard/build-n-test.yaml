@@ -49,7 +49,7 @@ build_n_test_enterprise_admin-dashboard:
         - npm ci
         # try building, if there are warnings then this will fail
         - npm run build
-        - npm run enterprise-test
+        - TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh build_n_test_enterprise_admin-dashboard admin-dashboard backend accounts licensing
