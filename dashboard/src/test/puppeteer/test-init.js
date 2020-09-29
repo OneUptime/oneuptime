@@ -231,6 +231,7 @@ module.exports = {
         await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
+        await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#onCallSchedules');
         await page.click('#onCallSchedules');
         await page.evaluate(() => {
