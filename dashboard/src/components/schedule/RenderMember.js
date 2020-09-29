@@ -42,6 +42,7 @@ const RenderMember = ({
                 <div className="bs-Fieldset-fields">
                     <span className="flex">
                         <Field
+                            id={`${inputarray}.userId`}
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
                             name={`${inputarray}.userId`}
