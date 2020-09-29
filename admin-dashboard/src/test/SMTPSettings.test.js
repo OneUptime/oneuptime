@@ -9,6 +9,9 @@ require('should');
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
+const randomEmail = utils.generateRandomBusinessEmail();
+const wrongPassword = utils.generateRandomString();
+
 describe('SMTP Settings API', () => {
     const operationTimeOut = 100000;
 
@@ -143,11 +146,14 @@ describe('SMTP Settings API', () => {
                 await page.click('#smtp a');
                 await page.waitForSelector('#smtp-form');
 
+                await page.click('input[name=password]', { clickCount: 3 });
+                await page.type('input[name=password]', wrongPassword);
+
                 await page.click('#testSmtpSettingsButton');
                 await page.waitForSelector('input[name=test-email]');
                 await page.type('input[name=test-email]', email);
                 await page.click('#confirmSmtpTest');
-                await page.waitFor(90000);
+                await page.waitFor(10000);
                 await page.waitForSelector(
                     '.bs-Modal-header > div > span > span'
                 );
