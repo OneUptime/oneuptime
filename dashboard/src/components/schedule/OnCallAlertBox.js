@@ -217,7 +217,7 @@ export class OnCallAlertBox extends Component {
                                 <div>
                                     {this.renderAddEscalationPolicyButton()}
                                     <button
-                                        id='saveSchedulePolicy'
+                                        id="saveSchedulePolicy"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
                                             this.props.escalationPolicy

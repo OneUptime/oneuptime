@@ -668,7 +668,11 @@ module.exports = {
         await page.waitForSelector('#createIncident');
         await this.selectByText('#incidentType', incidentType, page);
         if (incidentPriority) {
-            await this.selectByText('#incidentPriority', incidentPriority, page);
+            await this.selectByText(
+                '#incidentPriority',
+                incidentPriority,
+                page
+            );
         }
         await page.click('#createIncident');
         await page.waitForSelector('#ball-beat', { hidden: true });
@@ -724,7 +728,7 @@ module.exports = {
         }
         await page.type('#account-sid', accountSid);
         await page.type('#authentication-token', authToken);
-        await page.type('#phone',phoneNumber);
+        await page.type('#phone', phoneNumber);
         await page.type('#alert-limit', alertLimit);
         await page.click('button[type=submit]');
         await page.waitFor(5000);
@@ -782,20 +786,26 @@ module.exports = {
         await page.click('#verify');
         await page.waitForSelector('#successMessage');
     },
-    addAnExternalSubscriber: async function (componentName,monitorName,alertType,page,data) {
+    addAnExternalSubscriber: async function(
+        componentName,
+        monitorName,
+        alertType,
+        page,
+        data
+    ) {
         await page.goto(utils.DASHBOARD_URL);
-        await this.navigateToMonitorDetails(componentName,monitorName,page);
+        await this.navigateToMonitorDetails(componentName, monitorName, page);
         await page.waitForSelector('#react-tabs-2');
         await page.click('#react-tabs-2');
         await page.waitForSelector('#addSubscriberButton');
         await page.click('#addSubscriberButton');
         await page.waitForSelector('#alertViaId');
         await this.selectByText('#alertViaId', alertType, page);
-        if(alertType === 'SMS'){
-            const {countryCode, phoneNumber} = data;
+        if (alertType === 'SMS') {
+            const { countryCode, phoneNumber } = data;
             await page.waitForSelector('#countryCodeId');
             await this.selectByText('#countryCodeId', countryCode, page);
-            await page.type('#contactPhoneId',phoneNumber);
+            await page.type('#contactPhoneId', phoneNumber);
         }
         await page.click('#createSubscriber');
     },
