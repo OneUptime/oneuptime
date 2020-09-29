@@ -47,6 +47,13 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
             });
         }
 
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'name is required.',
+            });
+        }
+
         if (!data.from) {
             return sendErrorResponse(req, res, {
                 code: 400,
