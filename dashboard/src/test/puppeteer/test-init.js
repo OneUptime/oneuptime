@@ -726,7 +726,9 @@ module.exports = {
         await page.click('button[type=submit]');
         await page.waitFor(5000);
         await page.reload();
-        await page.type('#account-sid', accountSid);
+        await page.waitForSelector('#account-sid');
+        const savedAccountSid = await page.$eval('#account-sid', element => element.value);
+        expect(savedAccountSid).toEqual(accountSid);
     },
     addSmtpSettings: async function(
         enable,
