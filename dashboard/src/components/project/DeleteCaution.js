@@ -37,7 +37,10 @@ class DeleteCaution extends Component {
         const { hide, requesting, deleteProject, handleSubmit } = this.props;
 
         return (
-            <form onSubmit={handleSubmit(deleteProject.bind(this))}>
+            <form
+                id="delete-project-form"
+                onSubmit={handleSubmit(deleteProject.bind(this))}
+            >
                 <div className="bs-Modal bs-Modal--medium">
                     <div className="bs-Modal-header">
                         <div className="bs-Modal-header-copy">
@@ -80,6 +83,7 @@ class DeleteCaution extends Component {
                                 disabled={requesting}
                                 type="submit"
                                 autoFocus={true}
+                                id="btnDeleteProject"
                             >
                                 <ShouldRender if={requesting}>
                                     <Spinner />

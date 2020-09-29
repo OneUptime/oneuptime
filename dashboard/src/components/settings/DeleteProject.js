@@ -46,6 +46,7 @@ export class DeleteProjectBox extends Component {
                                             currentProject.deleted &&
                                             currentProject.deleted
                                         }
+                                        id={`delete-${currentProject.name}`}
                                     >
                                         <ShouldRender if={!isRequesting}>
                                             <span>Delete Project</span>

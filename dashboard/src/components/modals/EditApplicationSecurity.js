@@ -133,6 +133,7 @@ class EditApplicationSecurity extends Component {
                                                         >
                                                             <div className="bs-Fieldset-row bs-u-justify--center">
                                                                 <label className="bs-Fieldset-label">
+                                                                    Resource
                                                                     Category
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
