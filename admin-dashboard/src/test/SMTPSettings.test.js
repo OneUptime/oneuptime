@@ -64,12 +64,14 @@ describe('SMTP Settings API', () => {
                 await page.type('input[name=email]', ' ');
                 await page.click('input[name=password]', { clickCount: 3 });
                 await page.type('input[name=password]', ' ');
-                await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type('input[name=from-name]', ' ');
                 await page.click('input[name=smtp-server]', { clickCount: 3 });
                 await page.type('input[name=smtp-server]', ' ');
                 await page.click('input[name=smtp-port]', { clickCount: 3 });
                 await page.type('input[name=smtp-port]', ' ');
+                await page.click('input[name=from]', { clickCount: 3 });
+                await page.type('input[name=from]', ' ');
+                await page.click('input[name=from-name]', { clickCount: 3 });
+                await page.type('input[name=from-name]', ' ');
                 await page.click('button[type=submit]');
 
                 // All fields should validate false
