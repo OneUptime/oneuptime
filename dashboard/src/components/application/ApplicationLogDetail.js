@@ -43,15 +43,16 @@ class ApplicationLogDetail extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/application-log`
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    applicationLogId: this.props.index,
-                }
-            );
-        }
+        // crashing the application
+        // if (SHOULD_LOG_ANALYTICS) {
+        //     logEvent(
+        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
+        //         {
+        //             ProjectId: this.props.currentProject._id,
+        //             applicationLogId: this.props.index,
+        //         }
+        //     );
+        // }
         return promise;
     };
     resetApplicationLogKey = () => {
@@ -288,18 +289,20 @@ class ApplicationLogDetail extends Component {
                             />
                         </ShouldRender>
 
-                        <ApplicationLogDetailView
-                            applicationLog={applicationLog}
-                            componentId={componentId}
-                            projectId={currentProject._id}
-                            isDetails={isDetails}
-                            stats={stats}
-                            logOptions={logOptions}
-                            handleLogTypeChange={this.handleLogTypeChange}
-                            handleNavigationButtonClick={
-                                this.handleNavigationButtonClick
-                            }
-                        />
+                        {applicationLog && (
+                            <ApplicationLogDetailView
+                                applicationLog={applicationLog}
+                                componentId={componentId}
+                                projectId={currentProject._id}
+                                isDetails={isDetails}
+                                stats={stats}
+                                logOptions={logOptions}
+                                handleLogTypeChange={this.handleLogTypeChange}
+                                handleNavigationButtonClick={
+                                    this.handleNavigationButtonClick
+                                }
+                            />
+                        )}
                     </div>
                 </div>
             );
