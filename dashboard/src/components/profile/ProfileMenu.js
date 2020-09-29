@@ -156,13 +156,8 @@ export class ProfileMenu extends Component {
                                                         <span>Profile</span>
                                                     </span>
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        color: '#8898aa',
-                                                        fontSize: 12,
-                                                    }}
-                                                >
-                                                    Press P
+                                                <span className="profile__keycode">
+                                                    P
                                                 </span>
                                             </div>
                                         </Link>
@@ -200,13 +195,8 @@ export class ProfileMenu extends Component {
                                                             <span>Billing</span>
                                                         </span>
                                                     </span>
-                                                    <span
-                                                        style={{
-                                                            color: '#8898aa',
-                                                            fontSize: 12,
-                                                        }}
-                                                    >
-                                                        Press B
+                                                    <span className="profile__keycode">
+                                                        B
                                                     </span>
                                                 </div>
                                             </Link>
@@ -244,13 +234,8 @@ export class ProfileMenu extends Component {
                                                         <span>About</span>
                                                     </span>
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        color: '#8898aa',
-                                                        fontSize: 12,
-                                                    }}
-                                                >
-                                                    Press A
+                                                <span className="profile__keycode">
+                                                    A
                                                 </span>
                                             </div>
                                         </button>
