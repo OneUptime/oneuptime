@@ -33,28 +33,32 @@ module.exports = {
                 page.waitForSelector(`form#card-form`),
                 page.click('button[type=submit]'),
             ]);
-            await page.waitForSelector('iframe[name=__privateStripeFrame5]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame6]');
-            await page.waitForSelector('iframe[name=__privateStripeFrame7]');
+            await page.waitForSelector('.__PrivateStripeElement > iframe', {
+                visible: true,
+                timeout: 200000,
+            });
+            const stripeIframeElements = await page.$$(
+                '.__PrivateStripeElement > iframe'
+            );
 
             await page.click('input[name=cardName]');
             await page.type('input[name=cardName]', 'Test name');
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame5]');
+            elementHandle = stripeIframeElements[0]; // card element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame6]');
+            elementHandle = stripeIframeElements[1]; // cvc element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 150,
             });
 
-            elementHandle = await page.$('iframe[name=__privateStripeFrame7]');
+            elementHandle = stripeIframeElements[2]; // exp element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
@@ -126,8 +130,10 @@ module.exports = {
             await this.selectByText('#subProjectId', projectName, page);
         }
 
-        await page.$eval('button[type=submit]', e => e.click());
-        await page.waitForNavigation();
+        await Promise.all([
+            page.$eval('button[type=submit]', e => e.click()),
+            page.waitForNavigation(),
+        ]);
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
@@ -159,6 +165,7 @@ module.exports = {
         await this.navigateToComponentDetails(component, page);
 
         // then goto list of log containers
+        await page.waitForSelector('#logs');
         await page.click('#logs');
 
         // Navigate to details page of log container assumed created
@@ -224,6 +231,7 @@ module.exports = {
         await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
+        await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#onCallSchedules');
         await page.click('#onCallSchedules');
         await page.evaluate(() => {
@@ -251,7 +259,7 @@ module.exports = {
             await page.type('#title', subProjectName);
             await page.click('#btnAddSubProjects');
         }
-        await page.waitFor(5000);
+        await page.waitFor('#btnAddSubProjects', { hidden: true });
     },
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
@@ -331,6 +339,9 @@ module.exports = {
         await page.click('#deviceId');
         await page.type('#deviceId', utils.generateRandomString());
         await page.click('button[type=submit]');
+        await page.waitForSelector(`#monitor-title-${monitorName}`, {
+            visible: true,
+        });
     },
     addMonitorToSubProject: async function(
         monitorName,
@@ -544,22 +555,25 @@ module.exports = {
         await page.click('#changePlanBtn');
         await page.waitForSelector('.ball-beat', { hidden: true });
     },
-    addMonitorCategory: async function(monitorCategory, page) {
+    addResourceCategory: async function(resourceCategory, page) {
         await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#projectSettings');
         await page.click('#projectSettings');
 
-        await page.waitForSelector('li#monitors a');
-        await page.click('li#monitors a');
-        await page.waitForSelector('#createMonitorCategoryButton');
-        await page.click('#createMonitorCategoryButton');
-        await page.waitForSelector('#monitorCategoryName');
-        await page.type('#monitorCategoryName', monitorCategory);
-        await page.click('#addMonitorCategoryButton');
+        await page.waitForSelector('li#resources a');
+        await page.click('li#resources a');
+        await page.waitForSelector('#createResourceCategoryButton');
+        await page.click('#createResourceCategoryButton');
+        await page.waitForSelector('#resourceCategoryName');
+        await page.type('#resourceCategoryName', resourceCategory);
+        await page.click('#addResourceCategoryButton');
+        await page.waitForSelector('#addResourceCategoryButton', {
+            hidden: true,
+        });
 
-        const createdMonitorCategorySelector =
-            '#monitorCategoryList #monitor-category-name';
-        await page.waitForSelector(createdMonitorCategorySelector, {
+        const createdResourceCategorySelector =
+            '#resourceCategoryList #resource-category-name';
+        await page.waitForSelector(createdResourceCategorySelector, {
             visible: true,
         });
     },
@@ -653,7 +667,13 @@ module.exports = {
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#createIncident');
         await this.selectByText('#incidentType', incidentType, page);
-        await this.selectByText('#incidentPriority', incidentPriority, page);
+        if (incidentPriority) {
+            await this.selectByText(
+                '#incidentPriority',
+                incidentPriority,
+                page
+            );
+        }
         await page.click('#createIncident');
         await page.waitForSelector('#ball-beat', { hidden: true });
     },
@@ -669,8 +689,8 @@ module.exports = {
             visible: true,
         });
         await page.click('#projectSettings');
-        await page.waitForSelector('#sms');
-        await page.click('#sms');
+        await page.waitForSelector('#smsCalls');
+        await page.click('#smsCalls');
         await page.waitForSelector('label[for=enabled]', {
             visible: true,
         });
@@ -682,6 +702,38 @@ module.exports = {
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#accountSid');
+    },
+    addGlobalTwilioSettings: async function(
+        enableSms,
+        enableCalls,
+        accountSid,
+        authToken,
+        phoneNumber,
+        alertLimit,
+        page
+    ) {
+        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.waitForSelector('#settings', {
+            visible: true,
+        });
+        await page.click('#settings');
+        await page.waitForSelector('#twilio');
+        await page.click('#twilio');
+        await page.waitForSelector('#call-enabled');
+        if (enableCalls) {
+            await page.$eval('#call-enabled', element => element.click());
+        }
+        if (enableSms) {
+            await page.$eval('#sms-enabled', element => element.click());
+        }
+        await page.type('#account-sid', accountSid);
+        await page.type('#authentication-token', authToken);
+        await page.type('#phone', phoneNumber);
+        await page.type('#alert-limit', alertLimit);
+        await page.click('button[type=submit]');
+        await page.waitFor(5000);
+        await page.reload();
+        await page.waitForSelector('#account-sid');
     },
     addSmtpSettings: async function(
         enable,
@@ -718,5 +770,43 @@ module.exports = {
         await page.waitForSelector(`#react-tabs-${tabId}`);
         await page.click(`#react-tabs-${tabId}`);
         await page.waitFor(2000);
+    },
+    setAlertPhoneNumber: async (phoneNumber, code, page) => {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#profile-menu');
+        await page.click('#profile-menu');
+        await page.waitForSelector('#userProfile');
+        await page.click('#userProfile');
+        await page.waitForSelector('input[type=tel]');
+        await page.type('input[type=tel]', phoneNumber);
+        await page.waitForSelector('#sendVerificationSMS');
+        await page.click('#sendVerificationSMS');
+        await page.waitForSelector('#otp');
+        await page.type('#otp', code);
+        await page.click('#verify');
+        await page.waitForSelector('#successMessage');
+    },
+    addAnExternalSubscriber: async function(
+        componentName,
+        monitorName,
+        alertType,
+        page,
+        data
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await this.navigateToMonitorDetails(componentName, monitorName, page);
+        await page.waitForSelector('#react-tabs-2');
+        await page.click('#react-tabs-2');
+        await page.waitForSelector('#addSubscriberButton');
+        await page.click('#addSubscriberButton');
+        await page.waitForSelector('#alertViaId');
+        await this.selectByText('#alertViaId', alertType, page);
+        if (alertType === 'SMS') {
+            const { countryCode, phoneNumber } = data;
+            await page.waitForSelector('#countryCodeId');
+            await this.selectByText('#countryCodeId', countryCode, page);
+            await page.type('#contactPhoneId', phoneNumber);
+        }
+        await page.click('#createSubscriber');
     },
 };

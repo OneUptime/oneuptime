@@ -1,30 +1,30 @@
 import {
-    FETCH_MONITOR_CATEGORIES_REQUEST,
-    FETCH_MONITOR_CATEGORIES_SUCCESS,
-    FETCH_MONITOR_CATEGORIES_FAILURE,
-    CREATE_MONITOR_CATEGORY_REQUEST,
-    CREATE_MONITOR_CATEGORY_SUCCESS,
-    CREATE_MONITOR_CATEGORY_FAILURE,
-    UPDATE_MONITOR_CATEGORY_REQUEST,
-    UPDATE_MONITOR_CATEGORY_SUCCESS,
-    UPDATE_MONITOR_CATEGORY_FAILURE,
-    DELETE_MONITOR_CATEGORY_REQUEST,
-    DELETE_MONITOR_CATEGORY_SUCCESS,
-    DELETE_MONITOR_CATEGORY_FAILURE,
-    FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_REQUEST,
-    FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_SUCCESS,
-    FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE,
-} from '../constants/monitorCategories';
+    FETCH_RESOURCE_CATEGORIES_REQUEST,
+    FETCH_RESOURCE_CATEGORIES_SUCCESS,
+    FETCH_RESOURCE_CATEGORIES_FAILURE,
+    CREATE_RESOURCE_CATEGORY_REQUEST,
+    CREATE_RESOURCE_CATEGORY_SUCCESS,
+    CREATE_RESOURCE_CATEGORY_FAILURE,
+    UPDATE_RESOURCE_CATEGORY_REQUEST,
+    UPDATE_RESOURCE_CATEGORY_SUCCESS,
+    UPDATE_RESOURCE_CATEGORY_FAILURE,
+    DELETE_RESOURCE_CATEGORY_REQUEST,
+    DELETE_RESOURCE_CATEGORY_SUCCESS,
+    DELETE_RESOURCE_CATEGORY_FAILURE,
+    FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_REQUEST,
+    FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_SUCCESS,
+    FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
+} from '../constants/resourceCategories';
 
 const INITIAL_STATE = {
-    monitorCategoryListForNewMonitor: {
-        monitorCategories: [],
+    resourceCategoryListForNewResource: {
+        resourceCategories: [],
         error: null,
         requesting: false,
         success: false,
     },
-    monitorCategoryList: {
-        monitorCategories: [],
+    resourceCategoryList: {
+        resourceCategories: [],
         error: null,
         requesting: false,
         success: false,
@@ -32,81 +32,82 @@ const INITIAL_STATE = {
         limit: null,
         count: null,
     },
-    newMonitorCategory: {
-        monitorCategory: null,
+    newResourceCategory: {
+        resourceCategory: null,
         error: null,
         requesting: false,
         success: false,
     },
-    updatedMonitorCategory: {
-        monitorCategory: null,
+    updatedResourceCategory: {
+        resourceCategory: null,
         error: null,
         requesting: false,
         success: false,
     },
-    deletedMonitorCategory: {
+    deletedResourceCategory: {
         error: null,
         requesting: false,
         success: false,
     },
 };
 
-export default function monitorCategory(state = INITIAL_STATE, action) {
+export default function resourceCategory(state = INITIAL_STATE, action) {
     switch (action.type) {
-        case CREATE_MONITOR_CATEGORY_SUCCESS:
+        case CREATE_RESOURCE_CATEGORY_SUCCESS:
             return Object.assign({}, state, {
-                newMonitorCategory: {
+                newResourceCategory: {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitor: null,
+                    resource: null,
                 },
-                monitorCategoryList: {
-                    ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.concat(
+                resourceCategoryList: {
+                    ...state.resourceCategoryList,
+                    resourceCategories: state.resourceCategoryList.resourceCategories.concat(
                         action.payload
                     ),
-                    count: state.monitorCategoryList.count + 1,
+                    count: state.resourceCategoryList.count + 1,
                 },
-                monitorCategoryListForNewMonitor: {
-                    ...state.monitorCategoryListForNewMonitor,
-                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.concat(
+                resourceCategoryListForNewResource: {
+                    ...state.resourceCategoryListForNewResource,
+                    resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.concat(
                         action.payload
                     ),
                 },
             });
-        case CREATE_MONITOR_CATEGORY_FAILURE:
+        case CREATE_RESOURCE_CATEGORY_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                newMonitorCategory: {
+                newResourceCategory: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitorCategory: state.newMonitorCategory.monitorCategory,
+                    resourceCategory:
+                        state.newResourceCategory.resourceCategory,
                 },
             });
-        case CREATE_MONITOR_CATEGORY_REQUEST:
+        case CREATE_RESOURCE_CATEGORY_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                newMonitorCategory: {
+                newResourceCategory: {
                     requesting: true,
                     error: null,
                     success: false,
-                    monitor: state.newMonitorCategory.monitorCategory,
+                    resource: state.newResourceCategory.resourceCategory,
                 },
             });
 
-        case UPDATE_MONITOR_CATEGORY_SUCCESS:
+        case UPDATE_RESOURCE_CATEGORY_SUCCESS:
             return Object.assign({}, state, {
-                updatedMonitorCategory: {
+                updatedResourceCategory: {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitor: null,
+                    resource: null,
                 },
-                monitorCategoryList: {
-                    ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.map(
+                resourceCategoryList: {
+                    ...state.resourceCategoryList,
+                    resourceCategories: state.resourceCategoryList.resourceCategories.map(
                         item => {
                             if (item._id === action.payload._id) {
                                 return { ...item, name: action.payload.name };
@@ -116,71 +117,71 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                     ),
                 },
             });
-        case UPDATE_MONITOR_CATEGORY_REQUEST:
+        case UPDATE_RESOURCE_CATEGORY_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                updatedMonitorCategory: {
+                updatedResourceCategory: {
                     requesting: true,
                     error: null,
                     success: false,
-                    monitor: state.updatedMonitorCategory.monitorCategory,
+                    resource: state.updatedResourceCategory.resourceCategory,
                 },
             });
-        case UPDATE_MONITOR_CATEGORY_FAILURE:
+        case UPDATE_RESOURCE_CATEGORY_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                updatedMonitorCategory: {
+                updatedResourceCategory: {
                     requesting: false,
                     error: action.payload,
                     success: false,
-                    monitorCategory:
-                        state.updatedMonitorCategory.monitorCategory,
+                    resourceCategory:
+                        state.updatedResourceCategory.resourceCategory,
                 },
             });
 
-        case FETCH_MONITOR_CATEGORIES_SUCCESS:
+        case FETCH_RESOURCE_CATEGORIES_SUCCESS:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryList: {
+                resourceCategoryList: {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitorCategories: action.payload.data,
+                    resourceCategories: action.payload.data,
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,
                 },
             });
-        case FETCH_MONITOR_CATEGORIES_FAILURE:
+        case FETCH_RESOURCE_CATEGORIES_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryList: {
-                    ...state.monitorCategoryList,
+                resourceCategoryList: {
+                    ...state.resourceCategoryList,
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
 
-        case FETCH_MONITOR_CATEGORIES_REQUEST:
+        case FETCH_RESOURCE_CATEGORIES_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryList: {
-                    ...state.monitorCategoryList,
+                resourceCategoryList: {
+                    ...state.resourceCategoryList,
                     requesting: true,
                     error: null,
                     success: false,
                 },
             });
 
-        case DELETE_MONITOR_CATEGORY_SUCCESS:
+        case DELETE_RESOURCE_CATEGORY_SUCCESS:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryListForNewMonitor: {
-                    ...state.monitorCategoryListForNewMonitor,
-                    monitorCategories: state.monitorCategoryListForNewMonitor.monitorCategories.filter(
-                        monitorCategory => {
-                            if (monitorCategory._id === action.payload) {
+                resourceCategoryListForNewResource: {
+                    ...state.resourceCategoryListForNewResource,
+                    resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.filter(
+                        resourceCategory => {
+                            if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
                                 return true;
@@ -188,73 +189,73 @@ export default function monitorCategory(state = INITIAL_STATE, action) {
                         }
                     ),
                 },
-                monitorCategoryList: {
-                    ...state.monitorCategoryList,
-                    monitorCategories: state.monitorCategoryList.monitorCategories.filter(
-                        monitorCategory => {
-                            if (monitorCategory._id === action.payload) {
+                resourceCategoryList: {
+                    ...state.resourceCategoryList,
+                    resourceCategories: state.resourceCategoryList.resourceCategories.filter(
+                        resourceCategory => {
+                            if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
                                 return true;
                             }
                         }
                     ),
-                    count: state.monitorCategoryList.count - 1,
+                    count: state.resourceCategoryList.count - 1,
                 },
-                deletedMonitorCategory: {
+                deletedResourceCategory: {
                     requesting: false,
                     success: true,
                     error: false,
                 },
-                newMonitorCategory: {
-                    ...INITIAL_STATE.newMonitorCategory,
+                newResourceCategory: {
+                    ...INITIAL_STATE.newResourceCategory,
                 },
             });
-        case DELETE_MONITOR_CATEGORY_FAILURE:
+        case DELETE_RESOURCE_CATEGORY_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                deletedMonitorCategory: {
+                deletedResourceCategory: {
                     requesting: false,
                     success: false,
                     error: action.payload,
                 },
             });
-        case DELETE_MONITOR_CATEGORY_REQUEST:
+        case DELETE_RESOURCE_CATEGORY_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                deletedMonitorCategory: {
+                deletedResourceCategory: {
                     requesting: true,
                     success: false,
                     error: null,
                 },
             });
 
-        case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_SUCCESS:
+        case FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_SUCCESS:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryListForNewMonitor: {
+                resourceCategoryListForNewResource: {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitorCategories: action.payload.data,
+                    resourceCategories: action.payload.data,
                     count: action.payload.count,
                 },
             });
-        case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_FAILURE:
+        case FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryListForNewMonitor: {
-                    ...state.monitorCategoryListForNewMonitor,
+                resourceCategoryListForNewResource: {
+                    ...state.resourceCategoryListForNewResource,
                     requesting: false,
                     error: action.payload,
                     success: false,
                 },
             });
-        case FETCH_MONITOR_CATEGORIES_FOR_NEW_MONITOR_REQUEST:
+        case FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_REQUEST:
             return Object.assign({}, state, {
                 ...state,
-                monitorCategoryListForNewMonitor: {
-                    ...state.monitorCategoryListForNewMonitor,
+                resourceCategoryListForNewResource: {
+                    ...state.resourceCategoryListForNewResource,
                     requesting: true,
                     error: null,
                     success: false,

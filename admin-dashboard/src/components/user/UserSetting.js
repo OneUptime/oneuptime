@@ -1,15 +1,20 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import uuid from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
 import { openModal } from '../../actions/modal';
+import MessageModal from './MessageModal';
 
 export class UserSetting extends Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = {
+            messageModalId: uuid.v4(),
+        };
     }
 
     componentDidMount() {
@@ -21,12 +26,24 @@ export class UserSetting extends Component {
     handleChange = () => {
         const { user, updateTwoFactorAuthToken, setTwoFactorAuth } = this.props;
         if (user) {
-            updateTwoFactorAuthToken(user._id, {
-                twoFactorAuthEnabled: !user.twoFactorAuthEnabled,
-                email: user.email,
-            }).then(() => {
-                setTwoFactorAuth(!user.twoFactorAuthEnabled);
-            });
+            return !user.twoFactorAuthEnabled && user.role === 'user'
+                ? this.props.openModal({
+                      id: this.state.messageModalId,
+                      content: MessageModal,
+                  })
+                : !user.twoFactorAuthEnabled && user.role !== 'user'
+                ? updateTwoFactorAuthToken(user._id, {
+                      twoFactorAuthEnabled: true,
+                      email: user.email,
+                  }).then(() => {
+                      setTwoFactorAuth(true);
+                  })
+                : updateTwoFactorAuthToken(user._id, {
+                      twoFactorAuthEnabled: false,
+                      email: user.email,
+                  }).then(() => {
+                      setTwoFactorAuth(false);
+                  });
         }
     };
 
@@ -140,7 +157,9 @@ export class UserSetting extends Component {
                                                 </span>
                                             </div>
                                         </div>
-                                        <ShouldRender if={twoFactorAuthEnabled}>
+                                        <ShouldRender
+                                            if={this.props.user.role === 'user'}
+                                        >
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     Two Factor Authentication{' '}
@@ -149,6 +168,7 @@ export class UserSetting extends Component {
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <label
+                                                        id="disableUser2fa"
                                                         className="Toggler-wrap"
                                                         style={{
                                                             marginTop: '10px',
@@ -182,14 +202,14 @@ export class UserSetting extends Component {
                         <span className="db-SettingsForm-footerMessage"></span>
                         <div className="bs-Tail-copy">
                             <div
-                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                className="Flex-flex Flex-direction--row"
                                 style={{ marginTop: '10px' }}
                             >
                                 <ShouldRender if={!this.props.user}>
                                     <div className="Box-root Margin-right--8">
-                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root" />
                                     </div>
-                                    <div className="Box-root">
+                                    <div className="Box-root Flex-flex">
                                         <span style={{ color: 'red' }}>
                                             User details not found
                                         </span>
@@ -225,6 +245,7 @@ UserSetting.propTypes = {
     user: PropTypes.object.isRequired,
     updateTwoFactorAuthToken: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
+    openModal: PropTypes.func,
 };
 
 UserSetting.contextTypes = {

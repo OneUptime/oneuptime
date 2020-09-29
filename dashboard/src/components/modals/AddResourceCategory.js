@@ -7,35 +7,37 @@ import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
-import { updateMonitorCategory } from '../../actions/monitorCategories';
+import { createResourceCategory } from '../../actions/resourceCategories';
 
 function validate(values) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        errors.name = 'Monitor Category name can not be empty!';
+        errors.name = 'Resource Category name is required!';
     }
     return errors;
 }
 
-export class EditMonitorCategoryForm extends React.Component {
+export class AddResourceCategoryForm extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
-        const { _id } = this.props.initialValues;
-        if (this.props.initialValues.name === values.name) {
-            return this.props.closeModal({
-                id: this.props.EditMonitorCategoryModalId,
-            });
-        }
         this.props
-            .updateMonitorCategory(this.props.projectId, _id, values)
+            .createResourceCategory(this.props.projectId, values)
             .then(() => {
                 return this.props.closeModal({
-                    id: this.props.EditMonitorCategoryModalId,
+                    id: this.props.CreateResourceCategoryModalId,
                 });
             });
     };
@@ -44,7 +46,7 @@ export class EditMonitorCategoryForm extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeModal({
-                    id: this.props.EditMonitorCategoryModalId,
+                    id: this.props.CreateResourceCategoryModalId,
                 });
             default:
                 return false;
@@ -53,13 +55,9 @@ export class EditMonitorCategoryForm extends React.Component {
 
     render() {
         const { handleSubmit } = this.props;
-
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -70,18 +68,21 @@ export class EditMonitorCategoryForm extends React.Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Edit Monitor Category</span>
+                                            <span>
+                                                Create New Resource Category
+                                            </span>
                                         </span>
                                     </div>
                                     <div className="bs-Modal-messages">
                                         <ShouldRender
                                             if={
-                                                this.props.monitorCategory.error
+                                                this.props.resourceCategory
+                                                    .error
                                             }
                                         >
                                             <p className="bs-Modal-message">
                                                 {
-                                                    this.props.monitorCategory
+                                                    this.props.resourceCategory
                                                         .error
                                                 }
                                             </p>
@@ -92,16 +93,16 @@ export class EditMonitorCategoryForm extends React.Component {
                                     <Field
                                         required={true}
                                         component="input"
-                                        name="name"
-                                        placeholder="Monitor Category Name"
-                                        id="monitorCategoryName"
+                                        name="resourceCategoryName"
+                                        placeholder="Resource Category Name"
+                                        id="resourceCategoryName"
                                         className="bs-TextInput"
                                         style={{
                                             width: '90%',
                                             margin: '10px 0 10px 5%',
                                         }}
                                         disabled={
-                                            this.props.monitorCategory
+                                            this.props.resourceCategory
                                                 .requesting
                                         }
                                     />
@@ -110,44 +111,46 @@ export class EditMonitorCategoryForm extends React.Component {
                                     <div className="bs-Modal-footer-actions">
                                         <button
                                             className={`bs-Button bs-DeprecatedButton ${this
-                                                .props.monitorCategory
+                                                .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
                                                 this.props.closeModal({
                                                     id: this.props
-                                                        .EditMonitorCategoryModalId,
+                                                        .CreateResourceCategoryModalId,
                                                 });
                                             }}
                                             disabled={
-                                                this.props.monitorCategory
+                                                this.props.resourceCategory
                                                     .requesting
                                             }
                                         >
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addMonitorCategoryButton"
+                                            id="addResourceCategoryButton"
                                             className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
-                                                .props.monitorCategory
+                                                .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
                                             type="save"
                                             disabled={
-                                                this.props.monitorCategory
+                                                this.props.resourceCategory
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
-                                                    this.props.monitorCategory
+                                                    this.props.resourceCategory
                                                         .requesting
                                                 }
                                             >
                                                 <Spinner />
                                             </ShouldRender>
-                                            <span>Update</span>
+
+                                            <span>Add</span>
                                         </button>
                                     </div>
                                 </div>
@@ -160,43 +163,37 @@ export class EditMonitorCategoryForm extends React.Component {
     }
 }
 
-EditMonitorCategoryForm.displayName = 'EditMonitorCategoryForm';
+AddResourceCategoryForm.displayName = 'AddResourceCategoryForm';
 
-const UpdateMonitorCategoryForm = reduxForm({
-    form: 'EditMonitorCategoryForm',
+const CreateAddResourceCategoryForm = reduxForm({
+    form: 'AddResourceCategoryForm',
     validate,
-})(EditMonitorCategoryForm);
+})(AddResourceCategoryForm);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = state => {
     return {
         projectId:
             state.project.currentProject !== null &&
             state.project.currentProject._id,
-        EditMonitorCategoryModalId: state.modal.modals[0].id,
-        monitorCategory: state.monitorCategories.updatedMonitorCategory,
-        initialValues: state.monitorCategories.monitorCategoryList
-            ? state.monitorCategories.monitorCategoryList.monitorCategories.filter(
-                  obj => obj._id === ownProps.data.monitorCategoryId
-              )[0]
-            : {},
+        CreateResourceCategoryModalId: state.modal.modals[0].id,
+        resourceCategory: state.resourceCategories.newResourceCategory,
     };
 };
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({ closeModal, updateMonitorCategory }, dispatch);
+    return bindActionCreators({ closeModal, createResourceCategory }, dispatch);
 };
 
-EditMonitorCategoryForm.propTypes = {
+AddResourceCategoryForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     projectId: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-    updateMonitorCategory: PropTypes.func.isRequired,
-    EditMonitorCategoryModalId: PropTypes.string,
-    monitorCategory: PropTypes.object,
-    initialValues: PropTypes.object,
+    createResourceCategory: PropTypes.func.isRequired,
+    CreateResourceCategoryModalId: PropTypes.string,
+    resourceCategory: PropTypes.object,
 };
 
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(UpdateMonitorCategoryForm);
+)(CreateAddResourceCategoryForm);

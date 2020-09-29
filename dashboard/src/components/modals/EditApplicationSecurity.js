@@ -12,6 +12,14 @@ import { closeModal } from '../../actions/modal';
 import { editApplicationSecurity } from '../../actions/security';
 
 class EditApplicationSecurity extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     componentDidUpdate(prevProps) {
         const { propArr, isRequesting, closeModal, editError } = this.props;
         const { applicationSecurityId } = propArr[0];
@@ -57,14 +65,12 @@ class EditApplicationSecurity extends Component {
             handleSubmit,
             propArr,
             gitCredentials,
+            resourceCategoryList,
         } = this.props;
         const { applicationSecurityId } = propArr[0];
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -118,6 +124,54 @@ class EditApplicationSecurity extends Component {
                                                                 />
                                                             </div>
                                                         </div>
+                                                        <ShouldRender
+                                                            if={
+                                                                resourceCategoryList &&
+                                                                resourceCategoryList.length >
+                                                                    0
+                                                            }
+                                                        >
+                                                            <div className="bs-Fieldset-row bs-u-justify--center">
+                                                                <label className="bs-Fieldset-label">
+                                                                    Resource
+                                                                    Category
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-select-nw"
+                                                                        component={
+                                                                            RenderSelect
+                                                                        }
+                                                                        name="resourceCategory"
+                                                                        id="resourceCategory"
+                                                                        placeholder="Choose Category"
+                                                                        disabled={
+                                                                            isRequesting
+                                                                        }
+                                                                        options={[
+                                                                            {
+                                                                                value:
+                                                                                    '',
+                                                                                label:
+                                                                                    'Select category',
+                                                                            },
+                                                                            ...(resourceCategoryList &&
+                                                                            resourceCategoryList.length >
+                                                                                0
+                                                                                ? resourceCategoryList.map(
+                                                                                      category => ({
+                                                                                          value:
+                                                                                              category._id,
+                                                                                          label:
+                                                                                              category.name,
+                                                                                      })
+                                                                                  )
+                                                                                : []),
+                                                                        ]}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label">
                                                                 Git Repository
@@ -243,6 +297,7 @@ class EditApplicationSecurity extends Component {
                                             className="bs-Button bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={isRequesting}
+                                            autoFocus={true}
                                         >
                                             {!isRequesting && (
                                                 <span>
@@ -275,6 +330,7 @@ EditApplicationSecurity.propTypes = {
     handleSubmit: PropTypes.func,
     editApplicationSecurity: PropTypes.func,
     gitCredentials: PropTypes.array,
+    resourceCategoryList: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -286,8 +342,15 @@ const mapStateToProps = state => {
             gitRepositoryUrl:
                 state.security.applicationSecurity.gitRepositoryUrl,
             gitCredential: state.security.applicationSecurity.gitCredential._id,
+            resourceCategory: state.security.applicationSecurity
+                .resourceCategory
+                ? state.security.applicationSecurity.resourceCategory._id
+                : '',
         },
         gitCredentials: state.credential.gitCredentials,
+        resourceCategoryList:
+            state.resourceCategories.resourceCategoryListForNewResource
+                .resourceCategories,
     };
 };
 

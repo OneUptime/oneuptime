@@ -14,6 +14,7 @@ const componentName = 'component1';
 const monitorName = 'monitor1';
 const countryCode = '+1';
 const phoneNumber = '9173976235';
+const alertPhone = '+19173976123';
 const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
@@ -62,22 +63,22 @@ describe('Custom Twilio Settings', () => {
                     visible: true,
                 });
                 await page.click('#projectSettings');
-                await page.waitForSelector('#email');
-                await page.click('#sms');
+                await page.waitForSelector('#smsCalls');
+                await page.click('#smsCalls');
                 await page.waitForSelector('label[for=enabled]', {
                     visible: true,
                 });
                 await page.click('label[for=enabled]');
+                await page.waitForSelector('#accountSid', { visible: true });
                 await page.type('#accountSid', twilioCredentials.accountSid);
                 await page.type('#authToken', twilioCredentials.authToken);
                 await page.type('#phoneNumber', twilioCredentials.phoneNumber);
                 await page.click('#submitTwilioSettings');
-                await page.waitFor(3000);
-                await page.reload();
-                await page.waitForSelector(
-                    '#accountSid',
-                    twilioCredentials.accountSid
-                );
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
+                await page.reload({ waitUntil: 'networkidle0' });
+                await page.waitForSelector('#accountSid');
                 const savedAccountSid = await page.$eval(
                     '#accountSid',
                     elem => elem.value
@@ -247,10 +248,7 @@ describe('Custom Twilio Settings', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
-                );
+                await page.type('#otp', '654321');
                 await page.click('#verify');
                 await page.waitFor('#smsVerificationErrors');
                 const message = await page.$eval(
@@ -275,18 +273,14 @@ describe('Custom Twilio Settings', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.click('input[type=tel]');
-                await page.keyboard.down('Control');
-                await page.keyboard.press('A');
-                await page.keyboard.up('Control');
-                await page.keyboard.press('Backspace');
-                await page.type('input[type=tel]', phoneNumber);
+                await page.click('input[type=tel]', { clickCount: 3 });
+                await page.type('input[type=tel]', alertPhone);
+                await page.waitForSelector('#sendVerificationSMS', {
+                    visible: true,
+                });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
@@ -312,19 +306,20 @@ describe('Custom Twilio Settings', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+
+                await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('input[type=tel]');
                 await page.click('input[type=tel]');
-                await page.keyboard.down('Control');
-                await page.keyboard.press('A');
-                await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
-                await page.type('input[type=tel]', phoneNumber);
+                await page.type('input[type=tel]', '1', {
+                    delay: 150,
+                });
+                await page.waitForSelector('#sendVerificationSMS', {
+                    visible: true,
+                });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(

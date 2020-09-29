@@ -23,7 +23,7 @@ import Profile from './Profile';
 import Settings from './Settings';
 
 import Billing from './Billing';
-import Monitors from './Monitors';
+import Resources from './Resources';
 import Component from './Component';
 import Integrations from './Integrations';
 
@@ -49,6 +49,7 @@ import FyipeApi from './FyipeApi';
 import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
 import Consulting from './Consulting';
+import Advanced from './Advanced';
 
 export default {
     ChangePassword,
@@ -67,7 +68,7 @@ export default {
     Incident,
     IncidentSettings,
     Billing,
-    Monitors,
+    Resources,
     Schedule,
     Integrations,
     EmailTemplates,
@@ -91,4 +92,5 @@ export default {
     ScheduledEvent,
     ScheduledEventDetail,
     Consulting,
+    Advanced,
 };

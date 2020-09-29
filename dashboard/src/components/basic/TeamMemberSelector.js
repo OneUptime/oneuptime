@@ -10,6 +10,7 @@ const errorStyle = {
 };
 
 const TeamMemberSelector = ({
+    id,
     input,
     placeholder,
     meta: { touched, error },
@@ -77,6 +78,7 @@ const TeamMemberSelector = ({
         <span>
             <div style={{ height: '28px' }}>
                 <Select
+                    id={id}
                     name={input.name}
                     value={value}
                     onChange={handleChange}

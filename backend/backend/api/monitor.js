@@ -54,12 +54,12 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         } */
 
         if (
-            data.monitorCategoryId &&
-            typeof data.monitorCategoryId !== 'string'
+            data.resourceCategory &&
+            typeof data.resourceCategory !== 'string'
         ) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor Category ID is not of string type.',
+                message: 'Resource Category ID is not of string type.',
             });
         }
         if (!data.name) {
@@ -306,8 +306,8 @@ router.put(
                 }
             }
             let unsetData;
-            if (!data.monitorCategoryId || data.monitorCategoryId === '') {
-                unsetData = { monitorCategoryId: '' };
+            if (!data.resourceCategory || data.resourceCategory === '') {
+                unsetData = { resourceCategory: '' };
             }
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },
@@ -484,30 +484,37 @@ router.post(
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(data, null, monitor.criteria.up)
-                : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(data, null, monitor.criteria.degraded)
-                : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(data, null, monitor.criteria.down)
-                : false);
+                : { stat: false, reasons: [] });
 
             if (validDown) {
                 data.status = 'offline';
+                data.reason = upFailedReasons;
             } else if (validDegraded) {
                 data.status = 'degraded';
+                data.reason = upFailedReasons;
             } else if (validUp) {
                 data.status = 'online';
+                data.reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
-                data.status = 'unknown';
+                data.status = 'offline';
+                data.reason = upFailedReasons;
             }
 
             const log = await ProbeService.saveMonitorLog(data);

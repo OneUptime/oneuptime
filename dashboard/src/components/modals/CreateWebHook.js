@@ -27,6 +27,14 @@ function validate(values) {
 }
 
 class CreateWebHook extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createWebHook,
@@ -81,7 +89,6 @@ class CreateWebHook extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -505,6 +512,7 @@ class CreateWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="createWebhook"
+                                        autoFocus={true}
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook

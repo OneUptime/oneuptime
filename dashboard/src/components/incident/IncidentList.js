@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
+import { markAsRead } from '../../actions/notification';
 export class IncidentList extends Component {
     render() {
         if (
@@ -166,16 +167,24 @@ export class IncidentList extends Component {
                                             key={incident._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                             onClick={() => {
-                                                history.push(
-                                                    '/dashboard/project/' +
-                                                        this.props
-                                                            .currentProject
-                                                            ._id +
-                                                        '/' +
-                                                        incident.monitorId
-                                                            .componentId._id +
-                                                        '/incidents/' +
-                                                        incident._id
+                                                setTimeout(() => {
+                                                    history.push(
+                                                        '/dashboard/project/' +
+                                                            this.props
+                                                                .currentProject
+                                                                ._id +
+                                                            '/' +
+                                                            incident.monitorId
+                                                                .componentId
+                                                                ._id +
+                                                            '/incidents/' +
+                                                            incident._id
+                                                    );
+                                                }, 100);
+                                                this.props.markAsRead(
+                                                    this.props.currentProject
+                                                        ._id,
+                                                    incident.notificationId
                                                 );
                                             }}
                                         >
@@ -886,7 +895,7 @@ export class IncidentList extends Component {
 }
 
 const mapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+    return bindActionCreators({ markAsRead }, dispatch);
 };
 
 function mapStateToProps(state) {
@@ -911,6 +920,7 @@ IncidentList.propTypes = {
     filteredIncidents: PropTypes.array,
     requesting: PropTypes.bool,
     isFiltered: PropTypes.bool,
+    markAsRead: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);

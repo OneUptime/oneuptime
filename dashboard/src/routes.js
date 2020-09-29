@@ -17,7 +17,7 @@ const {
     Incident,
     IncidentSettings,
     Billing,
-    Monitors,
+    Resources,
     Schedule,
     Integrations,
     EmailTemplates,
@@ -41,6 +41,7 @@ const {
     ScheduledEvent,
     ScheduledEventDetail,
     Consulting,
+    Advanced,
 } = pages;
 
 export const groups = [
@@ -352,12 +353,13 @@ export const groups = [
                         shortcut: 'f+b',
                     },
                     {
-                        title: 'Monitors',
-                        path: '/dashboard/project/:projectId/settings/monitors',
+                        title: 'Resources',
+                        path:
+                            '/dashboard/project/:projectId/settings/resources',
                         icon: 'monitor',
                         visible: true,
                         subRoutes: [],
-                        component: Monitors,
+                        component: Resources,
                         index: 2,
                         shortcut: 'f+m',
                     },
@@ -393,7 +395,7 @@ export const groups = [
                         shortcut: 'f+e',
                     },
                     {
-                        title: 'SMS',
+                        title: 'SMS & Calls',
                         path: '/dashboard/project/:projectId/settings/sms',
                         icon: 'sms',
                         visible: true,
@@ -443,6 +445,16 @@ export const groups = [
                         component: FyipeApi,
                         index: 10,
                         shortcut: 'f+w',
+                    },
+                    {
+                        title: 'Advanced',
+                        path: '/dashboard/project/:projectId/settings/advanced',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: Advanced,
+                        index: 11,
+                        shortcut: 'f+n',
                     },
                 ],
                 component: Settings,

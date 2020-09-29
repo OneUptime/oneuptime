@@ -434,6 +434,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
                 }
             }
         );
+        return promise;
     };
 }
 

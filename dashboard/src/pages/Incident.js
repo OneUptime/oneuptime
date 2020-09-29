@@ -37,6 +37,7 @@ class Incident extends React.Component {
         super(props);
         this.props = props;
     }
+
     componentWillMount() {
         resetIdCounter();
     }

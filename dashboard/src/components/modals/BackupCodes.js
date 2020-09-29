@@ -11,6 +11,7 @@ class BackupCodesModal extends React.Component {
     state = {
         copied: false,
         codes: null,
+        close: false,
     };
 
     componentDidMount() {
@@ -21,19 +22,18 @@ class BackupCodesModal extends React.Component {
             const codes = data.backupCodes.map(code => code.code);
             this.setState({ codes });
         }
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeThisDialog();
-            default:
-                return false;
-        }
-    };
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
 
     copyCodesHandler = () => {
         this.setState({ copied: true });
+        setTimeout(() => {
+            this.setState({ close: true });
+        }, 2000);
     };
 
     refineCodes = () => {
@@ -53,13 +53,21 @@ class BackupCodesModal extends React.Component {
         return refinedCodes;
     };
 
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { generateBackupCodes } = this.props;
         const backupCodes = this.refineCodes();
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -178,7 +186,11 @@ class BackupCodesModal extends React.Component {
                                                                         )
                                                                     )
                                                                 ) : (
-                                                                    <ListLoader />
+                                                                    <tr>
+                                                                        <td>
+                                                                            <ListLoader />
+                                                                        </td>
+                                                                    </tr>
                                                                 )}
                                                             </tbody>
                                                         </table>
@@ -227,17 +239,28 @@ class BackupCodesModal extends React.Component {
                                     <span>Generate new codes</span>
                                 </button>
                                 <CopyToClipboard text={this.state.codes}>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        type="button"
-                                        onClick={this.copyCodesHandler}
-                                    >
-                                        {this.state.copied ? (
-                                            <span>Copied</span>
-                                        ) : (
-                                            <span>Copy to clipboard</span>
-                                        )}
-                                    </button>
+                                    {this.state.copied && this.state.close ? (
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            type="button"
+                                            onClick={this.props.closeThisDialog}
+                                        >
+                                            Close
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            type="button"
+                                            onClick={this.copyCodesHandler}
+                                        >
+                                            {this.state.copied &&
+                                            !this.state.close ? (
+                                                <span>Copied</span>
+                                            ) : (
+                                                <span>Copy to clipboard</span>
+                                            )}
+                                        </button>
+                                    )}
                                 </CopyToClipboard>
                             </div>
                         </div>

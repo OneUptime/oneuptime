@@ -20,6 +20,14 @@ export class UpgradePlanModal extends Component {
         this.upgradePlan = this.upgradePlan.bind(this);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     hideForm = () => {
         this.props.hideUpgradeForm();
         this.props.resetCreateMonitor();
@@ -60,10 +68,7 @@ export class UpgradePlanModal extends Component {
 
     render() {
         return this.props.visible ? (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

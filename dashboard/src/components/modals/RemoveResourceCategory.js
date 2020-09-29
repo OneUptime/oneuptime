@@ -3,24 +3,31 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 
-class RemoveMonitorCategory extends Component {
+class RemoveResourceCategory extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
     };
 
     render() {
-        const { deleteMonitorCategory } = this.props;
+        const { deleteResourceCategory } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -37,8 +44,8 @@ class RemoveMonitorCategory extends Component {
                             </div>
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    Are you sure you want to delete this monitor
-                                    category?
+                                    Are you sure you want to delete this
+                                    resource category?
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
@@ -51,18 +58,19 @@ class RemoveMonitorCategory extends Component {
                                         <span>Cancel</span>
                                     </button>
                                     <button
-                                        id="deleteMonitorCategory"
+                                        id="deleteResourceCategory"
                                         className="bs-Button bs-DeprecatedButton bs-Button--red"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={
-                                            deleteMonitorCategory.requesting
+                                            deleteResourceCategory.requesting
                                         }
+                                        autoFocus={true}
                                     >
-                                        {!deleteMonitorCategory.requesting && (
+                                        {!deleteResourceCategory.requesting && (
                                             <span>Delete</span>
                                         )}
-                                        {deleteMonitorCategory.requesting && (
+                                        {deleteResourceCategory.requesting && (
                                             <FormLoader />
                                         )}
                                     </button>
@@ -76,17 +84,18 @@ class RemoveMonitorCategory extends Component {
     }
 }
 
-RemoveMonitorCategory.displayName = 'RemoveMonitorCategoryFormModal';
+RemoveResourceCategory.displayName = 'RemoveResourceCategoryFormModal';
 
-RemoveMonitorCategory.propTypes = {
+RemoveResourceCategory.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
-    deleteMonitorCategory: PropTypes.object.isRequired,
+    deleteResourceCategory: PropTypes.object.isRequired,
 };
 
 const mapStateToProps = state => {
     return {
-        deleteMonitorCategory: state.monitorCategories.deletedMonitorCategory,
+        deleteResourceCategory:
+            state.resourceCategories.deletedResourceCategory,
     };
 };
 
@@ -97,4 +106,4 @@ const mapDispatchToProps = state_Ignored => {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(RemoveMonitorCategory);
+)(RemoveResourceCategory);

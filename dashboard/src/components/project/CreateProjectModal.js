@@ -15,6 +15,14 @@ export class CreateProjectModal extends Component {
         this.createProject = this.createProject.bind(this);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
     createProject(values) {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NEW PROJECT CREATED');
@@ -35,7 +43,7 @@ export class CreateProjectModal extends Component {
         });
     }
 
-    handleKeyBoard = e => {
+    handleKeyboard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.hideForm();
@@ -46,10 +54,7 @@ export class CreateProjectModal extends Component {
 
     render() {
         return this.props.visible ? (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

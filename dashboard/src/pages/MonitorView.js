@@ -483,8 +483,8 @@ const mapStateToProps = (state, props) => {
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
         initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
-        initialValues[`monitorCategoryId_${monitor._id}`] =
-            monitor.monitorCategoryId && monitor.monitorCategoryId._id;
+        initialValues[`resourceCategoryId_${monitor._id}`] =
+            monitor.resourceCategoryId && monitor.resourceCategoryId._id;
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||

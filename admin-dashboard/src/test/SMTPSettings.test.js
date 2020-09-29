@@ -35,7 +35,7 @@ describe('SMTP Settings API', () => {
                 password: data.password,
             };
             // user
-            await init.registerEnterpriseUser(user, page);
+            // await init.registerEnterpriseUser(user, page);
             await init.loginUser(user, page);
         });
     });
@@ -57,16 +57,24 @@ describe('SMTP Settings API', () => {
                 await page.waitForSelector('#smtp');
                 await page.click('#smtp a');
                 await page.waitForSelector('#smtp-form');
-
                 const originalValues = await page.$$eval('input', e =>
                     e.map(field => field.value)
                 );
-
+                await page.click('input[name=email]', { clickCount: 3 });
+                await page.type('input[name=email]', ' ');
+                await page.click('input[name=password]', { clickCount: 3 });
+                await page.type('input[name=password]', ' ');
+                await page.click('input[name=from-name]', { clickCount: 3 });
+                await page.type('input[name=from-name]', ' ');
+                await page.click('input[name=smtp-server]', { clickCount: 3 });
+                await page.type('input[name=smtp-server]', ' ');
+                await page.click('input[name=smtp-port]', { clickCount: 3 });
+                await page.type('input[name=smtp-port]', ' ');
                 await page.click('button[type=submit]');
 
                 // All fields should validate false
                 expect((await page.$$('span.field-error')).length).toEqual(
-                    (await page.$$('input')).length - 1
+                    (await page.$$('input')).length - 2
                 );
 
                 await page.reload();
@@ -93,17 +101,16 @@ describe('SMTP Settings API', () => {
                 await page.click('#smtp a');
                 await page.waitForSelector('#smtp-form');
 
-                await page.click('input[name=email]');
+                await page.click('input[name=email]', { clickCount: 3 });
                 await page.type('input[name=email]', 'mail@do.io');
-                await page.click('input[name=password]');
+                await page.click('input[name=password]', { clickCount: 3 });
                 await page.type('input[name=password]', '1233|do22');
-                await page.click('input[name=from-name]');
+                await page.click('input[name=from-name]', { clickCount: 3 });
                 await page.type('input[name=from-name]', 'Mael Gibs');
-                await page.click('input[name=smtp-server]');
+                await page.click('input[name=smtp-server]', { clickCount: 3 });
                 await page.type('input[name=smtp-server]', 'mail.io');
-                await page.click('input[name=smtp-port]');
+                await page.click('input[name=smtp-port]', { clickCount: 3 });
                 await page.type('input[name=smtp-port]', '25');
-
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
                 await page.reload();
@@ -114,6 +121,36 @@ describe('SMTP Settings API', () => {
                 );
 
                 expect(value).toEqual('mail@do.io');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'Should open a test failed modal with invalid smtp settings',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#settings');
+                await page.click('#settings');
+
+                await page.waitForSelector('#smtp');
+                await page.click('#smtp a');
+                await page.waitForSelector('#smtp-form');
+
+                await page.click('#testSmtpSettingsButton');
+                await page.waitForSelector('input[name=test-email]');
+                await page.type('input[name=test-email]', email);
+                await page.click('#confirmSmtpTest');
+                await page.waitFor(90000);
+                await page.waitForSelector(
+                    '.bs-Modal-header > div > span > span'
+                );
+                let elem = await page.$('.bs-Modal-header > div > span > span');
+                elem = await elem.getProperty('innerText');
+                elem = await elem.jsonValue();
+
+                expect(elem).toEqual('Test Failed');
             });
         },
         operationTimeOut

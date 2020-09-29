@@ -14,6 +14,14 @@ import CodeEditor from '../basic/CodeEditor';
 import { createScheduledEventNote } from '../../actions/scheduledEvent';
 
 class AddNoteModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     validate = values => {
         const errors = {};
         if (!ValidateField.text(values[`content`])) {
@@ -89,7 +97,6 @@ class AddNoteModal extends Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -243,6 +250,7 @@ class AddNoteModal extends Component {
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={creatingNote}
+                                            autoFocus={true}
                                         >
                                             <ShouldRender if={!creatingNote}>
                                                 <span>Save</span>

@@ -58,6 +58,7 @@ class ApplicationSecurityForm extends Component {
             handleSubmit,
             requestingGitCredentials,
             gitCredentials,
+            resourceCategoryList,
         } = this.props;
 
         return (
@@ -116,6 +117,53 @@ class ApplicationSecurityForm extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender
+                                                    if={
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
+                                                            0
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row bs-u-justify--center">
+                                                        <label className="bs-Fieldset-label">
+                                                            Resource Category
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="resourceCategory"
+                                                                id="resourceCategory"
+                                                                placeholder="Choose Category"
+                                                                disabled={
+                                                                    isRequesting
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select category',
+                                                                    },
+                                                                    ...(resourceCategoryList &&
+                                                                    resourceCategoryList.length >
+                                                                        0
+                                                                        ? resourceCategoryList.map(
+                                                                              category => ({
+                                                                                  value:
+                                                                                      category._id,
+                                                                                  label:
+                                                                                      category.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
                                                     <label className="bs-Fieldset-label">
                                                         Git Repository URL
@@ -270,6 +318,7 @@ ApplicationSecurityForm.propTypes = {
     requestingGitCredentials: PropTypes.bool,
     openModal: PropTypes.func,
     closeModal: PropTypes.func,
+    resourceCategoryList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -284,6 +333,9 @@ const mapStateToProps = state => {
         addApplicationError: state.security.addApplication.error,
         gitCredentials: state.credential.gitCredentials,
         requestingGitCredentials: state.credential.getCredential.requesting,
+        resourceCategoryList:
+            state.resourceCategories.resourceCategoryListForNewResource
+                .resourceCategories,
     };
 };
 

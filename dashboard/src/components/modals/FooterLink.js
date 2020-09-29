@@ -15,6 +15,14 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 
 class CreateFooterLink extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = footerLinkValues => {
         const { submitForm, footerName } = this.props.data;
         let values = this.props.links;
@@ -45,7 +53,6 @@ class CreateFooterLink extends Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -158,6 +165,7 @@ class CreateFooterLink extends Component {
                                                 .requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {this.props.statusPage.links &&
                                             !this.props.statusPage.links

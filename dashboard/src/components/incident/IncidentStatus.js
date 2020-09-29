@@ -10,6 +10,7 @@ import {
     acknowledgeIncident,
     resolveIncident,
     closeIncident,
+    getIncidentTimeline,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -33,12 +34,21 @@ export class IncidentStatus extends Component {
     }
     acknowledge = () => {
         const userId = User.getUserId();
-        this.props.acknowledgeIncident(
-            this.props.incident.projectId,
-            this.props.incident._id,
-            userId,
-            this.props.multiple
-        );
+        this.props
+            .acknowledgeIncident(
+                this.props.incident.projectId,
+                this.props.incident._id,
+                userId,
+                this.props.multiple
+            )
+            .then(() => {
+                this.props.getIncidentTimeline(
+                    this.props.currentProject._id,
+                    this.props.incident._id,
+                    parseInt(0),
+                    parseInt(10)
+                );
+            });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT ACKNOWLEDGED',
@@ -64,6 +74,12 @@ export class IncidentStatus extends Component {
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
+                );
+                this.props.getIncidentTimeline(
+                    this.props.currentProject._id,
+                    this.props.incident._id,
+                    parseInt(0),
+                    parseInt(10)
                 );
             });
         if (SHOULD_LOG_ANALYTICS) {
@@ -144,6 +160,10 @@ export class IncidentStatus extends Component {
             : this.props.incidentRequest &&
               !this.props.incidentRequest.resolving;
 
+        const incidentReason =
+            this.props.incident.reason &&
+            this.props.incident.reason.split('\n');
+
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -183,8 +203,15 @@ export class IncidentStatus extends Component {
                                         id={`${monitorName}_ViewIncidentDetails`}
                                         type="button"
                                         onClick={() => {
-                                            history.push(
-                                                `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                            setTimeout(() => {
+                                                history.push(
+                                                    `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+                                                );
+                                            }, 100);
+                                            this.props.markAsRead(
+                                                projectId,
+                                                this.props.incident
+                                                    .notificationId
                                             );
                                         }}
                                     >
@@ -341,6 +368,48 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                 </div>
                                             )}
+                                            {this.props.incident.incidentType &&
+                                                this.props.incident.reason && (
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Reason :
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                marginTop:
+                                                                    '6px',
+                                                            }}
+                                                            id={`${monitorName}_IncidentReport`}
+                                                        >
+                                                            <ReactMarkdown
+                                                                source={`This ${
+                                                                    this.props
+                                                                        .incident
+                                                                        .incidentType
+                                                                } incident was created because the monitor's${
+                                                                    incidentReason &&
+                                                                    incidentReason.length >
+                                                                        1
+                                                                        ? ':\n' +
+                                                                          incidentReason
+                                                                              .map(
+                                                                                  a =>
+                                                                                      '- **&middot; ' +
+                                                                                      a +
+                                                                                      '**.'
+                                                                              )
+                                                                              .join(
+                                                                                  '\n'
+                                                                              )
+                                                                        : ' **' +
+                                                                          incidentReason.pop() +
+                                                                          '**.'
+                                                                }`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             {this.props.incident
                                                 .incidentPriority && (
                                                 <div className="bs-Fieldset-row">
@@ -932,6 +1001,7 @@ const mapDispatchToProps = dispatch => {
             closeIncident,
             openModal,
             markAsRead,
+            getIncidentTimeline,
         },
         dispatch
     );
@@ -955,6 +1025,7 @@ IncidentStatus.propTypes = {
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
     markAsRead: PropTypes.func,
+    getIncidentTimeline: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);

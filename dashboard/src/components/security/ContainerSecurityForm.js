@@ -59,6 +59,7 @@ class ContainerSecurityForm extends Component {
             addContainerError,
             requestingDockerCredentials,
             dockerCredentials,
+            resourceCategoryList,
         } = this.props;
 
         return (
@@ -118,6 +119,53 @@ class ContainerSecurityForm extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender
+                                                    if={
+                                                        resourceCategoryList &&
+                                                        resourceCategoryList.length >
+                                                            0
+                                                    }
+                                                >
+                                                    <div className="bs-Fieldset-row bs-u-justify--center">
+                                                        <label className="bs-Fieldset-label">
+                                                            Resource Category
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-select-nw"
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                name="resourceCategory"
+                                                                id="resourceCategory"
+                                                                placeholder="Choose Category"
+                                                                disabled={
+                                                                    addingContainer
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select category',
+                                                                    },
+                                                                    ...(resourceCategoryList &&
+                                                                    resourceCategoryList.length >
+                                                                        0
+                                                                        ? resourceCategoryList.map(
+                                                                              category => ({
+                                                                                  value:
+                                                                                      category._id,
+                                                                                  label:
+                                                                                      category.name,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
                                                     <label className="bs-Fieldset-label">
                                                         Docker Credential
@@ -292,6 +340,7 @@ ContainerSecurityForm.propTypes = {
     requestingDockerCredentials: PropTypes.bool,
     closeModal: PropTypes.func,
     openModal: PropTypes.func,
+    resourceCategoryList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -311,6 +360,9 @@ const mapStateToProps = state => {
         addContainerError: state.security.addContainer.error,
         dockerCredentials: state.credential.dockerCredentials,
         requestingDockerCredentials: state.credential.getCredential.requesting,
+        resourceCategoryList:
+            state.resourceCategories.resourceCategoryListForNewResource
+                .resourceCategories,
     };
 };
 

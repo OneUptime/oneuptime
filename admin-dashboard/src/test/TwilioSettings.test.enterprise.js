@@ -58,24 +58,11 @@ describe('Twilio Settings API', () => {
                 await page.click('#twilio a');
                 await page.waitForSelector('#twilio-form');
 
-                const originalValues = await page.$$eval('input', e =>
-                    e.map(field => field.value)
-                );
-
                 await page.click('button[type=submit]');
-
-                // All fields should validate false
-                expect((await page.$$('span.field-error')).length).toEqual(
-                    (await page.$$('input[type=text],input[type=number]'))
-                        .length
-                );
-
-                await page.reload();
-
-                // All fields should remain as were
-                expect(
-                    await page.$$eval('input', e => e.map(field => field.value))
-                ).toEqual(originalValues);
+                const error = await page.waitForSelector('.field-error', {
+                    visible: true,
+                });
+                expect(error).toBeDefined();
             });
             done();
         },
@@ -83,12 +70,12 @@ describe('Twilio Settings API', () => {
     );
 
     test(
-        'Should show error message if an invalide account-sid is used.',
+        'Should show error message if an invalid account-sid is used.',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await page.click('#settings a');
 
                 await page.waitForSelector('#twilio');
                 await page.click('#twilio a');
@@ -102,10 +89,13 @@ describe('Twilio Settings API', () => {
                 await page.click('input[name=authentication-token]');
                 await page.type(
                     'input[name=authentication-token]',
-                    '1233|do22'
+                    process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
                 );
-                await page.click('input[name=phone');
-                await page.type('input[name=phone', '+12992019922');
+                await page.click('input[name=phone]');
+                await page.type(
+                    'input[name=phone]',
+                    process.env.TEST_TWILIO_PHONE
+                );
 
                 await page.click('input[name=alert-limit]');
                 await page.type('input[name=alert-limit]', '5');
@@ -134,12 +124,12 @@ describe('Twilio Settings API', () => {
     );
 
     test(
-        'Should show error if an invalide phone number is used.',
+        'Should show error if an invalid phone number is used.',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await page.click('#settings a');
 
                 await page.waitForSelector('#twilio');
                 await page.click('#twilio a');
@@ -155,8 +145,8 @@ describe('Twilio Settings API', () => {
                     'input[name=authentication-token]',
                     process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
                 );
-                await page.click('input[name=phone');
-                await page.type('input[name=phone', '+123');
+                await page.click('input[name=phone]');
+                await page.type('input[name=phone]', '+123');
 
                 await page.click('input[name=alert-limit]');
                 await page.type('input[name=alert-limit]', '5');
@@ -190,11 +180,10 @@ describe('Twilio Settings API', () => {
     test(
         'Should save valid form data',
         async done => {
-            expect.assertions(1);
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
-                await page.click('#settings');
+                await page.click('#settings a');
 
                 await page.waitForSelector('#twilio');
                 await page.click('#twilio a');
@@ -256,10 +245,7 @@ describe('Twilio Settings API', () => {
                 await page.type('input[type=tel]', phoneNumber);
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE + '123'
-                );
+                await page.type('#otp', '654321');
                 await page.click('#verify');
                 await page.waitFor('#smsVerificationErrors', { visible: true });
                 const message = await page.$eval(
@@ -285,21 +271,14 @@ describe('Twilio Settings API', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('input[type=tel]');
-                await page.click('input[type=tel]');
-                await page.keyboard.down('Control');
-                await page.keyboard.press('A');
-                await page.keyboard.up('Control');
-                await page.keyboard.press('Backspace');
+                await page.click('input[type=tel]', { clickCount: 3 });
                 await page.type('input[type=tel]', phoneNumber);
                 await page.waitForSelector('#sendVerificationSMS', {
                     visible: true,
                 });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(
@@ -326,22 +305,20 @@ describe('Twilio Settings API', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
+
+                await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('input[type=tel]');
                 await page.click('input[type=tel]');
-                await page.keyboard.down('Control');
-                await page.keyboard.press('A');
-                await page.keyboard.up('Control');
                 await page.keyboard.press('Backspace');
-                await page.type('input[type=tel]', phoneNumber);
-                await page.waitForSelector('#sendVerificatioinSMS', {
+                await page.type('input[type=tel]', '1', {
+                    delay: 150,
+                });
+                await page.waitForSelector('#sendVerificationSMS', {
                     visible: true,
                 });
                 await page.click('#sendVerificationSMS');
                 await page.waitForSelector('#otp');
-                await page.type(
-                    '#otp',
-                    process.env.TWILIO_SMS_VERIFICATION_CODE
-                );
+                await page.type('#otp', '123456');
                 await page.click('#verify');
                 await page.waitFor('#successMessage', { visible: true });
                 const message = await page.$eval(

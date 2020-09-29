@@ -22,6 +22,14 @@ function validate(values) {
 }
 
 class CreateSlack extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createSlack,
@@ -79,7 +87,6 @@ class CreateSlack extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -452,6 +459,7 @@ class CreateSlack extends React.Component {
                                         }
                                         type="submit"
                                         id="createSlack"
+                                        autoFocus={true}
                                     >
                                         {this.props.newSlack &&
                                             !this.props.newSlack.requesting && (

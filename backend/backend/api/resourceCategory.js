@@ -13,38 +13,38 @@ const { isAuthorized } = require('../middlewares/authorization');
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
-const MonitorCategoryService = require('../services/monitorCategoryService');
+const ResourceCategoryService = require('../services/resourceCategoryService');
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // Route
-// Description: Creating Monitor Category.
+// Description: Creating Resource Category.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {name} req.params -> {projectId}
-// Returns: 200: MonitorCategory, 400: Error; 500: Server Error.
+// Returns: 200: ResourceCategory, 400: Error; 500: Server Error.
 router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
     try {
-        const monitorCategoryName = req.body.monitorCategoryName;
+        const resourceCategoryName = req.body.resourceCategoryName;
         const projectId = req.params.projectId;
 
         const userId = req.user ? req.user.id : null;
 
-        if (!monitorCategoryName) {
+        if (!resourceCategoryName) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor category name is required.',
+                message: 'Resource category name is required.',
             });
         }
 
-        if (typeof monitorCategoryName !== 'string') {
+        if (typeof resourceCategoryName !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Monitor category name is not of string type.',
+                message: 'Resource category name is not of string type.',
             });
         }
 
@@ -62,41 +62,41 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         }
 
-        // Call the MonitorCategoryService
-        const monitorCategory = await MonitorCategoryService.create({
+        // Call the ResourceCategoryService
+        const resourceCategory = await ResourceCategoryService.create({
             projectId,
             userId,
-            name: monitorCategoryName,
+            name: resourceCategoryName,
         });
-        return sendItemResponse(req, res, monitorCategory);
+        return sendItemResponse(req, res, resourceCategory);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
 router.delete(
-    '/:projectId/:monitorCategoryId',
+    '/:projectId/:resourceCategoryId',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
         try {
-            const monitorCategoryId = req.params.monitorCategoryId;
+            const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
 
             const userId = req.user ? req.user.id : null;
 
-            if (!monitorCategoryId) {
+            if (!resourceCategoryId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Monitor category ID is required.',
+                    message: 'Resource category ID is required.',
                 });
             }
 
-            if (typeof monitorCategoryId !== 'string') {
+            if (typeof resourceCategoryId !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Monitor category ID is not of string type.',
+                    message: 'Resource category ID is not of string type.',
                 });
             }
 
@@ -113,44 +113,44 @@ router.delete(
                     message: 'Project ID is not of string type.',
                 });
             }
-            // Call the MonitorCategoryService
-            const deletedMonitorCategory = await MonitorCategoryService.deleteBy(
+            // Call the ResourceCategoryService
+            const deletedResourceCategory = await ResourceCategoryService.deleteBy(
                 {
                     projectId,
-                    _id: monitorCategoryId,
+                    _id: resourceCategoryId,
                 },
                 userId
             );
-            return sendItemResponse(req, res, deletedMonitorCategory);
+            return sendItemResponse(req, res, deletedResourceCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
 );
 
-// Route to update a monitor category's name
+// Route to update a resource category's name
 router.put(
-    '/:projectId/:monitorCategoryId',
+    '/:projectId/:resourceCategoryId',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
         try {
-            const monitorCategoryId = req.params.monitorCategoryId;
+            const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
             const { name } = req.body;
 
-            if (!monitorCategoryId) {
+            if (!resourceCategoryId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Monitor category ID is required.',
+                    message: 'Resource category ID is required.',
                 });
             }
 
-            if (typeof monitorCategoryId !== 'string') {
+            if (typeof resourceCategoryId !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Monitor category ID is not of string type.',
+                    message: 'Resource category ID is not of string type.',
                 });
             }
 
@@ -168,12 +168,12 @@ router.put(
                 });
             }
 
-            // Call the MonitorCategoryService
-            const updatedMonitorCategory = await MonitorCategoryService.updateOneBy(
-                { projectId, _id: monitorCategoryId },
-                { name, projectId, _id: monitorCategoryId }
+            // Call the ResourceCategoryService
+            const updatedResourceCategory = await ResourceCategoryService.updateOneBy(
+                { projectId, _id: resourceCategoryId },
+                { name, projectId, _id: resourceCategoryId }
             );
-            return sendItemResponse(req, res, updatedMonitorCategory);
+            return sendItemResponse(req, res, updatedResourceCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -198,14 +198,14 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
                 message: 'Project ID is not of string type.',
             });
         }
-        // Call the MonitorCategoryService
-        const monitorCategories = await MonitorCategoryService.findBy(
+        // Call the ResourceCategoryService
+        const resourceCategories = await ResourceCategoryService.findBy(
             { projectId },
             query.limit,
             query.skip
         );
-        const count = await MonitorCategoryService.countBy({ projectId });
-        return sendListResponse(req, res, monitorCategories, count);
+        const count = await ResourceCategoryService.countBy({ projectId });
+        return sendListResponse(req, res, resourceCategories, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

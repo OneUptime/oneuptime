@@ -16,6 +16,14 @@ export class AddSiteUrl extends React.Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         this.props
             .addSiteUrl(
@@ -46,10 +54,7 @@ export class AddSiteUrl extends React.Component {
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -124,6 +129,7 @@ export class AddSiteUrl extends React.Component {
                                                 this.props.editMonitor
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

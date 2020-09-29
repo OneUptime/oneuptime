@@ -104,83 +104,97 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 ) {
     try {
         const { monitor, res, resp, rawResp, type, retryCount } = req.body;
-        let status, log;
+        let status, log, reason;
 
         if (type === 'api' || type === 'url') {
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(
                       res,
                       resp,
                       monitor.criteria.up,
                       rawResp
                   )
-                : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(
                       res,
                       resp,
                       monitor.criteria.degraded,
                       rawResp
                   )
-                : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(
                       res,
                       resp,
                       monitor.criteria.down,
                       rawResp
                   )
-                : false);
+                : { stat: false, reasons: [] });
 
             if (validDown) {
                 status = 'offline';
+                reason = upFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
+                reason = upFailedReasons;
             } else if (validUp) {
                 status = 'online';
+                reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
-                status = 'unknown';
+                status = 'offline';
+                reason = upFailedReasons;
             }
         }
         if (type === 'script') {
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.scriptConditions(res, resp, monitor.criteria.up)
-                : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.scriptConditions(
                       res,
                       resp,
                       monitor.criteria.degraded
                   )
-                : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.scriptConditions(
                       res,
                       resp,
                       monitor.criteria.down
                   )
-                : false);
+                : { stat: false, reasons: [] });
 
             if (validDown) {
                 status = 'failed';
+                reason = upFailedReasons;
             } else if (validDegraded) {
                 status = 'degraded';
+                reason = upFailedReasons;
             } else if (validUp) {
                 status = 'success';
+                reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
-                status = 'unknown';
+                status = 'failed';
+                reason = upFailedReasons;
             }
             resp.status = null;
         }
@@ -214,6 +228,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
         data.retryCount = retryCount || 0;
+        data.reason = reason;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {
