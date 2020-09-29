@@ -553,4 +553,48 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
+    test(
+        'Should delete category for created log container and reflect',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                const categoryName = 'Another-Category';
+
+                // confirm the application log has a category
+                await init.navigateToApplicationLogDetails(
+                    componentName,
+                    `${applicationLogName}-new`,
+                    page
+                );
+
+                let spanElement = await page.$(
+                    `#${applicationLogName}-new-badge`
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                spanElement.should.be.exactly(categoryName.toUpperCase());
+
+                // delete the category
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+
+                await page.waitForSelector('li#resources a');
+                await page.click('li#resources a');
+
+                await page.waitForSelector(`#delete_${categoryName}`);
+                await page.click(`#delete_${categoryName}`);
+                await page.waitForSelector('#deleteResourceCategory');
+                await page.click('#deleteResourceCategory');
+                await page.waitFor(5000);
+
+                // go back to log details and confirm it is not there anymore
+                const spanElementBadge = await page.$(
+                    `#${applicationLogName}-new-badge`,
+                    { hidden: true }
+                );
+                expect(spanElementBadge).toBeNull();
+            });
+        },
+        operationTimeOut
+    );
 });

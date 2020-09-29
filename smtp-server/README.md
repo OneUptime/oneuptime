@@ -20,7 +20,7 @@ Run Redis
 docker run -d -p 6379:6379 redis:latest
 ```
 
-Run Fyipe Haraka Container: 
+Run Fyipe Haraka Container:
 
 ```
 docker run -d -p 25:25 -e SMTP_USER="user@hackerbay.io" --net="host" -e SMTP_PASSWORD="hackerbay" -e SMTP_PORT="25"  haraka:latest
@@ -42,4 +42,4 @@ swaks --to nawazdhandala@outlook.com --from user@hackerbay.io --server localhost
 
 ```
 
-See if you get a mail in your inbox. 
+See if you get a mail in your inbox.

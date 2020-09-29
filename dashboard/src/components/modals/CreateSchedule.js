@@ -33,6 +33,14 @@ class CreateSchedule extends React.Component {
         monitorError: null,
     };
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createScheduledEvent,
@@ -328,7 +336,6 @@ class CreateSchedule extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -790,6 +797,7 @@ class CreateSchedule extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={requesting}
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {!requesting && <span>Create</span>}
                                         {requesting && <FormLoader />}

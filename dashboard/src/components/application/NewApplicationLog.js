@@ -169,7 +169,7 @@ class NewApplicationLog extends Component {
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Category
+                                                            Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field

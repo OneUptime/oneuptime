@@ -9,10 +9,20 @@ import { history } from '../../store';
 import { deleteApplicationSecurity } from '../../actions/security';
 
 class DeleteApplicationSecurity extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.handleDelete();
             default:
                 return false;
         }
@@ -48,10 +58,7 @@ class DeleteApplicationSecurity extends Component {
         } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -120,6 +127,7 @@ class DeleteApplicationSecurity extends Component {
                                         type="button"
                                         onClick={this.handleDelete}
                                         disabled={isRequesting}
+                                        autoFocus={true}
                                     >
                                         {!isRequesting && <span>Delete</span>}
                                         {isRequesting && <FormLoader />}

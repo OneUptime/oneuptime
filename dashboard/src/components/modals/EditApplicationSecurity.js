@@ -12,6 +12,14 @@ import { closeModal } from '../../actions/modal';
 import { editApplicationSecurity } from '../../actions/security';
 
 class EditApplicationSecurity extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     componentDidUpdate(prevProps) {
         const { propArr, isRequesting, closeModal, editError } = this.props;
         const { applicationSecurityId } = propArr[0];
@@ -62,10 +70,7 @@ class EditApplicationSecurity extends Component {
         const { applicationSecurityId } = propArr[0];
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -128,6 +133,7 @@ class EditApplicationSecurity extends Component {
                                                         >
                                                             <div className="bs-Fieldset-row bs-u-justify--center">
                                                                 <label className="bs-Fieldset-label">
+                                                                    Resource
                                                                     Category
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -291,6 +297,7 @@ class EditApplicationSecurity extends Component {
                                             className="bs-Button bs-Button bs-Button--blue"
                                             type="submit"
                                             disabled={isRequesting}
+                                            autoFocus={true}
                                         >
                                             {!isRequesting && (
                                                 <span>

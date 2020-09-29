@@ -22,6 +22,14 @@ function validate(values) {
 }
 
 class CreateMsTeams extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createMsTeams,
@@ -79,7 +87,6 @@ class CreateMsTeams extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -453,6 +460,7 @@ class CreateMsTeams extends React.Component {
                                         }
                                         type="submit"
                                         id="createMsTeams"
+                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

@@ -263,6 +263,7 @@ class _ProjectForm extends React.Component {
                                     'bs-is-disabled'}`}
                                 type="submit"
                                 disabled={requesting}
+                                autoFocus={true}
                             >
                                 <ShouldRender if={requesting}>
                                     <Spinner />
