@@ -157,35 +157,41 @@ export class UserSetting extends Component {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="bs-Fieldset-row">
-                                            <label className="bs-Fieldset-label">
-                                                Two Factor Authentication <br />{' '}
-                                                by Google Authenticator
-                                            </label>
-                                            <div className="bs-Fieldset-fields">
-                                                <label
-                                                    id="disableUser2fa"
-                                                    className="Toggler-wrap"
-                                                    style={{
-                                                        marginTop: '10px',
-                                                    }}
-                                                >
-                                                    <input
-                                                        className="btn-toggler"
-                                                        type="checkbox"
-                                                        onChange={
-                                                            this.handleChange
-                                                        }
-                                                        name="twoFactorAuthEnabled"
-                                                        id="twoFactorAuthEnabled"
-                                                        checked={
-                                                            twoFactorAuthEnabled
-                                                        }
-                                                    />
-                                                    <span className="TogglerBtn-slider round"></span>
+                                        <ShouldRender
+                                            if={this.props.user.role === 'user'}
+                                        >
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Two Factor Authentication{' '}
+                                                    <br /> by Google
+                                                    Authenticator
                                                 </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <label
+                                                        id="disableUser2fa"
+                                                        className="Toggler-wrap"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        <input
+                                                            className="btn-toggler"
+                                                            type="checkbox"
+                                                            onChange={
+                                                                this
+                                                                    .handleChange
+                                                            }
+                                                            name="twoFactorAuthEnabled"
+                                                            id="twoFactorAuthEnabled"
+                                                            checked={
+                                                                twoFactorAuthEnabled
+                                                            }
+                                                        />
+                                                        <span className="TogglerBtn-slider round"></span>
+                                                    </label>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </ShouldRender>
                                     </div>
                                 </fieldset>
                             </div>
