@@ -45,7 +45,7 @@ export class IncidentAlert extends Component {
             <div className="db-RadarRulesLists-page">
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
-                        <div className="Box-root">
+                        <div className="Box-root" id='TeamAlertLogBox'>
                             <div>
                                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
