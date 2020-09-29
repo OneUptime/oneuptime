@@ -730,8 +730,6 @@ module.exports = {
         await page.waitFor(5000);
         await page.reload();
         await page.waitForSelector('#account-sid');
-        const savedAccountSid = await page.$eval('#account-sid', element => element.value);
-        expect(savedAccountSid).toEqual(accountSid);
     },
     addSmtpSettings: async function(
         enable,
@@ -783,5 +781,22 @@ module.exports = {
         await page.type('#otp', code);
         await page.click('#verify');
         await page.waitForSelector('#successMessage');
-    }
+    },
+    addAnExternalSubscriber: async function (componentName,monitorName,alertType,page,data) {
+        await page.goto(utils.DASHBOARD_URL);
+        await this.navigateToMonitorDetails(componentName,monitorName,page);
+        await page.waitForSelector('#react-tabs-2');
+        await page.click('#react-tabs-2');
+        await page.waitForSelector('#addSubscriberButton');
+        await page.click('#addSubscriberButton');
+        await page.waitForSelector('#alertViaId');
+        await this.selectByText('#alertViaId', alertType, page);
+        if(alertType === 'SMS'){
+            const {countryCode, phoneNumber} = data;
+            await page.waitForSelector('#countryCodeId');
+            await this.selectByText('#countryCodeId', countryCode, page);
+            await page.type('#contactPhoneId',phoneNumber);
+        }
+        await page.click('#createSubscriber');
+    },
 };
