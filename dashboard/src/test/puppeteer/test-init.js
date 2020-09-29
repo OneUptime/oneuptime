@@ -667,7 +667,9 @@ module.exports = {
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#createIncident');
         await this.selectByText('#incidentType', incidentType, page);
-        await this.selectByText('#incidentPriority', incidentPriority, page);
+        if (incidentPriority) {
+            await this.selectByText('#incidentPriority', incidentPriority, page);
+        }
         await page.click('#createIncident');
         await page.waitForSelector('#ball-beat', { hidden: true });
     },

@@ -70,7 +70,7 @@ describe('Schedule', () => {
             await page.$eval('input[name="OnCallAlertBox[0].call"]',element=> element.click());
             await init.selectByText('div[id="OnCallAlertBox[0].teams[0].teamMembers[0].userId"]','Test Name',page);
             await page.click('#saveSchedulePolicy');
-            await init.setAlertPhoneNumber('+213696950030', '123456', page);
+            await init.setAlertPhoneNumber('+19173976123', '123456', page);
         });
         done();
     });
