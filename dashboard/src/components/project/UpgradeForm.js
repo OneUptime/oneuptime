@@ -84,6 +84,7 @@ export function UpgradeForm(props) {
                                     'bs-is-disabled'}`}
                                 type="submit"
                                 disabled={submitting}
+                                autoFocus={true}
                             >
                                 <ShouldRender if={submitting}>
                                     <Spinner />

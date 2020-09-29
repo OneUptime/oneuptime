@@ -68,4 +68,20 @@ describe('SMTP Settings API', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'Admin should not turn on or off his 2fa',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('.bs-ObjectList-rows > a');
+                const users = await page.$$('.bs-ObjectList-rows > a');
+                await users[0].click();
+                await page.waitFor(5000);
+                const elem = await page.$('#disableUser2fa');
+                expect(elem).toEqual(null);
+            });
+        },
+        operationTimeOut
+    );
 });

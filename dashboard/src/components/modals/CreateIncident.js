@@ -23,6 +23,15 @@ class CreateIncident extends Component {
             descriptionEdited: false,
         };
     }
+
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createNewIncident,
@@ -149,7 +158,6 @@ class CreateIncident extends Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -491,6 +499,7 @@ class CreateIncident extends Component {
                                             }
                                             type="submit"
                                             style={{ height: '35px' }}
+                                            autoFocus={true}
                                         >
                                             {this.props.newIncident &&
                                                 !this.props.newIncident

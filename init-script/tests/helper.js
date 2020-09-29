@@ -7,6 +7,7 @@ const collectionObject = {
     find: jest.fn().mockReturnValue({ toArray: () => [] }),
     insertMany: jest.fn().mockReturnValue(Promise.resolve({})),
     updateOne: jest.fn().mockReturnValue(Promise.resolve({})),
+    rename: jest.fn().mockReturnValue(Promise.resolve({})),
 };
 
 const collectionObjectWithRecords = {
@@ -28,6 +29,9 @@ function mockDbClient() {
         connect: jest.fn().mockReturnValue({
             db: jest.fn().mockReturnValue({
                 collection: jest.fn().mockReturnValue(collectionObject),
+                listCollections: jest.fn().mockReturnValue({
+                    next: jest.fn(elem => elem(null, true)),
+                }),
             }),
             close: jest.fn(),
         }),

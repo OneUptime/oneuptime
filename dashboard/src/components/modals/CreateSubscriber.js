@@ -64,6 +64,14 @@ function validate(values) {
 const selector = formValueSelector('CreateSubscriber');
 
 class CreateSubscriber extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         values.contactEmail = values.email;
         values.contactWebhook = values.endpoint;
@@ -99,7 +107,6 @@ class CreateSubscriber extends Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -308,6 +315,7 @@ class CreateSubscriber extends Component {
                                         }
                                         type="submit"
                                         id="createSubscriber"
+                                        autoFocus={true}
                                     >
                                         {this.props.newSubscriber &&
                                             !this.props.newSubscriber

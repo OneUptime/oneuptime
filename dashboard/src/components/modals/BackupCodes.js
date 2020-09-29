@@ -22,6 +22,11 @@ class BackupCodesModal extends React.Component {
             const codes = data.backupCodes.map(code => code.code);
             this.setState({ codes });
         }
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     copyCodesHandler = () => {
@@ -46,6 +51,15 @@ class BackupCodesModal extends React.Component {
             }
         }
         return refinedCodes;
+    };
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
     };
 
     render() {
