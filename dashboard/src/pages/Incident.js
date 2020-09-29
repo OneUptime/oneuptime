@@ -31,7 +31,6 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
-import { markAsRead } from '../actions/notification';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -45,14 +44,6 @@ class Incident extends React.Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
-        }
-    }
-    UNSAFE_componentWillReceiveProps(nextProps) {
-        if (nextProps.incident) {
-            nextProps.markAsRead(
-                nextProps.match.params.projectId,
-                nextProps.incident.notificationId
-            );
         }
     }
 
@@ -476,7 +467,6 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentMessages,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
-            markAsRead,
         },
         dispatch
     );
@@ -509,7 +499,6 @@ Incident.propTypes = {
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
-    markAsRead: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';
