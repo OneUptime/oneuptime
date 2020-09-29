@@ -135,6 +135,36 @@ describe('SMTP Settings API', () => {
     );
 
     test(
+        'Should open a test success modal with valid smtp settings',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.ADMIN_DASHBOARD_URL);
+                await page.waitForSelector('#settings');
+                await page.click('#settings');
+      
+                await page.waitForSelector('#smtp');
+                await page.click('#smtp a');
+                await page.waitForSelector('#smtp-form');
+      
+                await page.click('#testSmtpSettingsButton');
+                await page.waitForSelector('input[name=test-email]');
+                await page.type('input[name=test-email]', email);
+                await page.click('#confirmSmtpTest');
+                await page.waitFor(10000);
+                await page.waitForSelector(
+                    '.bs-Modal-header > div > span > span'
+                );
+                let elem = await page.$('.bs-Modal-header > div > span > span');
+                elem = await elem.getProperty('innerText');
+                elem = await elem.jsonValue();
+      
+                expect(elem).toEqual('Success');
+            });
+        },
+        operationTimeOut
+      );
+      
+    test(
         'Should open a test failed modal with invalid smtp settings',
         async () => {
             await cluster.execute(null, async ({ page }) => {
