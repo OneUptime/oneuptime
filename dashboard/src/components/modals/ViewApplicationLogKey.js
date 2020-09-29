@@ -16,6 +16,15 @@ class ViewApplicationLogKey extends Component {
             confirmBoxHidden: true,
         };
     }
+
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     toggleConfirmationBox = () => {
         this.setState(state => ({
             confirmBoxHidden: !state.confirmBoxHidden,
@@ -39,10 +48,7 @@ class ViewApplicationLogKey extends Component {
         const { hidden } = this.state;
         const { currentProject } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

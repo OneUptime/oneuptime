@@ -165,6 +165,7 @@ module.exports = {
         await this.navigateToComponentDetails(component, page);
 
         // then goto list of log containers
+        await page.waitForSelector('#logs');
         await page.click('#logs');
 
         // Navigate to details page of log container assumed created
@@ -565,6 +566,9 @@ module.exports = {
         await page.waitForSelector('#resourceCategoryName');
         await page.type('#resourceCategoryName', resourceCategory);
         await page.click('#addResourceCategoryButton');
+        await page.waitForSelector('#addResourceCategoryButton', {
+            hidden: true,
+        });
 
         const createdResourceCategorySelector =
             '#resourceCategoryList #resource-category-name';

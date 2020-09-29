@@ -20,6 +20,14 @@ class SubProjectApiKey extends Component {
         oldApiKey: '',
     };
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     UNSAFE_componentWillReceiveProps() {
         const oldApiKey = this.props.subproject.apiKey;
         this.setState({ oldApiKey });
@@ -69,10 +77,7 @@ class SubProjectApiKey extends Component {
         const { hidden } = this.state;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

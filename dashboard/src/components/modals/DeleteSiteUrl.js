@@ -4,10 +4,20 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 
 export class DeleteSiteUrl extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -15,10 +25,7 @@ export class DeleteSiteUrl extends Component {
 
     render() {
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -54,6 +61,7 @@ export class DeleteSiteUrl extends Component {
                                         onClick={this.props.confirmThisDialog}
                                         disabled={this.props.requesting}
                                         id="websiteUrlDelete"
+                                        autoFocus={true}
                                     >
                                         {!this.props.requesting && (
                                             <span>Delete</span>

@@ -14,6 +14,14 @@ import {
 } from '../../actions/subProject';
 
 export class SubProjectForm extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const { subProjectName } = values;
         const {
@@ -54,10 +62,22 @@ export class SubProjectForm extends React.Component {
     };
 
     handleKeyBoard = e => {
+        const {
+            editSubProject,
+            resetRenameSubProject,
+            createNewSubProjectReset,
+            closeModal,
+            subProjectModalId,
+        } = this.props;
         switch (e.key) {
             case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.subProjectModalId,
+                if (editSubProject) {
+                    resetRenameSubProject();
+                } else {
+                    createNewSubProjectReset();
+                }
+                return closeModal({
+                    id: subProjectModalId,
                 });
             default:
                 return false;
@@ -83,10 +103,7 @@ export class SubProjectForm extends React.Component {
                 onSubmit={handleSubmit(this.submitForm.bind(this))}
                 id="frmSubProjects"
             >
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -179,6 +196,7 @@ export class SubProjectForm extends React.Component {
                                                 'bs-is-disabled'}`}
                                             type="save"
                                             disabled={disabled}
+                                            autoFocus={true}
                                         >
                                             <ShouldRender if={disabled}>
                                                 <FormLoader />

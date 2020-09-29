@@ -9,6 +9,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
 class DeleteCard extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         const { deleteCardModalId } = this.props;
         switch (e.key) {
@@ -16,6 +24,8 @@ class DeleteCard extends Component {
                 return this.props.closeModal({
                     id: deleteCardModalId,
                 });
+            case 'Enter':
+                return this.handleDelete();
             default:
                 return false;
         }
@@ -39,10 +49,7 @@ class DeleteCard extends Component {
     render() {
         const { requesting, deleteCardModalId, error } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -108,6 +115,7 @@ class DeleteCard extends Component {
                                     className="bs-Button bs-DeprecatedButton bs-Button--red"
                                     disabled={requesting}
                                     type="submit"
+                                    autoFocus={true}
                                 >
                                     {!requesting && <span>Remove</span>}
                                     {requesting && <FormLoader />}

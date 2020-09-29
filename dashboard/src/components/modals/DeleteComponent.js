@@ -4,10 +4,20 @@ import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 
 class DeleteComponent extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -25,10 +35,7 @@ class DeleteComponent extends Component {
         }
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -64,6 +71,7 @@ class DeleteComponent extends Component {
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={deleting}
+                                        autoFocus={true}
                                     >
                                         {!deleting && <span>Delete</span>}
                                         {deleting && <FormLoader />}

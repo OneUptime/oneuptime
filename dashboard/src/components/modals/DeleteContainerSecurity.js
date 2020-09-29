@@ -9,10 +9,20 @@ import { history } from '../../store';
 import { deleteContainerSecurity } from '../../actions/security';
 
 class DeleteContainerSecurity extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.handleDelete();
             default:
                 return false;
         }
@@ -47,10 +57,7 @@ class DeleteContainerSecurity extends Component {
             deleteContainerError,
         } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -119,6 +126,7 @@ class DeleteContainerSecurity extends Component {
                                         type="button"
                                         onClick={this.handleDelete}
                                         disabled={isRequesting}
+                                        autoFocus={true}
                                     >
                                         {!isRequesting && <span>Delete</span>}
                                         {isRequesting && <FormLoader />}

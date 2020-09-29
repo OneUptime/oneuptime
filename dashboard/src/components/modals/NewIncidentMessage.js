@@ -18,6 +18,14 @@ import { RenderSelect } from '../basic/RenderSelect';
 import CodeEditor from '../basic/CodeEditor';
 
 class NewIncidentMessage extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     validate = values => {
         const errors = {};
         if (!ValidateField.text(values[`content`])) {
@@ -124,7 +132,6 @@ class NewIncidentMessage extends Component {
         const { edit, type } = this.props.data;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -336,6 +343,7 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-addButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -385,6 +393,7 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-editButton`}
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
