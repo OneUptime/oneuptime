@@ -1065,7 +1065,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                         ...initialValue,
                         type_1000: monitorType,
                         name_1000: action.payload.name,
-                        resourceCategoryId_1000: action.payload.category,
+                        resourceCategory_1000: action.payload.category,
                         subProject_1000: action.payload.subProject,
                         callSchedule_1000: action.payload.schedule,
                     },
