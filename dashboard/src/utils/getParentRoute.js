@@ -4,7 +4,11 @@ function getParentRoute(childRoute, projectId = null, type) {
     if (lastNode === 'alert-log') {
         return urlParts.join('/').concat('/on-call');
     }
-    if (lastNode === 'incident-log' || lastNode === 'application-log') {
+    if (
+        lastNode === 'incident-log' ||
+        lastNode === 'application-log' ||
+        lastNode === 'error-tracking'
+    ) {
         return urlParts.join('/').concat('/monitoring');
     }
     if (type === 'incidents') {
