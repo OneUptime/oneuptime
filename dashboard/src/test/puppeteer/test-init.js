@@ -231,6 +231,7 @@ module.exports = {
         await page.waitForSelector('#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
+        await page.goto(utils.DASHBOARD_URL);
         await page.waitForSelector('#onCallSchedules');
         await page.click('#onCallSchedules');
         await page.evaluate(() => {
@@ -666,7 +667,13 @@ module.exports = {
         await page.click(`#monitorCreateIncident_${monitorName}`);
         await page.waitForSelector('#createIncident');
         await this.selectByText('#incidentType', incidentType, page);
-        await this.selectByText('#incidentPriority', incidentPriority, page);
+        if (incidentPriority) {
+            await this.selectByText(
+                '#incidentPriority',
+                incidentPriority,
+                page
+            );
+        }
         await page.click('#createIncident');
         await page.waitForSelector('#ball-beat', { hidden: true });
     },
@@ -695,6 +702,38 @@ module.exports = {
         await page.waitForSelector('.ball-beat', { hidden: true });
         await page.reload();
         await page.waitForSelector('#accountSid');
+    },
+    addGlobalTwilioSettings: async function(
+        enableSms,
+        enableCalls,
+        accountSid,
+        authToken,
+        phoneNumber,
+        alertLimit,
+        page
+    ) {
+        await page.goto(utils.ADMIN_DASHBOARD_URL);
+        await page.waitForSelector('#settings', {
+            visible: true,
+        });
+        await page.click('#settings');
+        await page.waitForSelector('#twilio');
+        await page.click('#twilio');
+        await page.waitForSelector('#call-enabled');
+        if (enableCalls) {
+            await page.$eval('#call-enabled', element => element.click());
+        }
+        if (enableSms) {
+            await page.$eval('#sms-enabled', element => element.click());
+        }
+        await page.type('#account-sid', accountSid);
+        await page.type('#authentication-token', authToken);
+        await page.type('#phone', phoneNumber);
+        await page.type('#alert-limit', alertLimit);
+        await page.click('button[type=submit]');
+        await page.waitFor(5000);
+        await page.reload();
+        await page.waitForSelector('#account-sid');
     },
     addSmtpSettings: async function(
         enable,
@@ -731,5 +770,43 @@ module.exports = {
         await page.waitForSelector(`#react-tabs-${tabId}`);
         await page.click(`#react-tabs-${tabId}`);
         await page.waitFor(2000);
+    },
+    setAlertPhoneNumber: async (phoneNumber, code, page) => {
+        await page.goto(utils.DASHBOARD_URL);
+        await page.waitForSelector('#profile-menu');
+        await page.click('#profile-menu');
+        await page.waitForSelector('#userProfile');
+        await page.click('#userProfile');
+        await page.waitForSelector('input[type=tel]');
+        await page.type('input[type=tel]', phoneNumber);
+        await page.waitForSelector('#sendVerificationSMS');
+        await page.click('#sendVerificationSMS');
+        await page.waitForSelector('#otp');
+        await page.type('#otp', code);
+        await page.click('#verify');
+        await page.waitForSelector('#successMessage');
+    },
+    addAnExternalSubscriber: async function(
+        componentName,
+        monitorName,
+        alertType,
+        page,
+        data
+    ) {
+        await page.goto(utils.DASHBOARD_URL);
+        await this.navigateToMonitorDetails(componentName, monitorName, page);
+        await page.waitForSelector('#react-tabs-2');
+        await page.click('#react-tabs-2');
+        await page.waitForSelector('#addSubscriberButton');
+        await page.click('#addSubscriberButton');
+        await page.waitForSelector('#alertViaId');
+        await this.selectByText('#alertViaId', alertType, page);
+        if (alertType === 'SMS') {
+            const { countryCode, phoneNumber } = data;
+            await page.waitForSelector('#countryCodeId');
+            await this.selectByText('#countryCodeId', countryCode, page);
+            await page.type('#contactPhoneId', phoneNumber);
+        }
+        await page.click('#createSubscriber');
     },
 };

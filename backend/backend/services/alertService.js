@@ -635,7 +635,7 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
 
-        if (!project.alertEnable) {
+        if (IS_SAAS_SERVICE && !project.alertEnable) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -756,7 +756,7 @@ module.exports = {
         const date = new Date();
         const monitorId = monitor._id;
 
-        if (!project.alertEnable) {
+        if (IS_SAAS_SERVICE && !project.alertEnable) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -793,13 +793,18 @@ module.exports = {
                 AlertType.SMS
             );
         }
-        const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-            incident.projectId,
-            user.alertPhoneNumber
-        );
+        let doesPhoneNumberComplyWithHighRiskConfig;
+
+        if (IS_SAAS_SERVICE) {
+            doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                incident.projectId,
+                user.alertPhoneNumber
+            );
+        }
+
         if (
-            (hasEnoughBalance || !IS_SAAS_SERVICE) &&
-            doesPhoneNumberComplyWithHighRiskConfig
+            !IS_SAAS_SERVICE ||
+            (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
         ) {
             let alertStatus = await TwilioService.sendIncidentCreatedMessage(
                 date,
