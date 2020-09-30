@@ -235,6 +235,22 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
+        if (data.type === 'server-monitor') {
+            const threeMinutes = 3 * 60 * 1000;
+            const handler = setTimeout(async () => {
+                const log = await MonitorLogService.findOneBy({
+                    monitorId: monitor._id,
+                });
+                if (!log || (log && log.length === 0)) {
+                    await ProbeService.saveMonitorLog({
+                        monitorId: monitor._id,
+                        status: 'offline',
+                    });
+                }
+                clearTimeout(handler);
+            }, threeMinutes);
+        }
+
         const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
