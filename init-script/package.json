@@ -11,6 +11,7 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path,loadable-components,js-uuid,acorn,@beam-australia/react-env'"
     },
     "dependencies": {
+        "bcrypt": "^5.0.0",
         "mongodb": "^3.5.2"
     },
     "devDependencies": {
