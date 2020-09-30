@@ -53,6 +53,7 @@ describe('Project Settings', () => {
                     },
                     page
                 );
+                await init.logout(page);
             }
         );
 
@@ -68,13 +69,6 @@ describe('Project Settings', () => {
     test(
         'should show unauthorised modal when trying to save project name for non-admins',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email: teamEmail, password }, page);
                 await init.switchProject(newProjectName, page);
@@ -94,6 +88,7 @@ describe('Project Settings', () => {
                 );
 
                 expect(unauthorisedModal).toBeDefined();
+                await init.logout(page);
             });
             done();
         },
@@ -103,13 +98,6 @@ describe('Project Settings', () => {
     test(
         'should show delete project modal and click on cancel',
         async done => {
-            cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
             await cluster.execute(null, async ({ page }) => {
                 await init.loginUser({ email, password }, page);
                 await page.goto(utils.DASHBOARD_URL);
@@ -143,7 +131,6 @@ describe('Project Settings', () => {
                     visible: true,
                 });
                 await page.click('#btnDeleteProject');
-                await page.waitFor(8000);
 
                 // find the button for creating a project and expect it to be defined
                 const createProjectBtn = await page.waitForSelector(
