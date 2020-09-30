@@ -236,19 +236,31 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
 
         if (data.type === 'server-monitor') {
-            const threeMinutes = 3 * 60 * 1000;
-            const handler = setTimeout(async () => {
-                const log = await MonitorLogService.findOneBy({
-                    monitorId: monitor._id,
-                });
-                if (!log || (log && log.length === 0)) {
-                    await ProbeService.saveMonitorLog({
+            const { reasons } = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? ProbeService.conditions(null, null, monitor.criteria.up)
+                : { stat: false, reasons: [] });
+            const { stat: validDown } = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? ProbeService.conditions(null, null, monitor.criteria.down)
+                : { stat: false });
+            if (validDown) {
+                const handler = setTimeout(async () => {
+                    const log = await MonitorLogService.findOneBy({
                         monitorId: monitor._id,
-                        status: 'offline',
                     });
-                }
-                clearTimeout(handler);
-            }, threeMinutes);
+                    if (!log) {
+                        await ProbeService.saveMonitorLog({
+                            monitorId: monitor._id,
+                            status: 'offline',
+                            reason: reasons,
+                        });
+                    }
+                    clearTimeout(handler);
+                }, 3 * 60 * 1000);
+            }
         }
 
         const user = await UserService.findOneBy({ _id: req.user.id });
