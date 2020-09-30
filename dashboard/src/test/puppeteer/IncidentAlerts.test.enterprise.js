@@ -58,6 +58,7 @@ describe('Schedule', () => {
             );
             await init.logout(page);
             await init.loginUser(user, page);
+            await init.setAlertPhoneNumber('+19173976123', '123456', page);
             await init.addMonitorToComponent(componentName, monitorName, page);
             await init.addAnExternalSubscriber(
                 componentName,
@@ -90,7 +91,6 @@ describe('Schedule', () => {
                 page
             );
             await page.click('#saveSchedulePolicy');
-            await init.setAlertPhoneNumber('+19173976123', '123456', page);
         });
         done();
     });
@@ -109,7 +109,6 @@ describe('Schedule', () => {
                 await page.waitForSelector('#viewIncident-0');
                 await page.waitFor(3000);
                 await page.click('#viewIncident-0');
-                await page.click('#closeIncident_0');
                 await page.waitForSelector('#react-tabs-4');
                 await page.click('#react-tabs-4');
                 await page.waitForSelector('#TeamAlertLogBox');
