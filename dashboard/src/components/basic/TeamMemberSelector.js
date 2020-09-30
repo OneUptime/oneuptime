@@ -118,6 +118,7 @@ TeamMemberSelector.propTypes = {
     policyIndex: PropTypes.number.isRequired,
     form: PropTypes.object.isRequired,
     teamIndex: PropTypes.number.isRequired,
+    id: PropTypes.string,
 };
 
 function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
