@@ -137,7 +137,7 @@ module.exports = {
     },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
-        await page.goto(utils.DASHBOARD_URL);
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle0' });
         await page.waitForSelector('#components', { visible: true });
         await page.click('#components');
 
