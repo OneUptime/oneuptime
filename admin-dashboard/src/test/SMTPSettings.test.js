@@ -109,15 +109,27 @@ describe('SMTP Settings API', () => {
                 await page.click('input[name=email]', { clickCount: 3 });
                 await page.type('input[name=email]', utils.smtpCredential.user);
                 await page.click('input[name=password]', { clickCount: 3 });
-                await page.type('input[name=password]', utils.smtpCredential.pass);
+                await page.type(
+                    'input[name=password]',
+                    utils.smtpCredential.pass
+                );
                 await page.click('input[name=smtp-server]', { clickCount: 3 });
-                await page.type('input[name=smtp-server]', utils.smtpCredential.host);
+                await page.type(
+                    'input[name=smtp-server]',
+                    utils.smtpCredential.host
+                );
                 await page.click('input[name=smtp-port]', { clickCount: 3 });
-                await page.type('input[name=smtp-port]', utils.smtpCredential.port);
+                await page.type(
+                    'input[name=smtp-port]',
+                    utils.smtpCredential.port
+                );
                 await page.click('input[name=from]', { clickCount: 3 });
                 await page.type('input[name=from]', randomEmail);
                 await page.click('input[name=from-name]', { clickCount: 3 });
-                await page.type('input[name=from-name]', utils.smtpCredential.name);
+                await page.type(
+                    'input[name=from-name]',
+                    utils.smtpCredential.name
+                );
                 await page.$eval('#smtp-secure', element => element.click());
                 await page.click('button[type=submit]');
                 await page.waitFor(2000);
@@ -141,11 +153,11 @@ describe('SMTP Settings API', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL);
                 await page.waitForSelector('#settings');
                 await page.click('#settings');
-      
+
                 await page.waitForSelector('#smtp');
                 await page.click('#smtp a');
                 await page.waitForSelector('#smtp-form');
-      
+
                 await page.click('#testSmtpSettingsButton');
                 await page.waitForSelector('input[name=test-email]');
                 await page.type('input[name=test-email]', email);
@@ -157,13 +169,13 @@ describe('SMTP Settings API', () => {
                 let elem = await page.$('.bs-Modal-header > div > span > span');
                 elem = await elem.getProperty('innerText');
                 elem = await elem.jsonValue();
-      
+
                 expect(elem).toEqual('Success');
             });
         },
         operationTimeOut
-      );
-      
+    );
+
     test(
         'Should open a test failed modal with invalid smtp settings',
         async () => {

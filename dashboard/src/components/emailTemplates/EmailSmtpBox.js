@@ -57,7 +57,7 @@ const validate = (values, props) => {
             }
         } else {
             errors.from =
-            'Please input from address this cannot be left blank.';
+                'Please input from address this cannot be left blank.';
         }
 
         if (values.name) {

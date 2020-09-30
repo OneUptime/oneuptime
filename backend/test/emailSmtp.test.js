@@ -421,5 +421,4 @@ describe('Email SMTP Api Test', function() {
                 done();
             });
     });
-
 });
