@@ -46,9 +46,20 @@ function generateRandomBusinessEmail() {
         .substring(5)}.com`;
 }
 
+const smtpCredential = {
+    user: process.env.TEST_EMAIL,
+    pass: process.env.TEST_EMAIL_PASSWORD,
+    host: process.env.TEST_EMAIL_SMTP_SERVER,
+    port: process.env.TEST_EMAIL_SMTP_PORT,
+    from: process.env.TEST_EMAIL,
+    name: process.env.TEST_EMAIL_NAME,
+    secure: true,
+};
+
 module.exports = {
     ACCOUNTS_URL,
     ADMIN_DASHBOARD_URL,
+    smtpCredential,
     puppeteerLaunchConfig,
     generateWrongEmail,
     generateRandomString,

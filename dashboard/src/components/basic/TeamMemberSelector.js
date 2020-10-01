@@ -111,6 +111,7 @@ const TeamMemberSelector = ({
 TeamMemberSelector.displayName = 'TeamMemberSelector';
 
 TeamMemberSelector.propTypes = {
+    id: PropTypes.string,
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     meta: PropTypes.object.isRequired,

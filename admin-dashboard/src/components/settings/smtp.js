@@ -28,6 +28,10 @@ function validate(values) {
         errors['from-name'] = 'Name is not valid.';
     }
 
+    if (!Validate.email(values['from'])) {
+        errors['from'] = 'Email is not valid.';
+    }
+
     if (!Validate.text(values['smtp-server'])) {
         errors['smtp-server'] = 'SMTP Server is not valid.';
     }
@@ -73,12 +77,6 @@ const fields = [
         component: RenderField,
     },
     {
-        key: 'from-name',
-        label: 'From Name',
-        type: 'text',
-        component: RenderField,
-    },
-    {
         key: 'smtp-server',
         label: 'SMTP Server',
         type: 'text',
@@ -87,6 +85,18 @@ const fields = [
     {
         key: 'smtp-port',
         label: 'SMTP Port',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'from',
+        label: 'From Email',
+        type: 'text',
+        component: RenderField,
+    },
+    {
+        key: 'from-name',
+        label: 'From Name',
         type: 'text',
         component: RenderField,
     },
@@ -139,10 +149,20 @@ export class Component extends React.Component {
                     'smtp-server': host,
                     'smtp-port': port,
                     'smtp-secure': secure,
-                    'from-name': from,
+                    from,
+                    'from-name': name,
                 } = smtpForm.values;
 
-                const payload = { user, pass, host, port, secure, from, email };
+                const payload = {
+                    user,
+                    pass,
+                    host,
+                    port,
+                    secure,
+                    from,
+                    name,
+                    email,
+                };
 
                 return testSmtp(payload).then(res => {
                     if (res && typeof res === 'string') {
