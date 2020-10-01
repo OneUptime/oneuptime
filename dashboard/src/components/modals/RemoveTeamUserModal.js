@@ -74,7 +74,7 @@ class RemoveTeamUserModal extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         disabled={deleting}
                                         type="button"
                                         onClick={() => {
@@ -85,10 +85,13 @@ class RemoveTeamUserModal extends Component {
                                         }}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="removeTeamUser"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         disabled={deleting}
                                         type="button"
                                         onClick={() =>
@@ -96,7 +99,14 @@ class RemoveTeamUserModal extends Component {
                                         }
                                         autoFocus={true}
                                     >
-                                        {!deleting && <span>Remove</span>}
+                                        {!deleting && (
+                                            <>
+                                                <span>Remove</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
                                         {deleting && <FormLoader />}
                                     </button>
                                 </div>

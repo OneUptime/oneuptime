@@ -57,8 +57,18 @@ class ResetAPIKey extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
+                                        type="button"
+                                        onClick={this.props.closeThisDialog}
+                                    >
+                                        <span>Close</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
+                                    </button>
+                                    <button
                                         id="resetApiKeySave"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         autoFocus={true}
@@ -67,19 +77,15 @@ class ResetAPIKey extends Component {
                                             if={!this.props.isRequesting}
                                         >
                                             <span>RESET</span>
+                                            <span className="delete-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </ShouldRender>
                                         <ShouldRender
                                             if={this.props.isRequesting}
                                         >
                                             <FormLoader />
                                         </ShouldRender>
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
-                                        type="button"
-                                        onClick={this.props.closeThisDialog}
-                                    >
-                                        <span>Close</span>
                                     </button>
                                 </div>
                             </div>

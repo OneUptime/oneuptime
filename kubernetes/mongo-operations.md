@@ -15,7 +15,7 @@ Example:
 ```
 # Delete audit logs (optional, but recommended)
 
-sudo kubectl exec -it fi-mongodb-primary-0 bash
+sudo kubectl exec -it fi-mongodb-primary-0 -- bash
 mongo
 use fyipedb
 db.auth('fyipe', 'password')
@@ -39,7 +39,7 @@ and look for `mongo-ingress` resource. Copy External-IP address.
 On the destination cluster:
 
 ```
-kubectl exec -it fi-mongodb-primary-0 bash
+kubectl exec -it fi-mongodb-primary-0 -- bash
 mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```

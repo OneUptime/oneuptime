@@ -8,12 +8,15 @@ const GridFsStorage = require('multer-gridfs-storage');
 const crypto = require('crypto');
 
 const mongoUri = process.env['MONGO_URL'];
-const db = require('../config/db').connect(mongoUri);
 
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
 module.exports = new GridFsStorage({
-    db,
+    url: mongoUri,
+    options: {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    },
     file: () => {
         return new Promise((resolve, reject) => {
             crypto.randomBytes(16, (err, random) => {
