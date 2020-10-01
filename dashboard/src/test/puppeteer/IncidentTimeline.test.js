@@ -25,7 +25,7 @@ describe('Incident Timeline API', () => {
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: {
                 ...utils.puppeteerLaunchConfig,
-                headless: false,
+                headless: true,
             },
             puppeteer,
             timeout: 500000,
