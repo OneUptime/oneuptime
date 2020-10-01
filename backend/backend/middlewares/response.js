@@ -5,8 +5,8 @@
  *
  */
 
+const Mongoose = require('mongoose');
 const mongoose = require('../config/db');
-const Grid = require('gridfs-stream');
 const JsonToCsv = require('./jsonToCsv');
 const ObjectID = mongoose.Types.ObjectId;
 
@@ -87,13 +87,11 @@ module.exports = {
     sendFileResponse(req, res, file) {
         /** create read stream */
 
-        const gfs = Grid(mongoose.connection.db, mongoose.mongo);
-        gfs.collection('uploads');
-
-        const readstream = gfs.createReadStream({
-            _id: file._id,
-            root: 'uploads',
+        const gfs = new Mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: 'uploads',
         });
+
+        const readstream = gfs.openDownloadStreamByName(file.filename);
 
         /** set the proper content type */
         res.set('Content-Type', file.contentType);
