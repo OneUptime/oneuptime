@@ -424,7 +424,6 @@ describe('Incident Alerts', function () {
       expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
       expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(2);
 
-      console.log('subscribersAlertsEndpointReponse.body.data', subscribersAlertsEndpointReponse.body.data)
       const eventTypesSent = []
       for (const event of subscribersAlertsEndpointReponse.body.data) {
         const { alertStatus, alertVia, eventType, error, errorMessage } = event;
@@ -457,6 +456,103 @@ describe('Incident Alerts', function () {
           expect(alertStatus).to.equal(null);
           expect(error).to.equal(true)
         }
+        alertsSentList.push(alertVia)
+      }
+      expect(alertsSentList.includes('sms')).to.equal(true);
+      expect(alertsSentList.includes('call')).to.equal(true);
+    });
+
+    /**
+     * Global twilio settings: set
+     * Custom twilio settings: not set
+     * Global twilio settings SMS enable : true
+     * Global twilio settings Call enable : true
+     * SMS/Call alerts enabled for the project (billing): false
+     */
+    it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function () {
+      const globalSettings = await GlobalConfigModel.findOne(
+        { name: 'twilio' },
+      );
+      const { value } = globalSettings;
+      value['sms-enabled'] = true;
+      value['call-enabled'] = true;
+      await GlobalConfigModel.findOneAndUpdate(
+        { name: 'twilio' },
+        { value },
+      );
+
+      const billingEndpointResponse = await request
+        .put(`/project/${projectId}/alertOptions`)
+        .set('Authorization', authorization)
+        .send({
+          alertEnable: false,
+          billingNonUSCountries: true,
+          billingRiskCountries: true,
+          billingUS: true,
+          minimumBalance: "100",
+          rechargeToBalance: "200",
+          _id: projectId,
+        });
+      expect(billingEndpointResponse).to.have.status(200);
+
+      const incidentCreationEndpointResponse = await request
+        .post(`/incident/${projectId}/${monitorId}`)
+        .set('Authorization', authorization)
+        .send({
+          monitorId,
+          projectId,
+          title: "test monitor  is offline.",
+          incidentType: "offline",
+          description: 'Incident description',
+        });
+      expect(incidentCreationEndpointResponse).to.have.status(200);
+
+      const { _id: incidentId } = incidentCreationEndpointResponse.body
+
+      const incidentResolveEndpointResponse = await request
+        .post(`/incident/${projectId}/resolve/${incidentId}`)
+        .set('Authorization', authorization);
+
+      expect(incidentResolveEndpointResponse).to.have.status(200);
+
+      await sleep(10 * 1000);
+
+      const subscribersAlertsEndpointReponse = await request
+        .get(`/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`)
+        .set('Authorization', authorization);
+
+      expect(subscribersAlertsEndpointReponse).to.have.status(200);
+      expect(subscribersAlertsEndpointReponse.body).to.an('object');
+      expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
+      expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
+      expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(2);
+
+      const eventTypesSent = []
+      for (const event of subscribersAlertsEndpointReponse.body.data) {
+        const { alertStatus, alertVia, eventType, error, errorMessage } = event;
+        eventTypesSent.push(eventType);
+        expect(alertStatus).to.equal(null);
+        expect(alertVia).to.equal('sms');
+        expect(error).to.equal(true);
+        expect(errorMessage).to.equal('Alert Disabled');
+      }
+      expect(eventTypesSent.includes('resolved')).to.equal(true);
+      expect(eventTypesSent.includes('identified')).to.equal(true);
+
+      const oncallAlertsEndpointReponse = await request
+        .get(`/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`)
+        .set('Authorization', authorization);
+
+      expect(oncallAlertsEndpointReponse).to.have.status(200);
+      expect(oncallAlertsEndpointReponse.body).to.an('object');
+      expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
+      expect(oncallAlertsEndpointReponse.body.data).to.an('array');
+      expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+      const alertsSentList = [];
+      for (const event of oncallAlertsEndpointReponse.body.data) {
+        const { alertVia, alertStatus, error } = event;
+        expect(alertStatus).to.equal('Alerts Disabled');
+        expect(error).to.equal(true)
         alertsSentList.push(alertVia)
       }
       expect(alertsSentList.includes('sms')).to.equal(true);

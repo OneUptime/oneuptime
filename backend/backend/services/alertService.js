@@ -652,6 +652,7 @@ module.exports = {
                 alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
+                error: true,
                 alertStatus: 'Alerts Disabled',
             });
         }
@@ -780,6 +781,7 @@ module.exports = {
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
+                error: true,
                 alertStatus: 'Alerts Disabled',
             });
         }
