@@ -87,9 +87,9 @@ module.exports = {
     sendFileResponse(req, res, file) {
         /** create read stream */
 
-        const gfs = new Mongoose.mongo.GridFSBucket(mongoose.connection.db,
-            {bucketName:'uploads'}
-        );
+        const gfs = new Mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: 'uploads',
+        });
 
         const readstream = gfs.openDownloadStreamByName(file.filename);
 
