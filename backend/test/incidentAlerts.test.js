@@ -17,6 +17,22 @@ let ComponentService = require('../backend/services/componentService');
 let MonitorService = require('../backend/services/monitorService');
 let NotificationService = require('../backend/services/notificationService');
 let AirtableService = require('../backend/services/airtableService');
+let OnCallScheduleStatusService = require('../backend/services/onCallScheduleStatusService');
+let SubscriberService = require('../backend/services/subscriberService');
+let SubscriberAlertService = require('../backend/services/subscriberAlertService');
+let ScheduleService = require('../backend/services/scheduleService');
+let EscalationService = require('../backend/services/escalationService');
+let MonitorStatusModel = require('../backend/models/monitorStatus');
+let IncidentService = require('../backend/services/incidentService');
+let IncidentSMSActionModel = require('../backend/models/incidentSMSAction');
+let IncidentPriorityModel = require('../backend/models/incidentPriority');
+let IncidentMessageModel = require('../backend/models/incidentMessage');
+let IncidentTimelineModel = require('../backend/models/incidentTimeline');
+let AlertService = require('../backend/services/alertService');
+let AlertChargeModel = require('../backend/models/alertCharge');
+let TwilioModel = require('../backend/models/twilio');
+let VerificationToken = require('../backend/models/verificationToken');
+let LoginIPLog = require('../backend/models/loginIPLog');
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 let UserModel = require('../backend/models/user');
@@ -151,13 +167,29 @@ describe('Incident Alerts', function () {
   });
 
   after(async function () {
-    // await GlobalConfig.removeTestConfig();
-    // await ComponentService.hardDeleteBy({ projectId });
-    // await MonitorService.hardDeleteBy({ projectId });
-    // await ProjectService.hardDeleteBy({ _id: projectId });
-    // await UserService.hardDeleteBy({ _id: userId });
-    // await NotificationService.hardDeleteBy({ projectId: projectId });
-    // await AirtableService.deleteUser(airtableId);
+    await GlobalConfig.removeTestConfig();
+    await OnCallScheduleStatusService.hardDeleteBy({project:projectId});
+    await SubscriberService.hardDeleteBy({projectId});
+    await SubscriberAlertService.hardDeleteBy({projectId});
+    await ScheduleService.hardDeleteBy({projectId});
+    await EscalationService.hardDeleteBy({projectId});
+    await IncidentService.hardDeleteBy({projectId});
+    await AlertService.hardDeleteBy({projectId});
+    await MonitorStatusModel.deleteMany({monitorId});
+    await IncidentSMSActionModel.deleteMany({userId});
+    await IncidentPriorityModel.deleteMany({projectId});
+    await AlertChargeModel.deleteMany({projectId});
+    await TwilioModel.deleteMany({projectId});
+    await IncidentMessageModel.deleteMany({createdById:userId})
+    await IncidentTimelineModel.deleteMany({createdById:userId});
+    await VerificationToken.deleteMany({userId});
+    await LoginIPLog.deleteMany({userId});
+    await ComponentService.hardDeleteBy({ projectId });
+    await MonitorService.hardDeleteBy({ projectId });
+    await ProjectService.hardDeleteBy({ _id: projectId });
+    await UserService.hardDeleteBy({ _id: userId });
+    await NotificationService.hardDeleteBy({ projectId: projectId });
+    await AirtableService.deleteUser(airtableId);
   });
 
   describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {
