@@ -314,7 +314,7 @@ class MonitorInfo extends Component {
             activeProbe,
             colors,
             selectedCharts,
-            monitorCategory,
+            resourceCategory,
             isGroupedByMonitorCategory,
         } = this.props;
         const now = Date.now();
@@ -406,8 +406,8 @@ class MonitorInfo extends Component {
                                 style={monitorCategoryStyle}
                             >
                                 <span>
-                                    {monitorCategory
-                                        ? monitorCategory.name
+                                    {resourceCategory
+                                        ? resourceCategory.name
                                         : 'Uncategorized'}
                                 </span>
                             </div>
@@ -494,7 +494,7 @@ MonitorInfo.propTypes = {
     monitorState: PropTypes.array,
     probes: PropTypes.array,
     selectedCharts: PropTypes.object,
-    monitorCategory: PropTypes.oneOfType([
+    resourceCategory: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
