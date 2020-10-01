@@ -238,22 +238,28 @@ class AddNoteModal extends Component {
                                 <ShouldRender if={true}>
                                     <div>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                             disabled={creatingNote}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id={`${type}-addButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={creatingNote}
                                             autoFocus={true}
                                         >
                                             <ShouldRender if={!creatingNote}>
                                                 <span>Save</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender if={creatingNote}>

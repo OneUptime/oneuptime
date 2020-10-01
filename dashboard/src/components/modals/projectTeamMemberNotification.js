@@ -52,22 +52,30 @@ class ProjectTeamMemberNotification extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="btnConfirmInvite"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={team.teamCreate.requesting}
                                         autoFocus={true}
                                     >
                                         {!team.teamCreate.requesting && (
-                                            <span>Continue</span>
+                                            <>
+                                                <span>Continue</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
                                         )}
                                         {team.teamCreate.requesting && (
                                             <FormLoader />

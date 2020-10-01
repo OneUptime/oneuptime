@@ -91,7 +91,8 @@ describe('Email SMTP Api Test', function() {
                 pass: value.password,
                 host: value['smtp-server'],
                 port: value['smtp-port'],
-                from: value['from-name'],
+                from: value['from'],
+                name: value['from-name'],
                 secure: value['smtp-secure'],
                 email: testemail,
             };
@@ -117,7 +118,8 @@ describe('Email SMTP Api Test', function() {
                 pass: value.password,
                 host: value['smtp-server'],
                 port: value['smtp-port'],
-                from: value['from-name'],
+                name: value['from-name'],
+                from: value['from'],
                 secure: value['smtp-secure'],
                 email: testemail,
             };
@@ -142,7 +144,8 @@ describe('Email SMTP Api Test', function() {
                 pass: value.password,
                 host: value['smtp-server'],
                 port: value['smtp-port'],
-                from: value['from-name'],
+                name: value['from-name'],
+                from: value['from'],
                 secure: value['smtp-secure'],
                 email: testemail,
             };
@@ -271,6 +274,25 @@ describe('Email SMTP Api Test', function() {
             });
     });
 
+    it('should not save custom SMTP settings if name is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let name;
+        const data = {
+            ...smtpCredential,
+            name,
+        };
+
+        request
+            .post(`/emailSmtp/${projectId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('name is required.');
+                done();
+            });
+    });
+
     it('should update a custom SMTP settings', done => {
         const authorization = `Basic ${jwtToken}`;
         const data = { ...smtpCredential, from: 'info@gmail.com' };
@@ -377,6 +399,25 @@ describe('Email SMTP Api Test', function() {
             .end((err, res) => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('from is required.');
+                done();
+            });
+    });
+
+    it('should not update custom SMTP settings if name is missing', done => {
+        const authorization = `Basic ${jwtToken}`;
+        let name;
+        const data = {
+            ...smtpCredential,
+            name,
+        };
+
+        request
+            .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end((err, res) => {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('name is required.');
                 done();
             });
     });

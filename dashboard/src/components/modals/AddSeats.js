@@ -81,21 +81,29 @@ class AddSeats extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         type="button"
                                         onClick={this.props.confirmThisDialog}
                                         disabled={this.props.requesting}
                                         autoFocus={true}
                                     >
                                         {!this.props.requesting && (
-                                            <span>Confirm</span>
+                                            <>
+                                                <span>Confirm</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
                                         )}
                                         {this.props.requesting && (
                                             <FormLoader />

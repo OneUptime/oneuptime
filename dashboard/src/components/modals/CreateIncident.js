@@ -474,12 +474,15 @@ class CreateIncident extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={closeThisDialog}
                                         style={{ height: '35px' }}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <ShouldRender
                                         if={
@@ -491,7 +494,7 @@ class CreateIncident extends Component {
                                     >
                                         <button
                                             id="createIncident"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
                                                 this.props.newIncident &&
                                                 this.props.newIncident
@@ -504,7 +507,12 @@ class CreateIncident extends Component {
                                             {this.props.newIncident &&
                                                 !this.props.newIncident
                                                     .requesting && (
-                                                    <span>Create</span>
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                             {this.props.newIncident &&
                                                 this.props.newIncident

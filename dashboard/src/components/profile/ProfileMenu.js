@@ -30,7 +30,7 @@ export class ProfileMenu extends Component {
 
     handleShortcut = event => {
         // Only execute keyboard shortcut when profile menu is open
-        if (event.target.localName === 'button' && event.key) {
+        if (this.props.visible) {
             if (event.key === 'p' || event.key === 'P') {
                 this.props.hideProfileMenu();
                 this.props.history.push('/dashboard/profile/settings');
@@ -47,7 +47,6 @@ export class ProfileMenu extends Component {
 
     showAboutModal = () => {
         this.props.hideProfileMenu();
-        window.removeEventListener('keydown', this.handleShortcut);
         this.props.openModal({
             id: this.state.aboutId,
             onClose: () => '',
@@ -157,13 +156,8 @@ export class ProfileMenu extends Component {
                                                         <span>Profile</span>
                                                     </span>
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        color: '#8898aa',
-                                                        fontSize: 12,
-                                                    }}
-                                                >
-                                                    Press P
+                                                <span className="profile__keycode">
+                                                    P
                                                 </span>
                                             </div>
                                         </Link>
@@ -201,13 +195,8 @@ export class ProfileMenu extends Component {
                                                             <span>Billing</span>
                                                         </span>
                                                     </span>
-                                                    <span
-                                                        style={{
-                                                            color: '#8898aa',
-                                                            fontSize: 12,
-                                                        }}
-                                                    >
-                                                        Press B
+                                                    <span className="profile__keycode">
+                                                        B
                                                     </span>
                                                 </div>
                                             </Link>
@@ -245,13 +234,8 @@ export class ProfileMenu extends Component {
                                                         <span>About</span>
                                                     </span>
                                                 </span>
-                                                <span
-                                                    style={{
-                                                        color: '#8898aa',
-                                                        fontSize: 12,
-                                                    }}
-                                                >
-                                                    Press A
+                                                <span className="profile__keycode">
+                                                    A
                                                 </span>
                                             </div>
                                         </button>

@@ -498,14 +498,17 @@ class CreateWebHook extends React.Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             this.props.newWebHook &&
                                             this.props.newWebHook.requesting
@@ -517,7 +520,12 @@ class CreateWebHook extends React.Component {
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook
                                                 .requesting && (
-                                                <span>Create</span>
+                                                <>
+                                                    <span>Create</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {this.props.newWebHook &&
                                             this.props.newWebHook

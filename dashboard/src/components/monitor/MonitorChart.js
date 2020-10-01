@@ -306,7 +306,7 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs && data[0].cpuLoad
                                                     ? formatDecimal(
                                                           data[0].cpuLoad,
                                                           2
@@ -334,7 +334,7 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs && data[0].avgCpuLoad
                                                     ? formatDecimal(
                                                           data[0].avgCpuLoad,
                                                           2
@@ -362,7 +362,7 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs && data[0].cpuCores
                                                     ? data[0].cpuCores
                                                     : 0}
                                             </span>
@@ -395,7 +395,7 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs && data[0].memoryUsed
                                                     ? formatBytes(
                                                           data[0].memoryUsed
                                                       )
@@ -421,7 +421,8 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs &&
+                                                data[0].totalMemory
                                                     ? formatBytes({
                                                           value:
                                                               data[0]
@@ -451,7 +452,7 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs && data[0].swapUsed
                                                     ? formatBytes(
                                                           data[0].swapUsed
                                                       )
@@ -486,7 +487,8 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs &&
+                                                data[0].storageUsed
                                                     ? formatBytes(
                                                           data[0].storageUsed
                                                       )
@@ -512,7 +514,8 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs &&
+                                                data[0].totalStorage
                                                     ? formatBytes(
                                                           data[0].totalStorage
                                                       )
@@ -538,7 +541,8 @@ export function MonitorChart({
                                         <span>
                                             {' '}
                                             <span className="chart-font">
-                                                {checkLogs
+                                                {checkLogs &&
+                                                data[0].storageUsage
                                                     ? formatDecimal(
                                                           data[0].storageUsage,
                                                           2
@@ -576,7 +580,8 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    {checkLogs
+                                                    {checkLogs &&
+                                                    data[0].mainTemp
                                                         ? data[0].mainTemp
                                                         : 0}{' '}
                                                     &deg;C
@@ -601,7 +606,8 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span className="chart-font">
-                                                    {checkLogs
+                                                    {checkLogs &&
+                                                    data[0].maxTemp
                                                         ? data[0].maxTemp
                                                         : 0}{' '}
                                                     &deg;C

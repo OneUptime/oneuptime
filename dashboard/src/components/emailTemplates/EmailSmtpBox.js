@@ -59,6 +59,14 @@ const validate = (values, props) => {
             errors.from =
                 'Please input from address this cannot be left blank.';
         }
+
+        if (values.name) {
+            if (!Validate.text(values.name)) {
+                errors.from = 'Please input name in proper format .';
+            }
+        } else {
+            errors.name = 'Please input name this cannot be left blank.';
+        }
     }
     return errors;
 };
@@ -213,7 +221,7 @@ export class EmailSmtpBox extends Component {
                                                         >
                                                             <div className="bs-Fieldset-row">
                                                                 <label className="bs-Fieldset-label">
-                                                                    Username
+                                                                    Email
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
@@ -371,6 +379,41 @@ export class EmailSmtpBox extends Component {
                                                                             be
                                                                             sent
                                                                             from.
+                                                                        </span>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label className="bs-Fieldset-label">
+                                                                    From Name
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        component={
+                                                                            RenderField
+                                                                        }
+                                                                        type="text"
+                                                                        name="name"
+                                                                        id="name"
+                                                                        placeholder="From Name"
+                                                                        required="required"
+                                                                        disabled={
+                                                                            this
+                                                                                .props
+                                                                                .smtpConfigurations
+                                                                                .requesting
+                                                                        }
+                                                                    />
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        <span>
+                                                                            Name
+                                                                            that
+                                                                            will
+                                                                            be
+                                                                            used
+                                                                            in
+                                                                            emails.
                                                                         </span>
                                                                     </p>
                                                                 </div>
@@ -602,8 +645,9 @@ function mapStateToProps(state) {
         user: '',
         pass: '',
         host: '',
-        from: '',
         port: '',
+        from: '',
+        name: '',
         secure: true,
     };
     if (showEmailSmtpConfiguration) {
@@ -612,8 +656,9 @@ function mapStateToProps(state) {
             user: smtpConfigurations.config.user,
             pass: smtpConfigurations.config.pass,
             host: smtpConfigurations.config.host,
-            from: smtpConfigurations.config.from,
             port: smtpConfigurations.config.port,
+            from: smtpConfigurations.config.from,
+            name: smtpConfigurations.config.name,
             secure: smtpConfigurations.config.secure,
         };
     }

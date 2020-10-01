@@ -1317,6 +1317,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad > con[i].field1
                     )
@@ -1324,7 +1325,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1338,6 +1339,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad < con[i].field1
                     )
@@ -1345,7 +1347,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1359,6 +1361,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         con[i].field2 &&
                         payload.cpuLoad > con[i].field1 &&
@@ -1368,7 +1371,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1378,6 +1381,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad == con[i].field1
                     )
@@ -1385,7 +1389,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1399,6 +1403,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad != con[i].field1
                     )
@@ -1406,7 +1411,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1420,6 +1425,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad >= con[i].field1
                     )
@@ -1427,7 +1433,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
@@ -1441,6 +1447,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.cpuLoad &&
                         payload.cpuLoad <= con[i].field1
                     )
@@ -1448,14 +1455,16 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.cpuLoad} ${formatDecimal(
-                            payload.cpuLoad,
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
                             2
                         )} %`
                     );
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
-            const memoryUsedBytes = parseInt(payload.memoryUsed || 0);
+            const memoryUsedBytes = payload
+                ? parseInt(payload.memoryUsed || 0)
+                : 0;
             const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (
@@ -1470,7 +1479,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1491,7 +1500,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1514,7 +1523,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1531,7 +1540,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1552,7 +1561,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1573,7 +1582,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
@@ -1594,14 +1603,14 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.memoryUsed} ${formatBytes(
-                            memoryUsedBytes
+                            memoryUsedBytes || 0
                         )}`
                     );
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
-            const size = parseInt(payload.totalStorage || 0);
-            const used = parseInt(payload.storageUsed || 0);
+            const size = payload ? parseInt(payload.totalStorage || 0) : 0;
+            const used = payload ? parseInt(payload.storageUsed || 0) : 0;
             const freeBytes = size - used;
             const free = freeBytes / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
@@ -1616,7 +1625,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1636,7 +1645,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1658,7 +1667,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1674,7 +1683,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1694,7 +1703,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1714,7 +1723,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1734,7 +1743,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.freeStorage} ${formatBytes(
-                            freeBytes
+                            freeBytes || 0
                         )}`
                     );
                 }
@@ -1745,13 +1754,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp > con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (
@@ -1763,13 +1775,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp < con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (
@@ -1781,6 +1796,7 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         con[i].field2 &&
                         payload.mainTemp > con[i].field1 &&
@@ -1789,7 +1805,9 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
@@ -1797,13 +1815,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp == con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (
@@ -1815,13 +1836,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp != con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (
@@ -1833,13 +1857,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp >= con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             } else if (
@@ -1851,13 +1878,16 @@ const checkAnd = async (
                     !(
                         con[i] &&
                         con[i].field1 &&
+                        payload &&
                         payload.mainTemp &&
                         payload.mainTemp <= con[i].field1
                     )
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
                     );
                 }
             }
@@ -2343,19 +2373,18 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad > con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2365,19 +2394,18 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad < con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2387,6 +2415,7 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     con[i].field2 &&
                     payload.cpuLoad > con[i].field1 &&
@@ -2394,32 +2423,29 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad == con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2429,19 +2455,18 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad != con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2451,19 +2476,18 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad >= con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2473,23 +2497,24 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.cpuLoad &&
                     payload.cpuLoad <= con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.cpuLoad) {
-                        reasons.push(
-                            `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                payload.cpuLoad,
-                                2
-                            )} %`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.cpuLoad} ${formatDecimal(
+                            payload && payload.cpuLoad ? payload.cpuLoad : 0,
+                            2
+                        )} %`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'memoryUsage') {
-            const memoryUsedBytes = parseInt(payload.memoryUsed || 0);
+            const memoryUsedBytes = payload
+                ? parseInt(payload.memoryUsed || 0)
+                : 0;
             const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (
@@ -2500,13 +2525,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2521,13 +2544,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2537,20 +2558,18 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
-                    payload.memoryUsed &&
+                    memoryUsed &&
                     con[i].field2 &&
                     memoryUsed > con[i].field1 &&
                     memoryUsed < con[i].field2
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
@@ -2561,13 +2580,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2582,13 +2599,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2603,13 +2618,11 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2624,31 +2637,27 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (memoryUsedBytes) {
-                        reasons.push(
-                            `${criteriaStrings.memoryUsed} ${formatBytes(
-                                memoryUsedBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.memoryUsed} ${formatBytes(
+                            memoryUsedBytes || 0
+                        )}`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'storageUsage') {
-            const size = parseInt(payload.totalStorage || 0);
-            const used = parseInt(payload.storageUsed || 0);
+            const size = payload ? parseInt(payload.totalStorage || 0) : 0;
+            const used = payload ? parseInt(payload.storageUsed || 0) : 0;
             const freeBytes = size - used;
             const free = freeBytes / Math.pow(1e3, 3);
             if (con[i] && con[i].filter && con[i].filter === 'greaterThan') {
                 if (con[i] && con[i].field1 && free > con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2658,13 +2667,11 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free < con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2680,25 +2687,21 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (con[i] && con[i].field1 && free === con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2708,13 +2711,11 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free !== con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2724,13 +2725,11 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free >= con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2740,13 +2739,11 @@ const checkOr = async (
                 if (con[i] && con[i].field1 && free <= con[i].field1) {
                     validity = true;
                 } else {
-                    if (freeBytes) {
-                        reasons.push(
-                            `${criteriaStrings.freeStorage} ${formatBytes(
-                                freeBytes
-                            )}`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.freeStorage} ${formatBytes(
+                            freeBytes || 0
+                        )}`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'temperature') {
@@ -2754,16 +2751,17 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp > con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2773,16 +2771,17 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp < con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2792,6 +2791,7 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     con[i].field2 &&
                     payload.mainTemp > con[i].field1 &&
@@ -2799,26 +2799,27 @@ const checkOr = async (
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'equalTo') {
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp == con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2828,16 +2829,17 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp != con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2847,16 +2849,17 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp >= con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             } else if (
                 con[i] &&
@@ -2866,16 +2869,17 @@ const checkOr = async (
                 if (
                     con[i] &&
                     con[i].field1 &&
+                    payload &&
                     payload.mainTemp &&
                     payload.mainTemp <= con[i].field1
                 ) {
                     validity = true;
                 } else {
-                    if (payload.mainTemp) {
-                        reasons.push(
-                            `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                        );
-                    }
+                    reasons.push(
+                        `${criteriaStrings.temperature} ${
+                            payload && payload.mainTemp ? payload.mainTemp : 0
+                        } °C`
+                    );
                 }
             }
         } else if (con[i] && con[i].responseType === 'responseBody') {

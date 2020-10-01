@@ -241,11 +241,14 @@ class BackupCodesModal extends React.Component {
                                 <CopyToClipboard text={this.state.codes}>
                                     {this.state.copied && this.state.close ? (
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                         >
-                                            Close
+                                            <span>Close</span>
+                                            <span className="create-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                     ) : (
                                         <button

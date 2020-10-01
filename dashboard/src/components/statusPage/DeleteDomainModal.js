@@ -74,23 +74,29 @@ class DeleteDomainModal extends Component {
                                     </ShouldRender>
                                     <button
                                         id="cancelDomainDelete"
-                                        className={`bs-Button ${deleteDomain.requesting &&
+                                        className={`bs-Button btn__modal ${deleteDomain.requesting &&
                                             'bs-is-disabled'}`}
                                         type="button"
                                         onClick={closeThisDialog}
                                         disabled={deleteDomain.requesting}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="confirmDomainDelete"
-                                        className={`bs-Button bs-Button--red Box-background--red ${deleteDomain.requesting &&
+                                        className={`bs-Button bs-Button--red Box-background--red btn__modal ${deleteDomain.requesting &&
                                             'bs-is-disabled'}`}
                                         onClick={confirmThisDialog}
                                         disabled={deleteDomain.requesting}
                                         autoFocus={true}
                                     >
                                         <span>Delete Domain</span>
+                                        <span className="delete-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                     </button>
                                 </div>
                             </div>
