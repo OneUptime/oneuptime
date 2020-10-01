@@ -368,7 +368,7 @@ class NewIncidentMessage extends Component {
                                 <ShouldRender if={edit}>
                                     <div>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                         >
@@ -379,6 +379,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
@@ -391,7 +394,7 @@ class NewIncidentMessage extends Component {
                                         </button>
                                         <button
                                             id={`${type}-editButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             autoFocus={true}
                                         >
@@ -402,6 +405,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Update </span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender

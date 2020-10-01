@@ -781,7 +781,7 @@ class CreateSchedule extends React.Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={() =>
                                             closeModal({
@@ -791,15 +791,25 @@ class CreateSchedule extends React.Component {
                                         }
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="createScheduledEventButton"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={requesting}
                                         type="submit"
                                         autoFocus={true}
                                     >
-                                        {!requesting && <span>Create</span>}
+                                        {!requesting && (
+                                            <>
+                                                <span>Create</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
                                         {requesting && <FormLoader />}
                                     </button>
                                 </div>

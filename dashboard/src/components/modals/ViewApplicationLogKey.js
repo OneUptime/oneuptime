@@ -39,6 +39,13 @@ class ViewApplicationLogKey extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter': {
+                if (this.state.confirmBoxHidden) {
+                    return this.toggleConfirmationBox();
+                } else {
+                    return this.props.confirmThisDialog();
+                }
+            }
             default:
                 return false;
         }
@@ -227,11 +234,14 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-Modal-footer-actions">
                                     <button
                                         id={`cancel_application_log_key_${this.props.data.applicationLog.name}`}
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <RenderIfAdmin
                                         currentProject={currentProject}
@@ -241,10 +251,11 @@ class ViewApplicationLogKey extends Component {
                                         >
                                             <button
                                                 id={`reset_application_log_key_${this.props.data.applicationLog.name}`}
-                                                className="bs-Button bs-Button--blue"
+                                                className="bs-Button bs-Button--blue btn__modal"
                                                 onClick={
                                                     this.toggleConfirmationBox
                                                 }
+                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={
@@ -253,6 +264,9 @@ class ViewApplicationLogKey extends Component {
                                                 >
                                                     <span>
                                                         Reset Log API Key
+                                                    </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
                                                     </span>
                                                 </ShouldRender>
                                                 <ShouldRender
@@ -267,7 +281,7 @@ class ViewApplicationLogKey extends Component {
                                         >
                                             <button
                                                 id={`confirm_reset_application_log_key_${this.props.data.applicationLog.name}`}
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="button"
                                                 onClick={
                                                     this.props.confirmThisDialog
@@ -279,6 +293,9 @@ class ViewApplicationLogKey extends Component {
                                                     }
                                                 >
                                                     <span>YES, RESET</span>
+                                                    <span className="delete-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={this.props.isRequesting}

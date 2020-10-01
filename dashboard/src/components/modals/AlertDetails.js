@@ -175,12 +175,15 @@ class AlertDetailsModal extends Component {
                             <div className="bs-Modal-footer-actions">
                                 <button
                                     id="closeBtn"
-                                    className="bs-Button bs-DeprecatedButton"
+                                    className="bs-Button bs-DeprecatedButton btn__modal"
                                     type="button"
                                     onClick={closeThisDialog}
                                     autoFocus={true}
                                 >
                                     <span>Close</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                             </div>
                         </div>

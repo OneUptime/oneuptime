@@ -148,27 +148,35 @@ class DeleteCredentialModal extends Component {
                                     </div>
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={closeThisDialog}
                                             id="cancelCredentialDeleteBtn"
                                             disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <ShouldRender
                                             if={securities.length === 0}
                                         >
                                             <button
                                                 id="deleteCredentialBtn"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="button"
                                                 onClick={confirmThisDialog}
                                                 disabled={isRequesting}
                                                 autoFocus={true}
                                             >
                                                 {!isRequesting && (
-                                                    <span>Remove</span>
+                                                    <>
+                                                        <span>Remove</span>
+                                                        <span className="delete-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {isRequesting && <FormLoader />}
                                             </button>

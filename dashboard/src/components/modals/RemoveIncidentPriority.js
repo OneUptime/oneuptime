@@ -89,14 +89,17 @@ class RemoveIncidentPriority extends Component {
                                     </ShouldRender>
 
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         type="button"
                                         onClick={() => this.handleSubmit()}
                                         disabled={
@@ -107,6 +110,9 @@ class RemoveIncidentPriority extends Component {
                                         autoFocus={true}
                                     >
                                         <span>Delete</span>
+                                        <span className="delete-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                         <ShouldRender
                                             if={
                                                 this.props

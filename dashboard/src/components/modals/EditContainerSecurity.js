@@ -299,7 +299,7 @@ class EditContainerSecurity extends Component {
                                     </div>
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={e => {
                                                 e.preventDefault();
@@ -311,18 +311,27 @@ class EditContainerSecurity extends Component {
                                             disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="editContainerBtn"
-                                            className="bs-Button bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={isRequesting}
                                             autoFocus={true}
                                         >
                                             {!isRequesting && (
-                                                <span>
-                                                    Update Container Security
-                                                </span>
+                                                <>
+                                                    <span>
+                                                        Update Container
+                                                        Security
+                                                    </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                             {isRequesting && <FormLoader />}
                                         </button>

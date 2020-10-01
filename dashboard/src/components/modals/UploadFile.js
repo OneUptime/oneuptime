@@ -137,7 +137,7 @@ class UploadFile extends Component {
                 </button>
                 <button
                     id="importCsvButton"
-                    className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
+                    className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="submit"
                     disabled={
                         this.props.createSubscriber.requesting ||
@@ -150,6 +150,9 @@ class UploadFile extends Component {
                     </ShouldRender>
                     <ShouldRender if={!this.props.createSubscriber.requesting}>
                         <span>Save</span>
+                        <span className="create-btn__keycode">
+                            <span className="keycode__icon keycode__icon--enter" />
+                        </span>
                     </ShouldRender>
                 </button>
             </div>

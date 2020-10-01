@@ -108,7 +108,7 @@ export class ScheduleForm extends React.Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${this
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
                                                 .props.schedule.newSchedule
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -125,10 +125,13 @@ export class ScheduleForm extends React.Component {
                                             }
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="btnCreateSchedule"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
                                                 .props.schedule.newSchedule
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -149,6 +152,9 @@ export class ScheduleForm extends React.Component {
                                             </ShouldRender>
 
                                             <span>Save</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

@@ -95,7 +95,7 @@ class EditComponent extends Component {
         <div className="bs-Modal-footer">
             <div className="bs-Modal-footer-actions">
                 <button
-                    className={`bs-Button bs-DeprecatedButton`}
+                    className={`bs-Button bs-DeprecatedButton btn__modal`}
                     type="button"
                     onClick={() => {
                         this.props.closeModal({
@@ -105,10 +105,11 @@ class EditComponent extends Component {
                     disabled={this.props.editingComponent.requesting}
                 >
                     <span>Cancel</span>
+                    <span className="cancel-btn__keycode">Esc</span>
                 </button>
                 <button
                     id="editComponentButton"
-                    className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
+                    className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="save"
                     disabled={this.props.editingComponent.requesting}
                     autoFocus={true}
@@ -117,6 +118,9 @@ class EditComponent extends Component {
                         <Spinner />
                     </ShouldRender>
                     <span>Update</span>
+                    <span className="create-btn__keycode">
+                        <span className="keycode__icon keycode__icon--enter" />
+                    </span>
                 </button>
             </div>
         </div>

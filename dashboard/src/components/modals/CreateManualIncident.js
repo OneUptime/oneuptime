@@ -339,7 +339,7 @@ class CreateManualIncident extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         onClick={() => {
                                             this.props.createIncidentReset();
                                             this.props.closeModal({
@@ -350,15 +350,21 @@ class CreateManualIncident extends Component {
                                     >
                                         <ShouldRender if={!sameError}>
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </ShouldRender>
                                         <ShouldRender if={sameError}>
                                             <span>OK</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </ShouldRender>
                                     </button>
                                     <ShouldRender if={!sameError}>
                                         <button
                                             id="createIncident"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
                                                 newIncident &&
                                                 newIncident.requesting
@@ -368,7 +374,12 @@ class CreateManualIncident extends Component {
                                         >
                                             {newIncident &&
                                                 !newIncident.requesting && (
-                                                    <span>Create</span>
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                             {newIncident &&
                                                 newIncident.requesting && (

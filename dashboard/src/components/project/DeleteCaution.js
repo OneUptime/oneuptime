@@ -69,16 +69,17 @@ class DeleteCaution extends Component {
                     <div className="bs-Modal-footer">
                         <div className="bs-Modal-footer-actions">
                             <button
-                                className={`bs-Button ${requesting &&
+                                className={`bs-Button btn__modal ${requesting &&
                                     'bs-is-disabled'}`}
                                 type="button"
                                 onClick={hide}
                                 disabled={requesting}
                             >
                                 <span>Cancel</span>
+                                <span className="cancel-btn__keycode">Esc</span>
                             </button>
                             <button
-                                className={`bs-Button bs-Button--red Box-background--red ${requesting &&
+                                className={`bs-Button bs-Button--red Box-background--red btn__modal ${requesting &&
                                     'bs-is-disabled'}`}
                                 disabled={requesting}
                                 type="submit"
@@ -89,6 +90,9 @@ class DeleteCaution extends Component {
                                     <Spinner />
                                 </ShouldRender>
                                 <span>DELETE PERMANENTLY</span>
+                                <span className="delete-btn__keycode">
+                                    <span className="keycode__icon keycode__icon--enter" />
+                                </span>
                             </button>
                         </div>
                     </div>
