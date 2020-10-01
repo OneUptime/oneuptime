@@ -51,7 +51,7 @@ class Unauthorised extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         style={{
                                             minWidth: 50,
                                             textAlign: 'center',
@@ -61,6 +61,9 @@ class Unauthorised extends Component {
                                         autoFocus={true}
                                     >
                                         <span>Ok</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                 </div>
                             </div>

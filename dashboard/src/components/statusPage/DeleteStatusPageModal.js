@@ -81,17 +81,20 @@ class DeleteStatusPageModal extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className={`bs-Button ${isRequesting &&
+                                        className={`bs-Button btn__modal ${isRequesting &&
                                             'bs-is-disabled'}`}
                                         type="button"
                                         onClick={closeThisDialog}
                                         disabled={isRequesting}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="confirmDelete"
-                                        className={`bs-Button bs-Button--red Box-background--red ${isRequesting &&
+                                        className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
                                             'bs-is-disabled'}`}
                                         onClick={confirmThisDialog}
                                         disabled={isRequesting}
@@ -101,6 +104,9 @@ class DeleteStatusPageModal extends Component {
                                             <Spinner />
                                         </ShouldRender>
                                         <span>Delete Status Page</span>
+                                        <span className="delete-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                     </button>
                                 </div>
                             </div>

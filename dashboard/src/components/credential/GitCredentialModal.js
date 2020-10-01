@@ -222,7 +222,7 @@ class GitCredentialModal extends Component {
                                         </div>
                                         <div className="bs-Modal-footer-actions">
                                             <button
-                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                                 type="button"
                                                 onClick={e => {
                                                     e.preventDefault();
@@ -234,18 +234,27 @@ class GitCredentialModal extends Component {
                                                 disabled={updatingCredential}
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
                                             <button
                                                 id="updateCredentialModalBtn"
-                                                className="bs-Button bs-Button bs-Button--blue"
+                                                className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={updatingCredential}
                                                 autoFocus={true}
                                             >
                                                 {!updatingCredential && (
-                                                    <span>
-                                                        Update Git Credential
-                                                    </span>
+                                                    <>
+                                                        <span>
+                                                            Update Git
+                                                            Credential
+                                                        </span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {updatingCredential && (
                                                     <FormLoader />
@@ -296,7 +305,7 @@ class GitCredentialModal extends Component {
                                         </div>
                                         <div className="bs-Modal-footer-actions">
                                             <button
-                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                                 type="button"
                                                 onClick={e => {
                                                     e.preventDefault();
@@ -307,18 +316,26 @@ class GitCredentialModal extends Component {
                                                 id="cancelCredentialModalBtn"
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
                                             <button
                                                 id="addCredentialModalBtn"
-                                                className="bs-Button bs-Button bs-Button--blue"
+                                                className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={isRequesting}
                                                 autoFocus={true}
                                             >
                                                 {!isRequesting && (
-                                                    <span>
-                                                        Add Git Credential
-                                                    </span>
+                                                    <>
+                                                        <span>
+                                                            Add Git Credential
+                                                        </span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {isRequesting && <FormLoader />}
                                             </button>

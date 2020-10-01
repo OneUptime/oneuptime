@@ -56,12 +56,15 @@ export class MonitorUrl extends React.Component {
                         <div className="bs-Modal-footer">
                             <div className="bs-Modal-footer-actions">
                                 <button
-                                    className="bs-Button"
+                                    className="bs-Button btn__modal"
                                     type="button"
                                     onClick={closeThisDialog}
                                     autoFocus={true}
                                 >
                                     <span>OK</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                             </div>
                         </div>

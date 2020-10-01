@@ -7,6 +7,7 @@ require('should');
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
+const name = utils.generateRandomString();
 const password = '1234567890';
 // smtp credential
 const smtpData = { ...utils.smtpCredential };
@@ -59,8 +60,8 @@ describe('Custom SMTP Settings', () => {
                 await page.click('#projectSettings');
                 await page.waitForSelector('#email');
                 await page.click('#email');
-                await page.waitForSelector('label[id=showsmtpForm]');
-                await page.click('label[id=showsmtpForm]');
+                await page.waitForSelector('#showsmtpForm');
+                await page.click('#showsmtpForm');
                 await page.waitForSelector('#user');
                 await page.click('#user');
                 await page.type('#user', smtpData.user);
@@ -72,6 +73,8 @@ describe('Custom SMTP Settings', () => {
                 await page.type('#port', smtpData.port);
                 await page.click('#from');
                 await page.type('#from', smtpData.from);
+                await page.click('#name');
+                await page.type('#name', name);
                 await page.$eval('#secure', elem => elem.click());
                 await page.click('#saveSmtp');
                 await page.waitForSelector('.ball-beat', { visible: true });
