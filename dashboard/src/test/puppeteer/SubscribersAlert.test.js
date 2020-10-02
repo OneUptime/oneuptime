@@ -24,7 +24,10 @@ describe('Subscribers Alert logs API', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteerOptions: {
+                ...utils.puppeteerLaunchConfig,
+                headless: false,
+            },
             puppeteer,
             timeout: utils.timeout,
         });
@@ -128,6 +131,8 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#createSubscriber', {
                     hidden: true,
                 });
+                await page.reload({ waitUntil: 'networkidle0' });
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 const subscriberEmailSelector =
                     '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
                 await page.waitForSelector(subscriberEmailSelector);
