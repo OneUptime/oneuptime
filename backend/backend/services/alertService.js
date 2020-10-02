@@ -639,7 +639,7 @@ module.exports = {
         );
 
         if (
-            IS_SAAS_SERVICE &&
+            IS_SAAS_SERVICE === 'true' &&
             !hasCustomTwilioSettings &&
             !project.alertEnable
         ) {
@@ -672,7 +672,7 @@ module.exports = {
         }
 
         let hasEnoughBalance;
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+        if (IS_SAAS_SERVICE === 'true' && !hasCustomTwilioSettings) {
             hasEnoughBalance = await _this.hasEnoughBalance(
                 project._id,
                 user.alertPhoneNumber,
@@ -680,7 +680,11 @@ module.exports = {
                 AlertType.Call
             );
         }
-        if (!IS_SAAS_SERVICE || hasCustomTwilioSettings || hasEnoughBalance) {
+        if (
+            IS_SAAS_SERVICE !== 'true' ||
+            hasCustomTwilioSettings ||
+            hasEnoughBalance
+        ) {
             const alertStatus = await TwilioService.sendIncidentCreatedCall(
                 date,
                 monitor.name,
@@ -716,7 +720,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: 'Success',
                 });
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                if (IS_SAAS_SERVICE === 'true' && !hasCustomTwilioSettings) {
                     balanceStatus = await _this.getBalanceStatus(
                         project._id,
                         user.alertPhoneNumber,
@@ -768,7 +772,7 @@ module.exports = {
         );
 
         if (
-            IS_SAAS_SERVICE &&
+            IS_SAAS_SERVICE === 'true' &&
             !hasCustomTwilioSettings &&
             !project.alertEnable
         ) {
@@ -802,7 +806,7 @@ module.exports = {
 
         let hasEnoughBalance;
         let doesPhoneNumberComplyWithHighRiskConfig;
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+        if (IS_SAAS_SERVICE === 'true' && !hasCustomTwilioSettings) {
             hasEnoughBalance = await _this.hasEnoughBalance(
                 incident.projectId,
                 user.alertPhoneNumber,
@@ -816,7 +820,7 @@ module.exports = {
         }
 
         if (
-            !IS_SAAS_SERVICE ||
+            IS_SAAS_SERVICE !== 'true' ||
             hasCustomTwilioSettings ||
             (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
         ) {
@@ -858,7 +862,7 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: alertStatus,
                 });
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                if (IS_SAAS_SERVICE === 'true' && !hasCustomTwilioSettings) {
                     balanceStatus = await _this.getBalanceStatus(
                         incident.projectId,
                         user.alertPhoneNumber,
@@ -1121,7 +1125,7 @@ module.exports = {
                     incident.projectId
                 );
                 if (
-                    IS_SAAS_SERVICE &&
+                    IS_SAAS_SERVICE === 'true' &&
                     !hasCustomTwilioSettings &&
                     !project.alertEnable
                 ) {
