@@ -46,6 +46,13 @@ class Incident extends React.Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
     }
+    componentDidUpdate(prevProps) {
+        const previousIncidentId = prevProps.match.params.incidentId;
+        const newIncidentId = this.props.match.params.incidentId;
+        if (previousIncidentId !== newIncidentId) {
+            this.fetchAllIncidentData();
+        }
+    }
 
     nextAlerts = () => {
         this.props.fetchIncidentAlert(
@@ -163,7 +170,7 @@ class Incident extends React.Component {
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
 
-    ready = () => {
+    fetchAllIncidentData() {
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
         this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         const monitorId =
@@ -221,6 +228,10 @@ class Incident extends React.Component {
             10,
             'internal'
         );
+    }
+
+    ready = () => {
+        this.fetchAllIncidentData();
     };
 
     render() {
