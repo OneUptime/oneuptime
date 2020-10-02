@@ -32,7 +32,7 @@ module.exports = {
         data: { url: 'http://localhost:3010/' },
     },
     monitorCategory: {
-        monitorCategoryName: 'New Monitor category',
+        resourceCategoryName: 'NewMonitorCategory',
     },
     scheduledEvent: {
         name: 'New Scheduled Event',

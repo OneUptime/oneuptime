@@ -23,10 +23,7 @@ describe('Incident Timeline API', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: {
-                ...utils.puppeteerLaunchConfig,
-                headless: true,
-            },
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 500000,
         });
