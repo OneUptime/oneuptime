@@ -11158,7 +11158,9 @@ table {
     justify-content: center;
     cursor: pointer;
 }
-
+.custom-tab:hover {
+    color: #000;
+}
 .custom-tab-2 {
     width: 50%;
 }
