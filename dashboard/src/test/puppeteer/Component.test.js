@@ -26,12 +26,16 @@ describe('Components', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
+            puppeteerOptions: {
+                ...utils.puppeteerLaunchConfig,
+                headless: false,
+            },
             puppeteer,
             timeout: 120000,
         });
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
+            headless: false,
         });
         componentPage = await browser.newPage();
 
@@ -446,19 +450,22 @@ describe('Components', () => {
                 await page.click('#components');
                 await page.waitForSelector('#component0', { visible: true });
 
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
                 const newComponentSelector = `#count_${newComponentName}`;
                 const componentSelector = `#count_${componentName}`;
 
                 await page.waitForSelector(newComponentSelector);
                 const newResourceCount = await page.$eval(
-                    `#count_${newComponentName}`,
+                    newComponentSelector,
                     elem => elem.textContent
                 );
                 expect(newResourceCount).toEqual('1 Resource');
 
                 await page.waitForSelector(componentSelector);
                 const firstResourceCount = await page.$eval(
-                    `#count_${componentName}`,
+                    componentSelector,
                     elem => elem.textContent
                 );
                 expect(firstResourceCount).toEqual('3 Resources');
@@ -580,6 +587,9 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
                 await page.waitForSelector(`#count_${componentName}`);
                 const firstResourceCount = await page.$eval(
                     `#count_${componentName}`,
@@ -625,6 +635,9 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
+
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
                 const firstResourceCount = await page.$eval(
