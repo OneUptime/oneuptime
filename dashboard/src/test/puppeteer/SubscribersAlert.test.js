@@ -24,10 +24,7 @@ describe('Subscribers Alert logs API', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: {
-                ...utils.puppeteerLaunchConfig,
-                headless: false,
-            },
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: utils.timeout,
         });

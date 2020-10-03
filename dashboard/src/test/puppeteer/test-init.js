@@ -752,8 +752,8 @@ module.exports = {
         await page.click('#projectSettings');
         await page.waitForSelector('#email');
         await page.click('#email');
-        await page.waitForSelector('label[for=smtpswitch]');
-        if (enable) await page.click('label[for=smtpswitch]');
+        await page.waitForSelector('#smtpswitch');
+        if (enable) await page.$eval('#smtpswitch', elem => elem.click());
         await page.waitForSelector('#user');
         await page.type('#user', user);
         await page.type('#pass', pass);
