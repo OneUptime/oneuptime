@@ -589,11 +589,10 @@ const _this = {
         }
     },
     hasCustomSettings: async function(projectId) {
-        const settings = await _this.findByOne({
+        return await _this.findByOne({
             projectId,
             enabled: true,
         });
-        return settings ? true : false;
     },
 };
 
