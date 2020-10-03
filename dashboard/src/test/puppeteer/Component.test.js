@@ -26,16 +26,12 @@ describe('Components', () => {
 
         cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: {
-                ...utils.puppeteerLaunchConfig,
-                headless: false,
-            },
+            puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
             timeout: 120000,
         });
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
-            headless: false,
         });
         componentPage = await browser.newPage();
 
