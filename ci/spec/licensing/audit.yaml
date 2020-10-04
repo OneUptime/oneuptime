@@ -20,7 +20,7 @@ audit_licensing:
         - ./ci/scripts/storehash.sh audit_licensing licensing
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
-            - hotfix-master
-            - hotfix-release
+            - master
+            - release
