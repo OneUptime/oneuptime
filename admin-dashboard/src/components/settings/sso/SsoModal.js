@@ -107,6 +107,23 @@ const fields = [
 ];
 
 class Component extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     submitForm = async data => {
         const { closeThisDialog } = this.props;
         const { _id: id } = data;
@@ -116,12 +133,16 @@ class Component extends React.Component {
     };
 
     render() {
-        const { handleSubmit, closeThisDialog, sso, formTitle } = this.props;
+        const {
+            handleSubmit,
+            closeThisDialog,
+            sso,
+            formTitle,
+            updatingSso,
+            addingSso,
+        } = this.props;
         return (
-            <div
-                onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex="-1"
@@ -202,21 +223,28 @@ class Component extends React.Component {
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage"></span>
-                            <div>
+                            <div style={{ display: 'flex' }}>
                                 <button
-                                    className="bs-Button bs-DeprecatedButton"
+                                    className="bs-Button bs-DeprecatedButton btn__modal"
                                     type="button"
                                     onClick={closeThisDialog}
                                 >
                                     <span>Cancel</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                                 <button
                                     id="save-button"
-                                    className="bs-Button bs-Button--blue"
-                                    disabled={sso && sso.requesting}
+                                    className="bs-Button bs-Button--blue btn__modal"
+                                    disabled={updatingSso || addingSso}
                                     type="submit"
+                                    autoFocus={true}
                                 >
                                     <span>Save</span>
+                                    <span className="create-btn__keycode">
+                                        <span className="keycode__icon keycode__icon--enter" />
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -240,6 +268,8 @@ Component.propTypes = {
     onSubmit: PropTypes.func.isRequired,
     formTitle: PropTypes.string.isRequired,
     sso: PropTypes.object,
+    addingSso: PropTypes.bool,
+    updatingSso: PropTypes.bool,
 };
 
 const ReduxFormComponent = reduxForm({
@@ -249,9 +279,10 @@ const ReduxFormComponent = reduxForm({
 })(Component);
 
 export const SsoAddModal = connect(
-    () => {
+    state => {
         return {
             formTitle: 'Create SSO',
+            addingSso: state.sso.addSso.requesting,
         };
     },
     dispatch => {
@@ -271,6 +302,7 @@ export const SsoUpdateModal = connect(
             formTitle: 'Update SSO',
             sso: state.sso.sso,
             initialValues: state.sso.sso.sso,
+            updatingSso: state.sso.updateSso.requesting,
         };
     },
     dispatch => {
