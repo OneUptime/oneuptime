@@ -28,7 +28,7 @@ audit_helm-chart:
         - ./ci/scripts/storehash.sh audit_helm-chart helm-chart
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
-            - hotfix-master
-            - hotfix-release
+            - master
+            - release

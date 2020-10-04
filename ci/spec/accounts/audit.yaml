@@ -20,7 +20,7 @@ audit_accounts:
         - ./ci/scripts/storehash.sh audit_accounts accounts
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
-            - hotfix-master
-            - hotfix-release
+            - master
+            - release
