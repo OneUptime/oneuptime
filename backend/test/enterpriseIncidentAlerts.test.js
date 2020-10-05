@@ -8,7 +8,7 @@ chai.use(require('chai-subset'));
 let app = require('../server');
 let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
+let { createEnterpriseUser } = require('./utils/userSignUp');
 let UserService = require('../backend/services/userService');
 let ProjectService = require('../backend/services/projectService');
 let ComponentService = require('../backend/services/componentService');
@@ -31,7 +31,6 @@ let TwilioModel = require('../backend/models/twilio');
 let VerificationToken = require('../backend/models/verificationToken');
 let LoginIPLog = require('../backend/models/loginIPLog');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
 let UserModel = require('../backend/models/user');
 let GlobalConfigModel = require('../backend/models/globalConfig');
 
@@ -46,7 +45,7 @@ describe('Incident Alerts', function () {
   before(function (done) {
     this.timeout(30000);
     GlobalConfig.initTestConfig().then(() => {
-      createUser(request, userData.user, async function (err, res) {
+      createEnterpriseUser(request, userData.user, async function (err, res) {
         let project = res.body.project;
         projectId = project._id;
         userId = res.body.id;
@@ -448,19 +447,6 @@ describe('Incident Alerts', function () {
         { name: 'twilio' },
         { value },
       );
-      const billingEndpointResponse = await request
-        .put(`/project/${projectId}/alertOptions`)
-        .set('Authorization', authorization)
-        .send({
-          alertEnable: false,
-          billingNonUSCountries: true,
-          billingRiskCountries: true,
-          billingUS: true,
-          minimumBalance: "100",
-          rechargeToBalance: "200",
-          _id: projectId,
-        });
-      expect(billingEndpointResponse).to.have.status(200);
 
       const customTwilioSettingResponse = await request
         .post(`/smsSmtp/${projectId}`)
@@ -544,19 +530,6 @@ describe('Incident Alerts', function () {
       const globalSettings = await GlobalConfigModel.deleteMany(
         { name: 'twilio' },
       );
-      const billingEndpointResponse = await request
-        .put(`/project/${projectId}/alertOptions`)
-        .set('Authorization', authorization)
-        .send({
-          alertEnable: true,
-          billingNonUSCountries: true,
-          billingRiskCountries: true,
-          billingUS: true,
-          minimumBalance: "100",
-          rechargeToBalance: "200",
-          _id: projectId,
-        });
-      expect(billingEndpointResponse).to.have.status(200);
   
       const getCustomTwilioSettingResponse = await request
         .get(`/smsSmtp/${projectId}/`)
