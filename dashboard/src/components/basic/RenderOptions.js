@@ -736,7 +736,7 @@ export class RenderOption extends Component {
                                             </ul>
                                         </p>
                                         <p>
-                                            NB:- Do not add &apos;;&apos; after
+                                            NB:- Do not add <code>;</code> after
                                             expression.
                                         </p>
                                     </Tooltip>
