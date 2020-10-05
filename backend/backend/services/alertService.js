@@ -638,7 +638,9 @@ module.exports = {
             name: 'twilio',
         });
         const areAlertsEnabledGlobally =
-            hasGlobalTwilioSettings && hasGlobalTwilioSettings.value && hasGlobalTwilioSettings.value['call-enabled']
+            hasGlobalTwilioSettings &&
+            hasGlobalTwilioSettings.value &&
+            hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -649,7 +651,7 @@ module.exports = {
             !hasCustomTwilioSettings &&
             ((IS_SAAS_SERVICE &&
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                (!IS_SAAS_SERVICE  && !areAlertsEnabledGlobally))
+                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
             return await _this.create({
                 projectId: incident.projectId,
@@ -688,11 +690,7 @@ module.exports = {
                 AlertType.Call
             );
         }
-        if (
-            !IS_SAAS_SERVICE ||
-            hasCustomTwilioSettings ||
-            hasEnoughBalance
-        ) {
+        if (!IS_SAAS_SERVICE || hasCustomTwilioSettings || hasEnoughBalance) {
             const alertStatus = await TwilioService.sendIncidentCreatedCall(
                 date,
                 monitor.name,
@@ -779,16 +777,19 @@ module.exports = {
             name: 'twilio',
         });
         const areAlertsEnabledGlobally =
-            hasGlobalTwilioSettings && hasGlobalTwilioSettings.value && hasGlobalTwilioSettings.value['sms-enabled']
+            hasGlobalTwilioSettings &&
+            hasGlobalTwilioSettings.value &&
+            hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
         );
-        const areAlertsDisabled= !hasCustomTwilioSettings &&
-        ((IS_SAAS_SERVICE  &&
-            (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-            (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+        const areAlertsDisabled =
+            !hasCustomTwilioSettings &&
+            ((IS_SAAS_SERVICE &&
+                (!project.alertEnable || !areAlertsEnabledGlobally)) ||
+                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally));
 
         if (areAlertsDisabled) {
             return await _this.create({
@@ -1136,14 +1137,18 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
-                    name: 'twilio',
-                });
+                const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
+                    {
+                        name: 'twilio',
+                    }
+                );
                 const areAlertsEnabledGlobally =
-                    hasGlobalTwilioSettings && hasGlobalTwilioSettings.value && hasGlobalTwilioSettings.value['sms-enabled']
+                    hasGlobalTwilioSettings &&
+                    hasGlobalTwilioSettings.value &&
+                    hasGlobalTwilioSettings.value['sms-enabled']
                         ? true
                         : false;
-        
+
                 const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
                     incident.projectId
                 );
@@ -1151,7 +1156,7 @@ module.exports = {
                     !hasCustomTwilioSettings &&
                     ((IS_SAAS_SERVICE &&
                         (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                        (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))        
+                        (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
                 ) {
                     return await SubscriberAlertService.create({
                         projectId: incident.projectId,
