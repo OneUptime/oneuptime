@@ -663,7 +663,7 @@ export class RenderOption extends Component {
                                                                 color: 'green',
                                                             }}
                                                         >
-                                                            &apos;object&apos;;
+                                                            &apos;object&apos;
                                                         </span>
                                                     </code>
                                                 </li>
@@ -680,7 +680,6 @@ export class RenderOption extends Component {
                                                             &apos;User
                                                             created&apos;
                                                         </span>
-                                                        ;
                                                     </code>
                                                 </li>
                                                 <li>
@@ -701,7 +700,6 @@ export class RenderOption extends Component {
                                                         >
                                                             &apos;application/json&apos;
                                                         </span>
-                                                        ;
                                                     </code>
                                                 </li>
                                                 <li>
@@ -732,10 +730,14 @@ export class RenderOption extends Component {
                                                         >
                                                             &apos;Banana&apos;
                                                         </span>
-                                                        );
+                                                        )
                                                     </code>
                                                 </li>
                                             </ul>
+                                        </p>
+                                        <p>
+                                            NB:- Do not add &apos;;&apos; after
+                                            expression.
                                         </p>
                                     </Tooltip>
                                 </ShouldRender>
