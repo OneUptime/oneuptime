@@ -588,6 +588,12 @@ const _this = {
             throw error;
         }
     },
+    hasCustomSettings: async function(projectId) {
+        return await _this.findByOne({
+            projectId,
+            enabled: true,
+        });
+    },
 };
 
 module.exports = _this;

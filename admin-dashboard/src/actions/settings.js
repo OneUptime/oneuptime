@@ -105,7 +105,7 @@ export const fetchSettings = type => async dispatch => {
         }
 
         if (type === 'twilio') {
-            data.value = { 'call-enable': false, ...data.value };
+            data.value = { 'call-enabled': false, ...data.value };
         }
 
         if (type === 'sso') {
