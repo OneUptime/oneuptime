@@ -15,14 +15,6 @@ export class CreateProjectModal extends Component {
         this.createProject = this.createProject.bind(this);
     }
 
-    componentDidMount() {
-        window.addEventListener('keydown', this.handleKeyboard);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this.handleKeyboard);
-    }
-
     createProject(values) {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NEW PROJECT CREATED');
@@ -42,15 +34,6 @@ export class CreateProjectModal extends Component {
             this.props.hideForm();
         });
     }
-
-    handleKeyboard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.hideForm();
-            default:
-                return false;
-        }
-    };
 
     render() {
         return this.props.visible ? (

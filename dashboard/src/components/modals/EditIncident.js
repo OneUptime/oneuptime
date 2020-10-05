@@ -24,6 +24,8 @@ class EditIncident extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('saveIncident').click();
             default:
                 return false;
         }

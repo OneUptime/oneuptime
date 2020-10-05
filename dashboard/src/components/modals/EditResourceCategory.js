@@ -54,6 +54,10 @@ export class EditResourceCategoryForm extends React.Component {
                 return this.props.closeModal({
                     id: this.props.EditResourceCategoryModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('addResourceCategoryButton')
+                    .click();
             default:
                 return false;
         }

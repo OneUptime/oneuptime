@@ -19,6 +19,8 @@ class DeleteNoteModal extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return !this.props.deletingNote && this.handleDeleteNote();
             default:
                 return false;
         }

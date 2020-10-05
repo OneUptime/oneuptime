@@ -97,6 +97,8 @@ class CreateSubscriber extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('createSubscriber').click();
             default:
                 return false;
         }

@@ -68,6 +68,8 @@ class CreateManualIncident extends Component {
                 return closeModal({
                     id: createIncidentModalId,
                 });
+            case 'Enter':
+                return document.getElementById('createIncident').click();
             default:
                 return false;
         }
