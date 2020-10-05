@@ -7,6 +7,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteIncidentPriority as deleteIncidentPriorityAction } from '../../actions/incidentPriorities';
 
 class RemoveIncidentPriority extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleSubmit() {
         this.props
             .deleteIncidentPriorityAction(this.props.currentProject._id, {
@@ -14,6 +22,17 @@ class RemoveIncidentPriority extends Component {
             })
             .then(() => this.props.closeThisDialog());
     }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            case 'Enter':
+                return this.handleSubmit();
+            default:
+                return false;
+        }
+    };
 
     render() {
         return (
@@ -70,14 +89,17 @@ class RemoveIncidentPriority extends Component {
                                     </ShouldRender>
 
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={this.props.closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         type="button"
                                         onClick={() => this.handleSubmit()}
                                         disabled={
@@ -85,8 +107,12 @@ class RemoveIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="RemoveIncidentPriority"
+                                        autoFocus={true}
                                     >
                                         <span>Delete</span>
+                                        <span className="delete-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                         <ShouldRender
                                             if={
                                                 this.props

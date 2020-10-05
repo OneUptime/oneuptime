@@ -193,8 +193,8 @@ class Main extends Component {
                                         }
                                         key={i}
                                         id={`monitor${i}`}
-                                        monitorCategory={
-                                            monitor.monitorCategoryId
+                                        resourceCategory={
+                                            monitor.resourceCategory
                                         }
                                         isGroupedByMonitorCategory={
                                             this.props.statusData

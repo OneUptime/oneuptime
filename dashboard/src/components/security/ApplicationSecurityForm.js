@@ -126,7 +126,7 @@ class ApplicationSecurityForm extends Component {
                                                 >
                                                     <div className="bs-Fieldset-row bs-u-justify--center">
                                                         <label className="bs-Fieldset-label">
-                                                            Category
+                                                            Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
                                                             <Field

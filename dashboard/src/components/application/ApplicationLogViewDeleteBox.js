@@ -4,7 +4,6 @@ import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import uuid from 'uuid';
 import PropTypes from 'prop-types';
-import { FormLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import { history } from '../../store';
@@ -12,7 +11,6 @@ import DataPathHoC from '../DataPathHoC';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
-import ShouldRender from '../basic/ShouldRender';
 
 class ApplicationLogViewDeleteBox extends Component {
     constructor(props) {
@@ -52,16 +50,6 @@ class ApplicationLogViewDeleteBox extends Component {
         }
     };
     render() {
-        let deleting = false;
-        if (
-            this.props &&
-            this.props.applicationLogState &&
-            this.props.applicationLogState.deleteApplicationLog &&
-            this.props.applicationLogState.deleteApplicationLog ===
-                this.props.data.applicationLog._id
-        ) {
-            deleting = true;
-        }
         const { deleteModalId } = this.state;
         return (
             <div
@@ -87,7 +75,6 @@ class ApplicationLogViewDeleteBox extends Component {
                                 <div>
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
-                                        disabled={deleting}
                                         onClick={() =>
                                             this.props.openModal({
                                                 id: deleteModalId,
@@ -105,12 +92,7 @@ class ApplicationLogViewDeleteBox extends Component {
                                             })
                                         }
                                     >
-                                        <ShouldRender if={!deleting}>
-                                            <span>Delete</span>
-                                        </ShouldRender>
-                                        <ShouldRender if={deleting}>
-                                            <FormLoader />
-                                        </ShouldRender>
+                                        <span>Delete</span>
                                     </button>
                                 </div>
                             </div>
@@ -138,11 +120,9 @@ const mapStateToProps = state => {
 
 ApplicationLogViewDeleteBox.propTypes = {
     currentProject: PropTypes.object,
-    data: PropTypes.object,
     componentId: PropTypes.string.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
-    applicationLogState: PropTypes.object.isRequired,
     applicationLog: PropTypes.object,
     deleteApplicationLog: PropTypes.func.isRequired,
 };

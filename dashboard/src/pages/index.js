@@ -50,6 +50,7 @@ import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
 import Consulting from './Consulting';
 import ErrorTracking from './ErrorTracking';
+import Advanced from './Advanced';
 
 export default {
     ChangePassword,
@@ -93,4 +94,5 @@ export default {
     ScheduledEventDetail,
     Consulting,
     ErrorTracking,
+    Advanced,
 };

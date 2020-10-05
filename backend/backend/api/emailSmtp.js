@@ -47,6 +47,13 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
             });
         }
 
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'name is required.',
+            });
+        }
+
         if (!data.from) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -102,6 +109,14 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
                 message: 'from is required.',
             });
         }
+
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'name is required.',
+            });
+        }
+
         const testResult = await MailService.testSmtpConfig(data);
         if (!testResult.failed) {
             const emailSmtp = await EmailSmtpService.create(data);
@@ -164,6 +179,13 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'from is required.',
+            });
+        }
+
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'name is required.',
             });
         }
 

@@ -5,10 +5,20 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 
 class DeleteCredentialModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return this.props.confirmThisDialog();
             default:
                 return false;
         }
@@ -34,14 +44,13 @@ class DeleteCredentialModal extends Component {
         return (
             <div
                 id="deleteCredentialModal"
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >
                 <ShouldRender if={getSecurities}>
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
-                        style={{ marginTop: 40, minWidth: 300 }}
+                        style={{ marginTop: 40, width: 300 }}
                     >
                         <div className="bs-Modal-content Text-align--center">
                             <span className="Text-color--dark Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -139,26 +148,35 @@ class DeleteCredentialModal extends Component {
                                     </div>
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={closeThisDialog}
                                             id="cancelCredentialDeleteBtn"
                                             disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <ShouldRender
                                             if={securities.length === 0}
                                         >
                                             <button
                                                 id="deleteCredentialBtn"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="button"
                                                 onClick={confirmThisDialog}
                                                 disabled={isRequesting}
+                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
-                                                    <span>Remove</span>
+                                                    <>
+                                                        <span>Remove</span>
+                                                        <span className="delete-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {isRequesting && <FormLoader />}
                                             </button>

@@ -112,6 +112,13 @@ module.exports = {
             page.waitForNavigation(),
         ]);
     },
+    logoutUser: async function(page) {
+        await page.waitForSelector('button#profile-menu', { visible: true });
+        await page.click('button#profile-menu');
+        await page.waitForSelector('button#logout-button');
+        await page.click('button#logout-button');
+        await page.waitForSelector('#login-button', { visible: true });
+    },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',

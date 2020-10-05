@@ -24,6 +24,14 @@ export class AddResourceCategoryForm extends React.Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         this.props
             .createResourceCategory(this.props.projectId, values)
@@ -49,10 +57,7 @@ export class AddResourceCategoryForm extends React.Component {
         const { handleSubmit } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -105,7 +110,7 @@ export class AddResourceCategoryForm extends React.Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${this
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
                                                 .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -122,10 +127,13 @@ export class AddResourceCategoryForm extends React.Component {
                                             }
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="addResourceCategoryButton"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
                                                 .props.resourceCategory
                                                 .requesting &&
                                                 'bs-is-disabled'}`}
@@ -134,6 +142,7 @@ export class AddResourceCategoryForm extends React.Component {
                                                 this.props.resourceCategory
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -145,6 +154,9 @@ export class AddResourceCategoryForm extends React.Component {
                                             </ShouldRender>
 
                                             <span>Add</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

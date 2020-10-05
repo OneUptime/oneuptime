@@ -24,6 +24,12 @@ class TwoFactorAuthModal extends Component {
             generateTwoFactorQRCode,
         } = this.props;
         generateTwoFactorQRCode(data.id);
+
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     handleKeyBoard = e => {
@@ -66,10 +72,7 @@ class TwoFactorAuthModal extends Component {
 
         return (
             <form onSubmit={handleSubmit(this.submitForm)}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -212,7 +215,7 @@ class TwoFactorAuthModal extends Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${twoFactorAuthSetting.requesting &&
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${twoFactorAuthSetting.requesting &&
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
@@ -226,6 +229,9 @@ class TwoFactorAuthModal extends Component {
                                             }
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         {!next ? (
                                             <button
@@ -250,12 +256,13 @@ class TwoFactorAuthModal extends Component {
                                         ) : (
                                             <button
                                                 id="enableTwoFactorAuthButton"
-                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue ${twoFactorAuthSetting.requesting &&
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${twoFactorAuthSetting.requesting &&
                                                     'bs-is-disabled'}`}
                                                 type="submit"
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
+                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={
@@ -265,6 +272,9 @@ class TwoFactorAuthModal extends Component {
                                                     <Spinner />
                                                 </ShouldRender>
                                                 <span>Verify</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </button>
                                         )}
                                     </div>

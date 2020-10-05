@@ -1,0 +1,11 @@
+{
+    "name": "scripts",
+    "version": "1.0.0",
+    "description": "This package is for automating misc tasks",
+    "main": "generate_coupons.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+}

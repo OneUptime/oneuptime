@@ -10,6 +10,7 @@ module.exports = {
             emailSmtpModel.host = data.host;
             emailSmtpModel.port = data.port;
             emailSmtpModel.from = data.from;
+            emailSmtpModel.name = data.name;
             emailSmtpModel.secure = false;
             emailSmtpModel.iv = iv;
             if (data.secure) {

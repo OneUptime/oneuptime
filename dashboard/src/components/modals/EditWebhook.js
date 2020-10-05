@@ -22,6 +22,14 @@ function validate(values) {
 }
 
 class EditWebHook extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             updateWebHook,
@@ -83,7 +91,6 @@ class EditWebHook extends React.Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -491,24 +498,33 @@ class EditWebHook extends React.Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             this.props.newWebHook &&
                                             this.props.newWebHook.requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook
                                                 .requesting && (
-                                                <span>Update</span>
+                                                <>
+                                                    <span>Update</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {this.props.newWebHook &&
                                             this.props.newWebHook

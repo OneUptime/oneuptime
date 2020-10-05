@@ -5,10 +5,19 @@ import PropTypes, { string } from 'prop-types';
 import { closeModal } from '../../actions/modal';
 
 class MessageBox extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         const { messageBoxId, closeModal } = this.props;
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return closeModal({
                     id: messageBoxId,
                 });
@@ -27,10 +36,7 @@ class MessageBox extends Component {
         }
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -56,7 +62,7 @@ class MessageBox extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--white"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
                                         type="button"
                                         id="modal-ok"
                                         onClick={() =>
@@ -64,8 +70,12 @@ class MessageBox extends Component {
                                                 id: messageBoxId,
                                             })
                                         }
+                                        autoFocus={true}
                                     >
                                         <span>OK</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                 </div>
                             </div>

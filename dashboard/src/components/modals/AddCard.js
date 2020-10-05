@@ -40,6 +40,25 @@ const createOptions = (fontSize, padding) => {
 };
 
 class _CardForm extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.CreateCardModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     handleSubmit = async e => {
         const {
             userId,
@@ -100,7 +119,6 @@ class _CardForm extends React.Component {
         return (
             <form onSubmit={this.handleSubmit}>
                 <div
-                    onKeyDown={this.handleKeyBoard}
                     className="ModalLayer-contents"
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
@@ -162,7 +180,7 @@ class _CardForm extends React.Component {
                                     </ShouldRender>
                                 </div>
                                 <button
-                                    className="bs-Button bs-DeprecatedButton"
+                                    className="bs-Button bs-DeprecatedButton btn__modal"
                                     type="button"
                                     onClick={() =>
                                         this.props.closeModal({
@@ -171,14 +189,25 @@ class _CardForm extends React.Component {
                                     }
                                 >
                                     <span>Cancel</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                                 <button
                                     id="addCardButtonSubmit"
-                                    className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                    className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                     disabled={requesting}
                                     type="submit"
+                                    autoFocus={true}
                                 >
-                                    {!requesting && <span>Add</span>}
+                                    {!requesting && (
+                                        <>
+                                            <span>Add</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
+                                        </>
+                                    )}
                                     {requesting && <FormLoader />}
                                 </button>
                             </div>

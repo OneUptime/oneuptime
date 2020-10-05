@@ -16,6 +16,14 @@ export class AddSiteUrl extends React.Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         this.props
             .addSiteUrl(
@@ -46,10 +54,7 @@ export class AddSiteUrl extends React.Component {
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
-                <div
-                    onKeyDown={this.handleKeyBoard}
-                    className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-                >
+                <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                     <div
                         className="ModalLayer-contents"
                         tabIndex={-1}
@@ -97,7 +102,7 @@ export class AddSiteUrl extends React.Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${this
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${this
                                                 .props.editMonitor.requesting &&
                                                 'bs-is-disabled'}`}
                                             type="button"
@@ -113,10 +118,13 @@ export class AddSiteUrl extends React.Component {
                                             }
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="addSiteUrlButton"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${this
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
                                                 .props.editMonitor.requesting &&
                                                 'bs-is-disabled'}`}
                                             type="save"
@@ -124,6 +132,7 @@ export class AddSiteUrl extends React.Component {
                                                 this.props.editMonitor
                                                     .requesting
                                             }
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -134,6 +143,9 @@ export class AddSiteUrl extends React.Component {
                                                 <Spinner />
                                             </ShouldRender>
                                             <span>Add</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

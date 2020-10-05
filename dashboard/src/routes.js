@@ -42,6 +42,7 @@ const {
     ScheduledEvent,
     ScheduledEventDetail,
     Consulting,
+    Advanced,
 } = pages;
 
 export const groups = [
@@ -457,6 +458,16 @@ export const groups = [
                         component: FyipeApi,
                         index: 10,
                         shortcut: 'f+w',
+                    },
+                    {
+                        title: 'Advanced',
+                        path: '/dashboard/project/:projectId/settings/advanced',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: Advanced,
+                        index: 11,
+                        shortcut: 'f+n',
                     },
                 ],
                 component: Settings,

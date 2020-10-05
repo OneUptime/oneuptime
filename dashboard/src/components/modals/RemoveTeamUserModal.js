@@ -8,11 +8,24 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 
 class RemoveTeamUserModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
+        const { closeModal, data, resetTeamDelete } = this.props;
         switch (e.key) {
             case 'Escape':
-                this.props.resetTeamDelete();
-                return this.props.closeThisDialog();
+                resetTeamDelete();
+                return closeModal({
+                    id: data.removeUserModalId,
+                });
+            case 'Enter':
+                return data.removeTeamMember(data.values);
             default:
                 return false;
         }
@@ -27,10 +40,7 @@ class RemoveTeamUserModal extends Component {
             deleting,
         } = this.props;
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -64,7 +74,7 @@ class RemoveTeamUserModal extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         disabled={deleting}
                                         type="button"
                                         onClick={() => {
@@ -75,17 +85,28 @@ class RemoveTeamUserModal extends Component {
                                         }}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="removeTeamUser"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                         disabled={deleting}
                                         type="button"
                                         onClick={() =>
                                             data.removeTeamMember(data.values)
                                         }
+                                        autoFocus={true}
                                     >
-                                        {!deleting && <span>Remove</span>}
+                                        {!deleting && (
+                                            <>
+                                                <span>Remove</span>
+                                                <span className="delete-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
+                                            </>
+                                        )}
                                         {deleting && <FormLoader />}
                                     </button>
                                 </div>
@@ -117,7 +138,6 @@ const mapDispatchToProps = dispatch => {
 
 RemoveTeamUserModal.propTypes = {
     closeModal: PropTypes.func,
-    closeThisDialog: PropTypes.func.isRequired,
     data: PropTypes.object,
     deleting: PropTypes.bool,
     resetTeamDelete: PropTypes.any,

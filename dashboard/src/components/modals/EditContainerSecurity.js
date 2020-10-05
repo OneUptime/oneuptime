@@ -23,6 +23,14 @@ class EditContainerSecurity extends Component {
         }
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         const { closeModal, propArr } = this.props;
         const { containerSecurityId } = propArr[0];
@@ -62,10 +70,7 @@ class EditContainerSecurity extends Component {
         const { containerSecurityId } = propArr[0];
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -128,6 +133,7 @@ class EditContainerSecurity extends Component {
                                                         >
                                                             <div className="bs-Fieldset-row bs-u-justify--center">
                                                                 <label className="bs-Fieldset-label">
+                                                                    Resource
                                                                     Category
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -293,7 +299,7 @@ class EditContainerSecurity extends Component {
                                     </div>
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={e => {
                                                 e.preventDefault();
@@ -305,17 +311,27 @@ class EditContainerSecurity extends Component {
                                             disabled={isRequesting}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="editContainerBtn"
-                                            className="bs-Button bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={isRequesting}
+                                            autoFocus={true}
                                         >
                                             {!isRequesting && (
-                                                <span>
-                                                    Update Container Security
-                                                </span>
+                                                <>
+                                                    <span>
+                                                        Update Container
+                                                        Security
+                                                    </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                             {isRequesting && <FormLoader />}
                                         </button>

@@ -235,6 +235,34 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
+        if (data.type === 'server-monitor') {
+            const { reasons } = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.up
+                ? ProbeService.conditions(null, null, monitor.criteria.up)
+                : { stat: false, reasons: [] });
+            const { stat: validDown } = await (monitor &&
+            monitor.criteria &&
+            monitor.criteria.down
+                ? ProbeService.conditions(null, null, monitor.criteria.down)
+                : { stat: false });
+            if (validDown) {
+                const handler = setTimeout(async () => {
+                    const log = await MonitorLogService.findOneBy({
+                        monitorId: monitor._id,
+                    });
+                    if (!log) {
+                        await ProbeService.saveMonitorLog({
+                            monitorId: monitor._id,
+                            status: 'offline',
+                            reason: reasons,
+                        });
+                    }
+                    clearTimeout(handler);
+                }, 3 * 60 * 1000);
+            }
+        }
+
         const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
@@ -484,30 +512,37 @@ router.post(
 
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
-            const validUp = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
+            const {
+                stat: validUp,
+                reasons: upFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? ProbeService.conditions(data, null, monitor.criteria.up)
-                : false);
-            const validDegraded = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDegraded,
+                reasons: degradedFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? ProbeService.conditions(data, null, monitor.criteria.degraded)
-                : false);
-            const validDown = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
+                : { stat: false, reasons: [] });
+            const {
+                stat: validDown,
+                reasons: downFailedReasons,
+            } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? ProbeService.conditions(data, null, monitor.criteria.down)
-                : false);
+                : { stat: false, reasons: [] });
 
             if (validDown) {
                 data.status = 'offline';
+                data.reason = upFailedReasons;
             } else if (validDegraded) {
                 data.status = 'degraded';
+                data.reason = upFailedReasons;
             } else if (validUp) {
                 data.status = 'online';
+                data.reason = [...degradedFailedReasons, ...downFailedReasons];
             } else {
                 data.status = 'offline';
+                data.reason = upFailedReasons;
             }
 
             const log = await ProbeService.saveMonitorLog(data);

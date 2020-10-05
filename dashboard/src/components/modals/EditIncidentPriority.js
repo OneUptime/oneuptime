@@ -56,6 +56,14 @@ class EditIncidentPriority extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm(values) {
         const { name, color } = values;
         this.props
@@ -67,13 +75,21 @@ class EditIncidentPriority extends Component {
             .then(() => this.props.closeThisDialog());
     }
 
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { handleSubmit, closeThisDialog } = this.props;
         const { displayColorPicker } = this.state;
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -176,19 +192,23 @@ class EditIncidentPriority extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={closeThisDialog}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             this.props.editIncidentPriority
                                                 .requesting
                                         }
                                         id="EditIncidentPriority"
+                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={
@@ -199,6 +219,9 @@ class EditIncidentPriority extends Component {
                                             <Spinner />
                                         </ShouldRender>
                                         <span>Save</span>
+                                        <span className="create-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                     </button>
                                 </div>
                             </div>

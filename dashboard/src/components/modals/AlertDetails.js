@@ -3,11 +3,28 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 
 class AlertDetailsModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+            case 'Enter':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     render() {
         const { closeThisDialog } = this.props;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -158,11 +175,15 @@ class AlertDetailsModal extends Component {
                             <div className="bs-Modal-footer-actions">
                                 <button
                                     id="closeBtn"
-                                    className="bs-Button bs-DeprecatedButton"
+                                    className="bs-Button bs-DeprecatedButton btn__modal"
                                     type="button"
                                     onClick={closeThisDialog}
+                                    autoFocus={true}
                                 >
                                     <span>Close</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                             </div>
                         </div>

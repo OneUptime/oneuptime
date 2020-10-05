@@ -26,6 +26,14 @@ class DeleteAccount extends Component {
         deleteMyAccount: false,
     };
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -93,10 +101,7 @@ class DeleteAccount extends Component {
         const { deleteMyAccount } = this.state;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -158,11 +163,14 @@ class DeleteAccount extends Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <ShouldRender
                                             if={
@@ -171,12 +179,18 @@ class DeleteAccount extends Component {
                                         >
                                             <button
                                                 id="btn_confirm_delete"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="submit"
                                                 disabled={deleting}
+                                                autoFocus={true}
                                             >
                                                 {!deleting && (
-                                                    <span>Delete</span>
+                                                    <>
+                                                        <span>Delete</span>
+                                                        <span className="delete-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {deleting && <FormLoader />}
                                             </button>

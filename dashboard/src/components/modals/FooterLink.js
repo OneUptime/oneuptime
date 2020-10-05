@@ -15,6 +15,14 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 
 class CreateFooterLink extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = footerLinkValues => {
         const { submitForm, footerName } = this.props.data;
         let values = this.props.links;
@@ -45,7 +53,6 @@ class CreateFooterLink extends Component {
 
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -140,33 +147,44 @@ class CreateFooterLink extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
-                                        onClick={() => {
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
+                                        onClick={e => {
+                                            e.preventDefault();
                                             this.props.closeModal({
                                                 id: this.props
                                                     .createFooterLinkModalId,
                                             });
                                         }}
+                                        type="button"
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="createFooter"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             this.props.statusPage.links
                                                 .requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {this.props.statusPage.links &&
                                             !this.props.statusPage.links
                                                 .requesting && (
-                                                <span>
-                                                    {data && data.footerName
-                                                        ? 'Update'
-                                                        : 'Add'}
-                                                </span>
+                                                <>
+                                                    <span>
+                                                        {data && data.footerName
+                                                            ? 'Update'
+                                                            : 'Add'}
+                                                    </span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {this.props.statusPage.links &&
                                             this.props.statusPage.links

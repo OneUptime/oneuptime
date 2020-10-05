@@ -24,6 +24,25 @@ class EditComponent extends Component {
         super(props);
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeModal({
+                    id: this.props.editComponentModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     submitForm = values => {
         if (this.props.initialValues.name === values.name) {
             return this.props.closeModal({
@@ -76,7 +95,7 @@ class EditComponent extends Component {
         <div className="bs-Modal-footer">
             <div className="bs-Modal-footer-actions">
                 <button
-                    className={`bs-Button bs-DeprecatedButton`}
+                    className={`bs-Button bs-DeprecatedButton btn__modal`}
                     type="button"
                     onClick={() => {
                         this.props.closeModal({
@@ -86,17 +105,22 @@ class EditComponent extends Component {
                     disabled={this.props.editingComponent.requesting}
                 >
                     <span>Cancel</span>
+                    <span className="cancel-btn__keycode">Esc</span>
                 </button>
                 <button
                     id="editComponentButton"
-                    className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
+                    className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="save"
                     disabled={this.props.editingComponent.requesting}
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.editingComponent.requesting}>
                         <Spinner />
                     </ShouldRender>
                     <span>Update</span>
+                    <span className="create-btn__keycode">
+                        <span className="keycode__icon keycode__icon--enter" />
+                    </span>
                 </button>
             </div>
         </div>

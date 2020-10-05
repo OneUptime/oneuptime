@@ -24,6 +24,14 @@ class CreateManualIncident extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const {
             createNewIncident,
@@ -107,7 +115,6 @@ class CreateManualIncident extends Component {
                 : false;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -332,7 +339,7 @@ class CreateManualIncident extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         onClick={() => {
                                             this.props.createIncidentReset();
                                             this.props.closeModal({
@@ -343,24 +350,36 @@ class CreateManualIncident extends Component {
                                     >
                                         <ShouldRender if={!sameError}>
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </ShouldRender>
                                         <ShouldRender if={sameError}>
                                             <span>OK</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </ShouldRender>
                                     </button>
                                     <ShouldRender if={!sameError}>
                                         <button
                                             id="createIncident"
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
                                                 newIncident &&
                                                 newIncident.requesting
                                             }
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             {newIncident &&
                                                 !newIncident.requesting && (
-                                                    <span>Create</span>
+                                                    <>
+                                                        <span>Create</span>
+                                                        <span className="create-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                             {newIncident &&
                                                 newIncident.requesting && (

@@ -4,9 +4,18 @@ import { connect } from 'react-redux';
 import Clipboard from '../Clipboard';
 
 export class MonitorUrl extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
+            case 'Enter':
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -17,10 +26,7 @@ export class MonitorUrl extends React.Component {
         const { closeThisDialog, data, currentProject } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -50,11 +56,15 @@ export class MonitorUrl extends React.Component {
                         <div className="bs-Modal-footer">
                             <div className="bs-Modal-footer-actions">
                                 <button
-                                    className="bs-Button"
+                                    className="bs-Button btn__modal"
                                     type="button"
                                     onClick={closeThisDialog}
+                                    autoFocus={true}
                                 >
                                     <span>OK</span>
+                                    <span className="cancel-btn__keycode">
+                                        Esc
+                                    </span>
                                 </button>
                             </div>
                         </div>

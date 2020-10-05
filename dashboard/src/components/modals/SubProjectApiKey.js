@@ -20,6 +20,14 @@ class SubProjectApiKey extends Component {
         oldApiKey: '',
     };
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     UNSAFE_componentWillReceiveProps() {
         const oldApiKey = this.props.subproject.apiKey;
         this.setState({ oldApiKey });
@@ -69,10 +77,7 @@ class SubProjectApiKey extends Component {
         const { hidden } = this.state;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            >
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}
@@ -192,7 +197,7 @@ class SubProjectApiKey extends Component {
                                     ) : (
                                         <>
                                             <button
-                                                className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                                 type="button"
                                                 onClick={() => {
                                                     resetSubProjectKeyReset();
@@ -203,10 +208,13 @@ class SubProjectApiKey extends Component {
                                                 }}
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
                                             <button
                                                 id="removeSubProject"
-                                                className="bs-Button bs-DeprecatedButton bs-Button--red"
+                                                className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="button"
                                                 onClick={() => {
                                                     openModal({
@@ -239,7 +247,14 @@ class SubProjectApiKey extends Component {
                                                 }
                                             >
                                                 {!subProjectResetToken.requesting && (
-                                                    <span>Reset API Key</span>
+                                                    <>
+                                                        <span>
+                                                            Reset API Key
+                                                        </span>
+                                                        <span className="delete-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
                                                 )}
                                                 {subProjectResetToken.requesting && (
                                                     <FormLoader />

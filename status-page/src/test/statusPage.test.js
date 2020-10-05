@@ -100,13 +100,13 @@ describe('Status page monitors check', function() {
 
         authorization = `Basic ${token}`;
 
-        const monitorCategoryRequest = await request
-            .post(`/monitorCategory/${projectId}`)
+        const resourceCategoryRequest = await request
+            .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send(monitorCategory);
-        monitorCategoryId = monitorCategoryRequest.body._id;
-        monitorCategoryName = monitorCategoryRequest.body.name;
-        monitor.monitorCategoryId = monitorCategoryId;
+        monitorCategoryId = resourceCategoryRequest.body._id;
+        monitorCategoryName = resourceCategoryRequest.body.name;
+        monitor.resourceCategory = monitorCategoryId;
 
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
@@ -198,7 +198,7 @@ describe('Status page monitors check', function() {
     });
 
     it('Status page add one more monitor and the monitor count should be 2', async function() {
-        monitor.name = 'New monitor Second';
+        monitor.name = 'NewMonitorSecond';
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -249,8 +249,8 @@ describe('Status page monitors check', function() {
     });
 
     it('should be able to add monitor without monitor category and the count should be 3', async function() {
-        monitor.name = 'New monitor without monitor category';
-        delete monitor.monitorCategoryId;
+        monitor.name = 'NewMonitorWithoutMonitorCategory';
+        delete monitor.resourceCategory;
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -308,16 +308,15 @@ describe('Status page monitors check', function() {
                 _id: statusPageId,
                 isGroupedByMonitorCategory: true,
             });
-        await page.reload({
-            waitUntil: 'networkidle0',
-        });
+        await page.goto(statusPageURL, { waitUntil: 'networkidle0' });
         const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
+        await page.waitForSelector(monitorCategoryNameSelector);
         const monitorCategoryName = await page.$eval(
             `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
         expect(monitorCategoryName).to.be.equal(
-            monitorCategory.monitorCategoryName
+            monitorCategory.resourceCategoryName
         );
     });
 
@@ -335,7 +334,7 @@ describe('Status page monitors check', function() {
 
     it('should display "UNCATEGORIZED" when the monitor category associated with monitor is deleted', async function() {
         await request
-            .delete(`/monitorCategory/${projectId}/${monitorCategoryId}`)
+            .delete(`/resourceCategory/${projectId}/${monitorCategoryId}`)
             .set('Authorization', authorization);
         await page.reload({
             waitUntil: 'networkidle0',

@@ -42,6 +42,26 @@ class UploadFile extends Component {
         };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                this.setState({ files: [], isFileLoaded: false });
+                return this.props.closeModal({
+                    id: this.props.uploadSubscriberModalId,
+                });
+            default:
+                return false;
+        }
+    };
+
     renderFormHeader = () => (
         <div className="bs-Modal-header Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
             <div className="bs-Modal-header-copy">
@@ -117,18 +137,22 @@ class UploadFile extends Component {
                 </button>
                 <button
                     id="importCsvButton"
-                    className={`bs-Button bs-DeprecatedButton bs-Button--blue`}
+                    className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="submit"
                     disabled={
                         this.props.createSubscriber.requesting ||
                         !this.state.isFileLoaded
                     }
+                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.createSubscriber.requesting}>
                         <Spinner />
                     </ShouldRender>
                     <ShouldRender if={!this.props.createSubscriber.requesting}>
                         <span>Save</span>
+                        <span className="create-btn__keycode">
+                            <span className="keycode__icon keycode__icon--enter" />
+                        </span>
                     </ShouldRender>
                 </button>
             </div>

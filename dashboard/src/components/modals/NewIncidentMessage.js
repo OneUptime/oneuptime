@@ -18,6 +18,14 @@ import { RenderSelect } from '../basic/RenderSelect';
 import CodeEditor from '../basic/CodeEditor';
 
 class NewIncidentMessage extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     validate = values => {
         const errors = {};
         if (!ValidateField.text(values[`content`])) {
@@ -124,7 +132,6 @@ class NewIncidentMessage extends Component {
         const { edit, type } = this.props.data;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -307,11 +314,10 @@ class NewIncidentMessage extends Component {
                                         </ShouldRender>
                                     </div>
                                 </div>
-                                <span className="db-SettingsForm-footerMessage"></span>
                                 <ShouldRender if={!edit}>
-                                    <div>
+                                    <div style={{ display: 'flex' }}>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                         >
@@ -322,6 +328,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
@@ -334,8 +343,9 @@ class NewIncidentMessage extends Component {
                                         </button>
                                         <button
                                             id={`${type}-addButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -344,6 +354,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Save </span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender
@@ -358,9 +371,9 @@ class NewIncidentMessage extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender if={edit}>
-                                    <div>
+                                    <div style={{ display: 'flex' }}>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton"
+                                            className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
                                             onClick={this.props.closeThisDialog}
                                         >
@@ -371,6 +384,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
@@ -383,8 +399,9 @@ class NewIncidentMessage extends Component {
                                         </button>
                                         <button
                                             id={`${type}-editButton`}
-                                            className="bs-Button bs-Button--blue"
+                                            className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
+                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -393,6 +410,9 @@ class NewIncidentMessage extends Component {
                                                 }
                                             >
                                                 <span>Update </span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
 
                                             <ShouldRender

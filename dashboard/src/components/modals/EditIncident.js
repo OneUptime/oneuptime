@@ -12,6 +12,23 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class EditIncident extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            default:
+                return false;
+        }
+    };
+
     submitForm = values => {
         const { incidentId } = this.props.data;
         const projectId = this.props.currentProject._id;
@@ -31,7 +48,6 @@ class EditIncident extends Component {
         const { handleSubmit, editIncident, incidentPriorities } = this.props;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -157,25 +173,34 @@ class EditIncident extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         onClick={() =>
                                             this.props.closeThisDialog()
                                         }
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="saveIncident"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={
                                             editIncident &&
                                             editIncident.requesting
                                         }
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {editIncident &&
                                             !editIncident.requesting && (
-                                                <span>Save</span>
+                                                <>
+                                                    <span>Save</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {editIncident &&
                                             editIncident.requesting && (
