@@ -128,6 +128,8 @@ describe('Subscribers Alert logs API', () => {
                 await page.waitForSelector('#createSubscriber', {
                     hidden: true,
                 });
+                await page.reload({ waitUntil: 'networkidle0' });
+                await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
                 const subscriberEmailSelector =
                     '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
                 await page.waitForSelector(subscriberEmailSelector);

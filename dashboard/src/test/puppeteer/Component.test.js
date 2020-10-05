@@ -446,19 +446,22 @@ describe('Components', () => {
                 await page.click('#components');
                 await page.waitForSelector('#component0', { visible: true });
 
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
                 const newComponentSelector = `#count_${newComponentName}`;
                 const componentSelector = `#count_${componentName}`;
 
                 await page.waitForSelector(newComponentSelector);
                 const newResourceCount = await page.$eval(
-                    `#count_${newComponentName}`,
+                    newComponentSelector,
                     elem => elem.textContent
                 );
                 expect(newResourceCount).toEqual('1 Resource');
 
                 await page.waitForSelector(componentSelector);
                 const firstResourceCount = await page.$eval(
-                    `#count_${componentName}`,
+                    componentSelector,
                     elem => elem.textContent
                 );
                 expect(firstResourceCount).toEqual('3 Resources');
@@ -580,6 +583,9 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
                 await page.waitForSelector(`#count_${componentName}`);
                 const firstResourceCount = await page.$eval(
                     `#count_${componentName}`,
@@ -625,6 +631,9 @@ describe('Components', () => {
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
+
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
                 const firstResourceCount = await page.$eval(
@@ -678,7 +687,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create new project from incident page and redirect to the component page',
+        'Should create new project from incident page and redirect to the home page and not component page',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Monitor details
@@ -714,13 +723,12 @@ describe('Components', () => {
                 await page.click('label[for=Startup_month]');
                 await page.click('button[type=submit]');
 
-                await page.waitForSelector('#components', { visible: true });
-                await page.click('#components');
-
-                let currentPage = await page.waitForSelector('#cbComponents');
+                let currentPage = await page.waitForSelector('#cbHome', {
+                    visible: true,
+                });
                 currentPage = await currentPage.getProperty('innerText');
                 currentPage = await currentPage.jsonValue();
-                currentPage.should.be.exactly('Components');
+                currentPage.should.be.exactly('Home');
             });
         },
         operationTimeOut
