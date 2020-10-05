@@ -14,7 +14,6 @@ let ProjectService = require('../backend/services/projectService');
 let ComponentService = require('../backend/services/componentService');
 let MonitorService = require('../backend/services/monitorService');
 let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
 let OnCallScheduleStatusService = require('../backend/services/onCallScheduleStatusService');
 let SubscriberService = require('../backend/services/subscriberService');
 let SubscriberAlertService = require('../backend/services/subscriberAlertService');
@@ -39,7 +38,7 @@ let GlobalConfigModel = require('../backend/models/globalConfig');
 const sleep = waitTimeInMs =>
   new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization, token, userId, airtableId, projectId, componentId, monitorId, scheduleId;
+let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
 
 describe('Incident Alerts', function () {
   this.timeout(30000);
@@ -51,23 +50,11 @@ describe('Incident Alerts', function () {
         let project = res.body.project;
         projectId = project._id;
         userId = res.body.id;
-        airtableId = res.body.airtableId;
 
         await UserModel.updateOne(
           { _id: userId },
           { alertPhoneNumber: '+19173976235' }
         );
-
-        VerificationTokenModel.findOne({ userId }, function (
-          err,
-          verificationToken
-        ) {
-          request
-            .get(
-              `/user/confirmation/${verificationToken.token}`
-            )
-            .redirects(0)
-            .end(function () {
               request
                 .post('/user/login')
                 .send({
@@ -157,8 +144,8 @@ describe('Incident Alerts', function () {
                     );
                   done();
                 });
-            });
-        });
+
+        
 
       });
     });
@@ -187,7 +174,6 @@ describe('Incident Alerts', function () {
     await ProjectService.hardDeleteBy({ _id: projectId });
     await UserService.hardDeleteBy({ _id: userId });
     await NotificationService.hardDeleteBy({ projectId: projectId });
-    await AirtableService.deleteUser(airtableId);
   });
 
   describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {
