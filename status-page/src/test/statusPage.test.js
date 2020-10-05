@@ -316,7 +316,7 @@ describe('Status page monitors check', function() {
             el => el.textContent
         );
         expect(monitorCategoryName).to.be.equal(
-            monitorCategory.monitorCategoryName
+            monitorCategory.resourceCategoryName
         );
     });
 
