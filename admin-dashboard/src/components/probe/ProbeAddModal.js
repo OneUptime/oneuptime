@@ -10,6 +10,14 @@ import { ValidateField } from '../../config';
 import { addProbe, resetAddProbe } from '../../actions/probe';
 
 class ProbeAddModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
     submitForm = values => {
         const { addProbe, closeThisDialog, resetAddProbe } = this.props;
         addProbe(values.probe_key, values.probe_name).then(
@@ -46,7 +54,6 @@ class ProbeAddModal extends Component {
         const disabled = addProbeState.requesting || probes.requesting;
         return (
             <div
-                onKeyDown={this.handleKeyBoard}
                 className="ModalLayer-contents"
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
@@ -148,7 +155,7 @@ class ProbeAddModal extends Component {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className="bs-Button bs-DeprecatedButton"
+                                        className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={() => {
                                             resetAddProbe();
@@ -157,16 +164,25 @@ class ProbeAddModal extends Component {
                                         disabled={disabled}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="add_probe"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={disabled}
                                         type="submit"
+                                        autoFocus={true}
                                     >
                                         {addProbeState &&
                                             !addProbeState.requesting && (
-                                                <span>Create</span>
+                                                <>
+                                                    <span>Create</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </>
                                             )}
                                         {addProbeState &&
                                             addProbeState.requesting && (

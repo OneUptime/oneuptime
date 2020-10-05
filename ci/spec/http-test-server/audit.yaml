@@ -19,7 +19,7 @@ audit_http_test_server:
         - ./ci/scripts/storehash.sh audit_http_test_server http-test-server
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
-            - hotfix-master
-            - hotfix-release
+            - master
+            - release
