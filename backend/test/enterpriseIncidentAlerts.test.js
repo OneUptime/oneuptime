@@ -91,11 +91,6 @@ describe('Incident Alerts', function () {
                   monitorId = monitor.body._id;
 
                   await request
-                    .post(`/stripe/${projectId}/addBalance`)
-                    .set('Authorization', authorization)
-                    .send({ rechargeBalanceAmount: "2000" });
-
-                  await request
                     .post(`/subscriber/${projectId}/subscribe/${monitorId}`)
                     .set('Authorization', authorization)
                     .send({
