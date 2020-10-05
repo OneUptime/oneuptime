@@ -686,56 +686,51 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    /* Implementation for this particular test have changed
-     ** Once a project is created it will navigate to home page
-     */
+    test(
+        'Should create new project from incident page and redirect to the home page and not component page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    newComponentName,
+                    newMonitorName,
+                    page
+                );
+                await page.waitForSelector(`#createIncident_${newMonitorName}`);
+                await page.click(`#createIncident_${newMonitorName}`);
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'Offline', page);
+                await init.selectByText('#incidentPriority', 'Low', page);
+                await page.click('#createIncident');
+                await page.waitForSelector('#createIncident', { hidden: true });
 
-    // test(
-    //     'Should create new project from incident page and redirect to the component page',
-    //     async () => {
-    //         return await cluster.execute(null, async ({ page }) => {
-    //             // Navigate to Monitor details
-    //             await init.navigateToMonitorDetails(
-    //                 newComponentName,
-    //                 newMonitorName,
-    //                 page
-    //             );
-    //             await page.waitForSelector(`#createIncident_${newMonitorName}`);
-    //             await page.click(`#createIncident_${newMonitorName}`);
-    //             await page.waitForSelector('#createIncident');
-    //             await init.selectByText('#incidentType', 'Offline', page);
-    //             await init.selectByText('#incidentPriority', 'Low', page);
-    //             await page.click('#createIncident');
-    //             await page.waitForSelector('#createIncident', { hidden: true });
+                // close incident modal
+                await page.waitForSelector('#closeIncident_0', {
+                    visible: true,
+                });
+                await page.$eval('#closeIncident_0', elem => elem.click());
 
-    //             // close incident modal
-    //             await page.waitForSelector('#closeIncident_0', {
-    //                 visible: true,
-    //             });
-    //             await page.$eval('#closeIncident_0', elem => elem.click());
+                await page.waitForSelector(`#incident_${newMonitorName}_0`);
+                await page.click(`#incident_${newMonitorName}_0`);
 
-    //             await page.waitForSelector(`#incident_${newMonitorName}_0`);
-    //             await page.click(`#incident_${newMonitorName}_0`);
+                await page.waitForSelector('#AccountSwitcherId');
+                await page.click('#AccountSwitcherId');
+                await page.waitForSelector('#create-project');
+                await page.click('#create-project');
+                await page.waitForSelector('#name');
+                await page.click('input[id=name]');
+                await page.type('input[id=name]', utils.generateRandomString());
+                await page.click('label[for=Startup_month]');
+                await page.click('button[type=submit]');
 
-    //             await page.waitForSelector('#AccountSwitcherId');
-    //             await page.click('#AccountSwitcherId');
-    //             await page.waitForSelector('#create-project');
-    //             await page.click('#create-project');
-    //             await page.waitForSelector('#name');
-    //             await page.click('input[id=name]');
-    //             await page.type('input[id=name]', utils.generateRandomString());
-    //             await page.click('label[for=Startup_month]');
-    //             await page.click('button[type=submit]');
-
-    //             await page.waitForSelector('#components', { visible: true });
-    //             await page.click('#components');
-
-    //             let currentPage = await page.waitForSelector('#cbComponents');
-    //             currentPage = await currentPage.getProperty('innerText');
-    //             currentPage = await currentPage.jsonValue();
-    //             currentPage.should.be.exactly('Components');
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+                let currentPage = await page.waitForSelector('#cbHome', {
+                    visible: true,
+                });
+                currentPage = await currentPage.getProperty('innerText');
+                currentPage = await currentPage.jsonValue();
+                currentPage.should.be.exactly('Home');
+            });
+        },
+        operationTimeOut
+    );
 });
