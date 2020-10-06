@@ -2,6 +2,7 @@ const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
+const ScheduledEventNoteService = require('./scheduledEventNoteService');
 
 module.exports = {
     create: async function({ projectId }, data) {
@@ -390,6 +391,16 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('resolvedBy', 'name')
                 .execPopulate();
+
+            // add note automatically
+            // when a scheduled event is resolved
+            await ScheduledEventNoteService.create({
+                content: 'This scheduled event has been resolved',
+                scheduledEventId: query._id,
+                createdById: data.resolvedBy,
+                type: 'investigation',
+                event_state: 'Resolved',
+            });
             return resolvedScheduledEvent;
         } catch (error) {
             ErrorService.log(
