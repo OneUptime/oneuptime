@@ -214,6 +214,41 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
     }
 });
 
+// resolve scheduled event
+router.put(
+    '/:projectId/resolve/:eventId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const data = {};
+            data.resolvedBy = req.user ? req.user.id : null;
+            const { eventId } = req.params;
+
+            const scheduledEvent = await ScheduledEventService.findOneBy({
+                _id: eventId,
+            });
+
+            if (!scheduledEvent) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled event not found or does not exist.',
+                });
+            }
+
+            const response = await ScheduledEventService.resolveScheduledEvent(
+                {
+                    _id: eventId,
+                },
+                data
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
