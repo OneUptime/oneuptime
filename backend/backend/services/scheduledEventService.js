@@ -375,8 +375,8 @@ module.exports = {
         try {
             data.resolved = true;
             data.resolvedAt = Date.now();
-            let resolvedScheduledEvent = await ScheduledEventModel.findOneAndDelete(
-                { query },
+            let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+                query,
                 { $set: data },
                 { new: true }
             );
