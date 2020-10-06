@@ -618,3 +618,41 @@ export const deleteScheduledEventNote = (
         dispatch(deleteScheduledEventNoteFailure(errorMsg));
     }
 };
+
+export const resolveScheduledEventRequest = () => ({
+    type: types.RESOLVE_SCHEDULED_EVENT_REQUEST,
+});
+
+export const resolveScheduledEventSuccess = payload => ({
+    type: types.RESOLVE_SCHEDULED_EVENT_SUCCESS,
+    payload,
+});
+
+export const resolveScheduledEventFailure = error => ({
+    type: types.RESOLVE_SCHEDULED_EVENT_FAILURE,
+    payload: error,
+});
+
+export const resolveScheduledEvent = (
+    projectId,
+    scheduledEventId
+) => async dispatch => {
+    try {
+        dispatch(resolveScheduledEventRequest());
+
+        const response = await putApi(
+            `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
+        );
+        dispatch(resolveScheduledEventSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(resolveScheduledEventFailure(errorMsg));
+    }
+};
