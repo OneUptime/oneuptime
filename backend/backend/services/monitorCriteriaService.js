@@ -236,13 +236,6 @@ const MonitorCriteriaService = {
                 down_1000: [
                     {
                         match: 'any',
-                        responseType: 'doesRespond',
-                        filter: 'isDown',
-                        field1: '',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
                         responseType: 'storageUsage',
                         filter: 'lessThan',
                         field1: '5',

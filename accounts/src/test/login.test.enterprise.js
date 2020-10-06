@@ -43,9 +43,10 @@ const createSso = async (page, data) => {
 };
 
 describe('SSO login', () => {
+    let cluster;
     beforeAll(async done => {
         jest.setTimeout(200000);
-        const cluster = await Cluster.launch({
+        cluster = await Cluster.launch({
             concurrency: Cluster.CONCURRENCY_PAGE,
             puppeteerOptions: utils.puppeteerLaunchConfig,
             puppeteer,
@@ -78,8 +79,13 @@ describe('SSO login', () => {
                 remoteLogoutUrl: 'http://localhost:9876/logout',
                 ipRanges: '127.0.0.1',
             });
+            await init.logoutUser(page);
         });
         cluster.queue();
+        done();
+    });
+
+    afterAll(async done => {
         await cluster.idle();
         await cluster.close();
         done();
@@ -88,18 +94,7 @@ describe('SSO login', () => {
     it(
         'Should return an error message if the domain is not defined in the database.',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-
-            cluster.task(async ({ page }) => {
+            cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ACCOUNTS_URL + '/login', {
                     waitUntil: 'networkidle2',
                 });
@@ -117,9 +112,6 @@ describe('SSO login', () => {
                 const html = await page.$eval('#main-body', e => e.innerHTML);
                 html.should.containEql('Domain not found.');
             });
-            cluster.queue();
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -128,16 +120,7 @@ describe('SSO login', () => {
     it(
         "Should return an error message if the SSO authentication is disabled for the email's domain.",
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-            cluster.task(async ({ page }) => {
+            cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.ACCOUNTS_URL + '/login', {
                     waitUntil: 'networkidle2',
                 });
@@ -157,9 +140,6 @@ describe('SSO login', () => {
                 const html = await page.$eval('#main-body', e => e.innerHTML);
                 html.should.containEql('SSO disabled for this domain.');
             });
-            cluster.queue();
-            await cluster.idle();
-            await cluster.close();
             done();
         },
         operationTimeOut
@@ -168,53 +148,41 @@ describe('SSO login', () => {
     it(
         'Should redirects the user if the domain is defined in the database.',
         async done => {
-            const cluster = await Cluster.launch({
-                concurrency: Cluster.CONCURRENCY_PAGE,
-                puppeteerOptions: utils.puppeteerLaunchConfig,
-                puppeteer,
-                timeout: 120000,
-            });
-            cluster.on('taskerror', err => {
-                throw err;
-            });
-            cluster.task(async ({ page, data }) => {
-                const { username, password } = data;
-                await page.goto(utils.ACCOUNTS_URL + '/login', {
-                    waitUntil: 'networkidle2',
-                });
-                await page.waitForSelector('#login-button');
-                await page.click('#sso-login');
-                await page.click('input[name=email]');
-                await page.type(
-                    'input[name=email]',
-                    'email@tests.hackerbay.io'
-                );
-                const [response] = await Promise.all([
-                    page.waitForNavigation('networkidle2'),
-                    page.click('button[type=submit]'),
-                ]);
-                const chain = response.request().redirectChain();
-                expect(chain.length).not.toBe(0);
+            cluster.execute(
+                { username: 'user1', password: 'user1pass' },
+                async ({ page, data }) => {
+                    const { username, password } = data;
+                    await page.goto(utils.ACCOUNTS_URL + '/login', {
+                        waitUntil: 'networkidle2',
+                    });
+                    await page.waitForSelector('#login-button');
+                    await page.click('#sso-login');
+                    await page.click('input[name=email]');
+                    await page.type(
+                        'input[name=email]',
+                        'email@tests.hackerbay.io'
+                    );
+                    const [response] = await Promise.all([
+                        page.waitForNavigation('networkidle2'),
+                        page.click('button[type=submit]'),
+                    ]);
+                    const chain = response.request().redirectChain();
+                    expect(chain.length).not.toBe(0);
 
-                await page.click('#username');
-                await page.type('#username', username);
+                    await page.click('#username');
+                    await page.type('#username', username);
 
-                await page.click('#password');
-                await page.type('#password', password);
+                    await page.click('#password');
+                    await page.type('#password', password);
 
-                await Promise.all([
-                    page.waitForNavigation('networkidle2'),
-                    page.click('button'),
-                ]);
+                    await Promise.all([
+                        page.waitForNavigation('networkidle2'),
+                        page.click('button'),
+                    ]);
 
-                await page.waitForSelector('#createButton');
-            });
-            cluster.queue({
-                username: 'user1',
-                password: 'user1pass',
-            });
-            await cluster.idle();
-            await cluster.close();
+                    await page.waitForSelector('#createButton');
+                }
+            );
             done();
         },
         operationTimeOut

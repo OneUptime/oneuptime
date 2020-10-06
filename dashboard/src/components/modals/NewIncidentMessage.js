@@ -114,10 +114,14 @@ class NewIncidentMessage extends Component {
         this.props.closeThisDialog();
     };
     handleKeyBoard = e => {
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog, data } = this.props;
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
+            case 'Enter':
+                return data.edit
+                    ? document.getElementById(`${data.type}-editButton`).click()
+                    : document.getElementById(`${data.type}-addButton`).click();
             default:
                 return false;
         }

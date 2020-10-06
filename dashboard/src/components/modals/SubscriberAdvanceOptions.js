@@ -50,6 +50,10 @@ class SubscriberAdvanceOption extends React.Component {
                 return closeModal({
                     id: subscriberAdvanceOptionModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('saveSubscriberAdvanceOptionButton')
+                    .click();
             default:
                 return false;
         }

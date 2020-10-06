@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -22,20 +22,35 @@ function validate(values) {
     return errors;
 }
 
-const PricingPlanModal = ({
-    closeThisDialog,
-    propArr,
-    handleSubmit,
-    isRequesting,
-    error,
-    closeModal,
-    currentProject,
-    currentPlanId,
-    modalId,
-    changePlan,
-    activePlan,
-}) => {
-    const handleFormSubmit = values => {
+class PricingPlanModal extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('confirmPlanUpgrade').click();
+            default:
+                break;
+        }
+    };
+
+    handleFormSubmit = values => {
+        const {
+            closeModal,
+            currentProject,
+            currentPlanId,
+            modalId,
+            changePlan,
+            error,
+        } = this.props;
         const { _id: id, name } = currentProject;
         const {
             category: oldCategory,
@@ -67,176 +82,202 @@ const PricingPlanModal = ({
         });
     };
 
-    const plans = PricingPlan.getPlans();
-    return (
-        <div
-            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
-            className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
-            id="pricingPlanModal"
-        >
+    render() {
+        const {
+            closeThisDialog,
+            propArr,
+            handleSubmit,
+            isRequesting,
+            error,
+            activePlan,
+        } = this.props;
+
+        const plans = PricingPlan.getPlans();
+        return (
             <div
-                className="ModalLayer-contents"
-                tabIndex={-1}
-                style={{ marginTop: 40 }}
+                className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
+                id="pricingPlanModal"
             >
-                <div className="bs-BIM">
-                    <div className="bs-Modal bs-Modal--medium">
-                        <form onSubmit={handleSubmit(handleFormSubmit)}>
-                            <div className="bs-Modal-header">
-                                <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Upgrade Plan</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="bs-Modal-content">
-                                {propArr[0].plan === 'Enterprise' ? (
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        This feature is available on Enterprise
-                                        Plan. To upgrade to this plan, please
-                                        contact sales@fyipe.com
-                                    </span>
-                                ) : (
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        This feature is available on{' '}
-                                        <strong>
-                                            {propArr[0].plan} plan and above.
-                                        </strong>{' '}
-                                        Please upgrade your plan to access this
-                                        feature.
-                                    </span>
-                                )}
-                            </div>
-                            <ShouldRender if={propArr[0].plan !== 'Enterprise'}>
-                                <div
-                                    className="bs-Modal-content"
-                                    style={{ padding: 0 }}
-                                >
-                                    <fieldset
-                                        className="bs-Fieldset"
-                                        style={{ padding: 0 }}
-                                    >
-                                        <div className="bs-Fieldset-rows">
-                                            <div className="price-list-2c Margin-all--16">
-                                                {plans.map(plan => (
-                                                    <label
-                                                        key={plan.planId}
-                                                        htmlFor={`${plan.category}_${plan.type}`}
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
-                                                                activePlan ===
-                                                                plan.planId
-                                                                    ? 'price-list-item--active'
-                                                                    : ''
-                                                            }`}
-                                                            style={{
-                                                                flex: 1,
-                                                                padding: 0,
-                                                            }}
-                                                        >
-                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                <span
-                                                                    style={{
-                                                                        marginBottom:
-                                                                            '4px',
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        plan.category
-                                                                    }{' '}
-                                                                    {plan.type ===
-                                                                    'month'
-                                                                        ? 'Monthly'
-                                                                        : 'Yearly'}{' '}
-                                                                    Plan
-                                                                </span>
-                                                            </span>
-                                                            <RadioInput
-                                                                id={`${plan.category}_${plan.type}`}
-                                                                details={
-                                                                    plan.details
-                                                                }
-                                                                value={
-                                                                    plan.planId
-                                                                }
-                                                                style={{
-                                                                    display:
-                                                                        'flex',
-                                                                    alignItems:
-                                                                        'center',
-                                                                    justifyContent:
-                                                                        'center',
-                                                                    color:
-                                                                        '#4c4c4c',
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </fieldset>
-                                </div>
-                            </ShouldRender>
-                            <ShouldRender if={error}>
-                                <div className="Box-background--white">
-                                    <div
-                                        className="Padding-all--20"
-                                        style={{ color: 'red' }}
-                                    >
-                                        {error}
+                <div
+                    className="ModalLayer-contents"
+                    tabIndex={-1}
+                    style={{ marginTop: 40 }}
+                >
+                    <div className="bs-BIM">
+                        <div className="bs-Modal bs-Modal--medium">
+                            <form
+                                onSubmit={handleSubmit(this.handleFormSubmit)}
+                            >
+                                <div className="bs-Modal-header">
+                                    <div className="bs-Modal-header-copy">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            <span>Upgrade Plan</span>
+                                        </span>
                                     </div>
                                 </div>
-                            </ShouldRender>
-                            <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
-                                    <button
-                                        id="cancelPlanUpgrade"
-                                        className={`bs-Button ${isRequesting &&
-                                            'bs-is-disabled'}`}
-                                        type="button"
-                                        onClick={e => {
-                                            e.preventDefault();
-                                            closeThisDialog();
-                                        }}
-                                    >
-                                        <span>Cancel</span>
-                                    </button>
+                                <div className="bs-Modal-content">
                                     {propArr[0].plan === 'Enterprise' ? (
-                                        <a
-                                            id="enterpriseMail"
-                                            className={`bs-Button bs-Button--blue`}
-                                            href="mailto:sales@fyipe.com"
-                                        >
-                                            Contact Sales
-                                        </a>
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            This feature is available on
+                                            Enterprise Plan. To upgrade to this
+                                            plan, please contact sales@fyipe.com
+                                        </span>
                                     ) : (
-                                        <button
-                                            id="confirmPlanUpgrade"
-                                            className={`bs-Button bs-Button--blue`}
-                                            type="submit"
-                                        >
-                                            <ShouldRender if={!isRequesting}>
-                                                <span>Upgrade</span>
-                                            </ShouldRender>
-                                            <ShouldRender if={isRequesting}>
-                                                <FormLoader />
-                                            </ShouldRender>
-                                        </button>
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                            This feature is available on{' '}
+                                            <strong>
+                                                {propArr[0].plan} plan and
+                                                above.
+                                            </strong>{' '}
+                                            Please upgrade your plan to access
+                                            this feature.
+                                        </span>
                                     )}
                                 </div>
-                            </div>
-                        </form>
+                                <ShouldRender
+                                    if={propArr[0].plan !== 'Enterprise'}
+                                >
+                                    <div
+                                        className="bs-Modal-content"
+                                        style={{ padding: 0 }}
+                                    >
+                                        <fieldset
+                                            className="bs-Fieldset"
+                                            style={{ padding: 0 }}
+                                        >
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="price-list-2c Margin-all--16">
+                                                    {plans.map(plan => (
+                                                        <label
+                                                            key={plan.planId}
+                                                            htmlFor={`${plan.category}_${plan.type}`}
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
+                                                                    activePlan ===
+                                                                    plan.planId
+                                                                        ? 'price-list-item--active'
+                                                                        : ''
+                                                                }`}
+                                                                style={{
+                                                                    flex: 1,
+                                                                    padding: 0,
+                                                                }}
+                                                            >
+                                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                    <span
+                                                                        style={{
+                                                                            marginBottom:
+                                                                                '4px',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            plan.category
+                                                                        }{' '}
+                                                                        {plan.type ===
+                                                                        'month'
+                                                                            ? 'Monthly'
+                                                                            : 'Yearly'}{' '}
+                                                                        Plan
+                                                                    </span>
+                                                                </span>
+                                                                <RadioInput
+                                                                    id={`${plan.category}_${plan.type}`}
+                                                                    details={
+                                                                        plan.details
+                                                                    }
+                                                                    value={
+                                                                        plan.planId
+                                                                    }
+                                                                    style={{
+                                                                        display:
+                                                                            'flex',
+                                                                        alignItems:
+                                                                            'center',
+                                                                        justifyContent:
+                                                                            'center',
+                                                                        color:
+                                                                            '#4c4c4c',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender if={error}>
+                                    <div className="Box-background--white">
+                                        <div
+                                            className="Padding-all--20"
+                                            style={{ color: 'red' }}
+                                        >
+                                            {error}
+                                        </div>
+                                    </div>
+                                </ShouldRender>
+                                <div className="bs-Modal-footer">
+                                    <div className="bs-Modal-footer-actions">
+                                        <button
+                                            id="cancelPlanUpgrade"
+                                            className={`bs-Button btn__modal ${isRequesting &&
+                                                'bs-is-disabled'}`}
+                                            type="button"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                closeThisDialog();
+                                            }}
+                                        >
+                                            <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
+                                        </button>
+                                        {propArr[0].plan === 'Enterprise' ? (
+                                            <a
+                                                id="enterpriseMail"
+                                                className={`bs-Button bs-Button--blue`}
+                                                href="mailto:sales@fyipe.com"
+                                                autoFocus={true}
+                                            >
+                                                Contact Sales
+                                            </a>
+                                        ) : (
+                                            <button
+                                                id="confirmPlanUpgrade"
+                                                className={`bs-Button bs-Button--blue btn__modal`}
+                                                type="submit"
+                                                autoFocus={true}
+                                            >
+                                                <ShouldRender
+                                                    if={!isRequesting}
+                                                >
+                                                    <span>Upgrade</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </ShouldRender>
+                                                <ShouldRender if={isRequesting}>
+                                                    <FormLoader />
+                                                </ShouldRender>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
-};
+        );
+    }
+}
 
 PricingPlanModal.displayName = 'Pricing Plan Modal';
 

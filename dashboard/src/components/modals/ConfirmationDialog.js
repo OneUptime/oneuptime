@@ -7,6 +7,23 @@ import DataPathHoC from '../DataPathHoC';
 import SubProjectApiKey from './SubProjectApiKey';
 
 class ConfirmationDialog extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return document.getElementById('cancelResetKey').click();
+            case 'Enter':
+                return document.getElementById('confirmResetKey').click();
+            default:
+                return false;
+        }
+    };
     render() {
         const {
             data: {
@@ -52,7 +69,8 @@ class ConfirmationDialog extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                        id="cancelResetKey"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={() => {
                                             closeModal({
@@ -72,10 +90,13 @@ class ConfirmationDialog extends Component {
                                         }}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="confirmResetKey"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         type="button"
                                         onClick={() => {
                                             confirm();
@@ -97,6 +118,9 @@ class ConfirmationDialog extends Component {
                                         }}
                                     >
                                         <span>OK</span>
+                                        <span className="create-btn__keycode">
+                                            <span className="keycode__icon keycode__icon--enter" />
+                                        </span>
                                     </button>
                                 </div>
                             </div>

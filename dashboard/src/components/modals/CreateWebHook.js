@@ -67,6 +67,8 @@ class CreateWebHook extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('createWebhook').click();
             default:
                 return false;
         }

@@ -67,6 +67,8 @@ class EditWebHook extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('slackUpdate').click();
             default:
                 return false;
         }

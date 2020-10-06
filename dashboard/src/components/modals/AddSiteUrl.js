@@ -44,6 +44,8 @@ export class AddSiteUrl extends React.Component {
                 return this.props.closeModal({
                     id: this.props.AddSiteUrlModalId,
                 });
+            case 'Enter':
+                return document.getElementById('addSiteUrlButton').click();
             default:
                 return false;
         }

@@ -25,14 +25,6 @@ export class DeleteProjectModal extends Component {
         this.closeNotice = this.closeNotice.bind(this);
     }
 
-    componentDidMount() {
-        window.addEventListener('keydown', this.handleKeyBoard);
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('keydown', this.handleKeyBoard);
-    }
-
     deleteProject(values) {
         const { projectId, deleteProject } = this.props;
 
@@ -50,15 +42,6 @@ export class DeleteProjectModal extends Component {
         if (nextProject) switchProject(nextProject);
         else history.push('/');
     }
-
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.hideDeleteModal();
-            default:
-                return false;
-        }
-    };
 
     render() {
         const { deleted } = this.state;
