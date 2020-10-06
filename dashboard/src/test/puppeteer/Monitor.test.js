@@ -725,7 +725,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#up_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#up_1000 > li:last-of-type #value',
-                    "response.body.status === 'ok'"
+                    "response.body.status === 'ok';"
                 );
 
                 // degraded criteria
@@ -753,7 +753,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#degraded_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#degraded_1000 > li:last-of-type #value',
-                    "response.body.message === 'draining'"
+                    "response.body.message === 'draining';"
                 );
 
                 // offline criteria
@@ -781,7 +781,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#down_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#down_1000 > li:last-of-type #value',
-                    "response.body.message === 'offline'"
+                    "response.body.message === 'offline';"
                 );
 
                 await page.click('button[type=submit]');
@@ -803,6 +803,68 @@ describe('API Monitor API', () => {
                 );
                 monitorStatusElement = await monitorStatusElement.jsonValue();
                 monitorStatusElement.should.be.exactly('Online');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should strip trailing semicolons from evaluate response js expressions',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const editButtonSelector = `#edit_${testMonitorName}`;
+                await page.waitForSelector(editButtonSelector, {
+                    visible: true,
+                });
+                await page.$eval(editButtonSelector, e => e.click());
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#advanceOptions');
+                await page.click('#advanceOptions');
+
+                let upExpression = await page.waitForSelector(
+                    `input[name='up_${monitorId}[4].field1']`
+                );
+                upExpression = await upExpression.getProperty('value');
+
+                upExpression = await upExpression.jsonValue();
+                upExpression.should.be.exactly("response.body.status === 'ok'");
+
+                let degradedExpression = await page.waitForSelector(
+                    `input[name='degraded_${monitorId}[1].field1']`
+                );
+                degradedExpression = await degradedExpression.getProperty(
+                    'value'
+                );
+
+                degradedExpression = await degradedExpression.jsonValue();
+                degradedExpression.should.be.exactly(
+                    "response.body.message === 'draining'"
+                );
+
+                let downExpression = await page.waitForSelector(
+                    `input[name='down_${monitorId}[2].field1']`
+                );
+                downExpression = await downExpression.getProperty('value');
+
+                downExpression = await downExpression.jsonValue();
+                downExpression.should.be.exactly(
+                    "response.body.message === 'offline'"
+                );
             });
         },
         operationTimeOut
