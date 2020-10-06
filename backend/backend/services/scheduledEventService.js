@@ -375,11 +375,17 @@ module.exports = {
         try {
             data.resolved = true;
             data.resolvedAt = Date.now();
-            const resolvedScheduledEvent = await ScheduledEventModel.findOneAndDelete(
+            let resolvedScheduledEvent = await ScheduledEventModel.findOneAndDelete(
                 { query },
                 { $set: data },
                 { new: true }
             );
+            // populate the necessary data
+            resolvedScheduledEvent = await resolvedScheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .execPopulate();
             return resolvedScheduledEvent;
         } catch (error) {
             ErrorService.log(
