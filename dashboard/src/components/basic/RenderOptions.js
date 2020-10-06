@@ -735,10 +735,6 @@ export class RenderOption extends Component {
                                                 </li>
                                             </ul>
                                         </p>
-                                        <p>
-                                            NB:- Do not add <code>;</code> after
-                                            expression.
-                                        </p>
                                     </Tooltip>
                                 </ShouldRender>
                             </div>
