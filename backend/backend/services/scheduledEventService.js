@@ -89,6 +89,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .execPopulate();
 
             if (!updatedScheduledEvent) {
@@ -183,6 +184,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .lean();
 
             return scheduledEvents;
@@ -203,6 +205,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .lean();
 
             if (scheduledEvent) {
@@ -385,6 +388,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .execPopulate();
             return resolvedScheduledEvent;
         } catch (error) {
