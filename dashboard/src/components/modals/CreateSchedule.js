@@ -118,6 +118,10 @@ class CreateSchedule extends React.Component {
                 return this.props.closeModal({
                     id: this.props.createScheduledEventModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('createScheduledEventButton')
+                    .click();
             default:
                 return false;
         }

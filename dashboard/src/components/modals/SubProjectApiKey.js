@@ -36,7 +36,15 @@ class SubProjectApiKey extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
+                this.props.resetSubProjectKeyReset();
                 return this.props.closeThisDialog();
+            case 'Enter':
+                if (this.props.data.subProjectResetToken) {
+                    this.props.resetSubProjectKeyReset();
+                    return this.props.closeThisDialog();
+                } else {
+                    return document.getElementById('removeSubProject').click();
+                }
             default:
                 return false;
         }
@@ -183,7 +191,7 @@ class SubProjectApiKey extends Component {
                                 <div className="bs-Modal-footer-actions">
                                     {data.subProjectResetToken ? (
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--grey"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={() => {
                                                 resetSubProjectKeyReset();
@@ -193,6 +201,9 @@ class SubProjectApiKey extends Component {
                                             }}
                                         >
                                             <span>Close</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                     ) : (
                                         <>
@@ -245,6 +256,7 @@ class SubProjectApiKey extends Component {
                                                 disabled={
                                                     subProjectResetToken.requesting
                                                 }
+                                                autoFocus={true}
                                             >
                                                 {!subProjectResetToken.requesting && (
                                                     <>

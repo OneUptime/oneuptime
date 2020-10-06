@@ -11,6 +11,7 @@ const RenderField = ({
     disabled,
     initialValue,
     style,
+    required,
 }) => (
     <span style={{ width: '100%' }}>
         <span>
@@ -23,6 +24,7 @@ const RenderField = ({
                 disabled={disabled || false}
                 defaultValue={initialValue}
                 style={style || {}}
+                required={required}
             />
         </span>
         <br />
@@ -62,6 +64,11 @@ RenderField.propTypes = {
     rows: PropTypes.string,
     disabled: PropTypes.bool,
     style: PropTypes.object,
+    required: PropTypes.bool,
+};
+
+RenderField.defaultProps = {
+    required: false,
 };
 
 export { RenderField };

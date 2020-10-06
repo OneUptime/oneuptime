@@ -38,6 +38,8 @@ class EditApplicationSecurity extends Component {
         switch (e.key) {
             case 'Escape':
                 return closeModal({ id: applicationSecurityId });
+            case 'Enter':
+                return document.getElementById('editApplicationBtn').click();
             default:
                 return false;
         }

@@ -24,6 +24,7 @@ class CodeEditor extends Component {
                     border: 'solid 1px #cccccc',
                     borderRadius: '4px',
                     height: '100px',
+                    overflow: 'auto',
                 }}
             />
         );

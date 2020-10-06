@@ -187,53 +187,69 @@ class VerifyDomainModal extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
-                                <div className="Flex-flex Flex-direction--row Flex-flex--1">
-                                    <ShouldRender
-                                        if={
-                                            !domainField.requesting &&
-                                            domainField.error
-                                        }
-                                    >
-                                        <div
-                                            id="verifyDomainError"
-                                            className="bs-Tail-copy Flex-flex--3"
+                                <div
+                                    className="Flex-flex Flex-direction--row bs-u-justify--between"
+                                    style={{ width: '100%' }}
+                                >
+                                    <div>
+                                        <ShouldRender
+                                            if={
+                                                !domainField.requesting &&
+                                                domainField.error
+                                            }
                                         >
                                             <div
-                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                style={{ marginTop: '10px' }}
+                                                id="verifyDomainError"
+                                                className="bs-Tail-copy Flex-flex--3"
                                             >
-                                                <div className="Box-root Margin-right--8">
-                                                    <div
-                                                        className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
-                                                        style={{
-                                                            marginTop: '2px',
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="Box-root">
-                                                    <span
-                                                        style={{ color: 'red' }}
-                                                    >
-                                                        {domainField.error}
-                                                    </span>
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div
+                                                            className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                                            style={{
+                                                                marginTop:
+                                                                    '2px',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {domainField.error}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </ShouldRender>
-                                    <div className="Margin-top--8 bs-u-self--end Flex-flex--1 Text-align--right">
+                                        </ShouldRender>
+                                    </div>
+                                    <div
+                                        style={{ display: 'flex' }}
+                                        className="Margin-top--8 bs-u-self--end Text-align--right"
+                                    >
                                         <button
                                             id="cancelVerifyDomain"
-                                            className={`bs-Button ${domainField.requesting &&
+                                            className={`bs-Button btn__modal ${domainField.requesting &&
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             disabled={domainField.requesting}
                                             onClick={closeThisDialog}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="confirmVerifyDomain"
-                                            className={`bs-Button bs-Button--blue ${domainField.requesting &&
+                                            className={`bs-Button bs-Button--blue btn__modal ${domainField.requesting &&
                                                 'bs-is-disabled'}`}
                                             onClick={() => {
                                                 confirmThisDialog();
@@ -242,6 +258,9 @@ class VerifyDomainModal extends Component {
                                             autoFocus={true}
                                         >
                                             <span>Verify</span>
+                                            <span className="create-btn__keycode">
+                                                <span className="keycode__icon keycode__icon--enter" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>

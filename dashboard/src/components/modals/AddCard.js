@@ -54,6 +54,8 @@ class _CardForm extends React.Component {
                 return this.props.closeModal({
                     id: this.props.CreateCardModalId,
                 });
+            case 'Enter':
+                return document.getElementById('addCardButtonSubmit').click();
             default:
                 return false;
         }
