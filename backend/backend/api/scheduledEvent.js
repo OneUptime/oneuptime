@@ -228,6 +228,16 @@ router.put(
             const scheduledEvent = await ScheduledEventService.findOneBy({
                 _id: eventId,
             });
+            const startDate = moment(scheduledEvent.startDate).format();
+            const currentDate = moment().format();
+
+            if (startDate > currentDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'You can only resolve past or ongoing scheduled event',
+                });
+            }
 
             if (!scheduledEvent) {
                 return sendErrorResponse(req, res, {
