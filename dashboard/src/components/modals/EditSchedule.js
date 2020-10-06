@@ -119,6 +119,10 @@ class UpdateSchedule extends React.Component {
                 return closeModal({
                     id: updateScheduledEventModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('updateScheduledEventButton')
+                    .click();
             default:
                 return false;
         }

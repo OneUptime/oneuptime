@@ -43,6 +43,8 @@ class CreateFooterLink extends Component {
                 return closeModal({
                     id: createFooterLinkModalId,
                 });
+            case 'Enter':
+                return document.getElementById('createFooter').click();
             default:
                 return false;
         }

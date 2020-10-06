@@ -28,6 +28,11 @@ class DeleteCaution extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.hide();
+            case 'Enter':
+                if (e.target.localName !== 'textarea') {
+                    return document.getElementById('btnDeleteProject').click();
+                }
+                return;
             default:
                 return false;
         }

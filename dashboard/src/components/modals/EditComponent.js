@@ -38,6 +38,8 @@ class EditComponent extends Component {
                 return this.props.closeModal({
                     id: this.props.editComponentModalId,
                 });
+            case 'Enter':
+                return document.getElementById('editComponentButton').click();
             default:
                 return false;
         }

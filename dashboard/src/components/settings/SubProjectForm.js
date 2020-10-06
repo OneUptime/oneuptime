@@ -79,6 +79,8 @@ export class SubProjectForm extends React.Component {
                 return closeModal({
                     id: subProjectModalId,
                 });
+            case 'Enter':
+                return document.getElementById('btnAddSubProjects').click();
             default:
                 return false;
         }
@@ -173,7 +175,7 @@ export class SubProjectForm extends React.Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
-                                            className={`bs-Button bs-DeprecatedButton ${disabled &&
+                                            className={`bs-Button bs-DeprecatedButton btn__modal ${disabled &&
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
@@ -189,10 +191,13 @@ export class SubProjectForm extends React.Component {
                                             disabled={disabled}
                                         >
                                             <span>Cancel</span>
+                                            <span className="cancel-btn__keycode">
+                                                Esc
+                                            </span>
                                         </button>
                                         <button
                                             id="btnAddSubProjects"
-                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue ${disabled &&
+                                            className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${disabled &&
                                                 'bs-is-disabled'}`}
                                             type="save"
                                             disabled={disabled}
@@ -203,6 +208,9 @@ export class SubProjectForm extends React.Component {
                                             </ShouldRender>
                                             <ShouldRender if={!disabled}>
                                                 <span>Save</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </ShouldRender>
                                         </button>
                                     </div>
