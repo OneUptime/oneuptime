@@ -8,6 +8,8 @@ import { openModal } from '../../actions/modal';
 import { capitalize } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import EditSchedule from '../modals/EditSchedule';
+import { Spinner } from '../basic/Loader';
+import { resolveScheduledEvent } from '../../actions/scheduledEvent';
 
 function ScheduledEventDescription({
     scheduledEvent,
@@ -15,6 +17,9 @@ function ScheduledEventDescription({
     history,
     openModal,
     monitorList,
+    resolveScheduledEvent,
+    resolving,
+    match,
 }) {
     const handleMonitorListing = (event, monitorState) => {
         const affectedMonitors = [];
@@ -46,6 +51,12 @@ function ScheduledEventDescription({
                           affectedMonitors[1].name
                       )} and ${affectedMonitors.length - 2} other monitors.`;
         }
+    };
+
+    const handleResolve = () => {
+        const { _id } = scheduledEvent;
+        const { params } = match;
+        resolveScheduledEvent(params.projectId, _id);
     };
 
     return (
@@ -197,6 +208,62 @@ function ScheduledEventDescription({
                                                 </span>
                                             </div>
                                         </div>
+                                        <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
+                                            <label className="bs-Fieldset-label">
+                                                Resolve
+                                            </label>
+                                            <div className="bs-Fieldset-fields">
+                                                {!scheduledEvent.resolved ? (
+                                                    <div className="Box-root Flex-flex Flex-alignItems--center">
+                                                        <div>
+                                                            <ShouldRender
+                                                                if={!resolving}
+                                                            >
+                                                                <label
+                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
+                                                                    type="button"
+                                                                    onClick={
+                                                                        handleResolve
+                                                                    }
+                                                                >
+                                                                    <span>
+                                                                        Resolve
+                                                                        Schedule
+                                                                    </span>
+                                                                </label>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={resolving}
+                                                            >
+                                                                <Spinner
+                                                                    style={{
+                                                                        stroke:
+                                                                            '#000000',
+                                                                    }}
+                                                                />
+                                                            </ShouldRender>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                            <span>
+                                                                Resolved by{' '}
+                                                                {
+                                                                    scheduledEvent
+                                                                        .resolvedBy
+                                                                        .name
+                                                                }{' '}
+                                                                {moment(
+                                                                    scheduledEvent.resolvedAt
+                                                                ).fromNow() +
+                                                                    '.'}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </fieldset>
                             </div>
@@ -220,6 +287,9 @@ ScheduledEventDescription.propTypes = {
     history: PropTypes.object,
     openModal: PropTypes.func,
     monitorList: PropTypes.array,
+    resolveScheduledEvent: PropTypes.func,
+    resolving: PropTypes.bool,
+    match: PropTypes.object,
 };
 
 ScheduledEventDescription.defaultProps = {
@@ -227,9 +297,15 @@ ScheduledEventDescription.defaultProps = {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal }, dispatch);
+    bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
+
+const mapStateToProps = state => {
+    return {
+        resolving: state.scheduledEvent.resolveScheduledEvent.requesting,
+    };
+};
 
 export default connect(
-    null,
+    mapStateToProps,
     mapDispatchToProps
 )(withRouter(ScheduledEventDescription));
