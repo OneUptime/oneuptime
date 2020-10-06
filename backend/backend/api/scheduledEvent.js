@@ -305,11 +305,13 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
             projectId,
             startDate: { $lte: currentDate },
             endDate: { $gt: currentDate },
+            resolved: false,
         });
         const count = await ScheduledEventService.countBy({
             projectId,
             startDate: { $lte: currentDate },
             endDate: { $gt: currentDate },
+            resolved: false,
         });
         return sendListResponse(req, res, events, count);
     } catch (error) {
@@ -336,6 +338,7 @@ router.get(
                 {
                     startDate: { $lte: currentDate },
                     endDate: { $gt: currentDate },
+                    resolved: false,
                 }
             );
             return sendItemResponse(req, res, ongoingScheduledEvents);
