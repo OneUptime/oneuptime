@@ -1026,7 +1026,23 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                 },
             };
 
-        case RESOLVE_SCHEDULED_EVENT_SUCCESS:
+        case RESOLVE_SCHEDULED_EVENT_SUCCESS: {
+            const events = state.subProjectOngoingScheduledEvent.events.map(
+                event => {
+                    if (
+                        String(event.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        event.ongoingScheduledEvents = event.ongoingScheduledEvents.filter(
+                            ongoingEvent =>
+                                String(ongoingEvent._id) !==
+                                String(action.payload._id)
+                        );
+                        event.count = event.ongoingScheduledEvents.length;
+                    }
+                    return event;
+                }
+            );
             return {
                 ...state,
                 resolveScheduledEvent: {
@@ -1038,7 +1054,12 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     ...state.newScheduledEvent,
                     scheduledEvent: action.payload,
                 },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
+                    events,
+                },
             };
+        }
 
         case RESOLVE_SCHEDULED_EVENT_FAILURE:
             return {
