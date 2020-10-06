@@ -59,6 +59,10 @@ function ScheduledEventDescription({
         resolveScheduledEvent(params.projectId, _id);
     };
 
+    const startDate = moment(scheduledEvent.startDate).format();
+    const currentDate = moment().format();
+    const isFutureScheduledEvent = startDate > currentDate;
+
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -214,36 +218,56 @@ function ScheduledEventDescription({
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 {!scheduledEvent.resolved ? (
-                                                    <div className="Box-root Flex-flex Flex-alignItems--center">
-                                                        <div>
-                                                            <ShouldRender
-                                                                if={!resolving}
-                                                            >
-                                                                <label
-                                                                    className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
-                                                                    type="button"
-                                                                    onClick={
-                                                                        handleResolve
+                                                    isFutureScheduledEvent ? (
+                                                        <span
+                                                            className="value"
+                                                            style={{
+                                                                marginTop:
+                                                                    '2px',
+                                                                color:
+                                                                    '#6b7c93',
+                                                            }}
+                                                        >
+                                                            You cannot resolve
+                                                            future scheduled
+                                                            events
+                                                        </span>
+                                                    ) : (
+                                                        <div className="Box-root Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        !resolving
                                                                     }
                                                                 >
-                                                                    <span>
-                                                                        Resolve
-                                                                        Schedule
-                                                                    </span>
-                                                                </label>
-                                                            </ShouldRender>
-                                                            <ShouldRender
-                                                                if={resolving}
-                                                            >
-                                                                <Spinner
-                                                                    style={{
-                                                                        stroke:
-                                                                            '#000000',
-                                                                    }}
-                                                                />
-                                                            </ShouldRender>
+                                                                    <label
+                                                                        className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
+                                                                        type="button"
+                                                                        onClick={
+                                                                            handleResolve
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Resolve
+                                                                            Schedule
+                                                                        </span>
+                                                                    </label>
+                                                                </ShouldRender>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        resolving
+                                                                    }
+                                                                >
+                                                                    <Spinner
+                                                                        style={{
+                                                                            stroke:
+                                                                                '#000000',
+                                                                        }}
+                                                                    />
+                                                                </ShouldRender>
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )
                                                 ) : (
                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
