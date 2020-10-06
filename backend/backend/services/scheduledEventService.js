@@ -365,6 +365,30 @@ module.exports = {
             throw error;
         }
     },
+
+    /**
+     * @description resolves a particular scheduled event
+     * @param {object} query query parameter to use for db manipulation
+     * @param {object} data data to be used to update the schedule
+     */
+    resolveScheduledEvent: async function(query, data) {
+        try {
+            data.resolved = true;
+            data.resolvedAt = Date.now();
+            const resolvedScheduledEvent = await ScheduledEventModel.findOneAndDelete(
+                { query },
+                { $set: data },
+                { new: true }
+            );
+            return resolvedScheduledEvent;
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.resolveScheduledEvent',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 /**
