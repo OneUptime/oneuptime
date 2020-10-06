@@ -79,6 +79,8 @@ class EditIncidentPriority extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('EditIncidentPriority').click();
             default:
                 return false;
         }

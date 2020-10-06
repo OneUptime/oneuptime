@@ -48,11 +48,17 @@ class DockerCredentialModal extends Component {
 
     handleKeyBoard = e => {
         const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { projectId, credentialId } = propArr[0];
 
         switch (e.key) {
             case 'Escape':
                 return closeModal({ id: projectId });
+            case 'Enter':
+                return credentialId
+                    ? document
+                          .getElementById('updateCredentialModalBtn')
+                          .click()
+                    : document.getElementById('addCredentialModalBtn').click();
             default:
                 return false;
         }

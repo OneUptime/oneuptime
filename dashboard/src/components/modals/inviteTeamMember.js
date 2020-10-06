@@ -112,6 +112,12 @@ export class FormModal extends Component {
                 this.props.closeModal({ id: this.state.notificationModalId });
                 this.props.closeThisDialog();
                 return true;
+            case 'Enter':
+                return document
+                    .getElementById(
+                        `btn_modal_${this.props.data.subProjectName}`
+                    )
+                    .click();
             default:
                 return false;
         }

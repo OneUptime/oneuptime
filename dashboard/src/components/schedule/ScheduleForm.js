@@ -48,6 +48,8 @@ export class ScheduleForm extends React.Component {
                 return this.props.closeModal({
                     id: this.props.scheduleModalId,
                 });
+            case 'Enter':
+                return document.getElementById('btnCreateSchedule').click();
             default:
                 return false;
         }
