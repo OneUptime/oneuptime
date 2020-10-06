@@ -7,6 +7,28 @@ import CreateWebHook from '../modals/CreateWebHook';
 import DataPathHoC from '../DataPathHoC';
 
 class WebHookButton extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = event => {
+        const { modalId } = this.props;
+        switch (event.key) {
+            case 'N':
+            case 'n':
+                if (!modalId) {
+                    return document.getElementById('addWebhookButton').click();
+                }
+                return false;
+            default:
+                break;
+        }
+    };
+
     render() {
         const { monitorId } = this.props;
 
@@ -31,6 +53,7 @@ class WebHookButton extends React.Component {
                     </div>
                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                         <span>Add WebHook</span>
+                        <span className="new-btn__keycode">N</span>
                     </span>
                 </div>
             </button>
@@ -51,11 +74,16 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
+    modalId: state.modal.modals[0],
 });
 
 WebHookButton.propTypes = {
     openModal: PropTypes.func.isRequired,
     monitorId: PropTypes.string,
+    modalId: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookButton);
