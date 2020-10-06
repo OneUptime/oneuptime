@@ -254,19 +254,16 @@ module.exports = {
         return subProjectScheduledEvents;
     },
 
-    getSubProjectOngoingScheduledEvents: async function(
-        subProjectIds,
-        timeQuery
-    ) {
+    getSubProjectOngoingScheduledEvents: async function(subProjectIds, query) {
         const subProjectOngoingScheduledEvents = await Promise.all(
             subProjectIds.map(async id => {
                 const ongoingScheduledEvents = await this.findBy({
                     projectId: id,
-                    ...timeQuery,
+                    ...query,
                 });
                 const count = await this.countBy({
                     projectId: id,
-                    ...timeQuery,
+                    ...query,
                 });
                 return {
                     ongoingScheduledEvents,
@@ -401,6 +398,10 @@ module.exports = {
                 type: 'investigation',
                 event_state: 'Resolved',
             });
+
+            // realtime update
+            await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+
             return resolvedScheduledEvent;
         } catch (error) {
             ErrorService.log(

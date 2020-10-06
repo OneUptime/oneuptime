@@ -174,3 +174,12 @@ export function deleteincidentbysocket(incident) {
         });
     };
 }
+
+export function resolvescheduledevent(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'RESOLVE_SCHEDULED_EVENT_SUCCESS',
+            payload: event,
+        });
+    };
+}
