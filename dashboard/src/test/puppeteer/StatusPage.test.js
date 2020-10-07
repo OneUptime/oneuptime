@@ -671,6 +671,43 @@ describe('Status Page', () => {
     );
 
     test(
+        'should show incidents in the top of status page',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await gotoTheFirstStatusPage(page);
+                await page.waitForSelector('#publicStatusPageUrl');
+
+                await page.waitForSelector('#react-tabs-6');
+                await page.click('#react-tabs-6');
+
+                await page.waitForSelector('#moreAdvancedOptions', {
+                    visible: true,
+                });
+                await page.$eval('#moreAdvancedOptions', elem => elem.click());
+                await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
+                    visible: true,
+                });
+                await page.$eval('#statuspage_moveIncidentToTheTop', elem =>
+                    elem.click()
+                );
+                await page.click('#saveAdvancedOptions');
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
+                await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
+                    visible: true,
+                });
+                const checked = await page.$eval(
+                    '#statuspage_moveIncidentToTheTop',
+                    elem => elem.value
+                );
+                expect(checked).toBeTruthy();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should not add a domain when the field is empty',
         async () => {
             return await cluster.execute(null, async ({ page }) => {

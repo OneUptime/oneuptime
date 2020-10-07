@@ -96,8 +96,8 @@ export class PrivateStatusPage extends Component {
                                         onChange={() =>
                                             this.showMoreOptionsToggle()
                                         }
-                                        name="planDuration"
-                                        id="planDuration"
+                                        name="moreAdvancedOptions"
+                                        id="moreAdvancedOptions"
                                         checked={showMoreOptions}
                                     />
                                     <span className="TogglerBtn-slider round"></span>
@@ -470,7 +470,7 @@ export class PrivateStatusPage extends Component {
                                                                         }
                                                                         data-test="RetrySettings-failedPaymentsCheckbox"
                                                                         className="Checkbox-source"
-                                                                        id="statuspage.moveIncidentToTheTop"
+                                                                        id="statuspage_moveIncidentToTheTop"
                                                                     />
                                                                     <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                         <div className="Checkbox-target Box-root">
@@ -564,6 +564,7 @@ export class PrivateStatusPage extends Component {
                                             .requesting
                                     }
                                     type="submit"
+                                    id="saveAdvancedOptions"
                                 >
                                     {!this.props.statusPage.privateStatusPage
                                         .requesting && <span>Save </span>}
