@@ -467,6 +467,20 @@ export default (state = INITIAL_STATE, action) => {
                 },
             });
 
+        case 'RESOLVE_SCHEDULED_EVENT': {
+            const events = state.events.events.filter(
+                event => String(event._id) !== String(action.payload._id)
+            );
+            return {
+                ...state,
+                events: {
+                    ...state.events,
+                    events,
+                    count: events.length,
+                },
+            };
+        }
+
         case SCHEDULED_EVENTS_FAILURE:
             return Object.assign({}, state, {
                 events: {

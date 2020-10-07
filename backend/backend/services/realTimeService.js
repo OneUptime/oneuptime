@@ -213,6 +213,24 @@ module.exports = {
         }
     },
 
+    resolveScheduledEvent: async event => {
+        try {
+            const project = await ProjectService.findOneBy({
+                _id: event.projectId._id,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : event.projectId._id;
+
+            global.io.emit(`resolveScheduledEvent-${projectId}`, event);
+        } catch (error) {
+            ErrorService.log('realTimeService.resolveScheduledEvent', error);
+            throw error;
+        }
+    },
+
     addScheduledEventInternalNote: async note => {
         try {
             if (!global || !global.io) {

@@ -24,6 +24,7 @@ import {
     addeventnotebysocket,
     deleteeventnotebysocket,
     updateeventnotebysocket,
+    resolvescheduledeventbysocket,
 } from '../../actions/socket';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
@@ -97,6 +98,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `deleteIncidentNote-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `resolveScheduledEvent-${this.props.project._id}`
                 );
             }
             return true;
@@ -228,6 +232,10 @@ class SocketApp extends Component {
             ) {
                 thisObj.props.deleteincidentnotebysocket(data);
             });
+            socket.on(
+                `resolveScheduledEvent-${this.props.project._id}`,
+                event => thisObj.props.resolvescheduledeventbysocket(event)
+            );
         }
         return null;
     }
@@ -269,6 +277,7 @@ const mapDispatchToProps = dispatch =>
             addeventnotebysocket,
             deleteeventnotebysocket,
             updateeventnotebysocket,
+            resolvescheduledeventbysocket,
         },
         dispatch
     );

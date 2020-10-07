@@ -54,6 +54,9 @@ const scheduledEventsSchema = new Schema(
             type: Boolean,
             default: false,
         },
+        resolved: { type: Boolean, default: false },
+        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        resolvedAt: Date,
     },
     { timestamps: true }
 );
