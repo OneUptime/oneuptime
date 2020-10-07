@@ -398,6 +398,7 @@ class Incident extends Component {
                                     </>
                                 )}
                                 {!fetchingIncident &&
+                                    lastIncidentTimeline &&
                                     lastIncidentTimeline.status &&
                                     this.handleIncidentStatus()}
                                 <ShouldRender if={fetchingIncident}>
