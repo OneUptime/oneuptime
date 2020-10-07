@@ -446,6 +446,19 @@ class Main extends Component {
                                     </div>
                                 </div>
                             ))}
+                        <ShouldRender
+                            if={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData._id &&
+                                this.props.statusData.moveIncidentToTheTop
+                            }
+                        >
+                            <NotesMain
+                                projectId={this.props.statusData.projectId._id}
+                                statusPageId={this.props.statusData._id}
+                            />
+                        </ShouldRender>
                         <div className="content">
                             <div
                                 className="white box"
@@ -678,14 +691,22 @@ class Main extends Component {
                             if={
                                 this.props.statusData &&
                                 this.props.statusData.projectId &&
-                                this.props.statusData._id
+                                this.props.statusData._id &&
+                                !this.props.statusData.moveIncidentToTheTop
                             }
                         >
                             <NotesMain
                                 projectId={this.props.statusData.projectId._id}
                                 statusPageId={this.props.statusData._id}
                             />
-
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData._id
+                            }
+                        >
                             <ShouldRender
                                 if={this.props.statusData.showScheduledEvents}
                             >
