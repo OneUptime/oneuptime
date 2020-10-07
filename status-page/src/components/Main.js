@@ -359,34 +359,6 @@ class Main extends Component {
                 )}
                 {view ? (
                     <div className="innernew" style={{ width: 609 }}>
-                        {headerHTML ? (
-                            <React.Fragment>
-                                <style>{sanitizedCSS}</style>
-                                <div
-                                    id="customHeaderHTML"
-                                    dangerouslySetInnerHTML={{
-                                        __html: headerHTML,
-                                    }}
-                                />
-                            </React.Fragment>
-                        ) : (
-                            <div className="header clearfix">
-                                <div className="heading">
-                                    {this.props.statusData &&
-                                    this.props.statusData.logoPath ? (
-                                        <span>
-                                            <img
-                                                src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                                alt=""
-                                                className="logo"
-                                            />
-                                        </span>
-                                    ) : (
-                                        ''
-                                    )}
-                                </div>
-                            </div>
-                        )}
                         {this.props.events &&
                             this.props.events.length > 0 &&
                             this.props.statusData &&
@@ -395,7 +367,7 @@ class Main extends Component {
                                 <div
                                     className="content box box__yellow--dark"
                                     style={{
-                                        marginBottom: 40,
+                                        margin: '40px 0px',
                                         cursor: 'pointer',
                                     }}
                                     key={event._id}
@@ -446,7 +418,57 @@ class Main extends Component {
                                     </div>
                                 </div>
                             ))}
-                        <div className="content">
+                        <ShouldRender
+                            if={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData._id &&
+                                this.props.statusData.moveIncidentToTheTop
+                            }
+                        >
+                            <NotesMain
+                                projectId={this.props.statusData.projectId._id}
+                                statusPageId={this.props.statusData._id}
+                            />
+                        </ShouldRender>
+                        <div
+                            className="content"
+                            style={{ position: 'relative' }}
+                        >
+                            {headerHTML ? (
+                                <React.Fragment>
+                                    <style>{sanitizedCSS}</style>
+                                    <div
+                                        id="customHeaderHTML"
+                                        dangerouslySetInnerHTML={{
+                                            __html: headerHTML,
+                                        }}
+                                    />
+                                </React.Fragment>
+                            ) : (
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        left: 30,
+                                        top: -25,
+                                    }}
+                                >
+                                    <div>
+                                        {this.props.statusData &&
+                                        this.props.statusData.logoPath ? (
+                                            <span>
+                                                <img
+                                                    src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                                    alt=""
+                                                    className="logo"
+                                                />
+                                            </span>
+                                        ) : (
+                                            ''
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             <div
                                 className="white box"
                                 style={contentBackground}
@@ -678,14 +700,22 @@ class Main extends Component {
                             if={
                                 this.props.statusData &&
                                 this.props.statusData.projectId &&
-                                this.props.statusData._id
+                                this.props.statusData._id &&
+                                !this.props.statusData.moveIncidentToTheTop
                             }
                         >
                             <NotesMain
                                 projectId={this.props.statusData.projectId._id}
                                 statusPageId={this.props.statusData._id}
                             />
-
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData._id
+                            }
+                        >
                             <ShouldRender
                                 if={this.props.statusData.showScheduledEvents}
                             >

@@ -246,7 +246,11 @@ class NotesMain extends Component {
             this.props.showIncidentCardState ? (
             <div
                 className="twitter-feed white box"
-                style={{ overflow: 'visible', ...contentBackground }}
+                style={{
+                    overflow: 'visible',
+                    marginBottom: 40,
+                    ...contentBackground,
+                }}
             >
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender

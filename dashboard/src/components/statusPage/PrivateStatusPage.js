@@ -26,6 +26,7 @@ export class PrivateStatusPage extends Component {
         this.props = props;
         this.state = {
             subscriberAdvanceOptionModalId: uuid.v4(),
+            showMoreOptions: false,
         };
     }
 
@@ -40,6 +41,7 @@ export class PrivateStatusPage extends Component {
                 isSubscriberEnabled: values.isSubscriberEnabled,
                 isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
                 showScheduledEvents: values.showScheduledEvents,
+                moveIncidentToTheTop: values.moveIncidentToTheTop,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(projectId, true);
@@ -51,9 +53,14 @@ export class PrivateStatusPage extends Component {
         }
     };
 
+    showMoreOptionsToggle = () =>
+        this.setState(prevState => ({
+            showMoreOptions: !prevState.showMoreOptions,
+        }));
+
     render() {
         const { handleSubmit } = this.props;
-        const { subscriberAdvanceOptionModalId } = this.state;
+        const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -67,6 +74,35 @@ export class PrivateStatusPage extends Component {
                                     Here are more options for your status page
                                 </span>
                             </p>
+                        </div>
+                        <div
+                            className="bs-Fieldset-row"
+                            style={{
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <label style={{ marginRight: 10 }}>
+                                {showMoreOptions
+                                    ? 'Hide more advanced options'
+                                    : 'Show more advanced options'}
+                            </label>
+                            <div>
+                                <label className="Toggler-wrap">
+                                    <input
+                                        className="btn-toggler"
+                                        type="checkbox"
+                                        onChange={() =>
+                                            this.showMoreOptionsToggle()
+                                        }
+                                        name="moreAdvancedOptions"
+                                        id="moreAdvancedOptions"
+                                        checked={showMoreOptions}
+                                    />
+                                    <span className="TogglerBtn-slider round"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -276,7 +312,6 @@ export class PrivateStatusPage extends Component {
                                                     </div>
                                                 </div>
                                             </div>
-
                                             <div className="bs-Fieldset-row">
                                                 <label
                                                     className="bs-Fieldset-label"
@@ -365,6 +400,129 @@ export class PrivateStatusPage extends Component {
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {showMoreOptions && (
+                                                <>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingBottom: 0,
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        marginLeft:
+                                                                            '20px',
+                                                                        fontWeight: 500,
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        More
+                                                                        Advanced
+                                                                        Options
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name={
+                                                                            'moveIncidentToTheTop'
+                                                                        }
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                        id="statuspage_moveIncidentToTheTop"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            incidents
+                                                                            to
+                                                                            the
+                                                                            top
+                                                                            of
+                                                                            the
+                                                                            status
+                                                                            page
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                Move
+                                                                                the
+                                                                                list
+                                                                                of
+                                                                                incidents
+                                                                                to
+                                                                                the
+                                                                                top
+                                                                                of
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                                instead
+                                                                                of
+                                                                                at
+                                                                                the
+                                                                                bottom.
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </fieldset>
                                 </div>
@@ -406,6 +564,7 @@ export class PrivateStatusPage extends Component {
                                             .requesting
                                     }
                                     type="submit"
+                                    id="saveAdvancedOptions"
                                 >
                                     {!this.props.statusPage.privateStatusPage
                                         .requesting && <span>Save </span>}
@@ -463,6 +622,7 @@ const mapStateToProps = state => {
         initialValues.isGroupedByMonitorCategory =
             status.isGroupedByMonitorCategory;
         initialValues.showScheduledEvents = status.showScheduledEvents;
+        initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
     }
 
     return { initialValues, statusPage, currentProject };

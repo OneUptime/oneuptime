@@ -48,6 +48,11 @@ const statusSchema = new Schema({
         type: Boolean,
         default: true,
     },
+    // show incident to the top of status page
+    moveIncidentToTheTop: {
+        type: Boolean,
+        default: false,
+    },
     description: String,
     copyright: String,
     faviconPath: String,
