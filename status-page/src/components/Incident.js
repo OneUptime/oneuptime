@@ -359,6 +359,7 @@ class Incident extends Component {
                                                         'rgba(76, 76, 76, 0.8)',
                                                     fontWeight: 'bold',
                                                     marginBottom: 10,
+                                                    textTransform: 'unset',
                                                 }}
                                             >
                                                 {incident.title}
@@ -390,9 +391,7 @@ class Incident extends Component {
                                                     color: 'rgba(0, 0, 0, 0.5)',
                                                 }}
                                             >
-                                                {capitalize(
-                                                    incident.monitorId.name
-                                                )}
+                                                {incident.monitorId.name}
                                             </span>
                                         </div>
                                     </>
