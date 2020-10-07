@@ -359,34 +359,6 @@ class Main extends Component {
                 )}
                 {view ? (
                     <div className="innernew" style={{ width: 609 }}>
-                        {headerHTML ? (
-                            <React.Fragment>
-                                <style>{sanitizedCSS}</style>
-                                <div
-                                    id="customHeaderHTML"
-                                    dangerouslySetInnerHTML={{
-                                        __html: headerHTML,
-                                    }}
-                                />
-                            </React.Fragment>
-                        ) : (
-                            <div className="header clearfix">
-                                <div className="heading">
-                                    {this.props.statusData &&
-                                    this.props.statusData.logoPath ? (
-                                        <span>
-                                            <img
-                                                src={`${API_URL}/file/${this.props.statusData.logoPath}`}
-                                                alt=""
-                                                className="logo"
-                                            />
-                                        </span>
-                                    ) : (
-                                        ''
-                                    )}
-                                </div>
-                            </div>
-                        )}
                         {this.props.events &&
                             this.props.events.length > 0 &&
                             this.props.statusData &&
@@ -395,7 +367,7 @@ class Main extends Component {
                                 <div
                                     className="content box box__yellow--dark"
                                     style={{
-                                        marginBottom: 40,
+                                        margin: '40px 0px',
                                         cursor: 'pointer',
                                     }}
                                     key={event._id}
@@ -459,7 +431,44 @@ class Main extends Component {
                                 statusPageId={this.props.statusData._id}
                             />
                         </ShouldRender>
-                        <div className="content">
+                        <div
+                            className="content"
+                            style={{ position: 'relative' }}
+                        >
+                            {headerHTML ? (
+                                <React.Fragment>
+                                    <style>{sanitizedCSS}</style>
+                                    <div
+                                        id="customHeaderHTML"
+                                        dangerouslySetInnerHTML={{
+                                            __html: headerHTML,
+                                        }}
+                                    />
+                                </React.Fragment>
+                            ) : (
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        left: 30,
+                                        top: -25,
+                                    }}
+                                >
+                                    <div>
+                                        {this.props.statusData &&
+                                        this.props.statusData.logoPath ? (
+                                            <span>
+                                                <img
+                                                    src={`${API_URL}/file/${this.props.statusData.logoPath}`}
+                                                    alt=""
+                                                    className="logo"
+                                                />
+                                            </span>
+                                        ) : (
+                                            ''
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             <div
                                 className="white box"
                                 style={contentBackground}
