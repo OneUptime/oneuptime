@@ -20,6 +20,30 @@ export class SubProjects extends Component {
         this.state = { subProjectModalId: uuid.v4() };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        const { modalId } = this.props;
+        const { subProjectModalId } = this.state;
+
+        switch (e.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== subProjectModalId) {
+                    return this.handleAddSubProject();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
+
     paginatePrev = () => {
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
@@ -99,6 +123,9 @@ export class SubProjects extends Component {
                                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                             <span>
                                                                 Add Subproject
+                                                            </span>
+                                                            <span className="new-btn__keycode">
+                                                                N
                                                             </span>
                                                         </span>
                                                     </div>
@@ -265,6 +292,7 @@ SubProjects.propTypes = {
     openModal: PropTypes.func,
     skip: PropTypes.number,
     subProjectState: PropTypes.object,
+    modalId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -303,6 +331,7 @@ const mapStateToProps = state => {
         skip,
         limit,
         count,
+        modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
     };
 };
 

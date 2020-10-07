@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { deleteGitCredential } from '../../actions/credential';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import { getGitSecurities } from '../../actions/credential';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
@@ -19,10 +19,17 @@ const GitCredentialList = ({
     deleteGitCredential,
     deleteError,
     openModal,
-    closeModal,
     getGitSecurities,
+    modalId,
 }) => {
     const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyboard);
+        return () => {
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    }, [modalId]);
 
     const handleDelete = credentialId => {
         getGitSecurities({ projectId, credentialId });
@@ -62,8 +69,12 @@ const GitCredentialList = ({
 
     const handleKeyboard = e => {
         switch (e.key) {
-            case 'Escape':
-                return closeModal({ id: projectId });
+            case 'N':
+            case 'n':
+                if (modalId !== projectId) {
+                    return handleCredentialCreation();
+                }
+                return false;
             default:
                 return false;
         }
@@ -84,7 +95,7 @@ const GitCredentialList = ({
     gitCredentials = data;
 
     return (
-        <div onKeyDown={handleKeyboard} className="Box-root  Margin-bottom--12">
+        <div className="Box-root  Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -113,6 +124,9 @@ const GitCredentialList = ({
                                         </div>
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                             <span>Add Credential</span>
+                                            <span className="new-btn__keycode">
+                                                N
+                                            </span>
                                         </span>
                                     </div>
                                 </button>
@@ -337,23 +351,24 @@ GitCredentialList.propTypes = {
     projectId: PropTypes.string,
     deleteGitCredential: PropTypes.func,
     openModal: PropTypes.func,
-    closeModal: PropTypes.func,
     deleteError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     getGitSecurities: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { deleteGitCredential, openModal, closeModal, getGitSecurities },
+        { deleteGitCredential, openModal, getGitSecurities },
         dispatch
     );
 
 const mapStateToProps = state => {
     return {
         deleteError: state.credential.deleteCredential.error,
+        modalId: state.modal.modals[0] && state.modal.modals[0].id,
     };
 };
 
