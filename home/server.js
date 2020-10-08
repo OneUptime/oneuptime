@@ -69,6 +69,15 @@ app.get('/product/status-page', function (req, res) {
     });
 });
 
+
+app.get('/status-page', function (req, res) {
+    res.redirect('/product/status-page')
+});
+
+app.get('/status', function (req, res) {
+    res.redirect('https://status.fyipe.com')
+});
+
 app.get('/product/uptime-monitoring', function (req, res) {
     res.render('uptime-monitoring', {
         support: false,
@@ -77,6 +86,10 @@ app.get('/product/uptime-monitoring', function (req, res) {
         blackLogo: false,
         requestDemoCta: false,
     });
+});
+
+app.get('/uptime-monitoring', function (req, res) {
+    res.redirect('/product/uptime-monitoring')
 });
 
 app.get('/product/logs-management', function (req, res) {
@@ -89,6 +102,10 @@ app.get('/product/logs-management', function (req, res) {
     });
 });
 
+app.get('/logs-management', function (req, res) {
+    res.redirect('/product/logs-management')
+});
+
 app.get('/product/docker-container-security', function (req, res) {
     res.render('container-security', {
         support: false,
@@ -99,6 +116,11 @@ app.get('/product/docker-container-security', function (req, res) {
     });
 });
 
+app.get('/docker-container-security', function (req, res) {
+    res.redirect('/product/docker-container-security')
+});
+
+
 app.get('/product/app-security', function (req, res) {
     res.render('app-security', {
         support: false,
@@ -107,6 +129,10 @@ app.get('/product/app-security', function (req, res) {
         blackLogo: false,
         requestDemoCta: false,
     });
+});
+
+app.get('/app-security', function (req, res) {
+    res.redirect('/product/app-security')
 });
 
 app.get('/product/api-monitoring', function (req, res) {
@@ -119,6 +145,10 @@ app.get('/product/api-monitoring', function (req, res) {
     });
 });
 
+app.get('/api-monitoring', function (req, res) {
+    res.redirect('/product/api-monitoring')
+});
+
 app.get('/product/server-monitoring', function (req, res) {
     res.render('server-monitoring', {
         support: false,
@@ -127,6 +157,10 @@ app.get('/product/server-monitoring', function (req, res) {
         blackLogo: false,
         requestDemoCta: false,
     });
+});
+
+app.get('/server-monitoring', function (req, res) {
+    res.redirect('/product/server-monitoring')
 });
 
 app.get('/product/incident-management', function (req, res) {
@@ -139,6 +173,10 @@ app.get('/product/incident-management', function (req, res) {
     });
 });
 
+app.get('/incident-management', function (req, res) {
+    res.redirect('/product/incident-management')
+});
+
 app.get('/product/oncall-management', function (req, res) {
     res.render('oncall-management', {
         support: false,
@@ -147,6 +185,10 @@ app.get('/product/oncall-management', function (req, res) {
         blackLogo: false,
         requestDemoCta: false,
     });
+});
+
+app.get('/oncall-management', function (req, res) {
+    res.redirect('/product/oncall-management')
 });
 
 app.get('/customers', function (req, res) {
