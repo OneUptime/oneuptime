@@ -126,6 +126,16 @@ app.get('/product/server-monitoring', function(req, res) {
     });
 });
 
+app.get('/product/incident-management', function(req, res) {
+    res.render('incident-management', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
 app.get('/product/oncall-management', function(req, res) {
     res.render('oncall-management', {
         support: false,
