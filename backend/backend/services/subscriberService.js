@@ -139,6 +139,15 @@ module.exports = {
     subscribe: async function(data, monitors) {
         try {
             const _this = this;
+            if (!monitors || (monitors && monitors.length < 1)) {
+                const statusPage = await StatusPageService.findOneBy({
+                    _id: data.statusPageId,
+                });
+                monitors = statusPage.monitors.map(
+                    monitorData => monitorData.monitor
+                );
+            }
+
             const success = monitors.map(async monitor => {
                 const newSubscriber = Object.assign({}, data, {
                     monitorId: monitor,
@@ -306,3 +315,4 @@ module.exports = {
 
 const SubscriberModel = require('../models/subscriber');
 const ErrorService = require('./errorService');
+const StatusPageService = require('./statusPageService');
