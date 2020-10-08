@@ -24,13 +24,6 @@ const DockerCredentialList = ({
 }) => {
     const [page, setPage] = useState(1);
 
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyboard);
-        return () => {
-            window.removeEventListener('keydown', handleKeyboard);
-        };
-    }, [modalId]);
-
     const handleDelete = credentialId => {
         getDockerSecurities({ projectId, credentialId });
 
@@ -79,6 +72,13 @@ const DockerCredentialList = ({
                 return false;
         }
     };
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyboard);
+        return () => {
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    });
 
     const prev = () => setPage(page - 1);
     const next = () => setPage(page + 1);

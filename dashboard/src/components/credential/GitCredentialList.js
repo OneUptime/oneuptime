@@ -24,13 +24,6 @@ const GitCredentialList = ({
 }) => {
     const [page, setPage] = useState(1);
 
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyboard);
-        return () => {
-            window.removeEventListener('keydown', handleKeyboard);
-        };
-    }, [modalId]);
-
     const handleDelete = credentialId => {
         getGitSecurities({ projectId, credentialId });
 
@@ -79,6 +72,13 @@ const GitCredentialList = ({
                 return false;
         }
     };
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyboard);
+        return () => {
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    });
 
     const prev = () => {
         setPage(page - 1);

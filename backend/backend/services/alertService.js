@@ -1183,19 +1183,19 @@ module.exports = {
                     contactPhone = countryCode + contactPhone;
                 }
 
-                let hasEnoughBalance;
-                let doesPhoneNumberComplyWithHighRiskConfig;
+                // let hasEnoughBalance;
+                // let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     const owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
-                    hasEnoughBalance = await _this.hasEnoughBalance(
+                    await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
                         owner.userId,
                         AlertType.SMS
                     );
-                    doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                    await _this.doesPhoneNumberComplyWithHighRiskConfig(
                         incident.projectId,
                         contactPhone
                     );
