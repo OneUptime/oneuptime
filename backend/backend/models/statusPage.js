@@ -83,6 +83,10 @@ const statusSchema = new Schema({
         type: Boolean,
         default: true,
     },
+    selectIndividualMonitors: {
+        type: Boolean,
+        default: false,
+    },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
