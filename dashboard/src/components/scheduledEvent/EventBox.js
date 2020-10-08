@@ -323,6 +323,7 @@ class EventBox extends Component {
                                                                         DeleteSchedule,
                                                                         {
                                                                             projectId,
+                                                                            parentProjectId,
                                                                             eventId:
                                                                                 scheduledEvent._id,
                                                                         }
