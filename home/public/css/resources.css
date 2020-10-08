@@ -467,7 +467,7 @@ article.guide-content aside.footer img{
 article.guide-content aside.collect-email-guide{
     padding:25px 0
 }
-@media (min-width:670px){
+@media (min-width:770px){
     article.guide-content aside{
         -ms-flex-direction:row;
         flex-direction:row
@@ -486,7 +486,7 @@ article.guide-content aside svg+.content{
     line-height:24px;
     margin-top:25px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     article.guide-content aside svg+.content{
         margin-top:0;
         margin-left:40px
@@ -578,7 +578,7 @@ ol li:before{
     padding:10px;
     pointer-events:none
 }
-@media (min-width:670px){
+@media (min-width:770px){
     .image-container{
         padding:50px
     }

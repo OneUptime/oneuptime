@@ -65,7 +65,7 @@ main header{
 #stripes>span:hover{
     opacity:0.5;
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #stripes span{
         height:150px
     }
@@ -153,7 +153,7 @@ main header{
     display: none;
 }
 
-@media (min-width:670px){
+@media (min-width:770px){
     #intro{
         display:-ms-flexbox;
         display:flex;
@@ -171,7 +171,7 @@ main header{
     padding-top:70px;
     padding-bottom:100px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #intro .container-lg{
         margin-top:-7%;
         padding-top:0;
@@ -264,7 +264,7 @@ main header{
 }
 
 
-@media (min-width:670px){
+@media (min-width:770px){
     .cta-button-style{
         margin-left: calc(50% - 200px); 
         margin-top: 70px;
@@ -297,7 +297,7 @@ main header{
     }
 }
 
-@media (min-width:670px){
+@media (min-width:770px){
     @supports (width:auto){
         #intro .announcement{
             width:auto
@@ -344,7 +344,7 @@ main header{
     font-size: 20px;
     line-height: 28px;
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #intro p{
         max-width:60%
     }
@@ -359,7 +359,7 @@ main header{
     display:flex;
     margin-top:40px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #intro ul{
         margin-top:65px
     }
@@ -378,7 +378,7 @@ main header{
 #intro li:last-child{
     display:none
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #intro li:last-child{
         display:block
     }
@@ -430,7 +430,7 @@ main header{
     height:675px;
     margin-top:115px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #app-illustrations{
         -ms-flex-wrap:wrap;
         flex-wrap:wrap;
@@ -507,7 +507,7 @@ main header{
 #complete-toolkit .common-Link--arrow{
     margin-bottom:280px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #complete-toolkit .common-UppercaseTitle{
         margin:0 25%
     }
@@ -565,7 +565,7 @@ main header{
 #complete-toolkit .common-Link{
     display:block
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #complete-toolkit .common-Link{
         margin-top:35px;
         border-top:2px solid #f1f7fb
@@ -596,7 +596,7 @@ main header{
     margin:30px auto;
     padding:0 20px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #developers-first p{
         max-width:730px;
         margin-bottom:50px;
@@ -719,7 +719,7 @@ main header{
     color:#fa755a;
     text-decoration:underline
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #notebook{
         position:relative;
         padding-bottom:65px
@@ -806,7 +806,7 @@ main header{
 #global-scale{
     border-width:1px 0 0
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #secondary .cols{
         display:-ms-flexbox;
         display:flex
@@ -957,7 +957,7 @@ main header{
     align-content:space-between;
     background:linear-gradient(100grad,#545fdd,#000000 50%)
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #comparison .stripes{
         height:calc(100% - 120px)
     }
@@ -1043,7 +1043,7 @@ main header{
 #comparison .common-BodyText{
     margin:20px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #comparison .common-BodyText{
         margin:38px 40px
     }
@@ -1100,7 +1100,7 @@ main header{
     margin-left:25%;
     background:#fa755a
 }
-@media (min-width:670px){
+@media (min-width:770px){
     #comparison li:nth-child(5) .label{
         margin-left:58%
     }
@@ -1150,7 +1150,7 @@ main header{
     text-align: center;
 }
 
-@media (min-width:670px){
+@media (min-width:770px){
     .status-image{
         height: 120px;
         width: 650px;

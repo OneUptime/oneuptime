@@ -12,7 +12,7 @@ main h2[class^=common-Uppercase]{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media (min-width:670px){
+@media (min-width:770px){
     .columns{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -165,7 +165,7 @@ main header .stripes{
     bottom:260px;
     transform:skewY(-12deg)
 }
-@media (min-width:670px){
+@media (min-width:770px){
     main header .stripes{
         bottom:290px
     }
@@ -237,7 +237,7 @@ main header .intro .columns{
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:670px){
+@media (min-width:770px){
     main header .intro .columns{
         -ms-flex-direction:column;
         flex-direction:column
@@ -259,7 +259,7 @@ main header .intro .intro-copy{
     max-width:550px;
     margin-top:-18px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     main header .intro .intro-copy{
         -ms-flex-align:center;
         align-items:center;
@@ -346,7 +346,7 @@ section.prevention{
 section.prevention .intro-copy{
     margin-top:30px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.prevention .intro-copy{
         margin-top:70px
     }
@@ -361,7 +361,7 @@ section.prevention .intro-copy{
 section.prevention ul{
     margin-top:20px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.prevention ul{
         margin-top:60px
     }
@@ -370,7 +370,7 @@ section.techguide{
     max-width:1140px;
     margin-top:60px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.techguide{
         margin-top:80px
     }
@@ -533,7 +533,7 @@ section.simplify{
     position:relative;
     padding-top:90px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify{
         padding-top:120px
     }
@@ -692,7 +692,7 @@ section.simplify .manual-review{
     padding-bottom:90px;
     margin-top:30px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify .manual-review{
         padding-top:10px;
         padding-bottom:120px;
@@ -741,7 +741,7 @@ section.simplify .manual-review .review-queue{
     flex-shrink:0;
     width:calc(100% + 70px);
     height:256px;
-    max-width:670px;
+    max-width:770px;
     position:relative;
     margin-bottom:30px;
     overflow:hidden
@@ -869,7 +869,7 @@ section.simplify .manual-review .review-queue .charge .detail{
         margin:0 10px
     }
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify .manual-review .review-queue .charge .detail{
         margin:0 20px
     }
@@ -889,7 +889,7 @@ section.simplify .manual-review .review-queue .charge .detail.customer{
         display:block
     }
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify .manual-review .review-queue .charge .detail.customer{
         max-width:none
     }
@@ -907,7 +907,7 @@ section.simplify .manual-review .review-queue .charge .detail h3{
     text-overflow:ellipsis;
     transition:color .5s cubic-bezier(.645,.045,.355,1)
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify .manual-review .review-queue .charge .detail h3{
         font-size:17px
     }
@@ -937,7 +937,7 @@ section.simplify .manual-review .review-queue .charge .detail p{
     text-overflow:ellipsis;
     transition:color .5s cubic-bezier(.645,.045,.355,1)
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.simplify .manual-review .review-queue .charge .detail p{
         font-size:16px
     }
@@ -1024,7 +1024,7 @@ section.take-action{
     position:relative;
     padding:90px 20px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.take-action{
         padding:120px 20px
     }
@@ -1072,7 +1072,7 @@ section.take-action .video-container{
     z-index:1;
     pointer-events:none
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.take-action .video-container{
         max-width:600px
     }
@@ -1158,7 +1158,7 @@ section.take-action .video-caption{
     margin-top:30px;
     font-style:italic
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.take-action .video-caption{
         text-align:center
     }

@@ -192,11 +192,6 @@ section.marquee #bubble-overlay header:before{
     
     background-size:100% 100%
 }
-@media (min--moz-device-pixel-ratio:1.5),(min-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:138dpi),all and (-webkit-min-device-pixel-ratio:1.5){
-    section.marquee #bubble-overlay header:before{
-        background-size:100% 100%
-    }
-}
 @media screen and (max-width:1012px){
     section.marquee #bubble-overlay header:before{
         left:0

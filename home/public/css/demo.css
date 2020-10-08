@@ -10,7 +10,7 @@ body .gradient-background{
     width:100%;
     position:absolute
 }
-@media(min-width:670px){
+@media(min-width:770px){
     body .gradient-background{
         overflow:visible
     }
@@ -46,7 +46,7 @@ section.ctas{
 section.ctas .container-lg{
     padding-right:0
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.ctas .container-lg{
         display:-ms-flexbox;
         display:flex;
@@ -67,7 +67,7 @@ section.ctas .cta{
     -ms-flex:1;
     flex:1
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.ctas .cta{
         max-width:none
     }
@@ -82,7 +82,7 @@ section.ctas .cta{
 section.ctas .cta:first-child{
     padding-bottom:35px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.ctas .cta:first-child{
         padding-bottom:0
     }
@@ -165,7 +165,7 @@ section.form-section .customers{
     flex-direction:column;
     padding-bottom:20px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .customers{
         -ms-flex-align:center;
         align-items:center
@@ -202,7 +202,7 @@ section.form-section .customers .customer-logos{
     -ms-flex-pack:left;
     justify-content:left
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .customers .customer-logos{
         -ms-flex:1;
         flex:1;
@@ -273,7 +273,7 @@ section.form-section{
     padding-bottom:50px;
     margin-top:-10px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section{
         margin-top:-20px
     }
@@ -296,7 +296,7 @@ section.form-section .container-lg{
 section.form-section .form-column{
     padding-bottom:45px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-column{
         padding-bottom:70px
     }
@@ -322,7 +322,7 @@ section.form-section .secondary-column{
         margin-right:0
     }
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .secondary-column>:first-child{
         padding-left:24px;
         padding-right:18px
@@ -359,7 +359,7 @@ section.form-section form{
     padding:10px 10px 13px 15px;
     padding:0
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section form{
         padding:10px 18px 20px 24px
     }
@@ -373,7 +373,7 @@ section.form-section .form-row{
     padding:8px 13px 2px 17px;
     border-bottom:1px solid #e6eef8
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row{
         display:-ms-flexbox;
         display:flex;
@@ -400,7 +400,7 @@ section.form-section .form-row label{
     text-transform:uppercase;
     transition:color .1s ease-out
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row label{
         color:#424770;
         font-size:17px;
@@ -415,7 +415,7 @@ section.form-section .form-row label{
         text-transform:none
     }
 }
-@media(min-width:670px){
+@media(min-width:770px){
     html[lang=de] section.form-section .form-row label{
         -ms-flex:47%;
         flex:47%
@@ -424,7 +424,7 @@ section.form-section .form-row label{
 html[lang=es] section.form-section .form-row label,html[lang=fr] section.form-section .form-row label{
     line-height:22px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     html[lang=es] section.form-section .form-row label,html[lang=fr] section.form-section .form-row label{
         -ms-flex:38%;
         flex:38%
@@ -437,7 +437,7 @@ section.form-section .form-row.has-focus .select-wrapper select{
     background-color:transparent;
     box-shadow:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row.has-focus .select-wrapper select{
         box-shadow:0 0 0 1px #e4effa
     }
@@ -456,7 +456,7 @@ section.form-section .form-row summary{
     padding-bottom:4px;
     text-transform:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row summary{
         padding-top:4px;
         padding-bottom:8px
@@ -477,7 +477,7 @@ section.form-section .form-row input,section.form-section .form-row select,secti
     padding:5px 20px 8px 0;
     transition:background-color .1s ease-in,color .1s ease-in
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row input,section.form-section .form-row select,section.form-section .form-row textarea{
         background-color:#f9f9f9;
         padding:5px 20px 8px 13px;
@@ -501,7 +501,7 @@ section.form-section .form-row .select-wrapper select{
     pointer-events:none;
     background-color:transparent
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row .select-wrapper select{
         background-color:#f9f9f9
     }
@@ -512,7 +512,7 @@ section.form-section .form-row .select-wrapper select.has-value{
 section.form-section .form-row input:focus,section.form-section .form-row select:focus,section.form-section .form-row textarea:focus{
     box-shadow:0 0 0 1px #fff
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row input:focus,section.form-section .form-row select:focus,section.form-section .form-row textarea:focus{
         background-color:transparent;
         box-shadow:0 0 0 1px #e4effa
@@ -546,7 +546,7 @@ section.form-section .form-row textarea:-ms-input-placeholder{
 section.form-section .form-row textarea::placeholder{
     padding-right:25px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row textarea::-webkit-input-placeholder{
         padding-right:0
     }
@@ -580,7 +580,7 @@ section.form-section .form-row textarea{
     min-height:83px;
     padding:7px 20px 7px 0
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row textarea{
         min-height:140px;
         padding:7px 20px 7px 13px
@@ -602,7 +602,7 @@ section.form-section .submit-row{
     text-align:right;
     padding:12px 10px 13px 0
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .submit-row{
         padding:12px 0 0
     }
@@ -682,7 +682,7 @@ section.form-section .select-wrapper select{
     background-position-x:100%;
     background-position-y:16px
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .select-wrapper select{
         background-position-x:calc(100% - 22px)
     }
@@ -704,7 +704,7 @@ section.form-section .select-wrapper select.invalid-missing{
     box-shadow:0 0 0 1px #fff;
     background-color:transparent
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .select-wrapper select.invalid-missing{
         box-shadow:0 0 0 1px #ffa27b
     }
@@ -719,7 +719,7 @@ section.form-section .form-row input.invalid-missing,section.form-section .form-
     box-shadow:0 0 0 1px #fff;
     background-color:transparent
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row input.invalid-missing,section.form-section .form-row input.invalid-value,section.form-section .form-row textarea.invalid-missing{
         box-shadow:0 0 0 1px #ffa27b
     }
@@ -729,7 +729,7 @@ section.form-section .form-row.has-focus input,section.form-section .form-row.ha
     background-position-x:-5000px!important;
     box-shadow:0 0 0 1px #fff
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.form-section .form-row.has-focus input,section.form-section .form-row.has-focus textarea,section.form-section .form-row input:focus,section.form-section .form-row textarea:focus{
         box-shadow:0 0 0 1px #e4effa
     }
@@ -746,7 +746,7 @@ section.contact-sales-header .stripes-container{
     transition:opacity .2s ease-out;
     will-change:transform
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container{
         bottom:-90px
     }
@@ -774,7 +774,7 @@ section.contact-sales-header .stripes-container.initial .s1{
     top:-110%;
     display:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s1{
         display:block
     }
@@ -810,7 +810,7 @@ section.contact-sales-header .stripes-container.initial .s3{
     display:none;
     transition:transform .6s ease-out
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s3{
         display:block
     }
@@ -832,7 +832,7 @@ section.contact-sales-header .stripes-container.initial .s4{
     mix-blend-mode:soft-light;
     display:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s4{
         display:block
     }
@@ -851,7 +851,7 @@ section.contact-sales-header .stripes-container.initial .s5{
     opacity:.09;
     background:#fff
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s5{
         width:100px
     }
@@ -870,7 +870,7 @@ section.contact-sales-header .stripes-container.initial .s6{
     opacity:.1;
     background:#d7d7d7
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s6{
         width:69px
     }
@@ -890,7 +890,7 @@ section.contact-sales-header .stripes-container.initial .s7{
     transition:transform .6s ease-out;
     display:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .stripes-container.initial .s7{
         display:block
     }
@@ -913,7 +913,7 @@ section.contact-sales-header .background-container.success{
     bottom:0;
     overflow:hidden
 }
-@media(min-width:670px){
+@media(min-width:770px){
     .stripes-container .light-dots-container{
         display:none
     }
@@ -947,7 +947,7 @@ section.contact-sales-header .background-container.success{
     height:100%;
     overflow:hidden
 }
-@media(min-width:670px){
+@media(min-width:770px){
     .stripes-container .dark-dots-container{
         display:none
     }
@@ -1032,7 +1032,7 @@ section.contact-sales-header .stripes-container .left-dots-container:before{
 .form-submitted section.contact-sales-header .stripes-container.initial .s2{
     display:none
 }
-@media(min-width:670px){
+@media(min-width:770px){
     .form-submitted section.contact-sales-header .stripes-container.initial .s2{
         display:block;
         left:calc(50% + 105px);
@@ -1061,7 +1061,7 @@ section.contact-sales-header .headline{
     margin-right:auto;
     transition:opacity .3s ease-out
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.contact-sales-header .headline{
         padding-top:114px
     }
@@ -1115,7 +1115,7 @@ section.contact-sales-header .common-IntroText{
     pointer-events:none;
     transform:translateY(6%)
 }
-@media (min-width:670px){
+@media (min-width:770px){
     .phone-finished section.success .phone-number-container{
         transform:translateY(10%)
     }
@@ -1145,7 +1145,7 @@ section.success .phone-number-container .phone-number-subhead{
     margin-right:auto;
     margin-left:auto
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .phone-number-container .phone-number-subhead{
         padding:0;
         margin-bottom:40px
@@ -1159,7 +1159,7 @@ section.success .phone-number-form-container{
     padding:12px 0 15px 19px;
     position:relative
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .phone-number-form-container{
         padding:12px;
         padding-left:22px
@@ -1182,7 +1182,7 @@ section.success .phone-number-form-container .phone-country-code-placeholder{
     line-height:26px;
     display:none
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .phone-number-form-container .phone-country-code-placeholder{
         display:inline-block
     }
@@ -1204,7 +1204,7 @@ section.success .phone-number-form-container input#phone{
     transition:background-color .08s ease-in,color .08s ease-in;
     font-family:Open Sans,Segoe UI,sans-serif
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.success .phone-number-form-container input#phone{
         max-width:152px
     }
@@ -1254,7 +1254,7 @@ section.success .phone-number-form-container .submit-button{
     right:0;
     bottom:-60px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .phone-number-form-container .submit-button{
         margin-left:10px;
         position:static
@@ -1269,7 +1269,7 @@ section.success .phone-number-form .common-FlagIcon{
     display:inline-block;
     margin-left:15px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .phone-number-form .common-FlagIcon{
         margin-left:35px
     }
@@ -1299,7 +1299,7 @@ section.success .phone-number-container{
     transform-origin:100% -50px;
     pointer-events:none
 }
-@media (min-width:670px){
+@media (min-width:770px){
     .searchable-select-container .searchable-select-dropdown{
         left:0;
         margin-top:3px;
@@ -1378,7 +1378,7 @@ section.success{
     z-index:5;
     background:transparent
 }
-@media(min-width:670px){
+@media(min-width:770px){
     section.success{
         padding-top:238px
     }
@@ -1387,7 +1387,7 @@ section.success .thank-you-container{
     margin:0 auto;
     max-width:1080px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .thank-you-container{
         padding:0
     }
@@ -1403,7 +1403,7 @@ section.success .thank-you-container{
         padding:0
     }
 }
-@media (min-width:670px){
+@media (min-width:770px){
     html[lang=de] section.success .thank-you-container,html[lang=es] section.success .thank-you-container,html[lang=fr] section.success .thank-you-container{
         padding:20px
     }
@@ -1435,7 +1435,7 @@ section.success .thank-you{
     transition-duration:.6s;
     transition-timing-function:ease
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .thank-you{
         padding:0
     }
@@ -1494,7 +1494,7 @@ section.success .thank-you .common-Link{
     margin-left:-20px;
     margin-right:-20px
 }
-@media (min-width:670px){
+@media (min-width:770px){
     section.success .thank-you .common-Link{
         margin-left:0;
         margin-right:0
