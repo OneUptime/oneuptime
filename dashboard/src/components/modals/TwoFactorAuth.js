@@ -163,6 +163,9 @@ class TwoFactorAuthModal extends Component {
                                                                     required={
                                                                         true
                                                                     }
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -282,7 +285,6 @@ class TwoFactorAuthModal extends Component {
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
-                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={

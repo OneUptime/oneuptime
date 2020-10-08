@@ -42,9 +42,10 @@ export class ResourceCategories extends Component {
             case 'N':
             case 'n':
                 if (modalId !== CreateResourceCategoryModalId) {
+                    e.preventDefault(); // prevent entering the key automatically on the input field
                     return this.handleCreateResourceCategory(userId);
                 }
-                return false;
+                return true;
             default:
                 return false;
         }
