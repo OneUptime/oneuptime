@@ -214,7 +214,7 @@ function ScheduledEventDescription({
                                         </div>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
                                             <label className="bs-Fieldset-label">
-                                                Resolve
+                                                Mark event as resolved
                                             </label>
                                             <div className="bs-Fieldset-fields">
                                                 {!scheduledEvent.resolved ? (
@@ -249,7 +249,8 @@ function ScheduledEventDescription({
                                                                     >
                                                                         <span>
                                                                             Resolve
-                                                                            Schedule
+                                                                            this
+                                                                            event
                                                                         </span>
                                                                     </label>
                                                                 </ShouldRender>
