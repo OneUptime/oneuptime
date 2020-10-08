@@ -75,7 +75,7 @@ module.exports = {
                     deletedIncidentsCountInProject +
                     1;
 
-                if (data.probeId) {
+                if (!incident.manuallyCreated) {
                     const incidentSettings = await IncidentSettingsService.findOne(
                         {
                             projectId: data.projectId,
@@ -102,14 +102,16 @@ module.exports = {
                     incident.incidentPriority =
                         incidentSettings.incidentPriority;
 
-                    incident.probes = [
-                        {
-                            probeId: data.probeId,
-                            updatedAt: Date.now(),
-                            status: true,
-                            reportedStatus: data.incidentType,
-                        },
-                    ];
+                    if (data.probeId) {
+                        incident.probes = [
+                            {
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.incidentType,
+                            },
+                        ];
+                    }
                 } else {
                     incident.title = data.title;
                     incident.description = data.description;
