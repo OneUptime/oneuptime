@@ -106,8 +106,18 @@ app.get('/product/app-security', function(req, res) {
     });
 });
 
-app.get('/product/incident-management', function(req, res) {
-    res.render('incident-management', {
+app.get('/product/api-monitoring', function(req, res) {
+    res.render('api-monitoring', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/product/server-monitoring', function(req, res) {
+    res.render('server-monitoring', {
         support: false,
         footerCards: true,
         cta: true,
