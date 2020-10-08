@@ -433,7 +433,7 @@ class Main extends Component {
                         </ShouldRender>
                         <div
                             className="content"
-                            style={{ position: 'relative' }}
+                            style={{ position: 'relative', marginTop: 75 }}
                         >
                             {headerHTML ? (
                                 <React.Fragment>
