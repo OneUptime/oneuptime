@@ -203,6 +203,12 @@ class Component extends React.Component {
                                                             style={{
                                                                 width: '350px',
                                                             }}
+                                                            autoFocus={
+                                                                field.key ===
+                                                                'domain'
+                                                                    ? true
+                                                                    : false
+                                                            }
                                                         />
                                                         <span
                                                             style={{
@@ -239,7 +245,7 @@ class Component extends React.Component {
                                     className="bs-Button bs-Button--blue btn__modal"
                                     disabled={updatingSso || addingSso}
                                     type="submit"
-                                    autoFocus={true}
+                                    autoFocus={formTitle === 'Update SSO'}
                                 >
                                     <span>Save</span>
                                     <span className="create-btn__keycode">

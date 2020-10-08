@@ -10,13 +10,40 @@ import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 
 export class Component extends React.Component {
+    state = {
+        ssoModalId: uuid.v4(),
+    };
+
     async componentDidMount() {
         await this.props.fetchSsos();
+
+        window.addEventListener('keydown', this.handleKeyboard);
     }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = event => {
+        const { modalId } = this.props;
+        const { ssoModalId } = this.state;
+
+        switch (event.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== ssoModalId) {
+                    event.preventDefault();
+                    return this.addSso();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
 
     addSso = async () => {
         this.props.openModal({
-            id: uuid.v4(),
+            id: this.state.ssoModalId,
             onConfirm: () => {},
             content: SsoAddModal,
         });
@@ -98,10 +125,15 @@ export class Component extends React.Component {
                                                 onClick={this.addSso}
                                                 style={{
                                                     marginLeft: '8px',
+                                                    paddingTop: 3,
+                                                    paddingBottom: 3,
                                                 }}
                                             >
                                                 <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                     <span>Add SSO</span>
+                                                    <span className="new-btn__keycode">
+                                                        N
+                                                    </span>
                                                 </span>
                                             </button>
                                         </div>
@@ -378,6 +410,7 @@ Component.propTypes = {
     fetchSso: PropTypes.func.isRequired,
     deleteSso: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
+    modalId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -395,6 +428,7 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     return {
         ssos: state.sso.ssos,
+        modalId: state.modal.modals[0] && state.modal.modals[0].id,
     };
 }
 
