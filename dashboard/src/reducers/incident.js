@@ -1000,9 +1000,10 @@ export default function incident(state = initialState, action) {
             });
 
         case types.CLOSE_INCIDENT_REQUEST:
+            console.log('kjabdfkj',action.payload);
             return Object.assign({}, state, {
                 closeincident: {
-                    requesting: true,
+                    requesting: action.payload,
                     success: false,
                     error: null,
                 },

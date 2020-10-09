@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 
 export class ApplicationSecurityDeleteBox extends Component {
@@ -18,17 +18,6 @@ export class ApplicationSecurityDeleteBox extends Component {
         });
     };
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({
-                    id: this.props.applicationSecurityId,
-                });
-            default:
-                return false;
-        }
-    };
-
     render() {
         const {
             deleting,
@@ -38,10 +27,7 @@ export class ApplicationSecurityDeleteBox extends Component {
         } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="Box-root Margin-bottom--12"
-            >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -90,7 +76,7 @@ export class ApplicationSecurityDeleteBox extends Component {
 ApplicationSecurityDeleteBox.displayName = 'ApplicationSecurityDeleteBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, closeModal }, dispatch);
+    bindActionCreators({ openModal }, dispatch);
 
 const mapStateToProps = state => {
     return {
@@ -102,7 +88,6 @@ ApplicationSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     applicationSecurityId: PropTypes.string.isRequired,
-    closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     deleting: PropTypes.bool,
 };

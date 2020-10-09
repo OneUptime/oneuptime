@@ -12,6 +12,7 @@ const RenderField = ({
     initialValue,
     style,
     required,
+    autoFocus,
 }) => (
     <span style={{ width: '100%' }}>
         <span>
@@ -25,6 +26,7 @@ const RenderField = ({
                 defaultValue={initialValue}
                 style={style || {}}
                 required={required}
+                autoFocus={autoFocus}
             />
         </span>
         <br />
@@ -65,10 +67,12 @@ RenderField.propTypes = {
     disabled: PropTypes.bool,
     style: PropTypes.object,
     required: PropTypes.bool,
+    autoFocus: PropTypes.bool,
 };
 
 RenderField.defaultProps = {
     required: false,
+    autoFocus: false,
 };
 
 export { RenderField };

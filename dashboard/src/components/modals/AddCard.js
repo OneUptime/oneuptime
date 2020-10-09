@@ -40,6 +40,18 @@ const createOptions = (fontSize, padding) => {
 };
 
 class _CardForm extends React.Component {
+    constructor() {
+        super();
+
+        this.setRef = instance => {
+            if (instance) {
+                instance._element.on('ready', () => {
+                    instance._element.focus();
+                });
+            }
+        };
+    }
+
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -151,6 +163,7 @@ class _CardForm extends React.Component {
                                     <label>
                                         <CardElement
                                             {...createOptions(elementFontSize)}
+                                            ref={this.setRef}
                                         />
                                     </label>
                                 </div>
@@ -200,7 +213,6 @@ class _CardForm extends React.Component {
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                     disabled={requesting}
                                     type="submit"
-                                    autoFocus={true}
                                 >
                                     {!requesting && (
                                         <>

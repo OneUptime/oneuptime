@@ -519,10 +519,10 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
     };
 }
 
-export function closeIncidentRequest(promise) {
+export function closeIncidentRequest(incidentId) {
     return {
         type: types.CLOSE_INCIDENT_REQUEST,
-        payload: promise,
+        payload: incidentId,
     };
 }
 
@@ -547,7 +547,7 @@ export function closeIncident(projectId, incidentId) {
             `incident/${projectId}/close/${incidentId}`,
             {}
         );
-        dispatch(closeIncidentRequest(promise));
+        dispatch(closeIncidentRequest(incidentId));
 
         promise.then(
             function(incident) {

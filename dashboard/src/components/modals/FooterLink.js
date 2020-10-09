@@ -97,6 +97,7 @@ class CreateFooterLink extends Component {
                                                     type="text"
                                                     component={RenderField}
                                                     placeholder="Home"
+                                                    autoFocus={true}
                                                 />
                                             </div>
                                         </div>
@@ -172,7 +173,6 @@ class CreateFooterLink extends Component {
                                                 .requesting
                                         }
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {this.props.statusPage.links &&
                                             !this.props.statusPage.links
