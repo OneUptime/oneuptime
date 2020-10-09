@@ -201,23 +201,28 @@ module.exports = {
     subscriberCheck: async function(subscriber) {
         const _this = this;
         let existingSubscriber = null;
-        if (subscriber.alertVia === 'sms') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactPhone: subscriber.contactPhone,
-                countryCode: subscriber.countryCode,
-            });
-        } else if (subscriber.alertVia === 'email') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactEmail: subscriber.contactEmail,
-            });
-        } else if (subscriber.alertVia === 'webhook') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactWebhook: subscriber.contactWebhook,
-                contactEmail: subscriber.contactEmail,
-            });
+        if (subscriber.statusPageId) {
+            if (subscriber.alertVia === 'sms') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactPhone: subscriber.contactPhone,
+                    countryCode: subscriber.countryCode,
+                    statusPageId: subscriber.statusPageId,
+                });
+            } else if (subscriber.alertVia === 'email') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactEmail: subscriber.contactEmail,
+                    statusPageId: subscriber.statusPageId,
+                });
+            } else if (subscriber.alertVia === 'webhook') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactWebhook: subscriber.contactWebhook,
+                    contactEmail: subscriber.contactEmail,
+                    statusPageId: subscriber.statusPageId,
+                });
+            }
         }
         return existingSubscriber !== null ? true : false;
     },
