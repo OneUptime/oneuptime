@@ -10,7 +10,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addApplicationSecurity } from '../../actions/security';
 import { getGitCredentials } from '../../actions/credential';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import GitCredentialModal from '../credential/GitCredentialModal';
 
 class ApplicationSecurityForm extends Component {
@@ -38,19 +38,6 @@ class ApplicationSecurityForm extends Component {
         });
     };
 
-    handleKeyBoard = e => {
-        const { closeModal, projectId } = this.props;
-
-        switch (e.key) {
-            case 'Escape':
-                return closeModal({
-                    id: projectId,
-                });
-            default:
-                return false;
-        }
-    };
-
     render() {
         const {
             isRequesting,
@@ -62,10 +49,7 @@ class ApplicationSecurityForm extends Component {
         } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="Box-root Margin-bottom--12"
-            >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -317,13 +301,12 @@ ApplicationSecurityForm.propTypes = {
     gitCredentials: PropTypes.array,
     requestingGitCredentials: PropTypes.bool,
     openModal: PropTypes.func,
-    closeModal: PropTypes.func,
     resourceCategoryList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { addApplicationSecurity, getGitCredentials, openModal, closeModal },
+        { addApplicationSecurity, getGitCredentials, openModal },
         dispatch
     );
 

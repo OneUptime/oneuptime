@@ -35,6 +35,7 @@ class IncidentSettings extends React.Component {
             case 'N':
             case 'n':
                 if (!modalId) {
+                    e.preventDefault();
                     return this.handleCreateNewIncidentPriority();
                 }
                 return false;

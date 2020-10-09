@@ -65,6 +65,7 @@ const DockerCredentialList = ({
             case 'N':
             case 'n':
                 if (modalId !== projectId) {
+                    e.preventDefault(); // prevent entering the key in the focused input field
                     return handleCredentialCreation();
                 }
                 return false;

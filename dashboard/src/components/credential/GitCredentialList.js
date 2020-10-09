@@ -65,6 +65,7 @@ const GitCredentialList = ({
             case 'N':
             case 'n':
                 if (modalId !== projectId) {
+                    e.preventDefault(); // prevent entering the key on the focused input element
                     return handleCredentialCreation();
                 }
                 return false;

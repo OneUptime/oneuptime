@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import EditSchedule from '../modals/EditSchedule';
 import DataPathHoC from '../DataPathHoC';
@@ -24,17 +24,6 @@ class EventBox extends Component {
         };
         this.limit = 10;
     }
-
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({
-                    id: this.state.createScheduledEventModalId,
-                });
-            default:
-                return false;
-        }
-    };
 
     handleMonitorList = monitors => {
         if (monitors.length === 0) {
@@ -95,10 +84,7 @@ class EventBox extends Component {
             : '';
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12"
-            >
+            <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                     <ShouldRender if={subProjects.length > 0 && currentProject}>
                         <div className="Box-root Padding-bottom--20">
@@ -498,7 +484,6 @@ EventBox.displayName = 'EventBox';
 
 EventBox.propTypes = {
     openModal: PropTypes.func.isRequired,
-    closeModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     count: PropTypes.number,
@@ -531,7 +516,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             openModal,
-            closeModal,
         },
         dispatch
     );

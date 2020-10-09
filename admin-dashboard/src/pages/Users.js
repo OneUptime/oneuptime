@@ -24,7 +24,30 @@ class Users extends Component {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Main page Loaded');
         }
+
+        window.addEventListener('keydown', this.handleKeyboard);
     }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = event => {
+        const { modalId } = this.props;
+        const { addModalId } = this.state;
+
+        switch (event.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== addModalId) {
+                    event.preventDefault();
+                    return this.handleClick();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
 
     ready = () => {
         this.props.fetchUsers();
@@ -167,6 +190,8 @@ class Users extends Component {
                                                                                 style={{
                                                                                     marginLeft:
                                                                                         '8px',
+                                                                                    paddingTop: 3,
+                                                                                    paddingBottom: 3,
                                                                                 }}
                                                                             >
                                                                                 <ShouldRender
@@ -179,6 +204,9 @@ class Users extends Component {
                                                                                             Add
                                                                                             New
                                                                                             User
+                                                                                        </span>
+                                                                                        <span className="new-btn__keycode">
+                                                                                            N
                                                                                         </span>
                                                                                     </span>
                                                                                 </ShouldRender>
@@ -358,6 +386,7 @@ const mapStateToProps = state => {
         user: state.user,
         users: state.user.users.users || [],
         requesting,
+        modalId: state.modal.modals[0] && state.modal.modals[0].id,
     };
 };
 
@@ -372,6 +401,7 @@ Users.propTypes = {
     searchUsers: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
     openModal: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
 Users.displayName = 'Users';

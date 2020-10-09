@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scanApplicationSecurity } from '../../actions/security';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
@@ -20,7 +20,6 @@ const ApplicationSecurityView = ({
     projectId,
     componentId,
     openModal,
-    closeModal,
     securityLog,
     scanApplicationSecurity,
     scanning,
@@ -48,23 +47,12 @@ const ApplicationSecurityView = ({
         });
     };
 
-    const handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return closeModal({
-                    id: applicationSecurityId,
-                });
-            default:
-                return false;
-        }
-    };
-
     const status = securityLog.data
         ? threatLevel(securityLog.data.vulnerabilities)
         : 'no data';
 
     return (
-        <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
+        <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
                     <div className="db-Trends-header">
@@ -302,7 +290,6 @@ ApplicationSecurityView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     openModal: PropTypes.func,
-    closeModal: PropTypes.func,
     securityLog: PropTypes.object,
     scanApplicationSecurity: PropTypes.func,
     scanning: PropTypes.bool,
@@ -318,7 +305,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             openModal,
-            closeModal,
             scanApplicationSecurity,
         },
         dispatch

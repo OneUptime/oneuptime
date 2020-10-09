@@ -248,6 +248,7 @@ class CreateIncident extends Component {
                                                                     name
                                                                 )
                                                             }
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                     <div className="bs-Fieldset-row Margin-bottom--12">
@@ -504,7 +505,6 @@ class CreateIncident extends Component {
                                             }
                                             type="submit"
                                             style={{ height: '35px' }}
-                                            autoFocus={true}
                                         >
                                             {this.props.newIncident &&
                                                 !this.props.newIncident

@@ -152,6 +152,9 @@ class GitCredentialModal extends Component {
                                                                     validate={
                                                                         ValidateField.text
                                                                     }
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -331,7 +334,6 @@ class GitCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={isRequesting}
-                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
                                                     <>

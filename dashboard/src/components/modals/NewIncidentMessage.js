@@ -205,6 +205,7 @@ class NewIncidentMessage extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -349,7 +350,6 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-addButton`}
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -405,7 +405,6 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-editButton`}
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

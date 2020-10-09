@@ -171,6 +171,7 @@ class AddNoteModal extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -260,7 +261,6 @@ class AddNoteModal extends Component {
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={creatingNote}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender if={!creatingNote}>
                                                 <span>Save</span>

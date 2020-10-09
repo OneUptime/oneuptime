@@ -113,7 +113,8 @@
     background-color: #333;
 }
 
-.cancel-btn__keycode {
+.cancel-btn__keycode,
+.new-btn__keycode {
     text-transform: lowercase;
     background: #c5c5c59e;
     border-radius: 5px;
@@ -126,4 +127,9 @@
     height: 20px;
     line-height: 15px;
     padding: 2px;
+}
+
+.new-btn__keycode {
+    line-height: 18px;
+    text-transform: capitalize;
 }
