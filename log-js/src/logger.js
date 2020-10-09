@@ -1,12 +1,16 @@
 import axios from 'axios';
+import FyipeTracker from './tracker';
 class FyipeLogger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
+    #tracker;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
+        // set up application tracker also
+        new FyipeTracker();
     }
     _setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;
