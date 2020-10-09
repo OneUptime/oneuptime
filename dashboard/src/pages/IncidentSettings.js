@@ -156,7 +156,7 @@ class IncidentSettings extends React.Component {
                                                                 <div className="Box-root Margin-right--8">
                                                                     <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                                 </div>
-                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                                     <span>
                                                                         Add
                                                                         Priority

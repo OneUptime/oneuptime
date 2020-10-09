@@ -199,7 +199,7 @@ class Users extends Component {
                                                                                         true
                                                                                     }
                                                                                 >
-                                                                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                    <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                                                         <span>
                                                                                             Add
                                                                                             New

@@ -43,6 +43,7 @@ class TwoFactorAuthModal extends Component {
                         .getElementById('enableTwoFactorAuthButton')
                         .click();
                 } else {
+                    e.preventDefault(); // prevent default behaviour of trying to submit the form
                     return document.getElementById('nextFormButton').click();
                 }
             default:
