@@ -99,6 +99,7 @@ export class AddSiteUrl extends React.Component {
                                             ValidateField.required,
                                             ValidateField.url,
                                         ]}
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -134,7 +135,6 @@ export class AddSiteUrl extends React.Component {
                                                 this.props.editMonitor
                                                     .requesting
                                             }
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

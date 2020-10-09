@@ -11,6 +11,8 @@ docker run -d -p 6379:6379 redis:latest
 ```
 
 -   You can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
+- Sign up using Stripe test card (if Fyipe asks you to enter a credit card): https://stripe.com/docs/testing
+- You're done setting up the project, when you can log in to admin dashboard (localhost:3100) and dashboard (localhost:3000). 
 
 ## Running with docker compose (with docker-compose, recommended if you're actively testing the app)
 

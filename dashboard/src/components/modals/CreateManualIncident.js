@@ -193,6 +193,7 @@ class CreateManualIncident extends Component {
                                                                 name
                                                             )
                                                         }
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -372,7 +373,6 @@ class CreateManualIncident extends Component {
                                                 newIncident.requesting
                                             }
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             {newIncident &&
                                                 !newIncident.requesting && (

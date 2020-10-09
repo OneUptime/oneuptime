@@ -163,6 +163,7 @@ class EditWebHook extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -472,7 +473,6 @@ class EditWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="slackUpdate"
-                                        autoFocus={true}
                                     >
                                         {this.props.newSlack &&
                                             !this.props.newSlack.requesting && (

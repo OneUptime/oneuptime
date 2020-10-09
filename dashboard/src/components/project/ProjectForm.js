@@ -203,6 +203,7 @@ class _ProjectForm extends React.Component {
                                                         width: '100%',
                                                         padding: '3px 5px',
                                                     }}
+                                                    autoFocus={true}
                                                 />
                                             </div>
                                         </div>
@@ -282,7 +283,6 @@ class _ProjectForm extends React.Component {
                                     'bs-is-disabled'}`}
                                 type="submit"
                                 disabled={requesting}
-                                autoFocus={true}
                             >
                                 <ShouldRender if={requesting}>
                                     <Spinner />

@@ -107,7 +107,7 @@ class PaymentCard extends Component {
                                                             </div>
                                                             <span
                                                                 id="addCardButton"
-                                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper"
                                                             >
                                                                 <span>
                                                                     Add card

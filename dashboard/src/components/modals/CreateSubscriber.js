@@ -165,6 +165,7 @@ class CreateSubscriber extends Component {
                                                                     'Webhook',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -320,7 +321,6 @@ class CreateSubscriber extends Component {
                                         }
                                         type="submit"
                                         id="createSubscriber"
-                                        autoFocus={true}
                                     >
                                         {this.props.newSubscriber &&
                                             !this.props.newSubscriber

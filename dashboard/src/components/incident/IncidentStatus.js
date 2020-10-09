@@ -372,7 +372,7 @@ export class IncidentStatus extends Component {
                                                 this.props.incident.reason && (
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Reason :
+                                                            Cause :
                                                         </label>
                                                         <div
                                                             className="bs-Fieldset-fields"
@@ -957,8 +957,10 @@ export class IncidentStatus extends Component {
                                             if={
                                                 this.props.closeincident &&
                                                 this.props.closeincident
-                                                    .requesting && this.props.closeincident
-                                                    .requesting === this.props.incident._id
+                                                    .requesting &&
+                                                this.props.closeincident
+                                                    .requesting ===
+                                                    this.props.incident._id
                                             }
                                         >
                                             <FormLoader />
@@ -967,9 +969,13 @@ export class IncidentStatus extends Component {
                                             if={
                                                 this.props.closeincident &&
                                                 (!this.props.closeincident
-                                                    .requesting || (this.props.closeincident
-                                                        .requesting && this.props.closeincident
-                                                        .requesting !== this.props.incident._id))
+                                                    .requesting ||
+                                                    (this.props.closeincident
+                                                        .requesting &&
+                                                        this.props.closeincident
+                                                            .requesting !==
+                                                            this.props.incident
+                                                                ._id))
                                             }
                                         >
                                             <span>Close</span>

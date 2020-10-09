@@ -43,6 +43,7 @@ class TwoFactorAuthModal extends Component {
                         .getElementById('enableTwoFactorAuthButton')
                         .click();
                 } else {
+                    e.preventDefault(); // prevent default behaviour of trying to submit the form
                     return document.getElementById('nextFormButton').click();
                 }
             default:
@@ -161,6 +162,9 @@ class TwoFactorAuthModal extends Component {
                                                                             '5px 0 10px 2%',
                                                                     }}
                                                                     required={
+                                                                        true
+                                                                    }
+                                                                    autoFocus={
                                                                         true
                                                                     }
                                                                 />
@@ -282,7 +286,6 @@ class TwoFactorAuthModal extends Component {
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
-                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={

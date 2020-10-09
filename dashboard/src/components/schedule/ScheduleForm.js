@@ -105,6 +105,7 @@ export class ScheduleForm extends React.Component {
                                             this.props.schedule.newSchedule
                                                 .requesting
                                         }
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -142,7 +143,6 @@ export class ScheduleForm extends React.Component {
                                                 this.props.schedule.newSchedule
                                                     .requesting
                                             }
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

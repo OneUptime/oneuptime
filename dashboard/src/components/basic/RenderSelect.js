@@ -12,6 +12,7 @@ const RenderSelect = ({
     options = [{ value: '', label: 'Select' }],
     message,
     id,
+    autoFocus,
 }) => {
     const filteredOpt = useRef();
     filteredOpt.current = options.filter(opt => opt.value === input.value);
@@ -55,6 +56,7 @@ const RenderSelect = ({
                     options={options.filter(opt =>
                         opt.show !== undefined ? opt.show : true
                     )}
+                    autoFocus={autoFocus}
                 />
                 {message && message.length && (
                     <>
@@ -104,6 +106,11 @@ RenderSelect.propTypes = {
     options: PropTypes.array.isRequired,
     message: PropTypes.string,
     id: PropTypes.string,
+    autoFocus: PropTypes.bool,
+};
+
+RenderSelect.defaultProps = {
+    autoFocus: false,
 };
 
 export { RenderSelect };

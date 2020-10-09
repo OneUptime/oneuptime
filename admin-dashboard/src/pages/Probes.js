@@ -18,6 +18,31 @@ class Probes extends React.Component {
         this.state = { addModalId: uuid.v4() };
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = event => {
+        const { modalId } = this.props;
+        const { addModalId } = this.state;
+
+        switch (event.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== addModalId) {
+                    event.preventDefault();
+                    return this.handleClick();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
+
     prevClicked = (skip, limit) => {
         this.props.getProbes(
             (skip || 0) > (limit || 10) ? skip - limit : 0,
@@ -100,17 +125,24 @@ class Probes extends React.Component {
                                                                                 this
                                                                                     .handleClick
                                                                             }
+                                                                            style={{
+                                                                                paddingTop: 3,
+                                                                                paddingBottom: 3,
+                                                                            }}
                                                                         >
                                                                             <ShouldRender
                                                                                 if={
                                                                                     true
                                                                                 }
                                                                             >
-                                                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                                                     <span>
                                                                                         Add
                                                                                         New
                                                                                         Probe
+                                                                                    </span>
+                                                                                    <span className="new-btn__keycode">
+                                                                                        N
                                                                                     </span>
                                                                                 </span>
                                                                             </ShouldRender>
@@ -154,13 +186,16 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ getProbes, openModal, closeModal }, dispatch);
 };
 
-const mapStateToProps = () => {
-    return {};
+const mapStateToProps = state => {
+    return {
+        modalId: state.modal.modals[0] && state.modal.modals[0].id,
+    };
 };
 
 Probes.propTypes = {
     getProbes: PropTypes.func.isRequired,
     openModal: PropTypes.func,
+    modalId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Probes);

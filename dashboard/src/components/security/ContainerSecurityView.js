@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scanContainerSecurity } from '../../actions/security';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
@@ -20,7 +20,6 @@ const ContainerSecurityView = ({
     projectId,
     componentId,
     openModal,
-    closeModal,
     scanContainerSecurity,
     securityLog,
     scanning,
@@ -36,17 +35,6 @@ const ContainerSecurityView = ({
         });
     };
 
-    const handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return closeModal({
-                    id: containerSecurityId,
-                });
-            default:
-                return false;
-        }
-    };
-
     const handleEdit = ({ projectId, componentId, containerSecurityId }) => {
         openModal({
             id: containerSecurityId,
@@ -60,7 +48,7 @@ const ContainerSecurityView = ({
         : 'no data';
 
     return (
-        <div onKeyDown={handleKeyBoard} className="Box-root Margin-bottom--12">
+        <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
                     <div className="db-Trends-header">
@@ -296,7 +284,6 @@ ContainerSecurityView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     openModal: PropTypes.func,
-    closeModal: PropTypes.func,
     scanContainerSecurity: PropTypes.func,
     scanning: PropTypes.bool,
     securityLog: PropTypes.object,
@@ -312,7 +299,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             openModal,
-            closeModal,
             scanContainerSecurity,
         },
         dispatch
