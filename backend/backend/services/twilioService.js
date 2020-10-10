@@ -138,7 +138,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             let { template } = await _this.getTemplate(
@@ -151,6 +152,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -223,7 +225,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             const _this = this;
@@ -237,6 +240,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -306,7 +310,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             const _this = this;
@@ -320,6 +325,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
