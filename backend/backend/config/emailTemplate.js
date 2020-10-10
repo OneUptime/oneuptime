@@ -10,6 +10,7 @@ module.exports = [
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
         ],
         emailType: 'Subscriber Incident Created',
         subject:
@@ -360,6 +361,30 @@ span.st-Delink.st-Delink--footer a {
   </tbody>
 </table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+      {{#if statusPageUrl}}
+        You can view the status of the incident here {{statusPageUrl}}
+      {{/if}}
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
   <tr>
     <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -527,6 +552,7 @@ span.st-Delink.st-Delink--footer a {
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -876,6 +902,30 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
 </tbody>
 </table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+      {{#if statusPageUrl}}
+        You can view the status of the incident here {{statusPageUrl}}
+      {{/if}}
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
 <tr>
   <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -1043,6 +1093,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
@@ -1386,6 +1437,30 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
   </tr>
 </tbody>
+</table>
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
+
+      {{#if statusPageUrl}}
+        You can view the status of the incident here {{statusPageUrl}}
+      {{/if}}
+
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12" style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
 </table>
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
 <tbody>
