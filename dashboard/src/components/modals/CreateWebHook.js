@@ -144,6 +144,7 @@ class CreateWebHook extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -517,7 +518,6 @@ class CreateWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="createWebhook"
-                                        autoFocus={true}
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook

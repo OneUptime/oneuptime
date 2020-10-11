@@ -372,7 +372,7 @@ export class IncidentStatus extends Component {
                                                 this.props.incident.reason && (
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
-                                                            Reason :
+                                                            Cause :
                                                         </label>
                                                         <div
                                                             className="bs-Fieldset-fields"

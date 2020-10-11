@@ -89,6 +89,7 @@ class EditComponent extends Component {
                     margin: '10px 0 10px 5%',
                 }}
                 disabled={this.props.editingComponent.requesting}
+                autoFocus={true}
             />
         </div>
     );
@@ -114,7 +115,6 @@ class EditComponent extends Component {
                     className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="save"
                     disabled={this.props.editingComponent.requesting}
-                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.editingComponent.requesting}>
                         <Spinner />

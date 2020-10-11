@@ -159,6 +159,9 @@ class DockerCredentialModal extends Component {
                                                                     validate={
                                                                         ValidateField.url
                                                                     }
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -362,7 +365,6 @@ class DockerCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={isRequesting}
-                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
                                                     <>

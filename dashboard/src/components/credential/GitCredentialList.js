@@ -65,6 +65,7 @@ const GitCredentialList = ({
             case 'N':
             case 'n':
                 if (modalId !== projectId) {
+                    e.preventDefault(); // prevent entering the key on the focused input element
                     return handleCredentialCreation();
                 }
                 return false;
@@ -122,7 +123,7 @@ const GitCredentialList = ({
                                         <div className="Box-root Margin-right--8">
                                             <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                         </div>
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                             <span>Add Credential</span>
                                             <span className="new-btn__keycode">
                                                 N

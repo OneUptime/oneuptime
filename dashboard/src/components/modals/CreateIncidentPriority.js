@@ -123,6 +123,7 @@ class CreateIncidentPriority extends Component {
                                                 validate={
                                                     ValidateField.required
                                                 }
+                                                autoFocus={true}
                                             />
                                         </div>
                                     </div>
@@ -208,7 +209,6 @@ class CreateIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="CreateIncidentPriority"
-                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={
