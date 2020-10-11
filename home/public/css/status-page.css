@@ -1099,7 +1099,7 @@ body{
         left:calc(-6px + (100vw - 1040px) * -.25)
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .section-developers .section-header h2{
         padding-left:60px
     }
@@ -1133,7 +1133,7 @@ body{
         padding-right:100px
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .developers-content{
         padding-left:60px
     }
@@ -1163,7 +1163,7 @@ body{
         margin-left:calc(15px + (100vw - 1040px) * -.291667)
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .developers-features{
         margin-left:-20px
     }
@@ -1373,7 +1373,7 @@ body{
         padding-left:calc(40px + (100vw - 1040px) * .3333)
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .worldwide-content{
         padding-left:80px
     }
@@ -1577,7 +1577,7 @@ body{
         margin-left:calc(-6px + (100vw - 1040px) * -.25)
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .header-content .common-ProductLockup{
         margin-left:-36px
     }

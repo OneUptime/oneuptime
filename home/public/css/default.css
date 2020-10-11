@@ -162,13 +162,13 @@ code,pre{
 width:100%
 }
 .container,.container-lg{
-    max-width:1040px
+    max-width:1020px
 }
 .margin-top-30{
     margin-top:30px;
 }
 .container-wide,.container-xl{
-    max-width:1160px
+    max-width:1020px
 }
 .common-SuperTitle{
     font-weight:300;
@@ -182,7 +182,7 @@ width:100%
     margin-top: 10px;
 }
 
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-SuperTitle{
         font-size:50px;
         line-height:70px
@@ -190,7 +190,7 @@ width:100%
 }
 
 /* This happens in Mobile */
-@media (max-width:770px){
+@media (max-width:1020px){
     .try-free-button{
         margin: auto !important; 
     }
@@ -221,6 +221,10 @@ width:100%
 
     .invisible-in-mobile{
         display: none !important;
+    }
+
+    .padding-bottom-in-mobile{
+        padding-bottom: 50px !important;
     }
 
     
@@ -257,7 +261,7 @@ width:100%
 
 
 /* This happens on Desktop*/
-@media (min-width:770px){
+@media (min-width:1020px){
     .try-free-button{
         margin-left: calc(50% - 200px);
     }
@@ -266,6 +270,7 @@ width:100%
         padding-top:75px !important;
         padding-left: 30px !important;
         padding-right: 30px !important;
+        padding-bottom: 30px !important;
     }
 
     .invisible-in-desktop{
@@ -312,7 +317,7 @@ width:100%
     padding-bottom: 5px;
 }
 
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-PageTitle{
         font-size:40px;
         line-height:55px
@@ -324,7 +329,7 @@ width:100%
     line-height:43px;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-PageSubtitle{
         font-size:40px;
         line-height:50px
@@ -336,7 +341,7 @@ width:100%
     line-height:31px;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-IntroText{
         font-size:19px;
         line-height:36px
@@ -371,7 +376,7 @@ width:100%
     text-transform:uppercase;
     letter-spacing:.025em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-UppercaseTitle{
         font-size:22px;
         line-height:33px
@@ -401,7 +406,7 @@ width:100%
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-ProductLockup,.common-ProductLockupBack{
         font-size:28px;
         line-height:38px
@@ -415,7 +420,7 @@ width:100%
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     margin-right:20px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-ProductLockup .icon,.common-ProductLockupBack .icon{
         width:72px;
         height:72px
@@ -612,7 +617,7 @@ width:100%
     padding:30px;
     box-shadow:0 15px 35px rgba(50,50,93,.1),0 5px 15px rgba(0,0,0,.07)
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .common-Card{
         padding:50px
     }
@@ -668,7 +673,7 @@ width:100%
     -ms-flex-preferred-size:50%;
     flex-basis:50%
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .sm-cols{
         -ms-flex-direction:row;
         flex-direction:row
@@ -696,7 +701,7 @@ width:100%
         flex-basis:50%
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .md-cols{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -728,7 +733,7 @@ width:100%
         flex-basis:50%
     }
 }
-@media (min-width:1040px){
+@media (min-width:1020px){
     .lg-cols{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -771,7 +776,7 @@ width:100%
     left:-24px;
     top:7px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .sm-icon-top{
         padding-left:0
     }
@@ -788,7 +793,7 @@ width:100%
         top:7px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .md-icon-top{
         padding-left:0
     }
@@ -805,7 +810,7 @@ width:100%
         top:7px
     }
 }
-@media (min-width:1040px){
+@media (min-width:1020px){
     .lg-icon-top{
         padding-left:0
     }
@@ -1198,7 +1203,7 @@ width:100%
 .globalNav .navSection.primary,.globalNav .navSection.secondary{
     display:none
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalNav .navSection.primary,.globalNav .navSection.secondary{
         display:-ms-flexbox;
         display:flex
@@ -1219,7 +1224,7 @@ width:100%
     -ms-flex-pack:end;
     justify-content:flex-end
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalNav .navSection.mobile{
         display:none
     }
@@ -1250,12 +1255,12 @@ width:100%
     margin:0;
     padding:0 10px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalNav .rootLink{
-        padding:0 calc(10px + (100vw - 770px) * .040541)
+        padding:0 calc(10px + (100vw - 1020px) * .040541)
     }
 }
-@media (min-width:1040px){
+@media (min-width:1020px){
     .globalNav .rootLink{
         padding:0 25px
     }
@@ -1322,7 +1327,7 @@ width:100%
     transition-duration:.25s;
     display:none
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalNav .dropdownRoot{
         display:block
     }
@@ -1937,12 +1942,12 @@ width:100%
 .productNav li:last-child{
     padding-right:20px
 }
-@media (min-width:420px){
+@media (min-width:1020px){
     .productNav li{
         padding:0 15px
     }
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .productNav li{
         padding:0 20px
     }
@@ -2031,14 +2036,14 @@ a.globalFooterCard:after,div.globalFooterCard:after{
     opacity:0;
     transition:opacity .15s
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     a.globalFooterCard,div.globalFooterCard{
         -ms-flex-preferred-size:1%;
         flex-basis:1%;
         padding-left:100px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     a.globalFooterCard,div.globalFooterCard{
         padding-left:120px
     }
@@ -2062,12 +2067,12 @@ a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globa
     left:-35px;
     top:calc(50% - 65px)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globalFooterCard svg{
         left:-50px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     a.globalFooterCard img,a.globalFooterCard svg,div.globalFooterCard img,div.globalFooterCard svg{
         left:-25px
     }
@@ -2125,7 +2130,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     padding:50px 0;
     border-bottom:2px solid rgba(207,215,223,.25)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterCTA .container-lg{
         display:-ms-flexbox;
         display:flex;
@@ -2149,7 +2154,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#000000;
     display:block
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterCTA .common-ButtonGroup{
         -ms-flex-pack:end;
         justify-content:flex-end
@@ -2175,7 +2180,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     -ms-flex-wrap:wrap;
     flex-wrap:wrap
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .container-lg{
         -ms-flex-wrap:nowrap;
         flex-wrap:nowrap
@@ -2197,7 +2202,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     flex-basis:100%;
     margin-bottom:20px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .metaNav{
         -ms-flex-preferred-size:auto;
         flex-basis:auto;
@@ -2233,7 +2238,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 .globalFooterNav .metaNav .select.globalPopupActive .rootLink{
     color:#000000
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .metaNav .country{
         margin-bottom:5px
     }
@@ -2242,7 +2247,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     margin-right: 0;
 }
 
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .metaNav .space{
         -ms-flex-positive:2;
         flex-grow:2
@@ -2266,19 +2271,19 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     -ms-flex-pack:justify;
     justify-content:space-between
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterNav .siteNav{
         -ms-flex-wrap:nowrap;
         flex-wrap:nowrap
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .siteNav{
         -ms-flex-positive:0;
         flex-grow:0
     }
 }
-@media (max-width:420px){
+@media (max-width:1020px){
     .globalFooterNav .siteNav{
         flex-wrap:nowrap;
         flex-wrap: nowrap;
@@ -2321,36 +2326,25 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
         display: none;
     }
 }
-@media (max-width:420px){
-    .enterprise-section {
-        height: 730px !important;
-    }
-    .integration-list {
-        /* flex-wrap: wrap; */
-    }
-    .integration-list>li {
-        /* flex-grow: 3; */
-        /* width: 70%; */
-    }
-}
+
 .globalFooterNav .siteNav .column{
     -ms-flex-preferred-size:50%;
     flex-basis:50%;
     margin-bottom:20px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterNav .siteNav .column{
         -ms-flex-preferred-size:auto!important;
         flex-basis:auto!important;
         margin-right:40px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .globalFooterNav .siteNav .column{
         margin-right:30px
     }
 }
-@media (min-width:1040px){
+@media (min-width:1020px){
     .globalFooterNav .siteNav .column{
         margin-right:40px
     }
@@ -2401,7 +2395,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition-property:transform,opacity;
     transition-duration:.25s
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .globalFooterNav .popup{
         left:-65px
     }
@@ -2417,7 +2411,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     border-radius:20px 0 3px 0;
     background:#fff
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     .globalFooterNav .popup:before{
         left:60px
     }
@@ -2488,7 +2482,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
 .globalFooterNav .countryPicker:before{
     background:#f9f9f9
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterNav .countryPicker{
         -ms-flex-direction:row;
         flex-direction:row
@@ -2508,7 +2502,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .globalFooterNav .sidebar{
         border-radius:0 5px 5px 0
     }
@@ -2581,7 +2575,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     display:none;
     z-index:1100
 }
-@media (min-width:420px){
+@media (min-width:1020px){
     .cookie-notification-container{
         bottom:10px
     }
@@ -2610,7 +2604,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
         backdrop-filter:blur(20px)
     }
 }
-@media (min-width:420px){
+@media (min-width:1020px){
     .cookie-notification{
         border-radius:4px
     }
@@ -2670,12 +2664,12 @@ div.content{
     margin:0 auto;
     position:relative
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     div.content{
         width:748px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     div.content{
         width:100%
     }
@@ -2709,7 +2703,7 @@ ul.columns:after,ul.columns:before{
 ul.columns:after{
     clear:both
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     ul.columns{
         padding-left:0
     }
@@ -2726,17 +2720,18 @@ ul.columns>li{
     margin-right:51px;
     position:relative
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     ul.columns>li{
         width:220px;
         margin-right:44px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     ul.columns>li{
         float:none;
         width:auto;
-        padding-left:70px;
+        padding-left:30px;
+        padding-right:30px;
         margin:0 0 25px
     }
 }
@@ -2752,7 +2747,7 @@ ul.columns>li:before{
     margin:0 0 11px -5px;
     background-size:100% 100%!important
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     ul.columns>li:before{
         position:absolute;
         left:5px;
@@ -2768,12 +2763,12 @@ ul.features>li{
     margin-bottom:45px;
     position:relative
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     ul.features>li{
         width:310px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     ul.features>li{
         width:auto;
         padding-left:70px;
@@ -2792,7 +2787,7 @@ ul.features>li:before{
     top:-1px;
     background-size:100% 100%!important
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     ul.features>li:before{
         left:5px;
         top:-3px
@@ -2804,7 +2799,7 @@ section.marquee{
     height:416px;
     position:relative
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee{
         height:320px
     }
@@ -2823,7 +2818,7 @@ section.marquee #bubble-overlay header{
     margin-bottom:30px;
 }
 
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay header{
         padding:140px 20px 30px;
         text-align:center
@@ -2836,7 +2831,7 @@ section.marquee #bubble-overlay header h1{
     margin-bottom:12px;
     color:#fff
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay header h1{
         font-size:26px;
         font-weight:400
@@ -2847,12 +2842,12 @@ section.marquee #bubble-overlay header p{
     color:#797979;
     margin-top:120px;
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay header p{
         font-size:16px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay header p{
         font-size:14px
     }
@@ -2862,7 +2857,7 @@ section.marquee #bubble-overlay .logos{
     border-top:1px solid hsla(0,0%,100%,.07);
     text-align:center
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay .logos{
         display:none
     }
@@ -2871,7 +2866,7 @@ section.marquee #bubble-overlay .logos li{
     display:inline-block;
     margin:0 20px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay .logos li{
         margin:4px
     }
@@ -2893,7 +2888,7 @@ section.marquee #bubble-overlay .logos a{
     -webkit-transition:opacity .3s;
     transition:opacity .3s
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-overlay .logos a{
         -webkit-transform:scale(.85);
         transform:scale(.85)
@@ -3029,19 +3024,19 @@ section.marquee #bubble-universe{
     left:50%;
     margin-left:-1000px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-universe{
         margin-left:-952px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.marquee #bubble-universe{
         margin-left:-648px;
         top:-32px
     }
 }
 
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.main{
         padding:40px 10px 45px
     }
@@ -3051,12 +3046,12 @@ section.main header{
     padding:0 142px 45px;
     border-bottom:1px solid rgba(0,0,0,.07)
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.main header{
         padding:0 60px 45px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.main header{
         padding:0 0 30px
     }
@@ -3073,7 +3068,7 @@ section.main header h2{
     margin-bottom:10px;
     line-height: 40px !important;
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.main header h2{
         font-size:20px
     }
@@ -3106,7 +3101,7 @@ section.basics .bigplans{
         background-size:100% 100%
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .bigplans{
         width:237px;
         height:156px;
@@ -3114,7 +3109,7 @@ section.basics .bigplans{
         margin-top:60px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .bigplans{
         position:static;
         margin:30px auto 0
@@ -3133,7 +3128,7 @@ section.basics .columns{
     padding-top:55px;
     padding-bottom:60px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .columns{
         padding-top:35px;
         padding-bottom:40px
@@ -3467,7 +3462,7 @@ section.basics .split:after,section.basics .split:before{
 section.basics .split:after{
     clear:both
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .split{
         margin:0 -20px
     }
@@ -3484,13 +3479,13 @@ section.basics .split .left{
     -webkit-transform:translateY(-50%);
     transform:translateY(-50%)
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .split .left{
         width:170px;
         left:0
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .split .left{
         position:static;
         -webkit-transform:none;
@@ -3520,12 +3515,12 @@ section.basics .split .right{
     background:-webkit-linear-gradient(290deg,#f5f7f9,#fff 50%);
     background:linear-gradient(160deg,#f5f7f9,#fff 50%)
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .split .right{
         margin-left:220px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .split .right{
         margin-left:0;
         width:auto;
@@ -3537,12 +3532,12 @@ section.basics .split .right{
 section.basics .split .right ul{
     width:539px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .split .right ul{
         width:480px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .split .right ul{
         width:auto
     }
@@ -3564,13 +3559,13 @@ section.basics .store{
     padding:65px 61px 0 175px;
     position:relative
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .store{
         padding-right:0;
         padding-left:111px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .store{
         padding:30px 0 0
     }
@@ -3593,13 +3588,13 @@ section.basics .store:before{
         background-size:100% 100%
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.basics .store:before{
         left:0;
         top:56px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.basics .store:before{
         position:static;
         float:right;
@@ -3611,7 +3606,7 @@ section.grow{
     border-top:1px solid #e9eaec;
     margin:0 -10px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow{
         padding-left:20px;
         padding-right:20px
@@ -3621,12 +3616,12 @@ section.grow{
 section.grow .features.grow{
     margin:70px 0 70px 61px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow .features.grow{
         margin-left:0
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow .features.grow{
         margin:35px 0 40px
     }
@@ -3654,12 +3649,12 @@ section.grow .features.grow aside{
     margin-top:25px;
     position:relative
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow .features.grow aside{
         margin-right:50px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow .features.grow aside{
         display:none
     }
@@ -3699,14 +3694,14 @@ section.grow figure.bigbrowsers{
         background-size:100% 100%
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow figure.bigbrowsers{
         width:340px;
         height:323px;
         margin-top:59px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow figure.bigbrowsers{
         display:none
     }
@@ -3723,12 +3718,12 @@ section.grow figure.bigbrowsers.locale-fr{
 section.grow.short .features.grow{
     margin:110px 0 110px 61px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow.short .features.grow{
         margin-left:0
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow.short .features.grow{
         margin:35px 0 40px
     }
@@ -3739,7 +3734,7 @@ section.grow.short figure.bigbrowsers{
     margin-top:25px;
     right:20px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow.short figure.bigbrowsers{
         right:0
     }
@@ -3747,12 +3742,12 @@ section.grow.short figure.bigbrowsers{
 section.grow .features.churn{
     margin:70px 0 0 435px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow .features.churn{
         margin-left:378px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow .features.churn{
         margin:35px 0 0
     }
@@ -3790,13 +3785,13 @@ section.grow figure.bigcard{
         background-size:100% 100%
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.grow figure.bigcard{
         width:335px;
         height:164px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.grow figure.bigcard{
         position:static;
         margin:40px auto;
@@ -3811,7 +3806,7 @@ section.workflow{
     text-shadow:0 1px 2px rgba(0,0,0,.5);
     margin:0 -10px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow{
         padding-left:20px;
         padding-right:20px
@@ -3859,7 +3854,7 @@ section.workflow #flow-switcher{
         background-size:14px 12px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-switcher{
         width:auto;
         height:220px;
@@ -3886,7 +3881,7 @@ section.workflow #flow-switcher>li{
     transition:transform .2s;
     position:relative
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-switcher>li{
         border-radius:0;
         width:20%;
@@ -3936,7 +3931,7 @@ section.workflow #flow-switcher>li.done{
     background-image:-webkit-linear-gradient(top left,rgba(162,101,162,.5) 20%,rgba(162,101,162,.9) 80%);
     background-image:linear-gradient(to bottom right,rgba(162,101,162,.5) 20%,rgba(162,101,162,.9) 80%)
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-switcher>li.done{
         background-image:-webkit-linear-gradient(top right,rgba(162,101,162,.5) 20%,rgba(162,101,162,.9) 80%);
         background-image:linear-gradient(to bottom left,rgba(162,101,162,.5) 20%,rgba(162,101,162,.9) 80%)
@@ -3958,7 +3953,7 @@ section.workflow #flow-switcher>li.active{
     background:linear-gradient(to bottom right,#da8e40 20%,#e2a550 80%);
     text-shadow:0 1px 3px #cf7b2f
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-switcher>li.active:after{
         content:"";
         position:absolute;
@@ -3991,7 +3986,7 @@ section.workflow #flow-boxes:after,section.workflow #flow-boxes:before{
 section.workflow #flow-boxes:after{
     clear:both
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes{
         top:0;
         margin:0 -20px;
@@ -4013,13 +4008,13 @@ section.workflow #flow-boxes>div.active{
     z-index:5;
     pointer-events:auto
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes>div{
         width:748px;
         margin-left:-374px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes>div{
         position:static;
         width:auto;
@@ -4037,7 +4032,7 @@ section.workflow #flow-boxes .codebox{
     top:0;
     bottom:0
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox{
         position:static
     }
@@ -4057,7 +4052,7 @@ section.workflow #flow-boxes .codebox,section.workflow #flow-boxes .codebox-cont
     transition-timing-function:cubic-bezier(.35,0,.23,1);
     pointer-events:none
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox,section.workflow #flow-boxes .codebox-container,section.workflow #flow-boxes .text{
         display:none;
         -webkit-transition:none!important;
@@ -4081,7 +4076,7 @@ section.workflow #flow-boxes .codebox-container.active,section.workflow #flow-bo
     filter:none;
     pointer-events:auto
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox-container.active,section.workflow #flow-boxes .codebox.active,section.workflow #flow-boxes .text.active{
         display:block
     }
@@ -4110,7 +4105,7 @@ section.workflow #flow-boxes .codebox-container{
     height:180px;
     z-index:10
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox-container{
         width:auto;
         margin:0;
@@ -4156,7 +4151,7 @@ section.workflow #flow-boxes .codebox-container pre{
     -webkit-transform:translateY(-50%);
     transform:translateY(-50%)
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox-container pre{
         position:relative;
         top:0;
@@ -4177,7 +4172,7 @@ section.workflow #flow-boxes .codebox-container pre:before{
     text-align:right;
     color:#c4c8cc
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .codebox-container pre:before{
         top:20px;
         bottom:20px
@@ -4194,12 +4189,12 @@ section.workflow #flow-boxes .text{
     -webkit-transform:translateZ(0);
     transform:translateZ(0)
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .text{
         width:250px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .text{
         position:static;
         width:auto;
@@ -4222,7 +4217,7 @@ section.workflow #flow-boxes .text:before{
     border-radius:50%;
     background:#8c6c93
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .text:before{
         content:none
     }
@@ -4239,7 +4234,7 @@ section.workflow #flow-boxes .text h3:before{
     top:9px;
     background:#8c6c93
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes .text h3:before{
         content:none
     }
@@ -4253,7 +4248,7 @@ section.workflow #flow-boxes #automatic-renewals .text{
     left:50%;
     margin-left:-120px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes #automatic-renewals .text{
         margin-top:0!important;
         width:auto
@@ -4274,12 +4269,12 @@ section.workflow #flow-boxes #automatic-renewals .text:before{
         background-size:100% 100%
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes #automatic-renewals .text:before{
         top:-24px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow #flow-boxes #automatic-renewals .text:before{
         content:"";
         position:static;
@@ -4297,7 +4292,7 @@ section.workflow .columns{
     -webkit-transform:translateZ(0);
     transform:translateZ(0)
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow .columns{
         margin-top:40px
     }
@@ -4305,12 +4300,12 @@ section.workflow .columns{
 section.workflow .columns>li:first-child{
     width:537px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.workflow .columns>li:first-child{
         width:484px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.workflow .columns>li:first-child{
         width:auto
     }
@@ -4340,7 +4335,7 @@ section.end{
     margin:0 -10px;
     padding:0
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.end{
         background:none
     }
@@ -4360,7 +4355,7 @@ section.end .content:after,section.end .content:before{
 section.end .content:after{
     clear:both
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.end .content{
         -webkit-box-orient:vertical;
         -o-box-orient:vertical;
@@ -4374,13 +4369,13 @@ section.end section{
     box-sizing:border-box;
     padding:75px 61px 80px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.end section{
         padding-left:50px;
         padding-right:50px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.end section{
         float:none!important;
         width:auto!important;
@@ -4403,13 +4398,13 @@ section.end h2:before{
     height:80px;
     margin-bottom:20px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.end h2:before{
         float:right;
         margin:0 0 10px 10px
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.end section.data{
         padding-left:0
     }
@@ -4452,12 +4447,12 @@ section.end section.thirdparty{
     border-left:1px solid #e9eaec;
     background:#f5f7f9
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.end section.thirdparty{
         padding-right:0
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.end section.thirdparty{
         border:none;
         border-top:1px solid #e9eaec
@@ -4578,7 +4573,7 @@ section.end section.thirdparty .features a{
     margin:-10px;
     border-radius:10px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.end section.thirdparty .features a{
         padding-left:58px
     }
@@ -4645,14 +4640,14 @@ section.cta p{
 section.cta p a{
     word-wrap:break-word
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.cta{
         width:748px;
         font-size:16px;
         line-height:82px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.cta{
         -webkit-box-orient:vertical;
         -o-box-orient:vertical;
@@ -4687,17 +4682,17 @@ section.cta aside a.button{
     -ms-flex-item-align:center;
     white-space:nowrap
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.cta aside a.button{
         margin:0 auto
     }
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     section.cta aside{
         padding:22px 22px 23px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     section.cta aside{
         padding:15px 15px 5px;
         margin:15px -15px 0;
@@ -4746,7 +4741,7 @@ strong.new:before{
     -o-filter:alpha(opacity=50);
     filter:alpha(opacity=50)
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     .globalFooterCTA{
         padding-left:20px;
         padding-right:20px
@@ -4759,14 +4754,14 @@ strong.new:before{
     padding-left:60px;
     padding-right:60px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     .globalFooterCTA .container-lg{
         max-width:748px;
         padding-left:0;
         padding-right:0
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     .globalFooterCTA .container-lg{
         padding-left:20px;
         padding-right:20px
@@ -5091,7 +5086,7 @@ iframe[name=google_conversion_frame]{
     font-size:0!important;
     float:left
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     html.tablet h1{
         font-size:2.8em
     }
@@ -5108,7 +5103,7 @@ iframe[name=google_conversion_frame]{
         width:748px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     html.mobile body{
         font-size:14px
     }
@@ -5145,7 +5140,7 @@ div#grid{
     background:rgba(255,0,234,.1);
     box-sizing:border-box
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     div#grid{
         width:748px;
         margin-left:-374px
@@ -5197,7 +5192,7 @@ div#grid div:nth-child(11){
 div#grid div:nth-child(12){
     left:891px
 }
-@media screen and (max-width:1012px){
+@media screen and (max-width:1020px){
     div#grid div{
         width:37px
     }
@@ -5592,7 +5587,7 @@ html.mobile header#main-header div.mobile-nav-button{
         background-size:23px 20px
     }
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     html.mobile header#main-header div.mobile-nav-button{
         display:block
     }
@@ -5752,7 +5747,7 @@ footer#main-footer{
     color:#b0bfc7;
     font-size:1.2em
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     footer#main-footer{
         font-size:1em;
         text-align:center;
@@ -5771,7 +5766,7 @@ footer#main-footer ul{
     margin:0;
     padding:0
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     footer#main-footer ul{
         display:block;
         margin-top:1em;
@@ -5785,7 +5780,7 @@ footer#main-footer ul li{
     margin:0 10px 0 0;
     display:inline
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     footer#main-footer ul li{
         margin:0 5px 0 0;
         opacity:.5;
@@ -5804,7 +5799,7 @@ footer#main-footer div.country-selector{
     padding-right:13px;
     margin-right:10px
 }
-@media screen and (max-width:479px){
+@media screen and (max-width:1020px){
     footer#main-footer div.country-selector{
         border:0
     }
@@ -5887,22 +5882,5 @@ footer#main-footer div.country-selector ul a.selected:after{
     footer#main-footer div.country-selector ul a.selected:after{
         background-image:url(/img/footer/check@2x.png);
         background-size:100% 100%
-    }
-}
-@media screen and (max-width: 440px) {
-    .integration-list {
-        margin-left: 45px;
-        display: grid;
-        grid-template-columns: 2fr 2fr 2fr;
-        justify-content: center;
-    }
-    .integration-logo {
-        width: 70px;
-        margin-left: 0px !important;
-    }
-}
-@media screen and (max-width: 330px) {
-    .integration-list {
-        margin-left: 30px;
     }
 }
