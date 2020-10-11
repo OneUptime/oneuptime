@@ -199,7 +199,7 @@ module.exports = {
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
                     // check 3 times just to make sure
-                    if (data.retryCount < 3)
+                    if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
                     const monitor = await MonitorService.findOneBy({
@@ -328,10 +328,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
-                        if (data.retryCount >= 0) {
-                            return { retry: true, retryCount: data.retryCount };
-                        }
+                    if (data.retryCount >= 0 && data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -375,10 +373,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
-                        if (data.retryCount >= 0) {
-                            return { retry: true, retryCount: data.retryCount };
-                        }
+                    if (data.retryCount >= 0 && data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -422,10 +418,8 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
-                        if (data.retryCount >= 0) {
-                            return { retry: true, retryCount: data.retryCount };
-                        }
+                    if (data.retryCount >= 0 && data.retryCount < 3)
+                        return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -465,44 +459,55 @@ module.exports = {
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.forEach(incident => {
-                        incident.probes.some(probe => {
-                            if (
-                                String(probe.probeId._id) ===
-                                String(data.probeId)
-                            ) {
-                                incidentsV1.push(incident);
-                                return true;
-                            } else return false;
-                        });
+                        if (incident.probes && incident.probes.length > 0) {
+                            incident.probes.some(probe => {
+                                if (
+                                    String(probe.probeId._id) ===
+                                    String(data.probeId)
+                                ) {
+                                    incidentsV1.push(incident);
+                                    return true;
+                                } else return false;
+                            });
+                        } else {
+                            incidentsV1.push(incident);
+                            return true;
+                        }
                     });
                 }
             }
             await Promise.all(
                 incidentsV1.map(async incident => {
-                    const newIncident = await IncidentService.updateOneBy(
-                        {
-                            _id: incident._id,
-                        },
-                        {
-                            probes: incident.probes.concat([
-                                {
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: false,
-                                    reportedStatus: data.status,
-                                },
-                            ]),
-                        }
-                    );
-                    incidentsV2.push(newIncident);
+                    if (incident.probes && incident.probes.length > 0) {
+                        const newIncident = await IncidentService.updateOneBy(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                probes: incident.probes.concat([
+                                    {
+                                        probeId: data.probeId,
+                                        updatedAt: Date.now(),
+                                        status: false,
+                                        reportedStatus: data.status,
+                                    },
+                                ]),
+                            }
+                        );
+                        incidentsV2.push(newIncident);
 
-                    await IncidentTimelineService.create({
-                        incidentId: incident._id,
-                        probeId: data.probeId,
-                        status: data.status,
-                    });
+                        await IncidentTimelineService.create({
+                            incidentId: incident._id,
+                            probeId: data.probeId,
+                            status: data.status,
+                        });
 
-                    return newIncident;
+                        return newIncident;
+                    } else {
+                        incidentsV2.push(incident);
+
+                        return incident;
+                    }
                 })
             );
 
