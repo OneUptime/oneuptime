@@ -1045,7 +1045,7 @@ html#customers .LocalNavigation{
         transform:translate(-50%,-50%) scale(.8)
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .Section-logos span{
         transform:translate(-50%,-50%)
     }

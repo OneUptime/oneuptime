@@ -345,7 +345,7 @@
     color:#000000;
     white-space:nowrap
 }
-@media only screen and (min-width:880px) and (max-width:1040px){
+@media only screen and (min-width:1020px) and (max-width:1040px){
     .PricingDetailsRow-paymentTypeTitle{
         font-size:2.35em
     }
@@ -365,7 +365,7 @@
     -ms-flex-pack:end;
     justify-content:flex-end
 }
-@media only screen and (max-width:880px){
+@media only screen and (max-width:1020px){
     .PricingDetailsRow-iconContainer{
         display:none
     }

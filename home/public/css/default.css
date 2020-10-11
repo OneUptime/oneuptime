@@ -189,6 +189,19 @@ width:100%
     }
 }
 
+.block-image{
+    margin-left: 0px !important;
+}
+
+.flex-center{
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.sdlc-description{
+    padding: 5px;
+}
+
 /* This happens in Mobile */
 @media (max-width:1020px){
     .try-free-button{
@@ -266,6 +279,10 @@ width:100%
         margin-left: calc(50% - 200px);
     }
 
+    .margin-left-310-desktop{
+        margin-left: -310px;
+    }
+
     .integration-header-padding{
         padding-top:75px !important;
         padding-left: 30px !important;
@@ -286,8 +303,9 @@ width:100%
         justify-content: space-between
     }
 
+
     .margin-right-130-desktop{
-        margin-right:130px
+        margin-right:105px
     }
     
     .cta-section{

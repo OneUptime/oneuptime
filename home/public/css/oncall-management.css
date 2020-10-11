@@ -359,7 +359,7 @@ main header .stripes :nth-child(5){
         margin:0 20px 0 0
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #intro{
         padding-top:205px
     }
@@ -432,7 +432,7 @@ main header .stripes :nth-child(5){
         margin-top:120px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #comparison{
         margin-top:170px
     }
@@ -497,7 +497,7 @@ main header .stripes :nth-child(5){
     box-shadow:0 15px 35px rgba(50,50,93,.1),0 5px 15px rgba(0,0,0,.07);
     border-radius:4px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #comparison .common-UppercaseTitle{
         margin-bottom:65px
     }
@@ -648,7 +648,7 @@ main header .stripes :nth-child(5){
         text-align:center
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #routing-payments{
         --diagram-height:406px
     }
@@ -721,7 +721,7 @@ main header .stripes :nth-child(5){
         margin-left:39px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #routing-diagram-legend{
         grid-column:2;
         padding:60px 0 15px
@@ -783,7 +783,7 @@ main header .stripes :nth-child(5){
         margin-right:50%
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #routing-payments nav p{
         top:5px;
         position:relative;
@@ -815,7 +815,7 @@ main header .stripes :nth-child(5){
     background:linear-gradient(#fff,hsla(0,0%,100%,0),#fff),url(/img/v3/connect/features/routing-diagram/grid-background.png);
     background-size:100% 100%,60px 60px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #routing-diagram,#routing-diagram-grid{
         grid-area:3/2;
         max-width:608px
@@ -926,7 +926,7 @@ main header .stripes :nth-child(5){
     position:relative;
     margin-top:160px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #onboarding-verification{
         height:780px;
         margin-top:250px
@@ -943,7 +943,7 @@ main header .stripes :nth-child(5){
     grid-column:3;
     background:linear-gradient(100grad,rgba(241,248,252,0),#f1f8fc)
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #onboarding-verification .stripes :last-child{
         background:linear-gradient(100grad,#74e4a2,black)
     }
@@ -1032,7 +1032,7 @@ main header .stripes :nth-child(5){
         box-shadow:-1px 1px 6px rgba(170,183,204,.2)
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #onboarding-verification .container-lg{
         margin-bottom:0
     }
@@ -1451,7 +1451,7 @@ main header .stripes :nth-child(5){
         background:none
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #onboarding-verification .content{
         padding:0 0 180px
     }
@@ -1551,7 +1551,7 @@ main header .stripes :nth-child(5){
         display:block
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #compliance .common-UppercaseTitle{
         padding-bottom:15px;
         padding-top:140px
@@ -1594,7 +1594,7 @@ main header .stripes :nth-child(5){
     margin-left:auto;
     margin-right:auto
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #platform-management{
         display:grid;
         grid:auto/1fr auto;
@@ -1642,7 +1642,7 @@ main header .stripes :nth-child(5){
         left:calc(50% - 292px)
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #platform-management .laptop{
         left:0;
         margin:0
@@ -1682,7 +1682,7 @@ main header .stripes :nth-child(5){
     height:142px;
     top:calc(100% - 11px);
     border-radius:8px 8px 14px 14px;
-    transform:perspective(880px) rotateX(40deg);
+    transform:perspective(1020px) rotateX(40deg);
     transform-origin:50% 0;
     background:linear-gradient(rgba(145,161,181,.2),rgba(145,161,181,0)),linear-gradient(45deg,#e5ebf2,#f3f8fb);
     box-shadow:inset 0 -2px 3px rgba(145,161,181,.5),inset -1px -6px 4px rgba(253,255,255,.9)
@@ -1740,7 +1740,7 @@ main header .stripes :nth-child(5){
 #connected-accounts-nav ul{
     margin:29px 0 0 32px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #connected-accounts-nav ul{
         margin-top:32px
     }
@@ -1869,7 +1869,7 @@ main header .stripes :nth-child(5){
         margin-left:0
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #international-support{
         --gutter:41px;
         grid-template-rows:200px auto;
@@ -2281,7 +2281,7 @@ main footer.container-lg .common-Link{
         margin-top:0
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main footer.container-lg{
         --spacing:100px
     }

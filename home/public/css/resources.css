@@ -20,7 +20,7 @@ main{
     margin-top:70px;
     margin-bottom:120px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .guide-container{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -127,7 +127,7 @@ main{
     position:relative;
     text-align:left
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .guide-header{
         text-align:center
     }
@@ -213,7 +213,7 @@ article.guide-content .xs-order-10{
     -ms-flex-order:10;
     order:10
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     article.guide-content{
         margin-top:0;
         max-width:750px;
@@ -402,7 +402,7 @@ article.guide-content blockquote{
     margin-left:30px;
     margin-right:30px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     article.guide-content blockquote{
         margin-left:20px;
         margin-right:20px
@@ -617,7 +617,7 @@ ol li:before{
     border-radius:4px;
     vertical-align:middle
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .guide-container-center article.guide-content{
         -ms-flex-order:-1;
         order:-1;
@@ -629,7 +629,7 @@ ol li:before{
         margin-right:auto
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .guide-sidebar{
         max-width:275px
     }
@@ -736,7 +736,7 @@ ol li:before{
     overflow:auto;
     margin-top:20px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .guide-sidebar .toc{
         position:-webkit-sticky;
         position:sticky;
@@ -816,7 +816,7 @@ html.guides .guide-header{
     margin-top:125px;
     text-align:center
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     html.guides .guide-header .guide-SubTitle{
         width:813px
     }
@@ -838,7 +838,7 @@ html.guides .grid{
     justify-content:center
 }
 @supports ((display:-ms-grid) or (display:grid)) and (not (display:-ms-grid)){
-    @media (min-width:880px){
+    @media (min-width:1020px){
         html.guides .grid{
             padding:0;
             display:grid
@@ -866,7 +866,7 @@ html.guides .grid .card{
     max-height:calc(110vw - 40px)
 }
 @supports ((display:-ms-grid) or (display:grid)) and (not (display:-ms-grid)){
-    @media (min-width:880px){
+    @media (min-width:1020px){
         html.guides .grid .card{
             width:100%;
             height:100%;
@@ -994,7 +994,7 @@ html.guides .grid .card:hover{
     box-shadow:0 2px 20px rgba(0,0,0,.2)
 }
 @supports ((display:-ms-grid) or (display:grid)) and (not (display:-ms-grid)){
-    @media (min-width:880px){
+    @media (min-width:1020px){
         html.guides .grid-main{
             grid-template-columns:repeat(12,50px);
             grid-template-rows:245px 245px;
@@ -1008,7 +1008,7 @@ html.guides .grid .card:hover{
             grid-template-rows:277px 277px
         }
     }
-    @media (min-width:880px){
+    @media (min-width:1020px){
         html.guides .grid-main .card.order-1 .content{
             padding:23px 29px
         }
@@ -1053,7 +1053,7 @@ html.guides .atlas-header{
     text-align:center;
     width:283px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     html.guides .atlas-header{
         width:920px;
         display:-ms-flexbox;
@@ -1068,7 +1068,7 @@ html.guides .atlas-header{
 html.guides .atlas-header .icon-title{
     color:#000000
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     html.guides .atlas-header .icon-title{
         display:-ms-flexbox;
         display:flex;
@@ -1080,7 +1080,7 @@ html.guides .atlas-header .icon-title .icon{
     margin-right:12px;
     margin-bottom:12px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     html.guides .atlas-header .icon-title .icon{
         margin-bottom:0
     }
@@ -1089,7 +1089,7 @@ html.guides .grid-atlas{
     padding-bottom:77px
 }
 @supports ((display:-ms-grid) or (display:grid)) and (not (display:-ms-grid)){
-    @media (min-width:880px){
+    @media (min-width:1020px){
         html.guides .grid-atlas{
             grid-template-columns:50px 50px 50px 50px 50px 50px 50px 50px 50px 50px 50px 50px;
             grid-template-rows:260px;

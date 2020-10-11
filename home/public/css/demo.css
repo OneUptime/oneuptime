@@ -15,7 +15,7 @@ body .gradient-background{
         overflow:visible
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     body .gradient-background{
         background:linear-gradient(90deg,#000000,#000000 200%)
     }
@@ -36,7 +36,7 @@ section.ctas{
     background:rgba(103,114,229,.5);
     padding-right:10px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.ctas{
         background:transparent;
         padding-bottom:90px;
@@ -56,7 +56,7 @@ section.ctas .container-lg{
         padding-right:45px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.ctas .container-lg{
         padding:0 20px;
         -ms-flex-pack:normal;
@@ -72,7 +72,7 @@ section.ctas .cta{
         max-width:none
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.ctas .cta{
         display:-ms-flexbox;
         display:flex;
@@ -91,7 +91,7 @@ section.ctas .cta .icon-column{
     min-width:45px;
     padding-bottom:15px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.ctas .cta .icon-column{
         padding-bottom:0
     }
@@ -106,18 +106,18 @@ section.ctas .cta .copy-column{
     flex-grow:2;
     padding-right:20px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.ctas .cta .copy-column{
         max-width:385px;
         padding-left:20px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     html[lang=de] section.ctas .cta .copy-column{
         max-width:375px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     html[lang=fr] section.ctas .cta .copy-column{
         max-width:425px
     }
@@ -171,7 +171,7 @@ section.form-section .customers{
         align-items:center
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .customers{
         -ms-flex-align:normal;
         align-items:normal;
@@ -214,7 +214,7 @@ section.form-section .customers .customer-logos{
         justify-content:center
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .customers .customer-logos{
         display:-ms-flexbox;
         display:flex;
@@ -278,7 +278,7 @@ section.form-section{
         margin-top:-20px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section{
         padding-bottom:30px;
         margin-top:0
@@ -287,7 +287,7 @@ section.form-section{
 section.form-section .container-lg{
     position:relative
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .container-lg{
         display:-ms-flexbox;
         display:flex
@@ -301,7 +301,7 @@ section.form-section .form-column{
         padding-bottom:70px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .form-column{
         -ms-flex:6;
         flex:6;
@@ -313,7 +313,7 @@ section.form-section .secondary-column{
     margin-right:auto;
     max-width:645px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .secondary-column{
         -ms-flex:4;
         flex:4;
@@ -328,7 +328,7 @@ section.form-section .secondary-column{
         padding-right:18px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .secondary-column>:first-child{
         padding-left:50px;
         padding-right:0
@@ -350,7 +350,7 @@ section.form-section .form-container{
     background:#fff;
     margin:0 auto
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .form-container{
         margin:0
     }
@@ -751,7 +751,7 @@ section.contact-sales-header .stripes-container{
         bottom:-90px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container{
         bottom:-108px
     }
@@ -779,7 +779,7 @@ section.contact-sales-header .stripes-container.initial .s1{
         display:block
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s1{
         top:-172%;
         right:calc(50% + 553px);
@@ -794,7 +794,7 @@ section.contact-sales-header .stripes-container.initial .s2{
     background:#d7d7d7;
     transition:transform .6s ease-out
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s2{
         left:calc(50% + 142px);
         left:calc(50% + 340px)
@@ -815,7 +815,7 @@ section.contact-sales-header .stripes-container.initial .s3{
         display:block
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s3{
         background:rgba(0,0,0,.9);
         right:calc(50% + 410px);
@@ -837,7 +837,7 @@ section.contact-sales-header .stripes-container.initial .s4{
         display:block
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s4{
         left:calc(50% + 30px);
         right:calc(50% - 245px)
@@ -856,7 +856,7 @@ section.contact-sales-header .stripes-container.initial .s5{
         width:100px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s5{
         left:calc(50% + 479px);
         width:auto
@@ -875,7 +875,7 @@ section.contact-sales-header .stripes-container.initial .s6{
         width:69px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s6{
         left:calc(50% + 513px);
         width:auto
@@ -895,7 +895,7 @@ section.contact-sales-header .stripes-container.initial .s7{
         display:block
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container.initial .s7{
         right:calc(50% + 266px)
     }
@@ -918,7 +918,7 @@ section.contact-sales-header .background-container.success{
         display:none
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .stripes-container .light-dots-container{
         display:block
     }
@@ -934,7 +934,7 @@ section.contact-sales-header .background-container.success{
     height:352px;
     transform:skewY(12deg)
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .stripes-container .light-dots-container:before{
         right:6px
     }
@@ -952,7 +952,7 @@ section.contact-sales-header .background-container.success{
         display:none
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .stripes-container .dark-dots-container{
         display:block
     }
@@ -969,7 +969,7 @@ section.contact-sales-header .background-container.success{
     transform:skewY(12deg);
     will-change:opacity
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .stripes-container .dark-dots-container:before{
         right:6px
     }
@@ -982,7 +982,7 @@ section.contact-sales-header .stripes-container .left-dots-container{
     bottom:0;
     display:none
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .stripes-container .left-dots-container{
         display:block
     }
@@ -1006,7 +1006,7 @@ section.contact-sales-header .stripes-container .left-dots-container:before{
     height:100%;
     display:none
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .stripes-container .medium-dots-container{
         display:none
     }
@@ -1039,7 +1039,7 @@ section.contact-sales-header .stripes-container .left-dots-container:before{
         transform:translate(290px)
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     .form-submitted section.contact-sales-header .stripes-container.initial .s2{
         left:calc(50% + 315px);
         transform:translate(290px)
@@ -1066,7 +1066,7 @@ section.contact-sales-header .headline{
         padding-top:114px
     }
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.contact-sales-header .headline{
         padding-top:100px
     }
@@ -1392,7 +1392,7 @@ section.success .thank-you-container{
         padding:0
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.success .thank-you-container{
         padding-left:180px;
         padding-right:180px
@@ -1408,7 +1408,7 @@ section.success .thank-you-container{
         padding:20px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     html[lang=de] section.success .thank-you-container,html[lang=es] section.success .thank-you-container,html[lang=fr] section.success .thank-you-container{
         padding-left:90px;
         padding-right:90px
@@ -1526,7 +1526,7 @@ section.form-section .why-fyipe{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .why-fyipe{
         padding-top:200px
     }
@@ -1537,7 +1537,7 @@ section.form-section .why-fyipe .intro-text{
     font-weight:400;
     line-height:36px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .why-fyipe .intro-text{
         max-width:335px
     }
@@ -1555,7 +1555,7 @@ section.form-section .why-fyipe .bullet-points li{
     position:relative;
     padding-right:10px
 }
-@media(min-width:880px){
+@media(min-width:1020px){
     section.form-section .why-fyipe .bullet-points li{
         max-width:300px
     }

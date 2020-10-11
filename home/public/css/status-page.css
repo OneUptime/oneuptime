@@ -35,7 +35,7 @@ body{
     border-radius:4px;
     box-shadow:0 15px 35px rgba(50,50,93,.1),0 5px 15px rgba(0,0,0,.07)
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .apm-box{
         position:absolute;
         left:0;
@@ -44,7 +44,7 @@ body{
         transform:translateY(-50%)
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .one-block .apm-box{
         top:120%
     }
@@ -377,7 +377,7 @@ body{
         transform:none
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .devices-dashboard{
         right:100px
     }
@@ -1014,7 +1014,7 @@ body{
         height:800px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .business-graphic .devices-container{
         margin-top:-170px
     }
@@ -1119,7 +1119,7 @@ body{
         padding:180px 0 160px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .developers-content{
         display:block;
         -ms-flex-preferred-size:710px;
@@ -1148,7 +1148,7 @@ body{
     -ms-flex-pack:center;
     justify-content:center
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .developers-graphic{
         display:-ms-flexbox;
         display:flex
@@ -1315,7 +1315,7 @@ body{
         margin-bottom:60px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .section-introduction .section-header{
         width:50%
     }
@@ -1332,7 +1332,7 @@ body{
 .section-worldwide .section-header{
     margin-bottom:50px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .section-worldwide .section-header{
         margin-bottom:65px;
         max-width:650px;
@@ -1348,7 +1348,7 @@ body{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .worldwide-columns{
         -ms-flex-direction:row;
         flex-direction:row
@@ -1362,7 +1362,7 @@ body{
     -ms-flex-align:end;
     align-items:flex-end
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .worldwide-content{
         padding-left:40px;
         padding-right:80px
@@ -1464,7 +1464,7 @@ body{
     flex:1 0;
     margin:70px 0 -100px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .worldwide-aside{
         -ms-flex-preferred-size:410px;
         flex-basis:410px;
