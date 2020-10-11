@@ -1,12 +1,11 @@
 .sdlc-container {
-  padding: 50px 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
   position: relative;
-  margin-bottom: 50px;
+  padding-top:35px;
 }
 .sdlc-description {
   max-width: 800px;
@@ -34,7 +33,7 @@
 }
 .sdlc-table-container {
   position: relative;
-  margin-left: 140px;
+  margin-left: 110px;
   width: 95%;
 }
 .sdlc-table-label {

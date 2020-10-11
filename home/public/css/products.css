@@ -14,7 +14,7 @@ div.content{
 }
 @media screen and (max-width:1012px){
     div.content{
-        width:748px
+        width:calc(100% - 50px)
     }
 }
 @media screen and (max-width:479px){
@@ -50,6 +50,7 @@ ul.columns h3{
     margin-bottom:5px;
     font-size:19px;
     text-align: center;
+    margin-top: 20px;
 }
 
 ul.columns>li{
@@ -60,8 +61,8 @@ ul.columns>li{
 }
 @media screen and (max-width:1012px){
     ul.columns>li{
-        width:220px;
-        margin-right:44px
+        width: calc(100% - 20px); 
+        margin-bottom: 50px;
     }
 }
 .gif-container {
@@ -74,7 +75,7 @@ ul.columns>li{
     ul.columns>li{
         float:none;
         width:auto;
-        padding-left:70px;
+        padding-left:0px;
         margin:0 0 25px
     }
     .gif-container {
@@ -153,7 +154,7 @@ section.marquee{
 }
 @media screen and (max-width:479px){
     section.marquee{
-        height:320px;
+        height: 780px !important;
         /* margin-bottom: 90px; */
     }
 }
@@ -170,11 +171,7 @@ section.marquee #bubble-overlay header{
     text-align: center;
     margin-bottom:30px;
 }
-@media screen and (max-width:1012px){
-    section.marquee #bubble-overlay header{
-        padding-left:165px
-    }
-}
+
 @media screen and (max-width:479px){
     section.marquee #bubble-overlay header{
         padding:140px 20px 30px;
@@ -182,41 +179,7 @@ section.marquee #bubble-overlay header{
         margin-top: 28px;
     }
 }
-section.marquee #bubble-overlay header:before{
-    content:"";
-    position:absolute;
-    width:132px;
-    height:132px;
-    left:58px;
-    margin-top:-25px;
-    
-    background-size:100% 100%
-}
-@media screen and (max-width:1012px){
-    section.marquee #bubble-overlay header:before{
-        left:0
-    }
-}
-@media screen and (max-width:479px){
-    section.marquee #bubble-overlay header:before{
-        width:100px;
-        height:100px;
-        left:50%;
-        margin:0 0 0 -50px;
-        top:20px
-    }
-}
-section.marquee #bubble-overlay header h1{
-    font-size:40px;
-    margin-bottom:12px;
-    color:#fff
-}
-@media screen and (max-width:479px){
-    section.marquee #bubble-overlay header h1{
-        font-size:26px;
-        font-weight:400
-    }
-}
+
 section.marquee #bubble-overlay header p{
     font-size:30px;
     color:#797979;
@@ -415,9 +378,7 @@ section.marquee #bubble-universe{
         top:-32px
     }
 }
-section.main{
-    padding:80px 0 95px
-}
+
 @media screen and (max-width:479px){
     section.main{
         padding:40px 10px 45px
@@ -525,124 +486,154 @@ section.basics .columns{
     }
 }
 section.basics .columns .billing:before{
-    background-image:url(/img/team.svg)
+    background-image:url("/img/team.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .revenue:before{
-    background-image:url(/img/growth.svg)
+    background-image:url("/img/growth.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .downtime:before{
-    background-image:url(/img/download.svg)
+    background-image:url("/img/download.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .perfectsoftware:before{
-    background-image:url("/img/dashboard (1).svg")
+    background-image:url("/img/dashboard (1).svg");
+    margin: auto !important;
 }
 
 section.basics .columns .perfectsoftware:before{
-    background-image:url("/img/dashboard (1).svg")
+    background-image:url("/img/dashboard (1).svg");
+    margin: auto !important;
 }
 
 section.basics .columns .reli:before{
-    background-image:url("/img/fpo-status-line.svg")
+    background-image:url("/img/fpo-status-line.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .moni:before{
-    background-image:url("/img/fpo-monitor.svg")
+    background-image:url("/img/fpo-monitor.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .cost:before{
-    background-image:url("/img/cost.svg")
+    background-image:url("/img/cost.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .informed:before{
-    background-image:url("/img/informed.svg")
+    background-image:url("/img/informed.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .teams:before{
-    background-image:url("/img/teams.svg")
+    background-image:url("/img/teams.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .dash:before{
-    background-image:url("/img/dash.svg")
+    background-image:url("/img/dash.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .htmlcss:before{
-    background-image:url("/img/htmlcss.svg")
+    background-image:url("/img/htmlcss.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .database:before{
-    background-image:url("/img/database.svg")
+    background-image:url("/img/database.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .brand:before{
-    background-image:url("/img/brand.svg")
+    background-image:url("/img/brand.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .paint:before{
-    background-image:url("/img/paint.svg")
+    background-image:url("/img/paint.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .sms:before{
-    background-image:url("/img/sms.svg")
+    background-image:url("/img/sms.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .notification1:before{
-    background-image:url("/img/notification1.svg")
+    background-image:url("/img/notification1.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .callcenter:before{
-    background-image:url("/img/callcenter.svg")
+    background-image:url("/img/callcenter.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .security:before{
-    background-image:url("/img/security.svg")
+    background-image:url("/img/security.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .note:before{
-    background-image:url("/img/note.svg")
+    background-image:url("/img/note.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .trend:before{
-    background-image:url("/img/trend.svg")
+    background-image:url("/img/trend.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .global:before{
-    background-image:url("/img/global.svg")
+    background-image:url("/img/global.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .global1:before{
-    background-image:url("/img/global (1).svg")
+    background-image:url("/img/global (1).svg");
+    margin: auto !important;
 }
 
 section.basics .columns .risk:before{
-    background-image:url("/img/risk.svg")
+    background-image:url("/img/risk.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .chat:before{
-    background-image:url("/img/chat.svg")
+    background-image:url("/img/chat.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .rotation:before{
-    background-image:url("/img/mobile-rotation.svg")
+    background-image:url("/img/mobile-rotation.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .vacation:before{
-    background-image:url("/img/vacation.svg")
+    background-image:url("/img/vacation.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .time:before{
-    background-image:url("/img/time.svg")
+    background-image:url("/img/time.svg");
+    margin: auto !important;
 }
 
 section.basics .columns .rootcause:before{
-    background-image:url("/img/rootcause.svg")
+    background-image:url("/img/rootcause.svg");
+    margin: auto !important;
 }
 
 
 section.basics .columns .customerexperience:before{
-    background-image:url("/img/social-media.svg")
+    background-image:url("/img/social-media.svg");
+    margin: auto !important;
 }
 
 
@@ -821,11 +812,15 @@ section.basics .split .right{
     background:-webkit-linear-gradient(290deg,#f5f7f9,#fff 50%);
     background:linear-gradient(160deg,#f5f7f9,#fff 50%)
 }
-@media screen and (max-width:1012px){
+@media (max-width:770px){
     section.basics .split .right{
-        margin-left:220px
+        margin: 0px;
+        padding: 10px;
+        background: white;
     }
 }
+
+
 @media screen and (max-width:479px){
     section.basics .split .right{
         margin-left:0;

@@ -46,29 +46,7 @@
                 <img src="/img/animated-gif/incident-management.gif" class="imageshadow" alt="Incident Management" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
             </div>
 
-            <section id="intro" style="height: unset; margin-top:100px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
 
             
 
@@ -106,36 +84,14 @@
 
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
 
-                <div class="split">
-                    <div class="content">
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More Incident <br/> Orchestration &amp; <br/> and Response <br/> Features.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
@@ -144,7 +100,7 @@
 
                         </div>
 
-                        <div class="right">
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
                             <ul>
                                 <li>
                                     <h3>Connect to any third-party monitoring service</h3>

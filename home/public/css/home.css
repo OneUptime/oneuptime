@@ -139,6 +139,14 @@ main header{
     }
 }
 
+@media (max-width:770px){
+
+    .cta-button-section{
+        padding: 0px;
+    }
+}
+
+
 .checkbox-feature{
     width:50%; 
     display: flex; 
@@ -359,17 +367,28 @@ main header{
     display:flex;
     margin-top:40px
 }
-@media (min-width:770px){
+@media (min-width:771px){
     #intro ul{
         margin-top:65px
     }
+    #intro li:first-child a{
+        margin-right:23px;
+        color:#fff;
+        background:#000000;
+        text-shadow:0 1px 3px rgba(36,180,126,.4)
+    }
 }
-#intro li:first-child a{
-    margin-right:23px;
-    color:#fff;
-    background:#000000;
-    text-shadow:0 1px 3px rgba(36,180,126,.4)
+@media (max-width:770px){
+    #intro ul{
+        margin-top:65px
+    }
+    #intro li:first-child a{
+        color:#fff;
+        background:#000000;
+        text-shadow:0 1px 3px rgba(36,180,126,.4)
+    }
 }
+
 #intro li:first-child svg{
     position:relative;
     top:1px;

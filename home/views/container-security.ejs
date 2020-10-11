@@ -46,42 +46,20 @@
                 <img src="/img/animated-gif/docker-security.gif" class="imageshadow" alt="Docker Container Security" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
             </div>
 
-            <section id="intro" style="height: unset; margin-top:100px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
 
             <section class="main basics" style="padding:0px">
                 <div class="content">
                     <ul class="columns">
-                        <li class="fire">
+                        <li class="block-image fire">
                             <h3>Find Vulnerabilities.</h3>
                             <p class="text-center">Find security vulnerabilities instantly with your docker containers, images, K8s pods and more.</p>
                         </li>
-                        <li class="docker">
+                        <li class="block-image docker">
                             <h3>Base Image remediation</h3>
                             <p class="text-center">Scale the security process by quickly eliminating many of vulnerabilities by upgrading to the most secure base image or by rebuilding the image when outdated. </p>
                         </li>
-                        <li class="list">
+                        <li class="block-image list">
                             <h3>In-line fixes</h3>
                             <p class="text-center">Get straight to the line in your Dockerfile that’s introducing vulnerabilities and easily trace dependencies to discover which of your tools is the causing issues.</p>
                         </li>
@@ -89,15 +67,15 @@
                     </ul>
 
                     <ul class="columns">
-                        <li class="password">
+                        <li class="block-image password">
                             <h3>Monitor dependencies</h3>
                             <p class="text-center">Fyipe can detect and monitor open source dependencies for popular languages as part of the container scan.</p>
                         </li>
-                        <li class="k8s">
+                        <li class="block-image k8s">
                             <h3>Kubernetes application configuration</h3>
                             <p class="text-center">Detect newly deployed and updated workloads in Kubernetes clusters to ensure images are scanned for vulnerabilities. Uncover potentially unsafe settings in Kubernetes workloads that could expose your cluster to additional attacks and privilege escalations.</p>
                         </li>
-                        <li class="cctv">
+                        <li class="block-image cctv">
                             <h3>Image monitoring</h3>
                             <p class="text-center">Monitor your images for newly discovered vulnerabilities and base image updates and receive alerts via Slack, Teams or email. </p>
                         </li>
@@ -106,37 +84,15 @@
 
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
 
                 
-                <div class="split">
-                    <div class="content">
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More Docker <br/> Container Security <br/> Features.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
@@ -145,7 +101,7 @@
 
                         </div>
 
-                        <div class="right">
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
                             <ul>
                                 <li>
                                     <h3>Integrates with your private docker registry.</h3>

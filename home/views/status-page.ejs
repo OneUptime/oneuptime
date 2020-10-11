@@ -29,7 +29,7 @@
     <div class="globalContent">
         <div id="main-content">
 
-            <section class="marquee nav-animation-element" style="height: 450px;">
+            <section class="marquee nav-animation-element top-section">
 
                 <div id="bubble-overlay">
                     <div class="content">
@@ -43,20 +43,20 @@
                     <div style="width: 952px;
                     margin: 0 auto;
                     position: relative;">
-                        <div style="display:flex; justify-content: space-between">
-                            <div class="checkbox-feature ">
+                        <div class="checkbox-items">
+                            <div class="checkbox-feature top-margin-10">
                                 <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
                                         class="checkbox-text">Unlimited Public Status Pages</div> 
                             </div>
-                            <div class="checkbox-feature">
+                            <div class="checkbox-feature top-margin-10">
                                 <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
                                         class="checkbox-text">Unlimited Private Status Pages</div> 
                             </div>
                             
-                            <div class="checkbox-feature mobile-collapse">
+                            <div class="checkbox-feature top-margin-10">
                                 <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
                                         class="checkbox-text">Unlimited Subscribers</div> 
-                            </div class="checkbox-feature">
+                            </div>
                             
                         </div>
                        
@@ -70,46 +70,24 @@
                 <img src="/img/animated-gif/status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
             </div>
 
-            <section id="intro" style="height: unset; margin-top:100px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
 
            
 
             <section class="main basics">
                 <div class="content">
                     <ul class="columns">
-                        <li class="trend">
+                        <li class="block-image trend">
                             <h3>Realtime Status</h3>
                             <p class="text-center">Show realtime status of your product or service - home page, 
                                 websites, API, dashboards or more with a hosted status page.</p>
                         </li>
-                        <li class="cost">
+                        <li class="block-image cost">
                             <h3>Cut Support Costs</h3>
                             <p class="text-center">Communicate any incidents through a status page.
                                 This saves your customers from creating a flood of support tickets. </p>
                         </li>
-                        <li class="reli">
+                        <li class="block-image reli">
                             <h3>Showcase Reliability</h3>
                             <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
                                 and build trust with your customers.</p>
@@ -118,15 +96,15 @@
                     </ul>
 
                     <ul class="columns">
-                        <li class="note">
+                        <li class="block-image note">
                             <h3>Post Investigation Notes</h3>
                             <p class="text-center"> Have your team post notes and post-mortem when incidents happen and increase transparency and trust with customers.</p>
                         </li>
-                        <li class="security">
+                        <li class="block-image security">
                             <h3>SLA Compliance</h3>
                             <p class="text-center">Have Fyipe certify your SLA compliance and showcase that to your existing and potential customers.</p>
                         </li>
-                        <li class="moni">
+                        <li class="block-image moni">
                             <h3>Monitor Anything.</h3>
                             <p class="text-center">An endpoint, applications, a container, cluster, network, or
                                 anything else. You name it. We monitor all of
@@ -136,29 +114,7 @@
                     </ul>
 
                 </div>
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <% include ./customer-section %>
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
@@ -167,43 +123,21 @@
                 </header>
                 <div class="content">
                     <ul class="columns">
-                        <li class="sms">
+                        <li class="block-image sms">
                             <h3>Email, SMS and more</h3>
                             <p class="text-center">Your customers can pick from different types of notifications channels - Email, SMS, RSS, Webhooks, or Atom Feeds.</p>
                         </li>
-                        <li class="notification1">
+                        <li class="block-image notification1">
                             <h3>Branded Notifications</h3>
                             <p class="text-center">You can -label or brand notification messages to your subscribers to suit your brand.  </p>
                         </li>
-                        <li class="callcenter">
+                        <li class="block-image callcenter">
                             <h3>Improved Experience</h3>
                             <p class="text-center"> Notify customers proactively when services are down or degraded. This improves trust and customer experience.</p>
                         </li>
                     </ul>
                 </div>
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Branding and Customization</h2>
@@ -214,43 +148,21 @@
                 </div>
                 <div class="content">
                     <ul class="columns">
-                        <li class="paint">
+                        <li class="block-image paint">
                             <h3>Colors and styling.</h3>
                             <p class="text-center">Our status page comes in multiple templates, change colors or styling to make it look like your own.</p>
                         </li>
-                        <li class="brand">
+                        <li class="block-image brand">
                             <h3>Whitelabel and logos</h3>
                             <p class="text-center"> Whitelabel the status page to your needs, add a logo, custom domain, custom SSL and more. </p>
                         </li>
-                        <li class="htmlcss">
+                        <li class="block-image htmlcss">
                             <h3>Edit HTML and CSS</h3>
                             <p class="text-center"> We give you complete flexibility to design your own status page. Edit and implement your own HTML, and CSS. </p>
                         </li>
                     </ul>
                 </div>
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Multiple Status Pages</h2>
@@ -260,34 +172,12 @@
                 <div style="display:flex; justify-content:center; margin-bottom:30px;margin-top:30px;">
                     <img src="/img/animated-gif/multiple-status-page.gif" width="900" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
                 </div>
-                <section id="intro" style="height: unset; margin-top:70px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
+                <% include ./cta-buttons %>
 
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-                <div class="split">
-                    <div class="content">
-
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More Status Page Features.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
@@ -298,8 +188,8 @@
 
                         </div>
 
-                        <div class="right">
-                            <ul>
+                        <div class="right width-100-in-mobile margin-0-in-mobile" style="width:100%">
+                            <ul style="width:100%">
                                 <li>
                                     <h3>Inform users about future Scheduled Maintenance</h3>
 
@@ -352,43 +242,21 @@
 
                 <div class="content">
                     <ul class="columns">
-                        <li class="teams">
+                        <li class="block-image teams">
                             <h3>Select Team Members</h3>
                             <p class="text-center">Pick internal team members or customers who have access to your private status page. </p>
                         </li>
-                        <li class="informed">
+                        <li class="block-image informed">
                             <h3>Keep company informed</h3>
                             <p class="text-center">Pipe status updates into Slack to keep engineering, IT, and Ops teams on the same page. </p>
                         </li>
-                        <li class="dash">
+                        <li class="block-image dash">
                             <h3>Internal Dashboards</h3>
                             <p class="text-center"> Create internal reliability dashboards, hook it up to a TV and show them to your team.</p>
                         </li>
                     </ul>
                 </div>
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
                
                 <% include ./integration %> 
             </section>
