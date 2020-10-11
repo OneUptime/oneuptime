@@ -177,7 +177,14 @@ const IncidentTimelineList = props => {
                                                             }}
                                                         >
                                                             <img
-                                                                src="/dashboard/assets/img/Fyipe.svg"
+                                                                src={
+                                                                    log.createdById &&
+                                                                    log
+                                                                        .createdById
+                                                                        .name
+                                                                        ? '/dashboard/assets/img/profile-user.svg'
+                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                }
                                                                 className="userIcon"
                                                                 alt=""
                                                                 style={{
