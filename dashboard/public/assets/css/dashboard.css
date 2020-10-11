@@ -51241,6 +51241,11 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   max-height: 9vw;
   max-width: 75%;
 }
+@media only screen and (min-device-width:1000px){
+  .Hershey-logo-image{
+    height: 33.6px;
+  }
+}
 
 .PhoneInput {
   display: flex;
