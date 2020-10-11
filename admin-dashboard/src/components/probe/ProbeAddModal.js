@@ -100,6 +100,7 @@ class ProbeAddModal extends Component {
                                                             validate={
                                                                 ValidateField.text
                                                             }
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -173,7 +174,6 @@ class ProbeAddModal extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={disabled}
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {addProbeState &&
                                             !addProbeState.requesting && (

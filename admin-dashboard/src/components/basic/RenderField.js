@@ -11,6 +11,7 @@ const RenderField = ({
     disabled,
     initialValue,
     style,
+    autoFocus,
 }) => (
     <span>
         <span>
@@ -23,6 +24,7 @@ const RenderField = ({
                 disabled={disabled || false}
                 defaultValue={initialValue}
                 style={style || {}}
+                autoFocus={autoFocus}
             />
         </span>
         <br />
@@ -60,6 +62,11 @@ RenderField.propTypes = {
     rows: PropTypes.string,
     disabled: PropTypes.bool,
     style: PropTypes.object,
+    autoFocus: PropTypes.bool,
+};
+
+RenderField.defaultProps = {
+    autoFocus: false,
 };
 
 export { RenderField };

@@ -203,6 +203,7 @@ class EditNoteModal extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -312,7 +313,6 @@ class EditNoteModal extends Component {
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={updatingInternalNote}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={!updatingInternalNote}
@@ -349,7 +349,6 @@ class EditNoteModal extends Component {
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={updatingInvestigationNote}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={!updatingInvestigationNote}

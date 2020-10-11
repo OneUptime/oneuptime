@@ -8,13 +8,12 @@ chai.use(require('chai-subset'));
 let app = require('../server');
 let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
+let { createEnterpriseUser } = require('./utils/userSignUp');
 let UserService = require('../backend/services/userService');
 let ProjectService = require('../backend/services/projectService');
 let ComponentService = require('../backend/services/componentService');
 let MonitorService = require('../backend/services/monitorService');
 let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
 let OnCallScheduleStatusService = require('../backend/services/onCallScheduleStatusService');
 let SubscriberService = require('../backend/services/subscriberService');
 let SubscriberAlertService = require('../backend/services/subscriberAlertService');
@@ -32,14 +31,13 @@ let TwilioModel = require('../backend/models/twilio');
 let VerificationToken = require('../backend/models/verificationToken');
 let LoginIPLog = require('../backend/models/loginIPLog');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
 let UserModel = require('../backend/models/user');
 let GlobalConfigModel = require('../backend/models/globalConfig');
 
 const sleep = waitTimeInMs =>
   new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization, token, userId, airtableId, projectId, componentId, monitorId, scheduleId;
+let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
 
 describe('Incident Alerts', function () {
   this.timeout(30000);
@@ -47,27 +45,15 @@ describe('Incident Alerts', function () {
   before(function (done) {
     this.timeout(30000);
     GlobalConfig.initTestConfig().then(() => {
-      createUser(request, userData.user, async function (err, res) {
+      createEnterpriseUser(request, userData.user, async function (err, res) {
         let project = res.body.project;
         projectId = project._id;
         userId = res.body.id;
-        airtableId = res.body.airtableId;
 
         await UserModel.updateOne(
           { _id: userId },
           { alertPhoneNumber: '+19173976235' }
         );
-
-        VerificationTokenModel.findOne({ userId }, function (
-          err,
-          verificationToken
-        ) {
-          request
-            .get(
-              `/user/confirmation/${verificationToken.token}`
-            )
-            .redirects(0)
-            .end(function () {
               request
                 .post('/user/login')
                 .send({
@@ -102,11 +88,6 @@ describe('Incident Alerts', function () {
                       criteria: {},
                     })
                   monitorId = monitor.body._id;
-
-                  await request
-                    .post(`/stripe/${projectId}/addBalance`)
-                    .set('Authorization', authorization)
-                    .send({ rechargeBalanceAmount: "2000" });
 
                   await request
                     .post(`/subscriber/${projectId}/subscribe/${monitorId}`)
@@ -157,8 +138,8 @@ describe('Incident Alerts', function () {
                     );
                   done();
                 });
-            });
-        });
+
+        
 
       });
     });
@@ -187,7 +168,6 @@ describe('Incident Alerts', function () {
     await ProjectService.hardDeleteBy({ _id: projectId });
     await UserService.hardDeleteBy({ _id: userId });
     await NotificationService.hardDeleteBy({ projectId: projectId });
-    await AirtableService.deleteUser(airtableId);
   });
 
   describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {
@@ -467,19 +447,6 @@ describe('Incident Alerts', function () {
         { name: 'twilio' },
         { value },
       );
-      const billingEndpointResponse = await request
-        .put(`/project/${projectId}/alertOptions`)
-        .set('Authorization', authorization)
-        .send({
-          alertEnable: false,
-          billingNonUSCountries: true,
-          billingRiskCountries: true,
-          billingUS: true,
-          minimumBalance: "100",
-          rechargeToBalance: "200",
-          _id: projectId,
-        });
-      expect(billingEndpointResponse).to.have.status(200);
 
       const customTwilioSettingResponse = await request
         .post(`/smsSmtp/${projectId}`)
@@ -563,19 +530,6 @@ describe('Incident Alerts', function () {
       const globalSettings = await GlobalConfigModel.deleteMany(
         { name: 'twilio' },
       );
-      const billingEndpointResponse = await request
-        .put(`/project/${projectId}/alertOptions`)
-        .set('Authorization', authorization)
-        .send({
-          alertEnable: true,
-          billingNonUSCountries: true,
-          billingRiskCountries: true,
-          billingUS: true,
-          minimumBalance: "100",
-          rechargeToBalance: "200",
-          _id: projectId,
-        });
-      expect(billingEndpointResponse).to.have.status(200);
   
       const getCustomTwilioSettingResponse = await request
         .get(`/smsSmtp/${projectId}/`)

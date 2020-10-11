@@ -221,6 +221,9 @@ export class FormModal extends Component {
                                                                                 width:
                                                                                     '100%',
                                                                             }}
+                                                                            autoFocus={
+                                                                                true
+                                                                            }
                                                                         />
                                                                     </span>
                                                                 </div>
@@ -471,7 +474,6 @@ export class FormModal extends Component {
                                                 .requesting
                                         }
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {!this.props.team.teamCreate
                                             .requesting && (

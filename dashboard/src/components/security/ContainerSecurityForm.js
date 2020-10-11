@@ -10,7 +10,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addContainerSecurity } from '../../actions/security';
 import { getDockerCredentials } from '../../actions/credential';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import DockerCredentialModal from '../credential/DockerCredentialModal';
 
 class ContainerSecurityForm extends Component {
@@ -39,19 +39,6 @@ class ContainerSecurityForm extends Component {
         });
     };
 
-    handleKeyBoard = e => {
-        const { closeModal, projectId } = this.props;
-
-        switch (e.key) {
-            case 'Escape':
-                return closeModal({
-                    id: projectId,
-                });
-            default:
-                return false;
-        }
-    };
-
     render() {
         const {
             handleSubmit,
@@ -63,10 +50,7 @@ class ContainerSecurityForm extends Component {
         } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="Box-root Margin-bottom--12"
-            >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -338,7 +322,6 @@ ContainerSecurityForm.propTypes = {
     dockerCredentials: PropTypes.array,
     getDockerCredentials: PropTypes.func,
     requestingDockerCredentials: PropTypes.bool,
-    closeModal: PropTypes.func,
     openModal: PropTypes.func,
     resourceCategoryList: PropTypes.array,
 };
@@ -348,7 +331,6 @@ const mapDispatchToProps = dispatch =>
         {
             addContainerSecurity,
             getDockerCredentials,
-            closeModal,
             openModal,
         },
         dispatch
