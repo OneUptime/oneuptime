@@ -329,7 +329,9 @@ module.exports = {
                     });
                 } else {
                     if (data.retryCount < 3)
-                        return { retry: true, retryCount: data.retryCount };
+                        if (data.retryCount >= 0) {
+                            return { retry: true, retryCount: data.retryCount };
+                        }
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -374,7 +376,9 @@ module.exports = {
                     });
                 } else {
                     if (data.retryCount < 3)
-                        return { retry: true, retryCount: data.retryCount };
+                        if (data.retryCount >= 0) {
+                            return { retry: true, retryCount: data.retryCount };
+                        }
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -419,7 +423,9 @@ module.exports = {
                     });
                 } else {
                     if (data.retryCount < 3)
-                        return { retry: true, retryCount: data.retryCount };
+                        if (data.retryCount >= 0) {
+                            return { retry: true, retryCount: data.retryCount };
+                        }
                     incidentIds = await [
                         IncidentService.create({
                             projectId: monitor.projectId,
