@@ -92,7 +92,11 @@ const StatusPageProjectBox = props => {
                                     Monitors
                                 </div>
                             </td>
-                            <td></td>
+                            <td>
+                                <div className="bs-ObjectList-cell">
+                                    Action
+                                </div>
+                            </td>
                         </tr>
                     </thead>
                     <tbody id="statusPagesListContainer">
@@ -151,8 +155,7 @@ const StatusPageProjectBox = props => {
                         <div className="Box-root Margin-right--8">
                             <button
                                 id="btnPrev"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateBackward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
                                         ? 'Is--disabled'
                                         : ''
                                     }`}
@@ -177,8 +180,7 @@ const StatusPageProjectBox = props => {
                         <div className="Box-root">
                             <button
                                 id="btnNext"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateForward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateForward
                                         ? 'Is--disabled'
                                         : ''
                                     }`}
