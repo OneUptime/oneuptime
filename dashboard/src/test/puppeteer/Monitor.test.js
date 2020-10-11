@@ -708,7 +708,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -716,7 +716,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -736,7 +736,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -744,7 +744,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -764,7 +764,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -772,7 +772,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(

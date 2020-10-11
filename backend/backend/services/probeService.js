@@ -1907,7 +1907,9 @@ const checkAnd = async (
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1920,7 +1922,9 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` contains ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1938,14 +1942,20 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` did not have Javascript expression \`${
+                            con[i].field1
+                        }\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` was not empty`
                     );
                 }
             } else if (
@@ -1957,9 +1967,11 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
-            }
-        } else if (con[i] && con[i].responseType === 'evals') {
-            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'evaluateResponse'
+            ) {
                 try {
                     if (
                         !(
@@ -1977,13 +1989,17 @@ const checkAnd = async (
                     ) {
                         validity = false;
                         reasons.push(
-                            `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                            `${criteriaStrings.response} \`${JSON.stringify(
+                                response
+                            )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }
                 } catch (e) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                        `${criteriaStrings.response} \`${JSON.stringify(
+                            response
+                        )}\` did not evaluate \`${con[i].field1}\``
                     );
                 }
             }
@@ -2900,7 +2916,9 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` did not contain ${con[i].field1}`
                         );
                     }
                 }
@@ -2914,7 +2932,9 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` contains ${con[i].field1}`
                         );
                     }
                 }
@@ -2933,7 +2953,11 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` did not have Javascript expression \`${
+                                con[i].field1
+                            }\``
                         );
                     }
                 }
@@ -2942,7 +2966,9 @@ const checkOr = async (
                     validity = true;
                 } else {
                     reasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` was not empty`
                     );
                 }
             } else if (
@@ -2955,9 +2981,11 @@ const checkOr = async (
                 } else {
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
-            }
-        } else if (con[i] && con[i].responseType === 'evals') {
-            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'evaluateResponse'
+            ) {
                 try {
                     if (
                         con[i] &&
@@ -2975,7 +3003,9 @@ const checkOr = async (
                     } else {
                         if (con[i].field1) {
                             reasons.push(
-                                `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    response
+                                )}\` did not evaluate \`${con[i].field1}\``
                             );
                         }
                     }
@@ -2983,7 +3013,9 @@ const checkOr = async (
                     // validity = false;
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                            `${criteriaStrings.response} \`${JSON.stringify(
+                                response
+                            )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }
                 }
@@ -3244,7 +3276,7 @@ const criteriaStrings = {
     freeStorage: 'Free Storage was',
     temperature: 'Temperature was',
     responseBody: 'Response Body',
-    evaluateResponse: 'Response Body did not evaluate',
+    response: 'Response',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {
