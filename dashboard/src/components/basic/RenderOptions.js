@@ -32,6 +32,7 @@ const firstField = [
     'contains',
     'doesNotContain',
     'jsExpression',
+    'evaluateResponse',
     'executesIn',
     'doesNotExecuteIn',
     'throwsError',
@@ -62,6 +63,7 @@ const mapValue = {
     contains: 'Contains',
     doesNotContain: 'Does not Contain',
     jsExpression: 'Javascript Expression',
+    evaluateResponse: 'Evaluate Response',
     executesIn: 'Executes Less Than',
     doesNotExecuteIn: 'Executes Greater Than',
     throwsError: 'Throws error',
@@ -133,7 +135,9 @@ const placeholders = {
     },
     jsExpression: {
         responseBody: 'response.data === {}',
-        evals: "typeof response === 'object'",
+    },
+    evaluateResponse: {
+        responseBody: "typeof response === 'object'",
     },
     executesIn: {
         executes: '2000',
@@ -221,11 +225,6 @@ export class RenderOption extends Component {
                                     show:
                                         type !== 'script' &&
                                         type !== 'server-monitor',
-                                },
-                                {
-                                    value: 'evals',
-                                    label: 'Evaluate Response',
-                                    show: type === 'api',
                                 },
                                 {
                                     value: 'ssl',
@@ -467,10 +466,18 @@ export class RenderOption extends Component {
                                         label: 'Javascript Expression',
                                         show:
                                             bodyfield &&
-                                            (bodyfield.responseType ===
-                                                'responseBody' ||
-                                                bodyfield.responseType ===
-                                                    'evals'),
+                                            bodyfield.responseType ===
+                                                'responseBody' &&
+                                            type !== 'api',
+                                    },
+                                    {
+                                        value: 'evaluateResponse',
+                                        label: 'Evaluate Response',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType ===
+                                                'responseBody' &&
+                                            type === 'api',
                                     },
                                     {
                                         value: 'empty',
@@ -592,7 +599,8 @@ export class RenderOption extends Component {
                                     validate={
                                         filterval !== '' &&
                                         firstField.indexOf(filterval) > -1
-                                            ? filterval === 'jsExpression'
+                                            ? filterval === 'jsExpression' ||
+                                              filterval === 'evaluateResponse'
                                                 ? ValidateField.required
                                                 : [
                                                       ValidateField.required,
@@ -619,7 +627,8 @@ export class RenderOption extends Component {
                                 <ShouldRender
                                     if={
                                         type === 'api' &&
-                                        bodyfield.responseType === 'evals'
+                                        bodyfield.responseType ===
+                                            'responseBody'
                                     }
                                 >
                                     <Tooltip title="Evaluate Response">
