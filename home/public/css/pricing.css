@@ -54,7 +54,7 @@
 .Header-subTitle{
     color:#fff
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .Header-subTitle{
         display:block
     }
@@ -119,7 +119,7 @@
     border-radius:0 0 4px 4px;
     z-index:5
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .Plan--enterprise{
         border-radius:0 4px 4px 0
     }
@@ -345,11 +345,7 @@
     color:#000000;
     white-space:nowrap
 }
-@media only screen and (min-width:1020px) and (max-width:1040px){
-    .PricingDetailsRow-paymentTypeTitle{
-        font-size:2.35em
-    }
-}
+
 .PricingDetailsRow-paymentTypeTitle img{
     position:relative;
     top:4px;
@@ -490,7 +486,7 @@
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .PricingDetailsRow-priceContainer:before{
         content:'';
         display:block;
@@ -507,7 +503,7 @@
     margin:0;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .PricingDetailsRow-price.has-cap{
         font-size:2em
     }
@@ -656,7 +652,7 @@ strong.PricingDetails-Currency-header{
     padding-top:70px;
     padding-bottom:70px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .interstitial-cta .container{
         display:-ms-flexbox;
         display:flex;
@@ -677,7 +673,7 @@ strong.PricingDetails-Currency-header{
 .interstitial-cta .buttons{
     margin-top:20px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .interstitial-cta .buttons{
         margin-top:0;
         display:-ms-flexbox;
@@ -692,7 +688,7 @@ td.Feature-Table-Sign{
 .enterprise-height{
     height:530px;
 }
-@media (max-width:770px){
+@media (max-width:1020px){
 .extra-margin{
     height : 622px;
 }

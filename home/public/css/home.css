@@ -123,7 +123,7 @@ main header{
     position:relative
 }
 
-@media (min-width:800px){
+@media (min-width:1020px){
     .checkbox-feature{
         width:25%; 
         display: flex; 

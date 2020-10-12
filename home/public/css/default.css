@@ -2339,7 +2339,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
         display: none;
     }
 }
-@media (max-width:800px){
+@media (max-width:1020px){
     #status-page {
         display: none;
     }
