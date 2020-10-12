@@ -10,9 +10,7 @@ class Util {
         const firstStack = stackTrace[0].split(':'); // browser add a : to seperate the title from the description
         const obj = {
             type: firstStack[0],
-            message: errorEvent.error.msg
-                ? errorEvent.error.msg
-                : errorEvent.error,
+            message: errorEvent.msg ? errorEvent.msg : errorEvent.error,
             stacktrace: null,
             lineNumber: errorEvent.line,
             columnNumber: errorEvent.col,
