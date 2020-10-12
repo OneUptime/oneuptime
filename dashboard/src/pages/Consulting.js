@@ -121,7 +121,7 @@ class Consulting extends Component {
                                         <div className="Flex-flex--1">
                                             <img
                                                 src="/dashboard/assets/img/icons/hershey-logo.png"
-                                                className="Responsive-image"
+                                                className="Hershey-logo-image Responsive-image"
                                                 alt="hershey-logo"
                                             />
                                         </div>
