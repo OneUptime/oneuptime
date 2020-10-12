@@ -57,7 +57,7 @@ class FyipeListiner {
         // listen to click and key event
         // todo listen to just keypress and click
         Object.keys(window).forEach(key => {
-            if (/^on(key|click)/.test(key)) {
+            if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
                     // set up how to send this log to the server
                     this._logClickEvent(event, this.#eventType.INFO);
