@@ -25,9 +25,16 @@ class FyipeTracker {
             } else {
                 // construct the error object
                 const errorObj = _this.#utilObj._getErrorStackTrace(errorEvent);
-                _this.prepareErrorObject(errorObj);
+
+                // log error event
+                const content = {
+                    message: errorObj.message,
+                };
+                _this.#listenerObj.logErrorEvent(content);
+
                 // get device location and details
                 // prepare to send to server
+                _this.prepareErrorObject(errorObj);
             }
         };
     }
