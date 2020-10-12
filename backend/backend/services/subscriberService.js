@@ -139,6 +139,15 @@ module.exports = {
     subscribe: async function(data, monitors) {
         try {
             const _this = this;
+            if (!monitors || (monitors && monitors.length < 1)) {
+                const statusPage = await StatusPageService.findOneBy({
+                    _id: data.statusPageId,
+                });
+                monitors = statusPage.monitors.map(
+                    monitorData => monitorData.monitor
+                );
+            }
+
             const success = monitors.map(async monitor => {
                 const newSubscriber = Object.assign({}, data, {
                     monitorId: monitor,
@@ -192,23 +201,28 @@ module.exports = {
     subscriberCheck: async function(subscriber) {
         const _this = this;
         let existingSubscriber = null;
-        if (subscriber.alertVia === 'sms') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactPhone: subscriber.contactPhone,
-                countryCode: subscriber.countryCode,
-            });
-        } else if (subscriber.alertVia === 'email') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactEmail: subscriber.contactEmail,
-            });
-        } else if (subscriber.alertVia === 'webhook') {
-            existingSubscriber = await _this.findByOne({
-                monitorId: subscriber.monitorId,
-                contactWebhook: subscriber.contactWebhook,
-                contactEmail: subscriber.contactEmail,
-            });
+        if (subscriber.statusPageId) {
+            if (subscriber.alertVia === 'sms') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactPhone: subscriber.contactPhone,
+                    countryCode: subscriber.countryCode,
+                    statusPageId: subscriber.statusPageId,
+                });
+            } else if (subscriber.alertVia === 'email') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactEmail: subscriber.contactEmail,
+                    statusPageId: subscriber.statusPageId,
+                });
+            } else if (subscriber.alertVia === 'webhook') {
+                existingSubscriber = await _this.findByOne({
+                    monitorId: subscriber.monitorId,
+                    contactWebhook: subscriber.contactWebhook,
+                    contactEmail: subscriber.contactEmail,
+                    statusPageId: subscriber.statusPageId,
+                });
+            }
         }
         return existingSubscriber !== null ? true : false;
     },
@@ -306,3 +320,4 @@ module.exports = {
 
 const SubscriberModel = require('../models/subscriber');
 const ErrorService = require('./errorService');
+const StatusPageService = require('./statusPageService');

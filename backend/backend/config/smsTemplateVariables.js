@@ -5,6 +5,7 @@ module.exports = {
         '{{projectName}} : Name of the project on which the incident has occured.',
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
+        '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
     ],
     'Subscriber Incident Acknowldeged': [
         '{{incidentTime}} : Time at which this incident occured.',
@@ -12,6 +13,7 @@ module.exports = {
         '{{projectName}} : Name of the project on which the incident has occured.',
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
+        '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
     ],
     'Subscriber Incident Resolved': [
         '{{incidentTime}} : Time at which this incident occured.',
@@ -19,5 +21,6 @@ module.exports = {
         '{{projectName}} : Name of the project on which the incident has occured.',
         '{{incidentType}} : Type of incident.',
         '{{componentName}} : Name of the component the monitor belongs to',
+        '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
     ],
 };

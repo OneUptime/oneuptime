@@ -29,6 +29,7 @@ class SubscriberAdvanceOption extends React.Component {
                 emailNotification: values.emailNotification,
                 smsNotification: values.smsNotification,
                 webhookNotification: values.webhookNotification,
+                selectIndividualMonitors: values.selectIndividualMonitors,
             })
             .then(() => {
                 this.props.closeModal({
@@ -375,6 +376,79 @@ class SubscriberAdvanceOption extends React.Component {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label
+                                                    className="bs-Fieldset-label"
+                                                    style={{ flex: '0% 0 0' }}
+                                                >
+                                                    <span></span>
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                    style={{
+                                                        flexBasis: '100%',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            height: '5px',
+                                                        }}
+                                                    ></div>
+                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                        <label className="Checkbox">
+                                                            <Field
+                                                                component="input"
+                                                                type="checkbox"
+                                                                name={
+                                                                    'selectIndividualMonitors'
+                                                                }
+                                                                data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                className="Checkbox-source"
+                                                                id="statuspage_selectIndividualMonitors"
+                                                            />
+                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                <div className="Checkbox-target Box-root">
+                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    paddingLeft:
+                                                                        '5px',
+                                                                }}
+                                                            >
+                                                                <label>
+                                                                    <span>
+                                                                        Allow
+                                                                        subscribers
+                                                                        to
+                                                                        connect
+                                                                        to
+                                                                        individual
+                                                                        monitors
+                                                                    </span>
+                                                                </label>
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    <span>
+                                                                        Enabling
+                                                                        this
+                                                                        will
+                                                                        allow
+                                                                        your
+                                                                        users to
+                                                                        connect
+                                                                        to
+                                                                        individual
+                                                                        monitors
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -483,6 +557,7 @@ const mapStateToProps = state => {
     initialValues.emailNotification = status.emailNotification;
     initialValues.smsNotification = status.smsNotification;
     initialValues.webhookNotification = status.webhookNotification;
+    initialValues.selectIndividualMonitors = status.selectIndividualMonitors;
 
     return {
         initialValues,

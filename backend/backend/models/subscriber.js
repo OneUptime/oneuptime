@@ -2,9 +2,9 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const subscriberSchema = new Schema({
-    monitorId: { type: String, ref: 'Monitor' },
-    projectId: { type: String, ref: 'Project' },
-    statusPageId: { type: String, ref: 'StatusPage' },
+    monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+    statusPageId: { type: Schema.Types.ObjectId, ref: 'StatusPage' },
     alertVia: {
         type: String,
         enum: ['sms', 'email', 'webhook'],
@@ -21,6 +21,6 @@ const subscriberSchema = new Schema({
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User' },
 });
 module.exports = mongoose.model('Subscriber', subscriberSchema);

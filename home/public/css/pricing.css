@@ -54,7 +54,7 @@
 .Header-subTitle{
     color:#fff
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .Header-subTitle{
         display:block
     }
@@ -119,7 +119,7 @@
     border-radius:0 0 4px 4px;
     z-index:5
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .Plan--enterprise{
         border-radius:0 4px 4px 0
     }
@@ -185,11 +185,13 @@
     color:#757575;
     font-size:16px;
     line-height:1.4em;
-    padding-top:3px
+    padding-top:3px;
+    text-align: center;
 }
 .Plan-cardRate-description--split{
     font-size:1.4em;
-    padding-top:0
+    padding-top:0;
+    
 }
 .Plan-list{
     text-align: left;
@@ -345,11 +347,7 @@
     color:#000000;
     white-space:nowrap
 }
-@media only screen and (min-width:880px) and (max-width:1040px){
-    .PricingDetailsRow-paymentTypeTitle{
-        font-size:2.35em
-    }
-}
+
 .PricingDetailsRow-paymentTypeTitle img{
     position:relative;
     top:4px;
@@ -365,7 +363,7 @@
     -ms-flex-pack:end;
     justify-content:flex-end
 }
-@media only screen and (max-width:880px){
+@media only screen and (max-width:1020px){
     .PricingDetailsRow-iconContainer{
         display:none
     }
@@ -490,7 +488,7 @@
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .PricingDetailsRow-priceContainer:before{
         content:'';
         display:block;
@@ -507,7 +505,7 @@
     margin:0;
     color:#000000
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .PricingDetailsRow-price.has-cap{
         font-size:2em
     }
@@ -656,7 +654,7 @@ strong.PricingDetails-Currency-header{
     padding-top:70px;
     padding-bottom:70px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .interstitial-cta .container{
         display:-ms-flexbox;
         display:flex;
@@ -677,7 +675,7 @@ strong.PricingDetails-Currency-header{
 .interstitial-cta .buttons{
     margin-top:20px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .interstitial-cta .buttons{
         margin-top:0;
         display:-ms-flexbox;
@@ -692,7 +690,7 @@ td.Feature-Table-Sign{
 .enterprise-height{
     height:530px;
 }
-@media (max-width:670px){
+@media (max-width:1020px){
 .extra-margin{
     height : 622px;
 }

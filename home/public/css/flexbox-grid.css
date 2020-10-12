@@ -248,7 +248,7 @@
     order: 1;
   }
   
-  @media only screen and (min-width: 48em) {
+  @media only screen and (min-width: 1020px) {
     .container {
       width: 46rem;
     }

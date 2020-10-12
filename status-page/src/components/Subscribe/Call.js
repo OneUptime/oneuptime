@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { userData, validationError } from '../../actions/subscribe';
+import {
+    userData,
+    validationError,
+    subscribeUser,
+} from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
 class Call extends Component {
@@ -20,11 +24,32 @@ class Call extends Component {
         this.setState({ [name]: value });
     };
     handleSubmit = event => {
+        event.preventDefault();
+
+        const projectId =
+            this.props.statuspage &&
+            this.props.statuspage.projectId &&
+            this.props.statuspage.projectId._id;
+        const statusPageId = this.props.statuspage._id;
+        const selectIndividualMonitors = this.props.statuspage
+            .selectIndividualMonitors;
+
         if (this.state.phone_number && this.state.phone_number.length) {
             const validnumber = this.validation(this.state.phone_number);
             if (validnumber) {
                 const values = this.state;
                 values.method = 'sms';
+
+                if (!selectIndividualMonitors) {
+                    const monitors = [];
+                    return this.props.subscribeUser(
+                        values,
+                        monitors,
+                        projectId,
+                        statusPageId
+                    );
+                }
+
                 this.props.userData(values);
             } else {
                 this.props.validationError(
@@ -34,7 +59,6 @@ class Call extends Component {
         } else {
             this.props.validationError('Please enter your phone number.');
         }
-        event.preventDefault();
     };
     validation = phone => {
         const numbers = /^[0-9]+$/;
@@ -310,16 +334,19 @@ Call.displayName = 'Call';
 const mapStateToProps = state => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
+    statuspage: state.status.statusPage,
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ userData, validationError }, dispatch);
+    bindActionCreators({ userData, validationError, subscribeUser }, dispatch);
 
 Call.propTypes = {
     userData: PropTypes.func,
     validationError: PropTypes.func,
     subscribed: PropTypes.object,
     error: PropTypes.string,
+    statuspage: PropTypes.object,
+    subscribeUser: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Call);

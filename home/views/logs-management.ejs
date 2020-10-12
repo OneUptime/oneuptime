@@ -48,93 +48,51 @@
                     alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;" />
             </div> -->
 
-            <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
             
+           
 
             <section class="main basics" style="padding:0px">
                 <div class="content">
                     <ul class="columns">
-                        <li class="cctv">
+                        <li class="block-image cctv">
                             <h3>Proactive Monitoring</h3>
                             <p class="text-center">Eliminate issues before they affect users or cause service interruptions with a continuous and proactive view of performance across applications, services and infrastructure down to the request level.</p>
                         </li>
-                        <li class="dashboard">
+                        <li class="block-image dashboard">
                             <h3>Interactive dashboards</h3>
                             <p class="text-center">Easily build dashboards to monitor application health, behavior, and trends, or use one of our pre-built dashboards to monitor performance indicators (KPIs) and statistics. </p>
                         </li>
-                        <li class="teams">
+                        <li class="block-image teams">
                             <h3>Quick, collaborative dashboard sharing</h3>
                             <p class="text-center">Share one or more dashboards with multiple team members to get everyone on the same page. </p>
                         </li>
                     </ul>
 
                     <ul class="columns">
-                        <li class="list">
+                        <li class="block-image list">
                             <h3>Live tail of logs</h3>
                             <p class="text-center">Think real-time tail -f across all your log files from all your distributed systems. Pattern-based filtering and color coding help you to focus on what matters to you.</p>
                         </li>
-                        <li class="risk">
+                        <li class="block-image risk">
                             <h3>Anomaly detection</h3>
                             <p class="text-center">What if something unknown and unexpected shows up in your log data – something you would never search for and that triggers no alert?</p>
                         </li>
-                        <li class="chat">
+                        <li class="block-image chat">
                             <h3>Alerts</h3>
                             <p class="text-center">Create alerts based on search patterns, thresholds for specific log metrics, or other conditions.</p>
                         </li>
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
+                <% include ./cta-buttons %>
 
+                <% include ./customer-section %>
 
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-
-                <div class="split">
-                    <div class="content">
-
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More Log <br/> Management <br/> Features </h3>
                             <p class="common-BodyText" style="font-size:18px"><span
@@ -142,7 +100,7 @@
                             </p>
                         </div>
 
-                        <div class="right">
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
                             <ul>
                                 <li>
                                     <h3>Live tail of logs from any application / stack / platform.</h3>
