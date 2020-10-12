@@ -23,6 +23,7 @@ module.exports = {
             const blackListedResBodyObjectPaths = [
                 'gitCredential',
                 'dockerCredential',
+                'iv'
             ];
 
             // Audit logging is attached to res 'finish' event, because of below reasons.
