@@ -41,7 +41,7 @@ class Schedule extends Component {
     }
 
     render() {
-        const { editSchedule, isLoading, error } = this.state;
+        const { editSchedule, error } = this.state;
 
         const {
             escalations,
@@ -52,9 +52,6 @@ class Schedule extends Component {
         } = this.props;
         const name = schedule ? schedule.name : null;
 
-        if (isLoading) {
-            return <div></div>;
-        }
 
         if (error) {
             return <div></div>;
