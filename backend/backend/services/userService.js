@@ -352,7 +352,7 @@ module.exports = {
                             createdAt,
                         });
                     } catch (e) {
-                        //
+                        ErrorService.log('userService.signup', error);
                     }
 
                     if (record && record.id) {
