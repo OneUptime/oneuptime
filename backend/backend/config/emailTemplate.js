@@ -10,7 +10,7 @@ module.exports = [
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
+            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         ],
         emailType: 'Subscriber Incident Created',
         subject:
@@ -552,7 +552,7 @@ span.st-Delink.st-Delink--footer a {
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
+            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         ],
         emailType: 'Subscriber Incident Acknowldeged',
         subject:
@@ -1093,7 +1093,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{userId}} : Unique identifier for user account.',
             '{{projectId}} : Unique identifier for the current project.',
             "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : Url of the status page. If there is a verified domain, it will be used',
+            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         ],
         emailType: 'Subscriber Incident Resolved',
         subject:
