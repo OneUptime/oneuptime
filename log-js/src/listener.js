@@ -148,6 +148,17 @@ class FyipeListiner {
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
     }
+    logErrorEvent(content) {
+        const timelineObj = {
+            category: 'exception',
+            data: {
+                content,
+            },
+            type: this.#eventType.ERROR,
+        };
+        // add timeline to the stack
+        this.#timelineObj.addToTimeline(timelineObj);
+    }
     _logClickEvent(event, type) {
         // preepare the event tree
         const content = this._getEventTree(event);
