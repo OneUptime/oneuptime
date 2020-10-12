@@ -231,7 +231,7 @@
     font-size: 17px;
     line-height: 26px;
 }
-@media only screen and (max-width: 770px) {
+@media only screen and (max-width: 1020px) {
     .mobile-head{
         flex-direction: column;
     }

@@ -16,7 +16,7 @@
     color:#000000;
     letter-spacing:-.01em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-SuperTitle{
         font-size:50px;
         line-height:70px
@@ -28,7 +28,7 @@
     line-height:43px;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-PageTitle{
         font-size:40px;
         line-height:50px
@@ -40,7 +40,7 @@
     line-height:43px;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-PageSubtitle{
         font-size:40px;
         line-height:50px
@@ -52,7 +52,7 @@
     line-height:31px;
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-IntroText{
         font-size:24px;
         line-height:36px
@@ -77,7 +77,7 @@
     text-transform:uppercase;
     letter-spacing:.025em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-UppercaseTitle{
         font-size:22px;
         line-height:33px
@@ -107,7 +107,7 @@
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-ProductLockup,.common-ProductLockupBack{
         font-size:28px;
         line-height:38px
@@ -121,7 +121,7 @@
     box-shadow:0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
     margin-right:20px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     .common-ProductLockup .icon,.common-ProductLockupBack .icon{
         width:72px;
         height:72px

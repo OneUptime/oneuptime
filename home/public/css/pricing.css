@@ -185,11 +185,13 @@
     color:#757575;
     font-size:16px;
     line-height:1.4em;
-    padding-top:3px
+    padding-top:3px;
+    text-align: center;
 }
 .Plan-cardRate-description--split{
     font-size:1.4em;
-    padding-top:0
+    padding-top:0;
+    
 }
 .Plan-list{
     text-align: left;
