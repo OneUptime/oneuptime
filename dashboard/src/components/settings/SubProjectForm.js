@@ -170,6 +170,7 @@ export class SubProjectForm extends React.Component {
                                             margin: '10px 0 10px 5%',
                                         }}
                                         disabled={disabled}
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -201,7 +202,6 @@ export class SubProjectForm extends React.Component {
                                                 'bs-is-disabled'}`}
                                             type="save"
                                             disabled={disabled}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender if={disabled}>
                                                 <FormLoader />
