@@ -351,7 +351,7 @@ module.exports = {
                             jobRole: data.companyRole,
                             createdAt,
                         });
-                    } catch (e) {
+                    } catch (error) {
                         ErrorService.log('userService.signup', error);
                     }
 
