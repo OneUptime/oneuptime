@@ -168,11 +168,15 @@ module.exports = {
                 });
             }
 
-            containerSecurity = await this.updateOneBy(query, {
+            await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
 
+            containerSecurity = await this.findOneBy({
+                ...query,
+                deleted: true,
+            });
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.deleteBy', error);
