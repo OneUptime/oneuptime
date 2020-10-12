@@ -165,27 +165,59 @@ class FyipeListiner {
         const tree = [];
         const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
         let current = 0;
+        const fullPath = [];
         while (current < MAX_UP_TREE && event.path[current]) {
-            // the current even has a path and we havent got up to 5 items
+            // the current element has a path and we havent got up to 5 items, and its not an html tag
             const currentElem = event.path[current];
-            // for classes
-            let classes = [];
-            classes = currentElem.classList; // get all classes
+            if (currentElem.localName !== 'html') {
+                let elementPath = '';
 
-            // get attributes
-            const attributes = this._getElementAttributes(currentElem);
+                elementPath += `${currentElem.localName}`;
+                // attach ID if it has
+                if (currentElem.id) {
+                    elementPath += `#${currentElem.id}`;
+                }
+                // for classes
+                let classes = [];
+                classes = currentElem.classList; // get all classes
+                let classesForElement = '';
+                classes.forEach(element => {
+                    classesForElement += `.${element}`;
+                });
+                elementPath += classesForElement;
 
-            // setting up the whole object for the element
-            tree.push({
-                name: currentElem.localName,
-                class: classes,
-                attribute: attributes,
-            });
+                // get attributes
+                const attributes = this._getElementAttributes(currentElem);
+                if (attributes.length > 0) {
+                    let attributesForElement = '';
+                    attributes.forEach(element => {
+                        if (element.key !== 'id') {
+                            attributesForElement += `${element.key}=${element.value},`;
+                        }
+                    });
+                    if (attributesForElement !== '') {
+                        attributesForElement = attributesForElement.substring(
+                            0,
+                            attributesForElement.length - 1
+                        );
+                        elementPath += `[${attributesForElement}]`;
+                    }
+                }
+                fullPath.push(elementPath);
+                // setting up the whole object for the element
+                tree.push({
+                    name: currentElem.localName,
+                    class: classes,
+                    attribute: attributes,
+                });
+            }
 
             // increate the counter
             current = current + 1;
         }
-        return tree; // return the final tree which contains a max of 5 elements
+        let path = fullPath.reverse();
+        path = path.join(' > ');
+        return { tree, path }; // return the final tree which contains a max of 5 elements
     }
     _getElementAttributes(elem) {
         const attributes = [];
