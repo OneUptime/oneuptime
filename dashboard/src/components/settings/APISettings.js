@@ -81,6 +81,7 @@ export class APISettings extends Component {
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <span
+                                                        id="projectId"
                                                         className="value"
                                                         style={{
                                                             marginTop: '6px',
@@ -102,6 +103,7 @@ export class APISettings extends Component {
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <span
+                                                        id="apiUrl"
                                                         className="value"
                                                         style={{
                                                             marginTop: '6px',
