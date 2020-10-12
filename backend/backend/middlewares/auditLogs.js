@@ -20,6 +20,7 @@ module.exports = {
             const blackListedRoutes = ['/audit-logs/'];
             const blackListedReqObjectPaths = ['body.password'];
             const blackListedResObjectPaths = [];
+            const blackListedResBodyObjectPaths = ['gitCredential']
 
             // Audit logging is attached to res 'finish' event, because of below reasons.
             //    - To get 'projectId' value if available. (Mostly passed as route parameter)
@@ -69,6 +70,9 @@ module.exports = {
                         blackListedReqObjectPaths
                     );
                     const modifiedRes = _.omit(res, blackListedResObjectPaths);
+                    if(Array.isArray(res.resBody)){
+                        modifiedRes.resBody = res.resBody.map(element=>_.omit(element, blackListedResBodyObjectPaths));
+                    }
 
                     const apiRequestDetails = {
                         apiSection: parsedUrl.pathname, // url path without any query strings.
