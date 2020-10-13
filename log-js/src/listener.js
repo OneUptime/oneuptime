@@ -11,6 +11,9 @@ class FyipeListiner {
     };
     #BASE_URL = 'http://test'; // TODO proper base url config
     #timelineObj;
+    #debounceDuration = 1000;
+    #keypressTimeout = undefined;
+    #lastEvent = undefined;
     constructor() {
         this.#timelineObj = new FyipeTimelineManager();
         this._init();
@@ -24,6 +27,10 @@ class FyipeListiner {
     getTimeline() {
         // this always get the current state of the timeline array
         return this.#timelineObj.getTimeline();
+    }
+    clearTimeline() {
+        // this will reset the state of the timeline array
+        return this.#timelineObj.clearTimeline();
     }
     // set up console listener
     _setUpConsoleListener() {
@@ -56,11 +63,28 @@ class FyipeListiner {
     _setUpDomListener() {
         // listen to click and key event
         // todo listen to just keypress and click
+        const _this = this;
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
-                    // set up how to send this log to the server
-                    this._logClickEvent(event, this.#eventType.INFO);
+                    console.log(event)
+                    if (!_this.#keypressTimeout) {
+                        // confirm the event is new
+                        if (_this.#lastEvent === event) {
+                            return;
+                        }
+                        _this.#lastEvent = event;
+                        // set up how to send this log to the server
+                        this._logClickEvent(event, this.#eventType.INFO);
+                    } else {
+                        console.log('not logging');
+                    }
+
+                    clearTimeout(_this.#keypressTimeout);
+
+                    _this.#keypressTimeout = setTimeout(() => {
+                        _this.#keypressTimeout = undefined;
+                    }, _this.#debounceDuration);
                 });
             }
         });
