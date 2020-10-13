@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import DeleteCaution from './DeleteCaution';
+import DeleteMessaging from './DeleteMessaging'; 
 import {
     hideDeleteModal,
     deleteProject,
@@ -45,6 +46,8 @@ export class DeleteProjectModal extends Component {
 
     render() {
         const { deleted } = this.state;
+        const { deletedModal } = this.props
+        console.log('is deleted: ', deleted, deletedModal)
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -52,19 +55,26 @@ export class DeleteProjectModal extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    {deleted ? (
+                    {deletedModal ? (
                         <div className="bs-BIM">
-                            <DeleteRequestModal
+                            {/* <DeleteRequestModal
                                 closeNotice={this.closeNotice}
                                 requesting={this.props.isRequesting}
-                            />
-                        </div>
-                    ) : (
-                        <div className="bs-BIM">
+                            /> */}
                             <DeleteCaution
                                 hide={this.props.hideDeleteModal}
                                 deleteProject={this.deleteProject}
                                 requesting={this.props.isRequesting}
+                            /> 
+                        </div>
+                    ) : (
+                        <div className="bs-BIM">
+                            <DeleteMessaging 
+                                hide={this.props.hideDeleteModal}
+                                deleteProject={this.deleteProject}
+                                requesting={this.props.isRequesting}
+                                deleted={deleted}
+                                // showDeleteModal="show"
                             />
                         </div>
                     )}
@@ -109,6 +119,7 @@ const mapStateToProps = (state, props) => {
         nextProject,
         visible: state.project.showDeleteModal,
         isRequesting: state.project.deleteProject.requesting,
+        deletedModal: state.project.deletedModal
     };
 };
 

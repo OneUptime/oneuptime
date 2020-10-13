@@ -34,6 +34,12 @@ import { getSubProjects, resetSubProjects } from './subProject';
 import { resetFetchComponentResources } from './component';
 import errors from '../errors';
 
+export function changeDeleteModal() {
+    return {
+        type: types.CHANGE_DELETE_MODAL
+    }
+}
+
 export function showDeleteModal() {
     return {
         type: types.SHOW_DELETE_MODAL,
