@@ -164,16 +164,27 @@ const IncidentTimelineList = props => {
                                                                     'pointer',
                                                             }}
                                                             onClick={() => {
-                                                                history.push(
-                                                                    '/dashboard/profile/' +
-                                                                        log
-                                                                            .createdById
-                                                                            ._id
-                                                                );
+                                                                if (
+                                                                    log.createdById
+                                                                ) {
+                                                                    history.push(
+                                                                        '/dashboard/profile/' +
+                                                                            log
+                                                                                .createdById
+                                                                                ._id
+                                                                    );
+                                                                }
                                                             }}
                                                         >
                                                             <img
-                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                src={
+                                                                    log.createdById &&
+                                                                    log
+                                                                        .createdById
+                                                                        .name
+                                                                        ? '/dashboard/assets/img/profile-user.svg'
+                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                }
                                                                 className="userIcon"
                                                                 alt=""
                                                                 style={{
@@ -182,12 +193,13 @@ const IncidentTimelineList = props => {
                                                                 }}
                                                             />
                                                             <span>
-                                                                {log.createdById
+                                                                {log.createdById &&
+                                                                log.createdById
                                                                     .name
                                                                     ? log
                                                                           .createdById
                                                                           .name
-                                                                    : 'Unknown User'}
+                                                                    : 'Fyipe'}
                                                             </span>
                                                         </div>
                                                     )}
