@@ -34,6 +34,7 @@ body {
 .innernew {
   margin: auto;
   padding: 0 8px;
+  width: 609px;
 }
 
 /* end */
@@ -78,6 +79,7 @@ div.block-chart {
   padding: 9px 0 4px;
   overflow: hidden;
   width: 101%; /* IE overflow fix */
+  width: 100% !important;
 }
 
 div.block-chart::-webkit-scrollbar {
@@ -403,6 +405,7 @@ div.block-chart::-webkit-scrollbar {
   font-size: 13px;
   color: #8898aa;
   padding-left: 10px;
+  margin-top: 0;
 }
 
 .url {
@@ -614,7 +617,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 
             div#footer li.last { border: 0; }
 
-    div#footer p { color: #8898aa; position: absolute; right: 10px; top: 40px; }
+    div#footer p { color: #8898aa; position: absolute; right: 10px; top: 26px; }
 
 /******* Tipsy Tooltips ******/
 
@@ -1209,11 +1212,13 @@ margin-left:10px;
   outline: transparent;
 }
 
-@media screen and (max-width: 500px) {
-  .box-inner {
-    padding: 16px;
-  }
+.uptime-graph-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
 
+@media screen and (max-width: 500px) {
   .largestatus {
     padding: 0 16px;
     padding-left: 64px;
@@ -1222,6 +1227,37 @@ margin-left:10px;
   .status-bubble {
     left: 16px;
     border-radius: 100px;
+  }
+
+  .innernew {
+    width: 95%;
+  }
+
+  .scheduledEvent,
+  .incidentlist {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .box-inner {
+    padding: 20px;
+  }
+
+  .uptime-graph-header {
+    flex-direction: column;
+  }
+
+  .percentage {
+    display: block;
+    margin-top: 15px;
+  }
+
+  .incident-bubble {
+    left: 20px;
+  }
+
+  .feed-header {
+    font-size: 14px;
   }
 }
 
