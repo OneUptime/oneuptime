@@ -25,5 +25,9 @@ class FyipeTimelineManager {
     getTimeline() {
         return this.#timeLineStack;
     }
+    // clear the timeline
+    clearTimeline() {
+        this.#timeLineStack = [];
+    }
 }
 export default FyipeTimelineManager;

@@ -1,5 +1,6 @@
 import FyipeListiner from './listener';
 import Util from './util';
+import uuid from 'js-uuid';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -16,6 +17,7 @@ class FyipeTracker {
         const _this = this;
         window.onerror = function(msg, file, line, col, error) {
             const errorEvent = { msg, file, line, col, error };
+
             const string = errorEvent.msg
                 ? errorEvent.msg.toLowerCase()
                 : errorEvent.toLowerCase();
@@ -42,8 +44,13 @@ class FyipeTracker {
         // get current timeline
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
+        // get event ID
+        const eventId = uuid.v4();
         // Temporary display the state of the error stack, timeline and device details when an error occur
-        console.log({ timeline, errorStackTrace, deviceDetails });
+        console.log({ timeline, errorStackTrace, deviceDetails, eventId });
+
+        // clear the timeline after a successful call to the server
+        this.#listenerObj.clearTimeline();
     }
 }
 export default FyipeTracker;
