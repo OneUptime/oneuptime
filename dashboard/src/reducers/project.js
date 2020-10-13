@@ -62,11 +62,16 @@ const initialState = {
     showUpgradeForm: false,
     canUpgrade: true, // Used to check if the user has plans they can upgrade to.
     showDeleteModal: false,
+    deletedModal: false
 };
 
 export default function project(state = initialState, action) {
     let projects, newProjects;
     switch (action.type) {
+        case types.CHANGE_DELETE_MODAL:
+            return Object.assign({}, state, {
+                deletedModal: true
+            })
         case types.PROJECTS_SUCCESS:
             return Object.assign({}, state, {
                 projects: {
@@ -385,6 +390,7 @@ export default function project(state = initialState, action) {
         case types.HIDE_DELETE_MODAL:
             return Object.assign({}, state, {
                 showDeleteModal: false,
+                deletedModal: false
             });
 
         case types.CHANGE_PLAN_SUCCESS:
