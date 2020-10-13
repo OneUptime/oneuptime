@@ -36,7 +36,8 @@
     },
     "dependencies": {
         "@babel/polyfill": "^7.10.1",
-        "axios": "^0.19.2"
+        "axios": "^0.19.2",
+        "js-uuid": "0.0.6"
     },
     "directories": {
         "lib": "src",
