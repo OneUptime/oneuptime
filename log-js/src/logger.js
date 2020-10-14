@@ -33,6 +33,18 @@ class FyipeLogger {
     captureException(error) {
         this.#tracker.captureException(error);
     }
+    setTag(key, value) {
+        if (!(typeof key === 'string') || !(typeof value === 'string')) {
+            return 'Invalid Tags type';
+        }
+        this.#tracker.setTag(key, value);
+    }
+    setTags(tags) {
+        if (!Array.isArray(tags)) {
+            return 'Invalid Tags type';
+        }
+        this.#tracker.setTags(tags);
+    }
     async log(data, tags = null) {
         const type = typeof data;
 

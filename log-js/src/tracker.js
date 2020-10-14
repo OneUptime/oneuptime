@@ -7,6 +7,7 @@ class FyipeTracker {
     #utilObj;
     #listenerObj;
     #eventId;
+    #tags = [];
     constructor() {
         this._setEventId();
         this.#listenerObj = new FyipeListiner(this.getEventId()); // Initialize Listener for timeline
@@ -19,6 +20,22 @@ class FyipeTracker {
     }
     getEventId() {
         return this.#eventId;
+    }
+    setTag(key, value) {
+        // todo validate key value are strings
+        this.#tags.push({ key, value });
+    }
+    // pass an array of tags
+    setTags(tags) {
+        // todo validate tags is array
+        tags.forEach(element => {
+            if (element.key && element.value) {
+                this.setTag(element.key, element.value);
+            }
+        });
+    }
+    _getTags() {
+        return this.#tags;
     }
     // set up error listener
     _setUpErrorListener() {
@@ -70,6 +87,7 @@ class FyipeTracker {
         // get current timeline
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
+        const tags = this._getTags();
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
         console.log({
@@ -78,6 +96,7 @@ class FyipeTracker {
             exception: errorStackTrace,
             deviceDetails,
             eventId: this.getEventId(),
+            tags,
         });
 
         // generate a new event Id
