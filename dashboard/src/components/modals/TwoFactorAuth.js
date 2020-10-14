@@ -15,6 +15,8 @@ import {
     generateTwoFactorQRCode,
 } from '../../actions/profile';
 
+
+
 class TwoFactorAuthModal extends Component {
     state = { next: false };
 
@@ -99,6 +101,9 @@ class TwoFactorAuthModal extends Component {
                             <div className="bs-Modal bs-Modal--medium">
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
+                                        <div
+                                            className='authy-qr-code-fyipe-icon'
+                                        />
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>
                                                 Two Factor Authentication
@@ -171,33 +176,33 @@ class TwoFactorAuthModal extends Component {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="bs-Fieldset-wrapper Box-root">
-                                                            <div
-                                                                className="bs-Fieldset-wrapper Box-root"
-                                                                style={{
-                                                                    marginBottom:
-                                                                        '10px',
-                                                                    marginTop:
-                                                                        '-5px',
-                                                                }}
-                                                            >
-                                                                <p>
-                                                                    Download the
-                                                                    Google
-                                                                    Authenticator
-                                                                    Mobile app
-                                                                    on your
-                                                                    mobile
-                                                                    device
+                                                            <div className="bs-Fieldset-wrapper Box-root">
+                                                                <div
+                                                                    className="bs-Fieldset-wrapper Box-root"
+                                                                    style={{
+                                                                        marginBottom:
+                                                                            '10px',
+                                                                        marginTop:
+                                                                            '-5px',
+                                                                    }}
+                                                                >
+                                                                    <p>
+                                                                        Download the
+                                                                        Google
+                                                                        Authenticator
+                                                                        Mobile app
+                                                                        on your
+                                                                        mobile
+                                                                        device
                                                                     <span>
-                                                                        {' '}
+                                                                            {' '}
                                                                         (
                                                                         <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=en">
-                                                                            Android
+                                                                                Android
                                                                         </a>
                                                                         ,
                                                                         <a href="https://apps.apple.com/us/app/google-authenticator/id388497605">
-                                                                            {' '}
+                                                                                {' '}
                                                                             IOS
                                                                         </a>
                                                                         )
@@ -212,24 +217,24 @@ class TwoFactorAuthModal extends Component {
                                                                     Authenticator
                                                                     app.
                                                                 </p>
+                                                                </div>
+                                                                {qrCode.data
+                                                                    .otpauth_url ? (
+                                                                        <QRCode
+                                                                            size={230}
+                                                                            value={`${qrCode.data.otpauth_url}`}
+                                                                            style={{
+                                                                                display:
+                                                                                    'block',
+                                                                                margin:
+                                                                                    '0 auto',
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <ListLoader />
+                                                                    )}
                                                             </div>
-                                                            {qrCode.data
-                                                                .otpauth_url ? (
-                                                                <QRCode
-                                                                    size={230}
-                                                                    value={`${qrCode.data.otpauth_url}`}
-                                                                    style={{
-                                                                        display:
-                                                                            'block',
-                                                                        margin:
-                                                                            '0 auto',
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <ListLoader />
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                        )}
                                                 </div>
                                             </div>
                                         </div>
@@ -278,28 +283,28 @@ class TwoFactorAuthModal extends Component {
                                                 </span>
                                             </button>
                                         ) : (
-                                            <button
-                                                id="enableTwoFactorAuthButton"
-                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${twoFactorAuthSetting.requesting &&
-                                                    'bs-is-disabled'}`}
-                                                type="submit"
-                                                disabled={
-                                                    twoFactorAuthSetting.requesting
-                                                }
-                                            >
-                                                <ShouldRender
-                                                    if={
+                                                <button
+                                                    id="enableTwoFactorAuthButton"
+                                                    className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${twoFactorAuthSetting.requesting &&
+                                                        'bs-is-disabled'}`}
+                                                    type="submit"
+                                                    disabled={
                                                         twoFactorAuthSetting.requesting
                                                     }
                                                 >
-                                                    <Spinner />
-                                                </ShouldRender>
-                                                <span>Verify</span>
-                                                <span className="create-btn__keycode">
-                                                    <span className="keycode__icon keycode__icon--enter" />
-                                                </span>
-                                            </button>
-                                        )}
+                                                    <ShouldRender
+                                                        if={
+                                                            twoFactorAuthSetting.requesting
+                                                        }
+                                                    >
+                                                        <Spinner />
+                                                    </ShouldRender>
+                                                    <span>Verify</span>
+                                                    <span className="create-btn__keycode">
+                                                        <span className="keycode__icon keycode__icon--enter" />
+                                                    </span>
+                                                </button>
+                                            )}
                                     </div>
                                 </div>
                             </div>
