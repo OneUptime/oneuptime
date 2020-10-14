@@ -23,11 +23,11 @@ class FyipeTracker {
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
-        window.onerror = function(msg, file, line, col, error) {
-            const errorEvent = { msg, file, line, col, error };
+        window.onerror = function(message, file, line, col, error) {
+            const errorEvent = { message, file, line, col, error };
 
-            const string = errorEvent.msg
-                ? errorEvent.msg.toLowerCase()
+            const string = errorEvent.message
+                ? errorEvent.message.toLowerCase()
                 : errorEvent.toLowerCase();
             const substring = 'script error';
             if (string.indexOf(substring) > -1) {
@@ -44,17 +44,41 @@ class FyipeTracker {
 
                 // get device location and details
                 // prepare to send to server
-                _this.prepareErrorObject(errorObj);
+                _this.prepareErrorObject('error', errorObj);
             }
         };
     }
-    prepareErrorObject(errorStackTrace) {
+    addToTimeline(category, content, type) {
+        const timeline = {
+            category,
+            data: {
+                content,
+            },
+            type,
+        };
+        this.#listenerObj.logCustomTimelineEvent(timeline);
+    }
+    captureMessage(message) {
+        this.prepareErrorObject('message', { message });
+    }
+    captureException(error) {
+        // construct the error object
+        const errorObj = this.#utilObj._getErrorStackTrace(error);
+        this.prepareErrorObject('exception', errorObj);
+    }
+    prepareErrorObject(type, errorStackTrace) {
         // get current timeline
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
-        console.log({ timeline, errorStackTrace, deviceDetails, eventId: this.getEventId() });
+        console.log({
+            type,
+            timeline,
+            exception: errorStackTrace,
+            deviceDetails,
+            eventId: this.getEventId(),
+        });
 
         // generate a new event Id
         this._setEventId();

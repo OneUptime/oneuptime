@@ -1,8 +1,18 @@
 class Util {
+    getErrorType() {
+        return {
+            INFO: 'info',
+            WARNING: 'warning',
+            ERROR: 'error',
+            HTTP: 'http',
+        };
+    }
     _getErrorStackTrace(errorEvent) {
         const frames = [];
         // get error stack trace
-        const stack = errorEvent.error.stack
+        const stack = errorEvent.stack
+            ? errorEvent.stack
+            : errorEvent.error.stack
             ? errorEvent.error.stack
             : errorEvent.error;
         const stackTrace = stack.split('\n'); // it is all a string so split into array by the enter key
@@ -10,9 +20,9 @@ class Util {
         const firstStack = stackTrace[0].split(':'); // browser add a : to seperate the title from the description
         const obj = {
             type: firstStack[0],
-            message: errorEvent.msg ? errorEvent.msg : errorEvent.error,
+            message: errorEvent.message ? errorEvent.message : errorEvent.error,
             stacktrace: null,
-            lineNumber: errorEvent.line,
+            lineNumber: errorEvent.line || errorEvent.lineno,
             columnNumber: errorEvent.col,
         };
         // loop through the remaining stack to construct the remaining frame

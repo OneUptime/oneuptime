@@ -10,7 +10,7 @@ class FyipeLogger {
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
         // set up application tracker also
-        new FyipeTracker();
+        this.#tracker = new FyipeTracker();
     }
     _setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;
@@ -24,6 +24,15 @@ class FyipeLogger {
         }/log`;
     }
 
+    addTimeline(category, content, type) {
+        this.#tracker.addToTimeline(category, content, type);
+    }
+    captureMessage(message) {
+        this.#tracker.captureMessage(message);
+    }
+    captureException(error) {
+        this.#tracker.captureException(error);
+    }
     async log(data, tags = null) {
         const type = typeof data;
 
