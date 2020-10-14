@@ -1,22 +1,18 @@
 /* eslint-disable no-console */
 import FyipeTimelineManager from './timelineManager';
+import Util from './util';
 
 class FyipeListiner {
-    // TODO set up event type properly
-    #eventType = {
-        INFO: 'info',
-        WARNING: 'warning',
-        ERROR: 'error',
-        HTTP: 'http',
-    };
     #BASE_URL = 'http://test'; // TODO proper base url config
     #timelineObj;
     #debounceDuration = 1000;
     #keypressTimeout = undefined;
     #lastEvent = undefined;
     #currentEventId;
+    #utilObj;
     constructor(eventId) {
         this.#timelineObj = new FyipeTimelineManager();
+        this.#utilObj = new Util();
         this._init();
         this.#currentEventId = eventId;
     }
@@ -44,19 +40,28 @@ class FyipeListiner {
             return {
                 log: function(text) {
                     oldCons.log(text);
-                    // _this._logConsoleEvent(text, _this.#eventType.INFO);
+                    // _this._logConsoleEvent(text, _this.#utilObj.getErrorType().INFO);
                 },
                 info: function(text) {
                     oldCons.info(text);
-                    _this._logConsoleEvent(text, _this.#eventType.INFO);
+                    _this._logConsoleEvent(
+                        text,
+                        _this.#utilObj.getErrorType().INFO
+                    );
                 },
                 warn: function(text) {
                     oldCons.warn(text);
-                    _this._logConsoleEvent(text, _this.#eventType.WARNING);
+                    _this._logConsoleEvent(
+                        text,
+                        _this.#utilObj.getErrorType().WARNING
+                    );
                 },
                 error: function(text) {
                     oldCons.error(text);
-                    _this._logConsoleEvent(text, _this.#eventType.ERROR);
+                    _this._logConsoleEvent(
+                        text,
+                        _this.#utilObj.getErrorType().ERROR
+                    );
                 },
             };
         })(window.console);
@@ -78,7 +83,10 @@ class FyipeListiner {
                         }
                         _this.#lastEvent = event;
                         // set up how to send this log to the server
-                        this._logClickEvent(event, this.#eventType.INFO);
+                        this._logClickEvent(
+                            event,
+                            this.#utilObj.getErrorType().INFO
+                        );
                     } else {
                         console.log('not logging');
                     }
@@ -106,7 +114,7 @@ class FyipeListiner {
                         url,
                         status_code: this.status,
                     };
-                    _this._logXHREvent(obj, _this.#eventType.HTTP);
+                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
                 }
             });
             // set up how to send this log to the server to take this log
@@ -136,7 +144,7 @@ class FyipeListiner {
                 }
             );
             if (!url.startsWith(_this.#BASE_URL)) {
-                _this._logFetchEvent(obj, _this.#eventType.HTTP);
+                _this._logFetchEvent(obj, _this.#utilObj.getErrorType().HTTP);
             }
 
             return promise;
@@ -184,9 +192,15 @@ class FyipeListiner {
             data: {
                 content,
             },
-            type: this.#eventType.ERROR,
+            type: this.#utilObj.getErrorType().ERROR,
             eventId: this.#currentEventId,
         };
+        // add timeline to the stack
+        this.#timelineObj.addToTimeline(timelineObj);
+    }
+    logCustomTimelineEvent(timelineObj) {
+        timelineObj.eventId = this.#currentEventId;
+
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
     }
