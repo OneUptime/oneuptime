@@ -26,13 +26,6 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
         data.projectId = req.params.projectId;
         data.statusPageId = req.params.statusPageId;
 
-        if (!body.monitors) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitors must be present.',
-            });
-        }
-
         if (!body.userDetails) {
             return sendErrorResponse(req, res, {
                 code: 400,

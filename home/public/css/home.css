@@ -148,7 +148,6 @@ main header{
 
 
 .checkbox-feature{
-    width:50%; 
     display: flex; 
     justify-content: center;
 }
@@ -167,12 +166,12 @@ main header{
         display:flex;
         -ms-flex-align:center;
         align-items:center;
-        height:750px
+        height:unset;
     }
 }
 @media (min-width:1020px){
     #intro{
-        height:750px
+        height:unset;
     }
 }
 #intro .container-lg{
@@ -282,7 +281,7 @@ main header{
     .stars-panel{
         display:flex;
         justify-content: space-evenly;
-        margin-top: 200px;
+        margin-top: 130px;
     }
 }
 

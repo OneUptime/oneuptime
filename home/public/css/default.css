@@ -246,10 +246,6 @@ width:100%
         margin:30px;
     }
 
-    .top-section{
-        height: 650px !important;
-    }
-
     .width-100-in-mobile{
         width: 100%;
     }
@@ -2748,8 +2744,8 @@ ul.columns>li{
     ul.columns>li{
         float:none;
         width:auto;
-        padding-left:30px;
-        padding-right:30px;
+        padding-left:30px !important;
+        padding-right:30px !important;
         margin:0 0 25px
     }
 }
@@ -2814,16 +2810,9 @@ ul.features>li:before{
 section.marquee{
     margin:0 -10px;
     overflow:hidden;
-    height:416px;
-    position:relative
 }
-@media screen and (max-width:1020px){
-    section.marquee{
-        height:320px
-    }
-}
+
 section.marquee #bubble-overlay{
-    position:absolute;
     top:0;
     width:100%;
     padding-top:49px;
@@ -5086,7 +5075,6 @@ div#main{
 }
 .block,.inner-col{
     margin:0 auto;
-    width:952px
 }
 .block{
     background:#fff;

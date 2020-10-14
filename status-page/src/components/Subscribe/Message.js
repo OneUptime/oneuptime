@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { userData, validationError } from '../../actions/subscribe';
+import {
+    userData,
+    validationError,
+    subscribeUser,
+} from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
 class Message extends Component {
@@ -18,11 +22,32 @@ class Message extends Component {
         this.setState({ email: event.target.value });
     };
     handleSubmit = event => {
+        event.preventDefault();
+
+        const projectId =
+            this.props.statuspage &&
+            this.props.statuspage.projectId &&
+            this.props.statuspage.projectId._id;
+        const statusPageId = this.props.statuspage._id;
+        const selectIndividualMonitors = this.props.statuspage
+            .selectIndividualMonitors;
+
         if (this.state.email && this.state.email.length) {
             const validemail = this.validation(this.state.email);
             if (validemail) {
                 const values = this.state;
                 values.method = 'email';
+
+                if (!selectIndividualMonitors) {
+                    const monitors = [];
+                    return this.props.subscribeUser(
+                        values,
+                        monitors,
+                        projectId,
+                        statusPageId
+                    );
+                }
+
                 this.props.userData(values);
             } else {
                 this.props.validationError(
@@ -32,7 +57,6 @@ class Message extends Component {
         } else {
             this.props.validationError('Please enter your email address.');
         }
-        event.preventDefault();
     };
 
     validation = email => {
@@ -90,16 +114,19 @@ Message.displayName = 'Message';
 const mapStateToProps = state => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
+    statuspage: state.status.statusPage,
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ userData, validationError }, dispatch);
+    bindActionCreators({ userData, validationError, subscribeUser }, dispatch);
 
 Message.propTypes = {
     userData: PropTypes.func,
     validationError: PropTypes.func,
     subscribed: PropTypes.object,
     error: PropTypes.string,
+    statuspage: PropTypes.object,
+    subscribeUser: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Message);

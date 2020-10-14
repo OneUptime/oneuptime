@@ -161,7 +161,7 @@ body{
     top:-10px;
     padding-top:10px;
     left:calc((100% - 994px) / 2 + 226px);
-    width:768px;
+    width:1020px;
     min-height:58px;
     background:#fff;
     box-shadow:0 1px 5px 0 rgba(0,0,0,.07),0 7px 17px 0 rgba(0,0,0,.1);
@@ -323,7 +323,7 @@ body{
 }
 #content,header#main-header{
     margin-left:calc((100% - 994px) / 2 + 226px);
-    width:770px
+    width:1020px
 }
 header#main-header ul{
     text-align:right

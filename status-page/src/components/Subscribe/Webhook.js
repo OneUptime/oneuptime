@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { userData, validationError } from '../../actions/subscribe';
+import {
+    userData,
+    validationError,
+    subscribeUser,
+} from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
 class Webhook extends Component {
@@ -20,12 +24,33 @@ class Webhook extends Component {
     };
 
     handleSubmit = event => {
+        event.preventDefault();
+
+        const projectId =
+            this.props.statuspage &&
+            this.props.statuspage.projectId &&
+            this.props.statuspage.projectId._id;
+        const statusPageId = this.props.statuspage._id;
+        const selectIndividualMonitors = this.props.statuspage
+            .selectIndividualMonitors;
+
         if (this.state.endpoint && this.state.endpoint.length) {
             if (this.state.email && this.state.email.length) {
                 const validemail = this.validation(this.state.email);
                 if (validemail) {
                     const values = this.state;
                     values.method = 'webhook';
+
+                    if (!selectIndividualMonitors) {
+                        const monitors = [];
+                        return this.props.subscribeUser(
+                            values,
+                            monitors,
+                            projectId,
+                            statusPageId
+                        );
+                    }
+
                     this.props.userData(values);
                 } else {
                     this.props.validationError(
@@ -38,7 +63,6 @@ class Webhook extends Component {
         } else {
             this.props.validationError('Please enter your endpoint.');
         }
-        event.preventDefault();
     };
 
     validation = email => {
@@ -113,6 +137,7 @@ Webhook.displayName = 'Webhook';
 const mapStateToProps = state => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
+    statuspage: state.status.statusPage,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -120,6 +145,7 @@ const mapDispatchToProps = dispatch =>
         {
             userData,
             validationError,
+            subscribeUser,
         },
         dispatch
     );
@@ -129,6 +155,8 @@ Webhook.propTypes = {
     validationError: PropTypes.func,
     subscribed: PropTypes.object,
     error: PropTypes.string,
+    statuspage: PropTypes.object,
+    subscribeUser: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Webhook);

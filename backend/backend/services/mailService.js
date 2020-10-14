@@ -1114,6 +1114,7 @@ const _this = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
      */
     sendIncidentCreatedMailToSubscriber: async function(
         incidentTime,
@@ -1125,7 +1126,8 @@ const _this = {
         projectName,
         emailTemplate,
         trackEmailAsViewedUrl,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         let mailOptions = {};
         try {
@@ -1143,6 +1145,7 @@ const _this = {
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             subject = subject(data);
@@ -1202,6 +1205,7 @@ const _this = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
      */
     sendIncidentAcknowledgedMailToSubscriber: async function(
         incidentTime,
@@ -1213,7 +1217,8 @@ const _this = {
         projectName,
         emailTemplate,
         trackEmailAsViewedUrl,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         let mailOptions = {};
         try {
@@ -1231,6 +1236,7 @@ const _this = {
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             subject = subject(data);
@@ -1289,6 +1295,7 @@ const _this = {
      * @param {string} userId Id of the user.
      * @param {string} projectId Id of the project whose monitor has incident.
      * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
      */
     sendIncidentResolvedMailToSubscriber: async function(
         incidentTime,
@@ -1300,7 +1307,8 @@ const _this = {
         projectName,
         emailTemplate,
         trackEmailAsViewedUrl,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         let mailOptions = {};
         try {
@@ -1318,6 +1326,7 @@ const _this = {
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             subject = subject(data);
