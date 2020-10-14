@@ -6,11 +6,19 @@ class FyipeTracker {
     // constructor to set up global listeners
     #utilObj;
     #listenerObj;
+    #eventId;
     constructor() {
-        this.#listenerObj = new FyipeListiner(); // Initialize Listener for timeline
+        this._setEventId();
+        this.#listenerObj = new FyipeListiner(this.getEventId()); // Initialize Listener for timeline
         // set up error listener
         this._setUpErrorListener();
         this.#utilObj = new Util();
+    }
+    _setEventId() {
+        this.#eventId = uuid.v4();
+    }
+    getEventId() {
+        return this.#eventId;
     }
     // set up error listener
     _setUpErrorListener() {
@@ -45,12 +53,13 @@ class FyipeTracker {
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         // get event ID
-        const eventId = uuid.v4();
         // Temporary display the state of the error stack, timeline and device details when an error occur
-        console.log({ timeline, errorStackTrace, deviceDetails, eventId });
+        console.log({ timeline, errorStackTrace, deviceDetails, eventId: this.getEventId() });
 
+        // generate a new event Id
+        this._setEventId();
         // clear the timeline after a successful call to the server
-        this.#listenerObj.clearTimeline();
+        this.#listenerObj.clearTimeline(this.getEventId());
     }
 }
 export default FyipeTracker;

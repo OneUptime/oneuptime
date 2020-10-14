@@ -14,9 +14,11 @@ class FyipeListiner {
     #debounceDuration = 1000;
     #keypressTimeout = undefined;
     #lastEvent = undefined;
-    constructor() {
+    #currentEventId;
+    constructor(eventId) {
         this.#timelineObj = new FyipeTimelineManager();
         this._init();
+        this.#currentEventId = eventId;
     }
     _init() {
         this._setUpConsoleListener();
@@ -28,7 +30,9 @@ class FyipeListiner {
         // this always get the current state of the timeline array
         return this.#timelineObj.getTimeline();
     }
-    clearTimeline() {
+    clearTimeline(eventId) {
+        // set a new eventId
+        this.#currentEventId = eventId;
         // this will reset the state of the timeline array
         return this.#timelineObj.clearTimeline();
     }
@@ -67,7 +71,6 @@ class FyipeListiner {
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
-                    console.log(event)
                     if (!_this.#keypressTimeout) {
                         // confirm the event is new
                         if (_this.#lastEvent === event) {
@@ -146,6 +149,7 @@ class FyipeListiner {
                 content,
             },
             type,
+            eventId: this.#currentEventId,
         };
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
@@ -157,6 +161,7 @@ class FyipeListiner {
                 content,
             },
             type,
+            eventId: this.#currentEventId,
         };
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
@@ -168,6 +173,7 @@ class FyipeListiner {
                 content,
             },
             type,
+            eventId: this.#currentEventId,
         };
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
@@ -179,6 +185,7 @@ class FyipeListiner {
                 content,
             },
             type: this.#eventType.ERROR,
+            eventId: this.#currentEventId,
         };
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
@@ -192,6 +199,7 @@ class FyipeListiner {
                 content,
             },
             type,
+            eventId: this.#currentEventId,
         };
         // add timeline to the stack
         this.#timelineObj.addToTimeline(timelineObj);
