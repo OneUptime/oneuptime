@@ -499,7 +499,18 @@ div.block-chart::-webkit-scrollbar {
 }
 
 
-div.feed-header {
+.feed-header {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  padding-left: 40px;
+  padding-right: 40px;
+  margin-bottom: 25px;
+}
+
+.individual-header {
+  display: flex;
+  flex-flow: column nowrap;
   margin-bottom: 25px;
 }
 
@@ -756,6 +767,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   background-color: #000;
   color: #fff;
   box-shadow: none;
+  margin: 0;
 }
 .subscribe-overlay{
   background:rgba(82, 95, 127, 0.25);
@@ -1193,7 +1205,7 @@ margin-left:10px;
 }
 
 .time__wrapper {
-  display: flex;
+  /* display: flex; */
   align-items: center;
   margin-left: 5px;
 }
@@ -1218,19 +1230,10 @@ margin-left:10px;
   justify-content: space-between;
 }
 
-@media screen and (max-width: 500px) {
-  .largestatus {
-    padding: 0 16px;
-    padding-left: 64px;
-  }
-
-  .status-bubble {
-    left: 16px;
-    border-radius: 100px;
-  }
-
+@media screen and (max-width: 650px) {
   .innernew {
-    width: 95%;
+    width: 90%;
+    margin-top: 20px;
   }
 
   .scheduledEvent,
@@ -1258,6 +1261,47 @@ margin-left:10px;
 
   .feed-header {
     font-size: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .sp__icon--more {
+    top: 20px;
+    bottom: 0;
+  }
+
+  .sp__icon--forward {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+
+  .largestatus .title {
+    font-size: 25px;
+  }
+
+  .largestatus .status-time {
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .largestatus {
+    padding: 0 16px;
+    padding-left: 64px;
+  }
+
+  .status-bubble {
+    left: 16px;
+    border-radius: 100px;
+  }
+
+  .note__wrapper {
+    padding: 15px;
+  }
+
+  .innernew {
+    width: 93%;
   }
 }
 

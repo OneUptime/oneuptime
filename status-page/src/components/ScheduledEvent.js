@@ -150,11 +150,8 @@ class ScheduledEvent extends Component {
                                 {!fetchingEvent && scheduledEvent.name && (
                                     <>
                                         <div
-                                            className="feed-header clearfix"
+                                            className="individual-header"
                                             style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                flexWrap: 'nowrap',
                                                 marginBottom: scheduledEvent.description
                                                     ? 25
                                                     : 10,
@@ -255,14 +252,7 @@ class ScheduledEvent extends Component {
                         >
                             <div className="box-inner">
                                 <ShouldRender if={!fetchingNotes}>
-                                    <div
-                                        className="feed-header clearfix"
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            flexWrap: 'nowrap',
-                                        }}
-                                    >
+                                    <div className="individual-header">
                                         <span
                                             className="feed-title"
                                             style={{

@@ -404,6 +404,7 @@ class Main extends Component {
                                             style={{
                                                 display: 'inline-block',
                                                 fontSize: 12,
+                                                marginTop: 5,
                                             }}
                                         >
                                             {moment(event.startDate).format(
