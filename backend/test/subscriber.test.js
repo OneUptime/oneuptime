@@ -22,7 +22,13 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
 const ComponentService = require('../backend/services/componentService');
 
-let projectId, userId, monitorId, token, subscriberId, statusPageId, componentId;
+let projectId,
+    userId,
+    monitorId,
+    token,
+    subscriberId,
+    statusPageId,
+    componentId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
