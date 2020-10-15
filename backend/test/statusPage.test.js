@@ -27,7 +27,7 @@ const ComponentModel = require('../backend/models/component');
 let token,
     projectId,
     monitorId,
-    monitorCategoryId,
+    resourceCategoryId,
     scheduledEventId,
     statusPageId,
     privateStatusPageId,
@@ -40,8 +40,8 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-const monitorCategory = {
-    monitorCategoryName: 'New Monitor Category',
+const resourceCategory = {
+    resourceCategoryName: 'New Monitor Category',
 };
 
 const now = new Date();
@@ -86,12 +86,12 @@ describe('Status API', function() {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
-                                        .post(`/monitorCategory/${projectId}`)
+                                        .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
-                                        .send(monitorCategory)
+                                        .send(resourceCategory)
                                         .end(function(err, res) {
-                                            monitorCategoryId = res.body._id;
-                                            monitor.monitorCategoryId = monitorCategoryId;
+                                            resourceCategoryId = res.body._id;
+                                            monitor.resourceCategory = resourceCategoryId;
                                             ComponentModel.create({
                                                 name: 'New Component',
                                             }).then(component => {
@@ -355,7 +355,7 @@ describe('Status API', function() {
                     .to.be.an('array')
                     .with.length.greaterThan(0);
                 expect(res.body.monitorsData[0]).to.have.property(
-                    'monitorCategoryId'
+                    'resourceCategory'
                 );
                 done();
             });
