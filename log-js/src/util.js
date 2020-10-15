@@ -71,26 +71,28 @@ class Util {
         return obj;
     }
     _getUserDeviceDetails() {
-        const deviceDetails = {};
-        const details = window.navigator.appVersion;
-        // get string between first parenthesis
-        const deviceOS = details.substring(
-            details.indexOf('(') + 1,
-            details.indexOf(')')
-        );
-        const device = deviceOS.split(';');
-        // get string after last parenthesis
-        const deviceBrowser = details
-            .substring(details.lastIndexOf(')') + 1)
-            .trim()
-            .split(' ');
-        const browser = deviceBrowser[0];
-        const browserDetails = {
-            name: browser.substring(0, browser.indexOf('/')),
-            version: browser.substring(browser.indexOf('/') + 1),
-        };
-        deviceDetails.device = device;
-        deviceDetails.browser = browserDetails;
+        const deviceDetails = { device: null, browser: null };
+        if (window) {
+            const details = window.navigator.appVersion;
+            // get string between first parenthesis
+            const deviceOS = details.substring(
+                details.indexOf('(') + 1,
+                details.indexOf(')')
+            );
+            const device = deviceOS.split(';');
+            // get string after last parenthesis
+            const deviceBrowser = details
+                .substring(details.lastIndexOf(')') + 1)
+                .trim()
+                .split(' ');
+            const browser = deviceBrowser[0];
+            const browserDetails = {
+                name: browser.substring(0, browser.indexOf('/')),
+                version: browser.substring(browser.indexOf('/') + 1),
+            };
+            deviceDetails.device = device;
+            deviceDetails.browser = browserDetails;
+        }
         return deviceDetails;
     }
 }
