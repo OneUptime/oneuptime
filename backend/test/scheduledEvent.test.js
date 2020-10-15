@@ -18,12 +18,7 @@ const moment = require('moment');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
 
-let token,
-    userId,
-    projectId,
-    scheduleEventId,
-    monitorId,
-    componentId;
+let token, userId, projectId, scheduleEventId, monitorId, componentId;
 
 const scheduledEvent = {
     name: 'New scheduled Event',
