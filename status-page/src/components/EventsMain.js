@@ -120,16 +120,7 @@ class EventsMain extends Component {
                                 width: '100%',
                             }}
                         >
-                            <div
-                                className="feed-header clearfix"
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    flexWrap: 'nowrap',
-                                    paddingLeft: 40,
-                                    paddingRight: 40,
-                                }}
-                            >
+                            <div className="feed-header">
                                 <ShouldRender
                                     if={!this.props.individualEvents.show}
                                 >

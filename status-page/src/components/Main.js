@@ -358,7 +358,7 @@ class Main extends Component {
                     ''
                 )}
                 {view ? (
-                    <div className="innernew" style={{ width: 609 }}>
+                    <div className="innernew">
                         {this.props.events &&
                             this.props.events.length > 0 &&
                             this.props.statusData &&
@@ -404,6 +404,7 @@ class Main extends Component {
                                             style={{
                                                 display: 'inline-block',
                                                 fontSize: 12,
+                                                marginTop: 5,
                                             }}
                                         >
                                             {moment(event.startDate).format(

@@ -20,9 +20,14 @@ const isLocalhost =
         window.location.host.includes('127.0.0.1:'));
 
 if (isLocalhost) {
-    apiUrl = window.location.protocol + '//localhost:3002/api';
-    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
-    accountsUrl = window.location.protocol + '//localhost:3003/accounts';
+    const address = window.location.host.includes('localhost:')
+        ? 'localhost'
+        : window.location.host.includes('0.0.0.0:')
+        ? '0.0.0.0'
+        : '127.0.0.1';
+    apiUrl = window.location.protocol + `//${address}:3002/api`;
+    dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
+    accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
 }
 
 export function env(value) {
