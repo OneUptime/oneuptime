@@ -3,12 +3,12 @@
   "name": "Fyipe",
   "icons": [
     {
-      "src": "/dashboard/assets/img/favicons/fyipe-pwa-icon.png",
+      "src": "/dashboard/assets/img/favicons/fyipe-pwa-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/dashboard/assets/img/favicons/fyipe-pwa-icon.png",
+      "src": "/dashboard/assets/img/favicons/fyipe-pwa-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
