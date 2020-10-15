@@ -20,7 +20,7 @@ let AirtableService = require('../backend/services/airtableService');
 let VerificationTokenModel = require('../backend/models/verificationToken');
 let ComponentModel = require('../backend/models/component');
 
-let token, userId, airtableId, projectId, monitorId, resourceCategoryId;
+let token, userId, projectId, monitorId, resourceCategoryId;
 
 let resourceCategory = {
     resourceCategoryName: 'New Monitor Category',
@@ -38,7 +38,6 @@ describe('Monitor API', function() {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 ComponentModel.create({ name: 'Test Component' }, function(
                     err,
@@ -86,7 +85,7 @@ describe('Monitor API', function() {
             },
         });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should reject the request of an unauthenticated user', function(done) {
@@ -394,7 +393,6 @@ describe('API Monitor API', function() {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 ComponentModel.create({ name: 'Test Component' }, function(
                     err,
@@ -447,7 +445,7 @@ describe('API Monitor API', function() {
             email: userData.user.email,
         });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should not add API monitor with invalid website url', function(done) {
@@ -638,6 +636,7 @@ describe('Monitor API with resource Category', function() {
         await GlobalConfig.removeTestConfig();
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create a new monitor when the resource Category is provided by an authenticated user', function(done) {

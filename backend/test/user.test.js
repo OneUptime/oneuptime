@@ -69,7 +69,7 @@ const fetchIdpSAMLResponse = async function({
     return SAMLResponse;
 };
 
-let projectId, userId, airtableId, token;
+let projectId, userId, token;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
 describe('User API', function() {
@@ -82,7 +82,6 @@ describe('User API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -121,7 +120,7 @@ describe('User API', function() {
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await LoginIPLog.deleteMany({ userId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /user/signup'

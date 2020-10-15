@@ -23,6 +23,7 @@ const {
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
+const AirtableService = require('../backend/services/airtableService');
 
 let token, userId, projectId, monitorId, componentId, incidentId;
 
@@ -49,7 +50,6 @@ describe('Incident Settings API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -103,6 +103,7 @@ describe('Incident Settings API', function() {
         await ComponentService.hardDeleteBy({ _id: componentId });
         await NotificationService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should return the list of the available variables', async () => {

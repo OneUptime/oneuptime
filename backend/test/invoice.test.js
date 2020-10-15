@@ -17,7 +17,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const payment = require('../backend/config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 
-let token, userId, airtableId, projectId, stripeCustomerId, testPlan;
+let token, userId, projectId, stripeCustomerId, testPlan;
 
 describe('Invoice API', function() {
     this.timeout(200000);
@@ -44,7 +44,6 @@ describe('Invoice API', function() {
         const project = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
-        airtableId = signUp.body.airtableId;
 
         const verificationToken = await VerificationTokenModel.findOne({
             userId,
@@ -101,7 +100,7 @@ describe('Invoice API', function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await stripe.plans.del(testPlan.id);
         await stripe.products.del(testPlan.product);
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should return invoices', async function() {

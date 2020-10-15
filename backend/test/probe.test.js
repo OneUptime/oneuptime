@@ -24,6 +24,7 @@ const DockerCredentialService = require('../backend/services/dockerCredentialSer
 const ContainerSecurityService = require('../backend/services/containerSecurityService');
 let probeId;
 const GlobalConfig = require('./utils/globalConfig');
+const AirtableService = require('../backend/services/airtableService');
 let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const sleep = waitTimeInMs =>
@@ -99,6 +100,7 @@ describe('Probe API', function() {
                 $in: [probeServerName1, probeServerName2],
             },
         });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should add a probe by admin', function(done) {

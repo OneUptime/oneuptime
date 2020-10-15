@@ -32,7 +32,6 @@ const sleep = waitTimeInMs =>
 
 let token,
     userId,
-    airtableId,
     projectId,
     monitorId,
     incidentId,
@@ -60,7 +59,6 @@ describe('Incident API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -141,7 +139,7 @@ describe('Incident API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await IntegrationService.hardDeleteBy({
             monitorId,
         });

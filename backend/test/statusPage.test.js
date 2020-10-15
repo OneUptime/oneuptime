@@ -32,7 +32,6 @@ let token,
     statusPageId,
     privateStatusPageId,
     userId,
-    airtableId,
     componentId;
 
 const monitor = {
@@ -68,7 +67,6 @@ describe('Status API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -155,7 +153,7 @@ describe('Status API', function() {
         await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
         await StatusService.hardDeleteBy({ projectId: projectId });
         await DomainVerificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should not add status page if the page name is missing', function(done) {

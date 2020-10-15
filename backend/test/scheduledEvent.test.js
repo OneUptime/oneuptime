@@ -20,7 +20,6 @@ const ComponentModel = require('../backend/models/component');
 
 let token,
     userId,
-    airtableId,
     projectId,
     scheduleEventId,
     monitorId,
@@ -62,7 +61,6 @@ describe('Scheduled event API', function() {
                 const project = res.body.project;
                 userId = res.body.id;
                 projectId = project._id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -158,7 +156,7 @@ describe('Scheduled event API', function() {
         });
         await ScheduledEventService.hardDeleteBy({ projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should not create a scheduled event when the fields are null', function(done) {

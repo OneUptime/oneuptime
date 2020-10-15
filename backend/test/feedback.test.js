@@ -16,7 +16,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 
-let token, projectId, userId, airtableId;
+let token, projectId, userId;
 
 describe('Feedback API', function() {
     this.timeout(50000);
@@ -28,7 +28,6 @@ describe('Feedback API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -66,7 +65,7 @@ describe('Feedback API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create feedback and check the sent emails to fyipe team and user', function(done) {
