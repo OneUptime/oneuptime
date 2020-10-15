@@ -10,6 +10,7 @@ module.exports = {
         library: 'FyipeLogger',
         libraryExport: 'default',
         libraryTarget: 'umd',
+        globalObject: 'this',
     },
     module: {
         rules: [
