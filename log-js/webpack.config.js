@@ -3,10 +3,12 @@ const path = require('path');
 module.exports = {
     mode: 'production',
     entry: './src/logger.js',
+    target: 'node',
     output: {
         path: path.resolve('dist'),
         filename: 'logger.js',
         library: 'FyipeLogger',
+        libraryExport: 'default',
         libraryTarget: 'umd',
     },
     module: {
