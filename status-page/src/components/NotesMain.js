@@ -162,16 +162,7 @@ class NotesMain extends Component {
                                     width: '100%',
                                 }}
                             >
-                                <div
-                                    className="feed-header clearfix"
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        flexWrap: 'nowrap',
-                                        paddingLeft: 40,
-                                        paddingRight: 40,
-                                    }}
-                                >
+                                <div className="feed-header">
                                     <ShouldRender
                                         if={!this.props.individualnote}
                                     >
@@ -264,16 +255,7 @@ class NotesMain extends Component {
                                 width: '100%',
                             }}
                         >
-                            <div
-                                className="feed-header clearfix"
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    flexWrap: 'nowrap',
-                                    paddingLeft: 40,
-                                    paddingRight: 40,
-                                }}
-                            >
+                            <div className="feed-header">
                                 <ShouldRender if={!this.props.individualnote}>
                                     <span
                                         className="feed-title"
@@ -309,11 +291,6 @@ class NotesMain extends Component {
                                         className="bs-Button-subscribe"
                                         type="submit"
                                         onClick={() => this.subscribebutton()}
-                                        style={{
-                                            marginLeft: 'auto',
-                                            marginRight: '18px',
-                                            marginTop: '-8px',
-                                        }}
                                     >
                                         <span>Subscribe</span>
                                     </button>
