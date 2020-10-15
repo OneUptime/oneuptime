@@ -35,6 +35,7 @@ deploy_staging_log-js:
         refs:
             - master
             - hotfix-master
+            - feature-log-js
     environment:
         name: staging
 
