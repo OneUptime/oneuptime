@@ -79,6 +79,9 @@ describe('User API', function() {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, data.user, function(err, res) {
+                if (err) {
+                    throw err;
+                }
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -87,6 +90,9 @@ describe('User API', function() {
                     err,
                     verificationToken
                 ) {
+                    if (err) {
+                        throw err;
+                    }
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
@@ -98,6 +104,9 @@ describe('User API', function() {
                                     password: data.user.password,
                                 })
                                 .end(function(err, res) {
+                                    if (err) {
+                                        throw err;
+                                    }                
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
