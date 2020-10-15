@@ -20,8 +20,9 @@ const StringUtil = require('./utils/string');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
+const ComponentService = require('../backend/services/componentService');
 
-let projectId, userId, monitorId, token, subscriberId, statusPageId;
+let projectId, userId, monitorId, token, subscriberId, statusPageId, componentId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -76,12 +77,13 @@ describe('Subscriber API', function() {
                                     ComponentModel.create({
                                         name: 'New Component',
                                     }).then(component => {
+                                        componentId = component._id;
                                         request
                                             .post(`/monitor/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({
                                                 ...monitor,
-                                                componentId: component._id,
+                                                componentId,
                                             })
                                             .end(function(err, res) {
                                                 monitorId = res.body._id;
@@ -140,6 +142,7 @@ describe('Subscriber API', function() {
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
         await MonitorService.hardDeleteBy({ projectId: projectId });
+        await ComponentService.hardDeleteBy({ _id: componentId });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
