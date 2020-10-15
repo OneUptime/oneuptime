@@ -1,6 +1,6 @@
 const path = require('path');
 
-module.exports = {
+const serverBuild = {
     mode: 'production',
     entry: './src/logger.js',
     target: 'node',
@@ -30,3 +30,9 @@ module.exports = {
         extensions: ['.js'],
     },
 };
+const webBuild = {
+    ...serverBuild,
+    target: 'web',
+    output: { ...serverBuild.output, filename: 'logger.min.js' },
+};
+module.exports = [serverBuild, webBuild];
