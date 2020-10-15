@@ -10,13 +10,16 @@ class FyipeListiner {
     #lastEvent = undefined;
     #currentEventId;
     #utilObj;
-    constructor(eventId, isWindowDefined) {
+    #isWindow;
+    constructor(eventId, isWindow) {
+        this.#isWindow = isWindow;
         this.#timelineObj = new FyipeTimelineManager();
         this.#utilObj = new Util();
-        if (isWindowDefined) {
+        this.#currentEventId = eventId;
+
+        if (this.#isWindow) {
             this._init();
         }
-        this.#currentEventId = eventId;
     }
     _init() {
         this._setUpConsoleListener();
@@ -72,8 +75,6 @@ class FyipeListiner {
     }
     // set up dom listener
     _setUpDomListener() {
-        // listen to click and key event
-        // todo listen to just keypress and click
         const _this = this;
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {

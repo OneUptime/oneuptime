@@ -1,6 +1,5 @@
 import FyipeListiner from './listener';
 import Util from './util';
-import { v4 as uuidv4 } from 'uuid';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -9,23 +8,22 @@ class FyipeTracker {
     #eventId;
     #tags = [];
     #extras = [];
-    #isWindowDefined = false;
+    #isWindow = false;
     constructor() {
         this._setEventId();
-        if (window) {
-            this.#isWindowDefined = true;
-            // set up error listener
-            this._setUpErrorListener();
-        }
+        this.#isWindow = typeof window !== 'undefined';
         this.#listenerObj = new FyipeListiner(
             this.getEventId(),
-            this.#isWindowDefined
+            this.#isWindow
         ); // Initialize Listener for timeline
-
         this.#utilObj = new Util();
+        // set up error listener
+        if (this.#isWindow) {
+            this._setUpErrorListener();
+        }
     }
     _setEventId() {
-        this.#eventId = uuidv4();
+        this.#eventId = 'test1234';
     }
     getEventId() {
         return this.#eventId;
