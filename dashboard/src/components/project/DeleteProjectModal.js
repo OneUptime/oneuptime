@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import DeleteCaution from './DeleteCaution';
-import DeleteMessaging from './DeleteMessaging'; 
+import DeleteMessaging from './DeleteMessaging';
 import {
     hideDeleteModal,
     deleteProject,
@@ -46,8 +46,8 @@ export class DeleteProjectModal extends Component {
 
     render() {
         const { deleted } = this.state;
-        const { deletedModal } = this.props
-        console.log('is deleted: ', deleted, deletedModal)
+        const { deletedModal } = this.props;
+        console.log('is deleted: ', deleted, deletedModal);
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -65,11 +65,11 @@ export class DeleteProjectModal extends Component {
                                 hide={this.props.hideDeleteModal}
                                 deleteProject={this.deleteProject}
                                 requesting={this.props.isRequesting}
-                            /> 
+                            />
                         </div>
                     ) : (
                         <div className="bs-BIM">
-                            <DeleteMessaging 
+                            <DeleteMessaging
                                 hide={this.props.hideDeleteModal}
                                 deleteProject={this.deleteProject}
                                 requesting={this.props.isRequesting}
@@ -119,7 +119,7 @@ const mapStateToProps = (state, props) => {
         nextProject,
         visible: state.project.showDeleteModal,
         isRequesting: state.project.deleteProject.requesting,
-        deletedModal: state.project.deletedModal
+        deletedModal: state.project.deletedModal,
     };
 };
 

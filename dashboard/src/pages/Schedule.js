@@ -52,7 +52,6 @@ class Schedule extends Component {
         } = this.props;
         const name = schedule ? schedule.name : null;
 
-
         if (error) {
             return <div></div>;
         }

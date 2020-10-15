@@ -6,9 +6,9 @@ import { bindActionCreators } from 'redux';
 class DeleteMessaging extends Component {
     handleClick = () => {
         this.props.changeDeleteModal();
-    }
+    };
     render() {
-        const { hide, requesting } = this.props
+        const { hide, requesting } = this.props;
         return (
             <div className="bs-Modal bs-Modal--medium">
                 <div className="bs-Modal-header">
@@ -20,50 +20,58 @@ class DeleteMessaging extends Component {
                 </div>
                 <div className="bs-Modal-content">
                     <div>
-                        <div className='icon_display-msg'>
-                            <div className='clear_times'></div><div>We will stop monitoring your resources.</div>
+                        <div className="icon_display-msg">
+                            <div className="clear_times"></div>
+                            <div>We will stop monitoring your resources.</div>
                         </div>
-                        <div className='icon_display-msg'>
-                            <div className='clear_times'></div><div>Your customers, users and team will lose access to the status page.</div>
+                        <div className="icon_display-msg">
+                            <div className="clear_times"></div>
+                            <div>
+                                Your customers, users and team will lose access
+                                to the status page.
+                            </div>
                         </div>
-                        <div className='icon_display-msg'>
-                            <div className='clear_times'></div><div>Your team will NOT be alerted during downtime.</div>
+                        <div className="icon_display-msg">
+                            <div className="clear_times"></div>
+                            <div>
+                                Your team will NOT be alerted during downtime.
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div className="bs-Modal-footer">
-                        <div className="bs-Modal-footer-actions">
-                            <button
-                                className={`bs-Button btn__modal ${requesting &&
-                                    'bs-is-disabled'}`}
-                                type="button"
-                                onClick={hide}
-                                disabled={requesting}
-                            >
-                                <span>Cancel</span>
-                                <span className="cancel-btn__keycode">Esc</span>
-                            </button>
-                            <button
-                                className={`bs-Button bs-Button--red Box-background--red btn__modal ${requesting &&
-                                    'bs-is-disabled'}`}
-                                disabled={requesting}
-                                type="button"
-                                // autoFocus={true}
-                                id="btnDeleteProject"
-                                onClick={this.handleClick}
-                            >
-                                {/* <ShouldRender if={requesting}>
+                    <div className="bs-Modal-footer-actions">
+                        <button
+                            className={`bs-Button btn__modal ${requesting &&
+                                'bs-is-disabled'}`}
+                            type="button"
+                            onClick={hide}
+                            disabled={requesting}
+                        >
+                            <span>Cancel</span>
+                            <span className="cancel-btn__keycode">Esc</span>
+                        </button>
+                        <button
+                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${requesting &&
+                                'bs-is-disabled'}`}
+                            disabled={requesting}
+                            type="button"
+                            // autoFocus={true}
+                            id="btnDeleteProject"
+                            onClick={this.handleClick}
+                        >
+                            {/* <ShouldRender if={requesting}>
                                     <Spinner />
                                 </ShouldRender> */}
-                                <span>PROCEED</span>
-                                <span className="delete-btn__keycode">
-                                    <span className="keycode__icon keycode__icon--enter" />
-                                </span>
-                            </button>
-                        </div>
+                            <span>PROCEED</span>
+                            <span className="delete-btn__keycode">
+                                <span className="keycode__icon keycode__icon--enter" />
+                            </span>
+                        </button>
                     </div>
+                </div>
             </div>
-        )
+        );
     }
 }
 
