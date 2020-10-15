@@ -8,11 +8,20 @@ class FyipeTracker {
     #listenerObj;
     #eventId;
     #tags = [];
+    #extras = [];
+    #isWindowDefined = false;
     constructor() {
         this._setEventId();
-        this.#listenerObj = new FyipeListiner(this.getEventId()); // Initialize Listener for timeline
-        // set up error listener
-        this._setUpErrorListener();
+        if (window) {
+            this.#isWindowDefined = true;
+            // set up error listener
+            this._setUpErrorListener();
+        }
+        this.#listenerObj = new FyipeListiner(
+            this.getEventId(),
+            this.#isWindowDefined
+        ); // Initialize Listener for timeline
+
         this.#utilObj = new Util();
     }
     _setEventId() {
@@ -22,12 +31,10 @@ class FyipeTracker {
         return this.#eventId;
     }
     setTag(key, value) {
-        // todo validate key value are strings
-        this.#tags.push({ key, value });
+        this.#tags = { ...this.#tags, [key]: value };
     }
     // pass an array of tags
     setTags(tags) {
-        // todo validate tags is array
         tags.forEach(element => {
             if (element.key && element.value) {
                 this.setTag(element.key, element.value);
@@ -36,6 +43,17 @@ class FyipeTracker {
     }
     _getTags() {
         return this.#tags;
+    }
+    setExtras(extras) {
+        extras.forEach(element => {
+            if (element.key && element.extra) {
+                this.setExtra(element.key, element.extra);
+            }
+        });
+    }
+
+    setExtra(key, extra) {
+        this.#extras = { ...this.#extras, [key]: extra };
     }
     // set up error listener
     _setUpErrorListener() {

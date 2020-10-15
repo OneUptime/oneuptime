@@ -10,10 +10,12 @@ class FyipeListiner {
     #lastEvent = undefined;
     #currentEventId;
     #utilObj;
-    constructor(eventId) {
+    constructor(eventId, isWindowDefined) {
         this.#timelineObj = new FyipeTimelineManager();
         this.#utilObj = new Util();
-        this._init();
+        if (isWindowDefined) {
+            this._init();
+        }
         this.#currentEventId = eventId;
     }
     _init() {
