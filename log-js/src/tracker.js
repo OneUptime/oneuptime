@@ -1,6 +1,6 @@
 import FyipeListiner from './listener';
 import Util from './util';
-import uuid from 'js-uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -25,7 +25,7 @@ class FyipeTracker {
         this.#utilObj = new Util();
     }
     _setEventId() {
-        this.#eventId = uuid.v4();
+        this.#eventId = uuidv4();
     }
     getEventId() {
         return this.#eventId;
