@@ -648,14 +648,14 @@ describe('Monitor API with resource Category', function() {
                 name: 'New Monitor 8',
                 type: 'url',
                 data: { url: 'http://www.tests.org' },
-                resourceCategoryId: resourceCategoryId,
+                resourceCategory: resourceCategoryId,
                 componentId,
             })
             .end(function(err, res) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 8');
-                expect(res.body.resourceCategoryId._id).to.be.equal(
+                expect(res.body.resourceCategory._id).to.be.equal(
                     resourceCategoryId
                 );
                 done();
