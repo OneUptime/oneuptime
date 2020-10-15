@@ -79,6 +79,8 @@ class EditIncidentPriority extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('EditIncidentPriority').click();
             default:
                 return false;
         }
@@ -122,6 +124,7 @@ class EditIncidentPriority extends Component {
                                                 validate={
                                                     ValidateField.required
                                                 }
+                                                autoFocus={true}
                                             />
                                         </div>
                                     </div>
@@ -208,7 +211,6 @@ class EditIncidentPriority extends Component {
                                                 .requesting
                                         }
                                         id="EditIncidentPriority"
-                                        autoFocus={true}
                                     >
                                         <ShouldRender
                                             if={

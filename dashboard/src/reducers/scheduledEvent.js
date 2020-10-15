@@ -41,6 +41,9 @@ import {
     FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_FAILURE,
     FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_REQUEST,
     FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_SUCCESS,
+    RESOLVE_SCHEDULED_EVENT_FAILURE,
+    RESOLVE_SCHEDULED_EVENT_REQUEST,
+    RESOLVE_SCHEDULED_EVENT_SUCCESS,
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
@@ -130,6 +133,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         events: [],
+    },
+    resolveScheduledEvent: {
+        requesting: false,
+        success: false,
+        error: null,
     },
 };
 
@@ -1005,6 +1013,61 @@ export default function scheduledEvent(state = INITIAL_STATE, action) {
                     error: action.payload,
                     requesting: false,
                     success: false,
+                },
+            };
+
+        case RESOLVE_SCHEDULED_EVENT_REQUEST:
+            return {
+                ...state,
+                resolveScheduledEvent: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case RESOLVE_SCHEDULED_EVENT_SUCCESS: {
+            const events = state.subProjectOngoingScheduledEvent.events.map(
+                event => {
+                    if (
+                        String(event.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        event.ongoingScheduledEvents = event.ongoingScheduledEvents.filter(
+                            ongoingEvent =>
+                                String(ongoingEvent._id) !==
+                                String(action.payload._id)
+                        );
+                        event.count = event.ongoingScheduledEvents.length;
+                    }
+                    return event;
+                }
+            );
+            return {
+                ...state,
+                resolveScheduledEvent: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                newScheduledEvent: {
+                    ...state.newScheduledEvent,
+                    scheduledEvent: action.payload,
+                },
+                subProjectOngoingScheduledEvent: {
+                    ...state.subProjectOngoingScheduledEvent,
+                    events,
+                },
+            };
+        }
+
+        case RESOLVE_SCHEDULED_EVENT_FAILURE:
+            return {
+                ...state,
+                resolveScheduledEvent: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             };
 

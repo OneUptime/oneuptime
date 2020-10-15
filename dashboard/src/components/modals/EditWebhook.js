@@ -67,6 +67,8 @@ class EditWebHook extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('updateWebhook').click();
             default:
                 return false;
         }
@@ -144,6 +146,7 @@ class EditWebHook extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -514,7 +517,7 @@ class EditWebHook extends React.Component {
                                             this.props.newWebHook.requesting
                                         }
                                         type="submit"
-                                        autoFocus={true}
+                                        id="updateWebhook"
                                     >
                                         {this.props.newWebHook &&
                                             !this.props.newWebHook

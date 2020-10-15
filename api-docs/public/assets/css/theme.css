@@ -8,7 +8,7 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 	font-family: "Open Sans", Helvetica, Arial, "Lucida Grande", sans-serif;
 	font-weight: 400;
-	min-height: 768px;
+	min-height: 1020px;
 	font-size: 15px;
 	color: #515151;
 	line-height: 1.6
@@ -328,7 +328,7 @@ span.code-font {
 	}
 }
 
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 1020px) {
 	.error-page-description {
 		background-color: rgba(255, 255, 255, 0.7)
 	}
@@ -536,7 +536,7 @@ div[class^="col-xs"] {
 	}
 }
 
-@media only screen and (min-width: 768px) {
+@media only screen and (min-width: 1020px) {
 	div[class^="col-md"] {
 		float: left
 	}
@@ -1816,7 +1816,7 @@ body.homepage:after {
 	}
 }
 
-@media only screen and (min-width: 768px) {
+@media only screen and (min-width: 1020px) {
 	body.homepage:before {
 		width: 480px;
 		top: 50%
@@ -2715,7 +2715,7 @@ pre[class*="language-"] {
 	}
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1020px) {
 	.example-language-container {
 		top: 56px
 	}
@@ -2728,13 +2728,13 @@ pre[class*="language-"] {
 	}
 }
 
-@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) {
+@media only screen and (min-device-width: 1020px) and (max-device-width: 1024px) and (orientation: portrait) {
 	.example-language-container {
 		top: 0
 	}
 }
 
-@media screen and (min-width: 768px) {
+@media screen and (min-width: 1020px) {
 	.example-language-container ul.language-type-nav li {
 		font-size: 12px;
 		margin-left: 8px
@@ -2914,7 +2914,7 @@ pre[class*="language-"] {
 	}
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1020px) {
 	.dev-pricing-header {
 		letter-spacing: 0;
 		font-size: 10px

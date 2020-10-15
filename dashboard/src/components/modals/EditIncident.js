@@ -24,6 +24,8 @@ class EditIncident extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('saveIncident').click();
             default:
                 return false;
         }
@@ -108,6 +110,7 @@ class EditIncident extends Component {
                                                                 })
                                                             ),
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -191,7 +194,6 @@ class EditIncident extends Component {
                                             editIncident.requesting
                                         }
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {editIncident &&
                                             !editIncident.requesting && (

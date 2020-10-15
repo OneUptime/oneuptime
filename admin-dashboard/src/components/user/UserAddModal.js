@@ -103,6 +103,7 @@ class UserAddModal extends Component {
                                                             placeholder="jeff@example.com"
                                                             required="required"
                                                             disabled={disabled}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -267,7 +268,6 @@ class UserAddModal extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={disabled}
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {addUserState &&
                                             !addUserState.requesting && (

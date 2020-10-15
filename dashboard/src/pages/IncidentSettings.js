@@ -20,6 +20,30 @@ import DataPathHoC from '../components/DataPathHoC';
 import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 
 class IncidentSettings extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        const { modalId } = this.props;
+
+        switch (e.key) {
+            case 'N':
+            case 'n':
+                if (!modalId) {
+                    e.preventDefault();
+                    return this.handleCreateNewIncidentPriority();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
+
     handleCreateNewIncidentPriority() {
         const { openModal } = this.props;
         openModal({
@@ -132,10 +156,13 @@ class IncidentSettings extends React.Component {
                                                                 <div className="Box-root Margin-right--8">
                                                                     <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                                 </div>
-                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                                     <span>
                                                                         Add
                                                                         Priority
+                                                                    </span>
+                                                                    <span className="new-btn__keycode">
+                                                                        N
                                                                     </span>
                                                                 </span>
                                                             </div>
@@ -265,6 +292,10 @@ IncidentSettings.propTypes = {
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
     selectedIncidentPriority: PropTypes.string.isRequired,
+    modalId: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 const mapStateToProps = state => {
     return {
@@ -274,6 +305,7 @@ const mapStateToProps = state => {
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
         selectedIncidentPriority:
             state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
+        modalId: state.modal.modals[0],
     };
 };
 const mapDispatchToProps = dispatch =>

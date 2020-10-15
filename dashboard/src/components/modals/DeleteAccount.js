@@ -38,6 +38,8 @@ class DeleteAccount extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('btn_confirm_delete').click();
             default:
                 return false;
         }

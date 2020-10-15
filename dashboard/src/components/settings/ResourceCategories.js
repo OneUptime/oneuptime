@@ -25,6 +25,32 @@ export class ResourceCategories extends Component {
         removeResourceCategoryModalId: uuid.v4(),
     };
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        const { modalId } = this.props;
+        const { CreateResourceCategoryModalId } = this.state;
+        const userId = User.getUserId();
+
+        switch (e.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== CreateResourceCategoryModalId) {
+                    e.preventDefault(); // prevent entering the key automatically on the input field
+                    return this.handleCreateResourceCategory(userId);
+                }
+                return true;
+            default:
+                return false;
+        }
+    };
+
     handleDeleteResourceCategory(_id) {
         this.props.deleteResourceCategory(_id, this.props.projectId);
     }
@@ -143,10 +169,13 @@ export class ResourceCategories extends Component {
                                             </div>
                                             <span
                                                 id="createResourceCategoryButton"
-                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper"
                                             >
                                                 <span>
                                                     Create Resource Category
+                                                </span>
+                                                <span className="new-btn__keycode">
+                                                    N
                                                 </span>
                                             </span>
                                         </div>
@@ -378,6 +407,7 @@ ResourceCategories.propTypes = {
     openModal: PropTypes.func.isRequired,
     error: PropTypes.object,
     currentProject: PropTypes.object,
+    modalId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -402,6 +432,7 @@ const mapStateToProps = state => ({
     count: state.resourceCategories.resourceCategoryList.count,
     isRequesting: state.resourceCategories.resourceCategoryList.requesting,
     currentProject: state.project.currentProject,
+    modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResourceCategories);

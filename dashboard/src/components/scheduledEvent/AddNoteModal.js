@@ -72,10 +72,17 @@ class AddNoteModal extends Component {
     };
 
     handleKeyBoard = e => {
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog, data } = this.props;
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
+            case 'Enter':
+                if (e.target.localName !== 'textarea') {
+                    return document
+                        .getElementById(`${data.type}-addButton`)
+                        .click();
+                }
+                return;
             default:
                 return false;
         }
@@ -164,6 +171,7 @@ class AddNoteModal extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -236,7 +244,7 @@ class AddNoteModal extends Component {
                                 </div>
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <ShouldRender if={true}>
-                                    <div>
+                                    <div style={{ display: 'flex' }}>
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
@@ -253,7 +261,6 @@ class AddNoteModal extends Component {
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={creatingNote}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender if={!creatingNote}>
                                                 <span>Save</span>

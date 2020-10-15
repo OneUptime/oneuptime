@@ -48,44 +48,22 @@
                     alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
             </div>
 
-            <section id="intro" style="height: unset; margin-top:100px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
 
             <section class="main basics" style="padding:0px">
                 <div class="content">
                     <ul class="columns">
-                        <li class="fire">
+                        <li class="block-image fire">
                             <h3>Find Vulnerabilities.</h3>
                             <p class="text-center">Find security vulnerabilities instantly in your backend, mobile or
                                 web apps.</p>
                         </li>
-                        <li class="securityshield">
+                        <li class="block-image securityshield">
                             <h3>Vulnerabilities remediation</h3>
                             <p class="text-center">Scale the security process by quickly eliminating many of
                                 vulnerabilities by upgrading to the most secure dependencies. </p>
                         </li>
-                        <li class="list">
+                        <li class="block-image list">
                             <h3>In-line fixes</h3>
                             <p class="text-center">Get straight to the line in your app that’s introducing
                                 vulnerabilities and easily trace dependencies to discover which line of your code is the
@@ -94,17 +72,17 @@
                     </ul>
 
                     <ul class="columns">
-                        <li class="password">
+                        <li class="block-image password">
                             <h3>Monitor dependencies</h3>
                             <p class="text-center">Fyipe can detect and monitor open source dependencies for popular
                                 languages which are part of your app.</p>
                         </li>
-                        <li class="git">
+                        <li class="block-image git">
                             <h3>Native Git scanning</h3>
                             <p class="text-center">Scan pull requests before merging. Test your projects directly from
                                 the repository and monitor them daily for new vulnerabilities.</p>
                         </li>
-                        <li class="production" style="margin-top:-20px">
+                        <li class="block-image production" style="margin-top:-20px">
                             <h3>Production environment</h3>
                             <p class="text-center">Test your running environment to verify there is no exposure to
                                 existing vulnerabilities and monitor for newly disclosed vulnerabilities. </p>
@@ -112,35 +90,15 @@
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
+                <% include ./cta-buttons %>
+
+                <% include ./customer-section %>
 
 
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-
-                <div class="split">
-                    <div class="content">
-
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More App Security <br /> Features </h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
@@ -149,7 +107,7 @@
                             </p>
                         </div>
 
-                        <div class="right">
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
                             <ul>
                                 <li>
                                     <h3>Integrates with any git repository.</h3>

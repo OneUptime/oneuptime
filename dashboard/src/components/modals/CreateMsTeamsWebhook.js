@@ -61,6 +61,8 @@ class CreateMsTeams extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('createMsTeams').click();
             default:
                 return false;
         }
@@ -157,6 +159,7 @@ class CreateMsTeams extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -463,7 +466,6 @@ class CreateMsTeams extends React.Component {
                                         }
                                         type="submit"
                                         id="createMsTeams"
-                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

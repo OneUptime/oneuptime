@@ -118,6 +118,10 @@ class CreateSchedule extends React.Component {
                 return this.props.closeModal({
                     id: this.props.createScheduledEventModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('createScheduledEventButton')
+                    .click();
             default:
                 return false;
         }
@@ -393,6 +397,7 @@ class CreateSchedule extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -800,7 +805,6 @@ class CreateSchedule extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={requesting}
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {!requesting && (
                                             <>

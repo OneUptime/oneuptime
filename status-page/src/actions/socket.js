@@ -159,3 +159,12 @@ export function deleteincidentnotebysocket(note) {
         });
     };
 }
+
+export function resolvescheduledeventbysocket(event) {
+    return function(dispatch) {
+        dispatch({
+            type: 'RESOLVE_SCHEDULED_EVENT',
+            payload: event,
+        });
+    };
+}

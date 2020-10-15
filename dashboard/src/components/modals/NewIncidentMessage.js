@@ -114,10 +114,14 @@ class NewIncidentMessage extends Component {
         this.props.closeThisDialog();
     };
     handleKeyBoard = e => {
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog, data } = this.props;
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
+            case 'Enter':
+                return data.edit
+                    ? document.getElementById(`${data.type}-editButton`).click()
+                    : document.getElementById(`${data.type}-addButton`).click();
             default:
                 return false;
         }
@@ -201,6 +205,7 @@ class NewIncidentMessage extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -345,7 +350,6 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-addButton`}
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
@@ -401,7 +405,6 @@ class NewIncidentMessage extends Component {
                                             id={`${type}-editButton`}
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

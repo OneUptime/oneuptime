@@ -2,6 +2,7 @@ const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const RealTimeService = require('./realTimeService');
+const ScheduledEventNoteService = require('./scheduledEventNoteService');
 
 module.exports = {
     create: async function({ projectId }, data) {
@@ -89,6 +90,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .execPopulate();
 
             if (!updatedScheduledEvent) {
@@ -183,6 +185,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .lean();
 
             return scheduledEvents;
@@ -203,6 +206,7 @@ module.exports = {
                 .populate('monitors.monitorId', 'name')
                 .populate('projectId', 'name')
                 .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
                 .lean();
 
             if (scheduledEvent) {
@@ -250,19 +254,16 @@ module.exports = {
         return subProjectScheduledEvents;
     },
 
-    getSubProjectOngoingScheduledEvents: async function(
-        subProjectIds,
-        timeQuery
-    ) {
+    getSubProjectOngoingScheduledEvents: async function(subProjectIds, query) {
         const subProjectOngoingScheduledEvents = await Promise.all(
             subProjectIds.map(async id => {
                 const ongoingScheduledEvents = await this.findBy({
                     projectId: id,
-                    ...timeQuery,
+                    ...query,
                 });
                 const count = await this.countBy({
                     projectId: id,
-                    ...timeQuery,
+                    ...query,
                 });
                 return {
                     ongoingScheduledEvents,
@@ -362,6 +363,51 @@ module.exports = {
             );
         } catch (error) {
             ErrorService.log('scheduledEventService.removeMonitor', error);
+            throw error;
+        }
+    },
+
+    /**
+     * @description resolves a particular scheduled event
+     * @param {object} query query parameter to use for db manipulation
+     * @param {object} data data to be used to update the schedule
+     */
+    resolveScheduledEvent: async function(query, data) {
+        try {
+            data.resolved = true;
+            data.resolvedAt = Date.now();
+            let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                { new: true }
+            );
+            // populate the necessary data
+            resolvedScheduledEvent = await resolvedScheduledEvent
+                .populate('monitors.monitorId', 'name')
+                .populate('projectId', 'name')
+                .populate('createdById', 'name')
+                .populate('resolvedBy', 'name')
+                .execPopulate();
+
+            // add note automatically
+            // when a scheduled event is resolved
+            await ScheduledEventNoteService.create({
+                content: 'This scheduled event has been resolved',
+                scheduledEventId: query._id,
+                createdById: data.resolvedBy,
+                type: 'investigation',
+                event_state: 'Resolved',
+            });
+
+            // realtime update
+            await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+
+            return resolvedScheduledEvent;
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.resolveScheduledEvent',
+                error
+            );
             throw error;
         }
     },

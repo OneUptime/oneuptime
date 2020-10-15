@@ -97,6 +97,8 @@ class CreateSubscriber extends Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('createSubscriber').click();
             default:
                 return false;
         }
@@ -163,6 +165,7 @@ class CreateSubscriber extends Component {
                                                                     'Webhook',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -318,7 +321,6 @@ class CreateSubscriber extends Component {
                                         }
                                         type="submit"
                                         id="createSubscriber"
-                                        autoFocus={true}
                                     >
                                         {this.props.newSubscriber &&
                                             !this.props.newSubscriber

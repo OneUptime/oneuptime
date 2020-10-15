@@ -18,7 +18,7 @@ const statusSchema = new Schema({
     ],
     monitors: [
         {
-            monitor: { type: String, ref: 'Monitor' },
+            monitor: { type: Schema.Types.ObjectId, ref: 'Monitor' },
             description: String,
             uptime: Boolean,
             memory: Boolean,
@@ -47,6 +47,11 @@ const statusSchema = new Schema({
     showScheduledEvents: {
         type: Boolean,
         default: true,
+    },
+    // show incident to the top of status page
+    moveIncidentToTheTop: {
+        type: Boolean,
+        default: false,
     },
     description: String,
     copyright: String,
@@ -78,12 +83,16 @@ const statusSchema = new Schema({
         type: Boolean,
         default: true,
     },
+    selectIndividualMonitors: {
+        type: Boolean,
+        default: false,
+    },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
         type: Date,
     },
 
-    deletedById: { type: String, ref: 'User' },
+    deletedById: { type: Schema.Types.ObjectId, ref: 'User' },
 });
 module.exports = mongoose.model('StatusPage', statusSchema);

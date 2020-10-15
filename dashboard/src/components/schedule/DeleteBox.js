@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from '../../analytics';
 
@@ -47,23 +47,11 @@ export class DeleteScheduleBox extends Component {
         });
     };
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeModal({ id: this.state.deleteModalId });
-            default:
-                return false;
-        }
-    };
-
     render() {
         const { isRequesting } = this.props;
 
         return (
-            <div
-                onKeyDown={this.handleKeyBoard}
-                className="Box-root Margin-bottom--12"
-            >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -107,7 +95,7 @@ export class DeleteScheduleBox extends Component {
 DeleteScheduleBox.displayName = 'DeleteScheduleBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ deleteSchedule, openModal, closeModal }, dispatch);
+    bindActionCreators({ deleteSchedule, openModal }, dispatch);
 
 const mapStateToProps = (state, props) => {
     const { scheduleId, projectId, subProjectId } = props.match.params;
@@ -151,7 +139,6 @@ DeleteScheduleBox.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     deleteSchedule: PropTypes.func.isRequired,
-    closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
 };
 

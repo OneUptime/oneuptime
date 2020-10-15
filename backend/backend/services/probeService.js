@@ -199,7 +199,7 @@ module.exports = {
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
                     // check 3 times just to make sure
-                    if (data.retryCount < 3)
+                    if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
 
                     const monitor = await MonitorService.findOneBy({
@@ -328,7 +328,7 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
+                    if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
@@ -373,7 +373,7 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
+                    if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
@@ -418,7 +418,7 @@ module.exports = {
                         return newIncident;
                     });
                 } else {
-                    if (data.retryCount < 3)
+                    if (data.retryCount >= 0 && data.retryCount < 3)
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = await [
                         IncidentService.create({
@@ -459,44 +459,55 @@ module.exports = {
             if (incidents && incidents.length) {
                 if (lastStatus && lastStatus !== data.status) {
                     incidents.forEach(incident => {
-                        incident.probes.some(probe => {
-                            if (
-                                String(probe.probeId._id) ===
-                                String(data.probeId)
-                            ) {
-                                incidentsV1.push(incident);
-                                return true;
-                            } else return false;
-                        });
+                        if (incident.probes && incident.probes.length > 0) {
+                            incident.probes.some(probe => {
+                                if (
+                                    String(probe.probeId._id) ===
+                                    String(data.probeId)
+                                ) {
+                                    incidentsV1.push(incident);
+                                    return true;
+                                } else return false;
+                            });
+                        } else {
+                            incidentsV1.push(incident);
+                            return true;
+                        }
                     });
                 }
             }
             await Promise.all(
                 incidentsV1.map(async incident => {
-                    const newIncident = await IncidentService.updateOneBy(
-                        {
-                            _id: incident._id,
-                        },
-                        {
-                            probes: incident.probes.concat([
-                                {
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: false,
-                                    reportedStatus: data.status,
-                                },
-                            ]),
-                        }
-                    );
-                    incidentsV2.push(newIncident);
+                    if (incident.probes && incident.probes.length > 0) {
+                        const newIncident = await IncidentService.updateOneBy(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                probes: incident.probes.concat([
+                                    {
+                                        probeId: data.probeId,
+                                        updatedAt: Date.now(),
+                                        status: false,
+                                        reportedStatus: data.status,
+                                    },
+                                ]),
+                            }
+                        );
+                        incidentsV2.push(newIncident);
 
-                    await IncidentTimelineService.create({
-                        incidentId: incident._id,
-                        probeId: data.probeId,
-                        status: data.status,
-                    });
+                        await IncidentTimelineService.create({
+                            incidentId: incident._id,
+                            probeId: data.probeId,
+                            status: data.status,
+                        });
 
-                    return newIncident;
+                        return newIncident;
+                    } else {
+                        incidentsV2.push(incident);
+
+                        return incident;
+                    }
                 })
             );
 
@@ -1896,7 +1907,9 @@ const checkAnd = async (
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1909,7 +1922,9 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` contains ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1927,14 +1942,20 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` did not have Javascript expression \`${
+                            con[i].field1
+                        }\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` was not empty`
                     );
                 }
             } else if (
@@ -1946,9 +1967,11 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
-            }
-        } else if (con[i] && con[i].responseType === 'evals') {
-            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'evaluateResponse'
+            ) {
                 try {
                     if (
                         !(
@@ -1966,13 +1989,17 @@ const checkAnd = async (
                     ) {
                         validity = false;
                         reasons.push(
-                            `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                            `${criteriaStrings.response} \`${JSON.stringify(
+                                response
+                            )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }
                 } catch (e) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                        `${criteriaStrings.response} \`${JSON.stringify(
+                            response
+                        )}\` did not evaluate \`${con[i].field1}\``
                     );
                 }
             }
@@ -2889,7 +2916,9 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} did not contain ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` did not contain ${con[i].field1}`
                         );
                     }
                 }
@@ -2903,7 +2932,9 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} contains ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` contains ${con[i].field1}`
                         );
                     }
                 }
@@ -2922,7 +2953,11 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} did not have Javascript expression \`${con[i].field1}\``
+                            `${criteriaStrings.responseBody} \`${JSON.stringify(
+                                body
+                            )}\` did not have Javascript expression \`${
+                                con[i].field1
+                            }\``
                         );
                     }
                 }
@@ -2931,7 +2966,9 @@ const checkOr = async (
                     validity = true;
                 } else {
                     reasons.push(
-                        `${criteriaStrings.responseBody} was not empty`
+                        `${criteriaStrings.responseBody} \`${JSON.stringify(
+                            body
+                        )}\` was not empty`
                     );
                 }
             } else if (
@@ -2944,9 +2981,11 @@ const checkOr = async (
                 } else {
                     reasons.push(`${criteriaStrings.responseBody} was empty`);
                 }
-            }
-        } else if (con[i] && con[i].responseType === 'evals') {
-            if (con[i] && con[i].filter && con[i].filter === 'jsExpression') {
+            } else if (
+                con[i] &&
+                con[i].filter &&
+                con[i].filter === 'evaluateResponse'
+            ) {
                 try {
                     if (
                         con[i] &&
@@ -2964,7 +3003,9 @@ const checkOr = async (
                     } else {
                         if (con[i].field1) {
                             reasons.push(
-                                `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    response
+                                )}\` did not evaluate \`${con[i].field1}\``
                             );
                         }
                     }
@@ -2972,7 +3013,9 @@ const checkOr = async (
                     // validity = false;
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.evaluateResponse} \`${con[i].field1}\``
+                            `${criteriaStrings.response} \`${JSON.stringify(
+                                response
+                            )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }
                 }
@@ -3233,7 +3276,7 @@ const criteriaStrings = {
     freeStorage: 'Free Storage was',
     temperature: 'Temperature was',
     responseBody: 'Response Body',
-    evaluateResponse: 'Response Body did not evaluate',
+    response: 'Response',
 };
 
 const formatDecimal = (value, decimalPlaces, roundType) => {

@@ -112,6 +112,12 @@ export class FormModal extends Component {
                 this.props.closeModal({ id: this.state.notificationModalId });
                 this.props.closeThisDialog();
                 return true;
+            case 'Enter':
+                return document
+                    .getElementById(
+                        `btn_modal_${this.props.data.subProjectName}`
+                    )
+                    .click();
             default:
                 return false;
         }
@@ -215,6 +221,9 @@ export class FormModal extends Component {
                                                                                 width:
                                                                                     '100%',
                                                                             }}
+                                                                            autoFocus={
+                                                                                true
+                                                                            }
                                                                         />
                                                                     </span>
                                                                 </div>
@@ -465,7 +474,6 @@ export class FormModal extends Component {
                                                 .requesting
                                         }
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {!this.props.team.teamCreate
                                             .requesting && (

@@ -48,6 +48,8 @@ export class ScheduleForm extends React.Component {
                 return this.props.closeModal({
                     id: this.props.scheduleModalId,
                 });
+            case 'Enter':
+                return document.getElementById('btnCreateSchedule').click();
             default:
                 return false;
         }
@@ -103,6 +105,7 @@ export class ScheduleForm extends React.Component {
                                             this.props.schedule.newSchedule
                                                 .requesting
                                         }
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -140,7 +143,6 @@ export class ScheduleForm extends React.Component {
                                                 this.props.schedule.newSchedule
                                                     .requesting
                                             }
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

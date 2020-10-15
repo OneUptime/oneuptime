@@ -20,9 +20,14 @@ const isLocalhost =
         window.location.host.includes('127.0.0.1:'));
 
 if (isLocalhost) {
-    apiUrl = window.location.protocol + '//localhost:3002/api';
-    dashboardUrl = window.location.protocol + '//localhost:3000/dashboard';
-    accountsUrl = window.location.protocol + '//localhost:3003/accounts';
+    const address = window.location.host.includes('localhost:')
+        ? 'localhost'
+        : window.location.host.includes('0.0.0.0:')
+        ? '0.0.0.0'
+        : '127.0.0.1';
+    apiUrl = window.location.protocol + `//${address}:3002/api`;
+    dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
+    accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
 }
 
 export function env(value) {
@@ -548,10 +553,20 @@ export function makeCriteria(val) {
             val3.filter = val[i].filter;
         }
         if (val[i].field1 && val[i].field1.length) {
-            val3.field1 = val[i].field1;
+            val3.field1 =
+                val[i].field1 &&
+                typeof val[i].field1 === 'string' &&
+                val[i].field1.indexOf(';')
+                    ? val[i].field1.replace(/;/g, '')
+                    : val[i].field1;
         }
         if (val[i].field2 && val[i].field2.length) {
-            val3.field2 = val[i].field2;
+            val3.field2 =
+                val[i].field2 &&
+                typeof val[i].field2 === 'string' &&
+                val[i].field2.indexOf(';')
+                    ? val[i].field2.replace(/;/g, '')
+                    : val[i].field2;
         }
         if (val[i].collection && val[i].collection.length) {
             val3.collection = makeCriteria(val[i].collection);

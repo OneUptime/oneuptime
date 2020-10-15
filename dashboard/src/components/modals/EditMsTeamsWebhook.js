@@ -67,6 +67,8 @@ class EditWebHook extends React.Component {
         switch (e.key) {
             case 'Escape':
                 return this.props.closeThisDialog();
+            case 'Enter':
+                return document.getElementById('msteamsUpdate').click();
             default:
                 return false;
         }
@@ -161,6 +163,7 @@ class EditWebHook extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -471,7 +474,6 @@ class EditWebHook extends React.Component {
                                         }
                                         type="submit"
                                         id="msteamsUpdate"
-                                        autoFocus={true}
                                     >
                                         {this.props.newMsTeams &&
                                             !this.props.newMsTeams

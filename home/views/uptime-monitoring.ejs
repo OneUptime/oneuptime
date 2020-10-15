@@ -46,43 +46,21 @@
                 <img src="/img/animated-gif/uptime-monitoring.gif" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%;" />
             </div>
 
-            <section id="intro" style="height: unset; margin-top:100px; margin-bottom: 50px;">
-                <div class="container-lg" style="display: flex; justify-content: center;">
-                    <div>
-
-
-                        <ul style="margin-left: calc(50% - 200px);">
-                            <li>
-                                <a href="#" onclick="registerUrl()" class="common-Button"
-                                    id="create-account-top_1" data-analytics-action="create_account"
-                                    data-analytics-source="header_cta">
-                                    Try Free for 14 days
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/enterprise/demo" class="common-Button"
-                                    data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                    Request Demo
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <% include ./cta-buttons %>
 
 
             <section class="main basics" style="padding:0px">
                 <div class="content">
                     <ul class="columns">
-                        <li class="reliability">
+                        <li class="block-image reliability">
                             <h3>Monitor Anything.</h3>
                             <p class="text-center">Monitor uptime and performance of your dashboards, API's, servers, applications, and more.</p>
                         </li>
-                        <li class="moni">
+                        <li class="block-image moni">
                             <h3>Detailed Metrics</h3>
                             <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
                         </li>
-                        <li class="time">
+                        <li class="block-image time">
                             <h3>Every second check.</h3>
                             <p class="text-center">Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down.</p>
                         </li>
@@ -90,15 +68,15 @@
                     </ul>
 
                     <ul class="columns">
-                        <li class="global">
+                        <li class="block-image global">
                             <h3>Test from Multiple Locations</h3>
                             <p class="text-center">Test if your site is available everywhere in the world. We have probes in every continent to test your resources.</p>
                         </li>
-                        <li class="rootcause">
+                        <li class="block-image rootcause">
                             <h3>Root Cause Analysis.</h3>
                             <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
                         </li>
-                        <li class="risk">
+                        <li class="block-image risk">
                             <h3>Monitor Performance</h3>
                             <p class="text-center">Monitor performance of your API's, servers and more. We even let you monitor page speed of your apps and let you know when something goes wrong. </p>
                         </li>
@@ -107,29 +85,9 @@
 
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
+                <% include ./cta-buttons %>
 
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./customer-section %>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Deep Website Scans</h2>
@@ -143,45 +101,23 @@
 
                 <div class="content">
                     <ul class="columns">
-                        <li class="google">
+                        <li class="block-image google">
                             <h3>Find SEO issues</h3>
                             <p class="text-center">Find SEO issues fast, rank better on all search engines, get more leads and customers. </p>
                         </li>
-                        <li class="risk">
+                        <li class="block-image risk">
                             <h3>Find performance issues</h3>
                             <p class="text-center">Every second increase in performance of your website increases leads & customers by 50%. Find and fix performance issues of your website.</p>
                         </li>
-                        <li class="reli">
+                        <li class="block-image reli">
                             <h3>Best Practices and Progressive Web Apps</h3>
                             <p class="text-center"> Make your website run like an app on mobile with Progressive Web Apps. Follow other best practices right form the best of industry. </p>
                         </li>
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
+                <% include ./cta-buttons %>
+                
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Set any criteria for uptime monitoring.</h2>
                     <p class="common-BodyText"> Set uptime, degraded, and downtime, criteria on response time, SSL, response body, status code and more. </p>
@@ -196,44 +132,22 @@
 
                 <div class="content">
                     <ul class="columns">
-                        <li class="reli">
+                        <li class="block-image reli">
                             <h3>Set any criteria.</h3>
                             <p class="text-center">Set any criteria you need for uptime, degraded, and downtime. Criteria on response time, SSL, response body, status code and more are available for use. </p>
                         </li>
-                        <li class="rootcause">
+                        <li class="block-image rootcause">
                             <h3>Find issues instantly.</h3>
                             <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
                         </li>
-                        <li class="time">
+                        <li class="block-image time">
                             <h3>Every second check.</h3>
                             <p class="text-center"> Fyipe checks the status of the endpoint every second to make sure you get alerted as soon as any of your resources go down. </p>
                         </li>
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Monitor anything.</h2>
@@ -249,44 +163,22 @@
 
                 <div class="content">
                     <ul class="columns">
-                        <li class="reliability">
+                        <li class="block-image reliability">
                             <h3>You got a resource. We can monitor it.</h3>
                             <p class="text-center">Monitor anything from servers, API's, websites, containers, to IoT devices, custom scripts, and more!  </p>
                         </li>
-                        <li class="rootcause">
+                        <li class="block-image rootcause">
                             <h3>Find issues instantly.</h3>
                             <p class="text-center">Get to the root of any website, server or application outage to resolve the issue and prevent any recurrence.</p>
                         </li>
-                        <li class="moni">
+                        <li class="block-image moni">
                             <h3>Detailed Metrics</h3>
                             <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
                         </li>
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                <% include ./cta-buttons %>
               
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">How monitoring helps your business?</h2>
@@ -294,50 +186,27 @@
                 </header>
                 <div class="content">
                     <ul class="columns">
-                        <li class="teams">
+                        <li class="block-image teams">
                             <h3>Never lose a customer.</h3>
                             <p class="text-center">Truth is downtimes happen. Fyipe keeps both your team and customers looped in about the downtime which increases customer trust. </p>
                         </li>
-                        <li class="customerexperience">
+                        <li class="block-image customerexperience">
                             <h3>Improve Customer Experience</h3>
                             <p class="text-center">Understand and optimize the load performance of every element on your page for a better customer experience.</p>
                         </li>
-                        <li class="reli">
+                        <li class="block-image reli">
                             <h3>Comply with your SLA</h3>
                             <p class="text-center"> Showcase your SLA compliance to your potential customer to gain more leads. </p>
                         </li>
                     </ul>
                 </div>
 
-                <section id="intro" style="height: unset; margin-top:40px; margin-bottom: 50px;">
-                    <div class="container-lg" style="display: flex; justify-content: center;">
-                        <div>
-
-
-                            <ul style="margin-left: calc(50% - 200px);">
-                                <li>
-                                    <a href="#" onclick="registerUrl()" class="common-Button"
-                                        id="create-account-top_1" data-analytics-action="create_account"
-                                        data-analytics-source="header_cta">
-                                        Try Free for 14 days
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/enterprise/demo" class="common-Button"
-                                        data-analytics-action="contact_sales" data-analytics-source="header_cta">
-                                        Request Demo
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
+                <% include ./cta-buttons %>
                 
-                <div class="split">
-                    <div class="content">
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
 
-                        <div class="left">
+                          <div class="left invisible-in-mobile">
 
                             <h3 class="header" style="margin-top:250px">More Monitoring <br/>Features.</h3>
                             <p class="common-BodyText" style="font-size:18px"><span class="highlight"
@@ -348,7 +217,7 @@
 
                         </div>
 
-                        <div class="right">
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
                             <ul>
                                 <li>
                                     <h3>Install agents at any location. Even in China.</h3>

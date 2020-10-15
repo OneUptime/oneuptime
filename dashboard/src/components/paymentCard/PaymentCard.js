@@ -4,7 +4,7 @@ import { withRouter } from 'react-router';
 import uuid from 'uuid';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 import { fetchCards, setDefaultCard } from '../../actions/card';
 import DataPathHoC from '../DataPathHoC';
 import AddCard from '../modals/AddCard';
@@ -25,7 +25,29 @@ class PaymentCard extends Component {
     componentDidMount() {
         const { userId } = this.props;
         this.props.fetchCards(userId);
+
+        window.addEventListener('keydown', this.handleKeyboard);
     }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = event => {
+        const { modalId } = this.props;
+        const { createCardModalId } = this.state;
+
+        switch (event.key) {
+            case 'N':
+            case 'n':
+                if (modalId !== createCardModalId) {
+                    return document.getElementById('addCardButton').click();
+                }
+                return false;
+            default:
+                return false;
+        }
+    };
 
     render() {
         const { createCardModalId, confirmCardDeleteModalId } = this.state;
@@ -85,10 +107,13 @@ class PaymentCard extends Component {
                                                             </div>
                                                             <span
                                                                 id="addCardButton"
-                                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper"
                                                             >
                                                                 <span>
                                                                     Add card
+                                                                </span>
+                                                                <span className="new-btn__keycode">
+                                                                    N
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -521,6 +546,7 @@ PaymentCard.propTypes = {
     setDefaultCard: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
     requestingDefaultCardId: PropTypes.string,
+    modalId: PropTypes.string,
 };
 
 const mapStateToProps = state => {
@@ -531,14 +557,12 @@ const mapStateToProps = state => {
         settingDefaultCard: state.card.setDefaultCard.requesting,
         requestingDefaultCardId: state.card.setDefaultCard.requestingCardId,
         userId: User.getUserId(),
+        modalId: state.modal.modals[0] && state.modal.modals[0].id,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { openModal, closeModal, fetchCards, setDefaultCard },
-        dispatch
-    );
+    bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
 
 export default withRouter(
     connect(mapStateToProps, mapDispatchToProps)(PaymentCard)

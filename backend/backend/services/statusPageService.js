@@ -512,6 +512,7 @@ module.exports = {
                                 endDate: {
                                     $gte: currentDate,
                                 },
+                                resolved: false,
                             }
                         );
                         scheduledEvents.map(event => {

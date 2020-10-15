@@ -48,6 +48,10 @@ export class AddResourceCategoryForm extends React.Component {
                 return this.props.closeModal({
                     id: this.props.CreateResourceCategoryModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('addResourceCategoryButton')
+                    .click();
             default:
                 return false;
         }
@@ -105,6 +109,7 @@ export class AddResourceCategoryForm extends React.Component {
                                             this.props.resourceCategory
                                                 .requesting
                                         }
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -142,7 +147,6 @@ export class AddResourceCategoryForm extends React.Component {
                                                 this.props.resourceCategory
                                                     .requesting
                                             }
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={

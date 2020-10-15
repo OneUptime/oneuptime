@@ -48,11 +48,17 @@ class GitCredentialModal extends Component {
 
     handleKeyBoard = e => {
         const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { projectId, credentialId } = propArr[0];
 
         switch (e.key) {
             case 'Escape':
                 return closeModal({ id: projectId });
+            case 'Enter':
+                return credentialId
+                    ? document
+                          .getElementById('updateCredentialModalBtn')
+                          .click()
+                    : document.getElementById('addCredentialModalBtn').click();
             default:
                 return false;
         }
@@ -145,6 +151,9 @@ class GitCredentialModal extends Component {
                                                                     }
                                                                     validate={
                                                                         ValidateField.text
+                                                                    }
+                                                                    autoFocus={
+                                                                        true
                                                                     }
                                                                 />
                                                             </div>
@@ -325,7 +334,6 @@ class GitCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={isRequesting}
-                                                autoFocus={true}
                                             >
                                                 {!isRequesting && (
                                                     <>

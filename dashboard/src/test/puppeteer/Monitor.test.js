@@ -708,7 +708,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -716,7 +716,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -725,7 +725,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#up_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#up_1000 > li:last-of-type #value',
-                    "response.body.status === 'ok'"
+                    "response.body.status === 'ok';"
                 );
 
                 // degraded criteria
@@ -736,7 +736,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -744,7 +744,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -753,7 +753,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#degraded_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#degraded_1000 > li:last-of-type #value',
-                    "response.body.message === 'draining'"
+                    "response.body.message === 'draining';"
                 );
 
                 // offline criteria
@@ -764,7 +764,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -772,7 +772,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -781,7 +781,7 @@ describe('API Monitor API', () => {
                 await page.click('ul#down_1000 > li:last-of-type #value');
                 await page.type(
                     'ul#down_1000 > li:last-of-type #value',
-                    "response.body.message === 'offline'"
+                    "response.body.message === 'offline';"
                 );
 
                 await page.click('button[type=submit]');
@@ -803,6 +803,68 @@ describe('API Monitor API', () => {
                 );
                 monitorStatusElement = await monitorStatusElement.jsonValue();
                 monitorStatusElement.should.be.exactly('Online');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should strip trailing semicolons from evaluate response js expressions',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    testMonitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const editButtonSelector = `#edit_${testMonitorName}`;
+                await page.waitForSelector(editButtonSelector, {
+                    visible: true,
+                });
+                await page.$eval(editButtonSelector, e => e.click());
+
+                await page.waitForSelector('#form-new-monitor');
+                await page.waitForSelector('#advanceOptions');
+                await page.click('#advanceOptions');
+
+                let upExpression = await page.waitForSelector(
+                    `input[name='up_${monitorId}[4].field1']`
+                );
+                upExpression = await upExpression.getProperty('value');
+
+                upExpression = await upExpression.jsonValue();
+                upExpression.should.be.exactly("response.body.status === 'ok'");
+
+                let degradedExpression = await page.waitForSelector(
+                    `input[name='degraded_${monitorId}[1].field1']`
+                );
+                degradedExpression = await degradedExpression.getProperty(
+                    'value'
+                );
+
+                degradedExpression = await degradedExpression.jsonValue();
+                degradedExpression.should.be.exactly(
+                    "response.body.message === 'draining'"
+                );
+
+                let downExpression = await page.waitForSelector(
+                    `input[name='down_${monitorId}[2].field1']`
+                );
+                downExpression = await downExpression.getProperty('value');
+
+                downExpression = await downExpression.jsonValue();
+                downExpression.should.be.exactly(
+                    "response.body.message === 'offline'"
+                );
             });
         },
         operationTimeOut
@@ -997,82 +1059,6 @@ describe('API Monitor API', () => {
 
                 spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
-            });
-        },
-        operationTimeOut
-    );
-});
-
-describe('Server Monitor API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
-
-    beforeAll(async () => {
-        jest.setTimeout(500000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email: utils.generateRandomBusinessEmail(),
-                password,
-            };
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
-        });
-    });
-
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
-        done();
-    });
-
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
-
-    test(
-        'should set server monitor offline if no data is uploaded in 3 minutes',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                // Create Component first
-                // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'server-monitor', page);
-                await page.click('button[type=submit]');
-
-                let spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
-                );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(monitorName);
-
-                await page.waitFor(180000);
-
-                await page.waitForSelector('span#activeIncidentsText', {
-                    visible: true,
-                });
-                let activeIncidents = await page.$('span#activeIncidentsText');
-                activeIncidents = await activeIncidents.getProperty(
-                    'innerText'
-                );
-                activeIncidents = await activeIncidents.jsonValue();
-                expect(activeIncidents).toEqual('1 Incident Currently Active');
             });
         },
         operationTimeOut

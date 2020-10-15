@@ -54,6 +54,25 @@ const createOptions = (fontSize, padding) => {
 };
 
 class _ProjectForm extends React.Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
+    handleKeyboard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.hideForm();
+            case 'Enter':
+                return document.getElementById('btnCreateProject').click();
+            default:
+                return false;
+        }
+    };
+
     createToken = values => {
         const cardRegistered =
             User.isCardRegistered() === 'false' ? false : true;
@@ -184,6 +203,7 @@ class _ProjectForm extends React.Component {
                                                         width: '100%',
                                                         padding: '3px 5px',
                                                     }}
+                                                    autoFocus={true}
                                                 />
                                             </div>
                                         </div>
@@ -263,7 +283,6 @@ class _ProjectForm extends React.Component {
                                     'bs-is-disabled'}`}
                                 type="submit"
                                 disabled={requesting}
-                                autoFocus={true}
                             >
                                 <ShouldRender if={requesting}>
                                     <Spinner />

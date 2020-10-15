@@ -27,6 +27,7 @@ import {
     addIncidentNote,
     createMonitor,
     deleteincidentbysocket,
+    resolvescheduledevent,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 import {
@@ -104,6 +105,9 @@ class SocketApp extends Component {
                 );
                 socket.removeListener(
                     `deleteIncident-${this.props.project._id}`
+                );
+                socket.removeListener(
+                    `resolveScheduledEvent-${this.props.project._id}`
                 );
             }
             return true;
@@ -573,6 +577,11 @@ class SocketApp extends Component {
             socket.on(`deleteIncident-${this.props.project._id}`, incident => {
                 thisObj.props.deleteincidentbysocket(incident);
             });
+
+            socket.on(
+                `resolveScheduledEvent-${this.props.project._id}`,
+                event => thisObj.props.resolvescheduledevent(event)
+            );
         }
         return null;
     }
@@ -623,6 +632,7 @@ const mapDispatchToProps = dispatch =>
             updateScheduledEventSuccess,
             deleteScheduledEventSuccess,
             deleteincidentbysocket,
+            resolvescheduledevent,
         },
         dispatch
     );

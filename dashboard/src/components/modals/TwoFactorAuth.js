@@ -33,18 +33,35 @@ class TwoFactorAuthModal extends Component {
     }
 
     handleKeyBoard = e => {
-        const { twoFactorAuthId, closeModal } = this.props;
+        const { next } = this.state;
         switch (e.key) {
             case 'Escape':
-                return closeModal({
-                    id: twoFactorAuthId,
-                });
+                return this.handleCloseModal();
+            case 'Enter':
+                if (next) {
+                    return document
+                        .getElementById('enableTwoFactorAuthButton')
+                        .click();
+                } else {
+                    e.preventDefault(); // prevent default behaviour of trying to submit the form
+                    return document.getElementById('nextFormButton').click();
+                }
             default:
                 return false;
         }
     };
 
-    nextHandler = () => {
+    handleCloseModal = () => {
+        const { next } = this.state;
+        if (next) {
+            this.setState({ next: false });
+        } else {
+            this.props.closeThisDialog();
+        }
+    };
+
+    nextHandler = e => {
+        e.preventDefault();
         this.setState({ next: true });
     };
 
@@ -144,6 +161,12 @@ class TwoFactorAuthModal extends Component {
                                                                         margin:
                                                                             '5px 0 10px 2%',
                                                                     }}
+                                                                    required={
+                                                                        true
+                                                                    }
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -219,10 +242,7 @@ class TwoFactorAuthModal extends Component {
                                                 'bs-is-disabled'}`}
                                             type="button"
                                             onClick={() => {
-                                                this.props.closeModal({
-                                                    id: this.props
-                                                        .twoFactorAuthId,
-                                                });
+                                                this.handleCloseModal();
                                             }}
                                             disabled={
                                                 twoFactorAuthSetting.requesting
@@ -236,13 +256,14 @@ class TwoFactorAuthModal extends Component {
                                         {!next ? (
                                             <button
                                                 id="nextFormButton"
-                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue ${twoFactorAuthSetting.requesting &&
+                                                className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${twoFactorAuthSetting.requesting &&
                                                     'bs-is-disabled'}`}
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
                                                 onClick={this.nextHandler}
                                                 type="button"
+                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={
@@ -252,6 +273,9 @@ class TwoFactorAuthModal extends Component {
                                                     <Spinner />
                                                 </ShouldRender>
                                                 <span>Next</span>
+                                                <span className="create-btn__keycode">
+                                                    <span className="keycode__icon keycode__icon--enter" />
+                                                </span>
                                             </button>
                                         ) : (
                                             <button
@@ -262,7 +286,6 @@ class TwoFactorAuthModal extends Component {
                                                 disabled={
                                                     twoFactorAuthSetting.requesting
                                                 }
-                                                autoFocus={true}
                                             >
                                                 <ShouldRender
                                                     if={
@@ -297,6 +320,7 @@ const TwoFactorAuthForm = reduxForm({
 TwoFactorAuthModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
+    closeThisDialog: PropTypes.func.isRequired,
     generateTwoFactorQRCode: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
     profileSettings: PropTypes.object,

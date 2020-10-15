@@ -119,6 +119,10 @@ class UpdateSchedule extends React.Component {
                 return closeModal({
                     id: updateScheduledEventModalId,
                 });
+            case 'Enter':
+                return document
+                    .getElementById('updateScheduledEventButton')
+                    .click();
             default:
                 return false;
         }
@@ -387,6 +391,7 @@ class UpdateSchedule extends React.Component {
                                                                 padding:
                                                                     '3px 5px',
                                                             }}
+                                                            autoFocus={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -748,7 +753,6 @@ class UpdateSchedule extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={requesting}
                                         type="submit"
-                                        autoFocus={true}
                                     >
                                         {!requesting && (
                                             <>

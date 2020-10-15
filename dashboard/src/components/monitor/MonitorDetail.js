@@ -372,6 +372,7 @@ export class MonitorDetail extends Component {
                             </div>
                             <ShouldRender
                                 if={
+                                    !requesting &&
                                     monitor &&
                                     monitor.type &&
                                     monitor.type === 'server-monitor' &&

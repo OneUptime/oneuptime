@@ -38,6 +38,8 @@ class EditApplicationSecurity extends Component {
         switch (e.key) {
             case 'Escape':
                 return closeModal({ id: applicationSecurityId });
+            case 'Enter':
+                return document.getElementById('editApplicationBtn').click();
             default:
                 return false;
         }
@@ -120,6 +122,9 @@ class EditApplicationSecurity extends Component {
                                                                     }
                                                                     validate={
                                                                         ValidateField.text
+                                                                    }
+                                                                    autoFocus={
+                                                                        true
                                                                     }
                                                                 />
                                                             </div>
@@ -300,7 +305,6 @@ class EditApplicationSecurity extends Component {
                                             className="bs-Button bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={isRequesting}
-                                            autoFocus={true}
                                         >
                                             {!isRequesting && (
                                                 <>

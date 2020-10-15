@@ -236,7 +236,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
 
         if (data.type === 'server-monitor') {
-            const { reasons } = await (monitor &&
+            const { stat: validUp, reasons } = await (monitor &&
             monitor.criteria &&
             monitor.criteria.up
                 ? ProbeService.conditions(null, null, monitor.criteria.up)
@@ -246,7 +246,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             monitor.criteria.down
                 ? ProbeService.conditions(null, null, monitor.criteria.down)
                 : { stat: false });
-            if (validDown) {
+            if (!validUp || validDown) {
                 const handler = setTimeout(async () => {
                     const log = await MonitorLogService.findOneBy({
                         monitorId: monitor._id,

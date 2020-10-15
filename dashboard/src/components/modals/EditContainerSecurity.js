@@ -38,6 +38,8 @@ class EditContainerSecurity extends Component {
         switch (e.key) {
             case 'Escape':
                 return closeModal({ id: containerSecurityId });
+            case 'Enter':
+                return document.getElementById('editContainerBtn').click();
             default:
                 return false;
         }
@@ -120,6 +122,9 @@ class EditContainerSecurity extends Component {
                                                                     }
                                                                     validate={
                                                                         ValidateField.text
+                                                                    }
+                                                                    autoFocus={
+                                                                        true
                                                                     }
                                                                 />
                                                             </div>
@@ -320,7 +325,6 @@ class EditContainerSecurity extends Component {
                                             className="bs-Button bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={isRequesting}
-                                            autoFocus={true}
                                         >
                                             {!isRequesting && (
                                                 <>

@@ -68,6 +68,8 @@ class CreateManualIncident extends Component {
                 return closeModal({
                     id: createIncidentModalId,
                 });
+            case 'Enter':
+                return document.getElementById('createIncident').click();
             default:
                 return false;
         }
@@ -191,6 +193,7 @@ class CreateManualIncident extends Component {
                                                                 name
                                                             )
                                                         }
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -370,7 +373,6 @@ class CreateManualIncident extends Component {
                                                 newIncident.requesting
                                             }
                                             type="submit"
-                                            autoFocus={true}
                                         >
                                             {newIncident &&
                                                 !newIncident.requesting && (

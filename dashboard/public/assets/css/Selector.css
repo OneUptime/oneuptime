@@ -125,8 +125,9 @@
     background-color: #333;
 }
 
-.cancel-btn__keycode {
-    text-transform: lowercase;
+
+.cancel-btn__keycode,
+.new-btn__keycode {
     background: #c5c5c59e;
     border-radius: 5px;
     font-size: 12px;
@@ -134,10 +135,28 @@
     color: #565656;
     display: inline-block;
     margin-left: 10px;
+}
+
+.cancel-btn__keycode {
     width: 30px;
     height: 20px;
     line-height: 15px;
     padding: 2px;
+    text-transform: lowercase;
+}
+
+.new-btn__keycode {
+    line-height: 20px;
+    text-transform: capitalize;
+    width: 20px;
+    height: 20px;
+}
+
+.keycode__wrapper {
+    display: flex;
+    align-items: center;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
 @keyframes fadeIn {

@@ -102,10 +102,17 @@ class EditNoteModal extends Component {
     };
 
     handleKeyBoard = e => {
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog, data } = this.props;
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
+            case 'Enter':
+                if (e.target.localName !== 'textarea') {
+                    return document
+                        .getElementById(`${data.type}-updateButton`)
+                        .click();
+                }
+                return;
             default:
                 return false;
         }
@@ -196,6 +203,7 @@ class EditNoteModal extends Component {
                                                                 label: 'Others',
                                                             },
                                                         ]}
+                                                        autoFocus={true}
                                                     />
                                                 </div>
                                             </div>
@@ -288,7 +296,7 @@ class EditNoteModal extends Component {
                                 </div>
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <ShouldRender if={type === 'internal'}>
-                                    <div>
+                                    <div style={{ display: 'flex' }}>
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
@@ -324,7 +332,7 @@ class EditNoteModal extends Component {
                                     </div>
                                 </ShouldRender>
                                 <ShouldRender if={type === 'investigation'}>
-                                    <div>
+                                    <div style={{ display: 'flex' }}>
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
@@ -341,7 +349,6 @@ class EditNoteModal extends Component {
                                             className="bs-Button bs-Button--blue btn__modal"
                                             type="submit"
                                             disabled={updatingInvestigationNote}
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={!updatingInvestigationNote}

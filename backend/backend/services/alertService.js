@@ -935,7 +935,9 @@ module.exports = {
                         if (enabledStatusPage) {
                             await _this.sendSubscriberAlert(
                                 subscriber,
-                                incident
+                                incident,
+                                'Subscriber Incident Created',
+                                enabledStatusPage
                             );
                         }
                     } else {
@@ -974,7 +976,8 @@ module.exports = {
                             await _this.sendSubscriberAlert(
                                 subscriber,
                                 incident,
-                                'Subscriber Incident Acknowldeged'
+                                'Subscriber Incident Acknowldeged',
+                                enabledStatusPage
                             );
                         }
                     } else {
@@ -1017,7 +1020,8 @@ module.exports = {
                             await _this.sendSubscriberAlert(
                                 subscriber,
                                 incident,
-                                'Subscriber Incident Resolved'
+                                'Subscriber Incident Resolved',
+                                enabledStatusPage
                             );
                         }
                     } else {
@@ -1041,7 +1045,8 @@ module.exports = {
     sendSubscriberAlert: async function(
         subscriber,
         incident,
-        templateType = 'Subscriber Incident Created'
+        templateType = 'Subscriber Incident Created',
+        statusPage
     ) {
         try {
             const _this = this;
@@ -1062,6 +1067,24 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
+
+            let statusPageUrl;
+            if (statusPage) {
+                statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
+                if (statusPage.domains && statusPage.domains.length > 0) {
+                    const domains = statusPage.domains.filter(domainData => {
+                        if (domainData.domainVerificationToken.verified) {
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    if (domains.length > 0) {
+                        statusPageUrl = `${domains[0].domain}/status-page/${statusPage._id}`;
+                    }
+                }
+            }
+
             if (subscriber.alertVia == AlertType.Email) {
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
@@ -1082,6 +1105,7 @@ module.exports = {
                 });
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
                         await MailService.sendIncidentAcknowledgedMailToSubscriber(
@@ -1094,7 +1118,8 @@ module.exports = {
                             project.name,
                             emailTemplate,
                             trackEmailAsViewedUrl,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
@@ -1109,7 +1134,8 @@ module.exports = {
                             project.name,
                             emailTemplate,
                             trackEmailAsViewedUrl,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     } else {
                         await MailService.sendIncidentCreatedMailToSubscriber(
@@ -1122,7 +1148,8 @@ module.exports = {
                             project.name,
                             emailTemplate,
                             trackEmailAsViewedUrl,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     }
                     await SubscriberAlertService.updateOneBy(
@@ -1183,19 +1210,19 @@ module.exports = {
                     contactPhone = countryCode + contactPhone;
                 }
 
-                let hasEnoughBalance;
-                let doesPhoneNumberComplyWithHighRiskConfig;
+                // let hasEnoughBalance;
+                // let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     const owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
-                    hasEnoughBalance = await _this.hasEnoughBalance(
+                    await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
                         owner.userId,
                         AlertType.SMS
                     );
-                    doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                    await _this.doesPhoneNumberComplyWithHighRiskConfig(
                         incident.projectId,
                         contactPhone
                     );
@@ -1230,7 +1257,8 @@ module.exports = {
                             incident,
                             project.name,
                             incident.projectId,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
@@ -1243,7 +1271,8 @@ module.exports = {
                             incident,
                             project.name,
                             incident.projectId,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     } else {
                         sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
@@ -1254,7 +1283,8 @@ module.exports = {
                             incident,
                             project.name,
                             incident.projectId,
-                            component.name
+                            component.name,
+                            statusPageUrl
                         );
                     }
                     if (

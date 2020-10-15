@@ -30,6 +30,7 @@ class SubscribeBox extends Component {
             smsNotification,
             webhookNotification,
             emailNotification,
+            selectIndividualMonitors,
         } = statusPage;
         return (
             <div className="subscribe-overlay">
@@ -194,7 +195,12 @@ class SubscribeBox extends Component {
                                     </a>
                                 </div>
                             </ShouldRender>
-                            <ShouldRender if={this.props.openSelectedBox}>
+                            <ShouldRender
+                                if={
+                                    this.props.openSelectedBox &&
+                                    selectIndividualMonitors
+                                }
+                            >
                                 <Monitors />
                             </ShouldRender>
                         </div>
