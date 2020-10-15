@@ -36,6 +36,7 @@ export class SubProjects extends Component {
             case 'N':
             case 'n':
                 if (modalId !== subProjectModalId) {
+                    e.preventDefault();
                     return this.handleAddSubProject();
                 }
                 return false;

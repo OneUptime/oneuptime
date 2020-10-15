@@ -56,7 +56,6 @@ ul.columns h3{
 ul.columns>li{
     width:243px;
     float:left;
-    margin-right:51px;
     position:relative
 }
 @media screen and (max-width:1020px){
@@ -75,8 +74,7 @@ ul.columns>li{
     ul.columns>li{
         float:none;
         width:auto;
-        padding-left:0px;
-        margin:0 0 25px
+        padding-left:0px
     }
     .gif-container {
         width: 330px;
@@ -85,7 +83,6 @@ ul.columns>li{
 @media screen and (max-width:1020px){
     ul.columns>li{
         margin:0 0 25px;
-        margin-left: -50px;
     }
 }
 ul.columns>li:last-child{
@@ -146,20 +143,10 @@ ul.features>li:before{
         top:-3px
     }
 }
-section.marquee{
-    margin:0 -10px;
-    overflow:hidden;
-    height:416px;
-    position:relative
-}
-@media screen and (max-width:1020px){
-    section.marquee{
-        height: 780px !important;
-        /* margin-bottom: 90px; */
-    }
-}
+
+
+
 section.marquee #bubble-overlay{
-    position:absolute;
     top:0;
     width:100%;
     padding-top:49px;
@@ -185,16 +172,7 @@ section.marquee #bubble-overlay header p{
     color:#797979;
     margin-top:120px;
 }
-@media screen and (max-width:1020px){
-    section.marquee #bubble-overlay header p{
-        font-size:16px
-    }
-}
-@media screen and (max-width:1020px){
-    section.marquee #bubble-overlay header p{
-        font-size:14px
-    }
-}
+
 section.marquee #bubble-overlay .logos{
     padding:30px 0 35px;
     border-top:1px solid hsla(0,0%,100%,.07);
@@ -362,7 +340,6 @@ section.marquee #bubble-overlay .logos .freepik{
     }
 }
 section.marquee #bubble-universe{
-    position:absolute;
     top:0;
     left:50%;
     margin-left:-1000px
@@ -372,6 +349,13 @@ section.marquee #bubble-universe{
         margin-left:-952px
     }
 }
+
+@media (min-width: 1020px){
+.checkbox-feature {
+    width: 30%;
+}
+}
+
 @media screen and (max-width:1020px){
     section.marquee #bubble-universe{
         margin-left:-648px;
@@ -840,7 +824,16 @@ section.basics .split .right ul{
 }
 @media screen and (max-width:1020px){
     section.basics .split .right ul{
-        width:auto
+        width:auto;
+        padding: 30px
+    }
+    section.basics .columns .iso:before, .gdpr:before, .ccpa:before, .pci:before{
+        margin-left: auto !important;
+    }
+
+    section.basics .columns .hipaa:before{
+        width: 220px; 
+        margin: auto;
     }
 }
 section.basics .split .right ul li{

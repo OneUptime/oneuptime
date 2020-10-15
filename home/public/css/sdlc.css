@@ -8,7 +8,7 @@
   padding-top:35px;
 }
 .sdlc-description {
-  max-width: 800px;
+  max-width: 1020px;
   margin-bottom: 50px;
 }
 .categories-text{
@@ -320,7 +320,7 @@
     padding: 20px;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 1020px) {
   .sdlc-table-container {
     margin-left: 40px;
   }

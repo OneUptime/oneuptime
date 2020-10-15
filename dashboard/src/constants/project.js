@@ -1,3 +1,4 @@
+export const CHANGE_DELETE_MODAL = 'projects/CHANGE_DELETE_MODAL';
 export const SHOW_DELETE_MODAL = 'projects/SHOW_DELETE_MODAL';
 export const HIDE_DELETE_MODAL = 'projects/HIDE_DELETE_MODAL';
 

@@ -120,7 +120,7 @@ class Incident extends Component {
         let timelineStatus = null;
         const styles = {
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             fontSize: 14,
             color: 'rgba(0, 0, 0, 0.5)',
             paddingTop: 7,
@@ -128,6 +128,7 @@ class Incident extends Component {
         const incidentStatus = {
             color: 'rgba(76, 76, 76, 0.8)',
             fontWeight: 600,
+            minWidth: 110,
         };
 
         if (!requestingTimeline) {
@@ -293,7 +294,7 @@ class Incident extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                <div className="innernew" style={{ width: 609 }}>
+                <div className="innernew">
                     <div
                         id="incident"
                         className="twitter-feed white box"
@@ -342,11 +343,8 @@ class Incident extends Component {
                                 {!fetchingIncident && incident.title && (
                                     <>
                                         <div
-                                            className="feed-header clearfix"
+                                            className="individual-header"
                                             style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                flexWrap: 'nowrap',
                                                 marginBottom: incident.description
                                                     ? 25
                                                     : 10,
@@ -442,9 +440,8 @@ class Incident extends Component {
                             <div className="box-inner">
                                 <ShouldRender if={!fetchingIncidentNotes}>
                                     <div
-                                        className="feed-header clearfix"
+                                        className="individual-header"
                                         style={{
-                                            display: 'flex',
                                             flexDirection: 'row',
                                             flexWrap: 'nowrap',
                                         }}

@@ -61,7 +61,7 @@ main{
 main header{
     border-top:1px solid transparent
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     main header{
         border:none
     }
@@ -90,7 +90,7 @@ main header .stripes :nth-child(5){
     grid-area:auto/1/-1/-1;
     background:linear-gradient(100grad,#fff 80%,#f5fafd)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     main header .stripes :nth-child(2){
         background:linear-gradient(100grad,rgba(0,119,204,0),rgba(0,119,204,.05) 40%,rgba(0,119,204,.35))
     }
@@ -109,7 +109,7 @@ main header .stripes :nth-child(5){
     height:210px;
     margin:150px 20px 40px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #header-hero{
         width:50%;
         right:0;
@@ -142,7 +142,7 @@ main header .stripes :nth-child(5){
     top:calc(50% - 56px);
     animation-delay:.2s
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #header-hero .hero-illustration:first-child{
         top:327px;
         left:212px;
@@ -189,7 +189,7 @@ main header .stripes :nth-child(5){
     display:flex;
     animation-delay:.8s
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #header-hero .hero-illustration svg{
         height:162px;
         width:288px
@@ -235,7 +235,7 @@ main header .stripes :nth-child(5){
     fill:#000000;
     transition:fill .2s
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #header-hero .common-Button:hover svg{
         fill:#000000
     }
@@ -262,7 +262,7 @@ main header .stripes :nth-child(5){
 #header-hero .cube:nth-child(3)~.cube{
     display:none
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #header-hero .cubes .cube{
         margin:0
     }
@@ -342,7 +342,7 @@ main header .stripes :nth-child(5){
 #intro li:last-child .common-Button{
     color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #intro{
         padding-top:190px;
         position:static;
@@ -375,7 +375,7 @@ main header .stripes :nth-child(5){
 #key-benefits .common-BodyText{
     margin-bottom:2em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #key-benefits{
         display:grid;
         grid:repeat(3,auto)/auto-flow 1fr;
@@ -427,7 +427,7 @@ main header .stripes :nth-child(5){
     position:relative;
     margin-top:70px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #comparison{
         margin-top:120px
     }
@@ -444,7 +444,7 @@ main header .stripes :nth-child(5){
     align-content:space-between;
     background:linear-gradient(100grad,#545fdd,#000000 50%)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #comparison .stripes{
         height:calc(100% - 120px)
     }
@@ -522,7 +522,7 @@ main header .stripes :nth-child(5){
 #comparison .common-BodyText{
     margin:20px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #comparison .common-BodyText{
         margin:38px 40px
     }
@@ -579,7 +579,7 @@ main header .stripes :nth-child(5){
     margin-left:25%;
     background:#fa755a
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #comparison li:nth-child(5) .label{
         margin-left:58%
     }
@@ -640,7 +640,7 @@ main header .stripes :nth-child(5){
 #routing-payments .intro em{
     font-style:normal
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #routing-payments{
         --diagram-height:280px
     }
@@ -712,7 +712,7 @@ main header .stripes :nth-child(5){
     position:relative;
     margin-bottom:.7em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #routing-diagram-legend{
         -ms-flex-pack:start;
         justify-content:flex-start
@@ -778,7 +778,7 @@ main header .stripes :nth-child(5){
     will-change:opacity;
     margin-top:calc(var(--diagram-height) + 20px)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #routing-payments nav p{
         margin-right:50%
     }
@@ -984,7 +984,7 @@ main header .stripes :nth-child(5){
 #onboarding-verification .phone .screen>*{
     width:100%
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #onboarding-verification .container-lg{
         display:grid;
         grid:auto/auto-flow 1fr;
@@ -1376,7 +1376,7 @@ main header .stripes :nth-child(5){
 #hestia-replay{
     display:none
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #hestia-replay{
         -ms-flex-pack:center;
         justify-content:center;
@@ -1433,7 +1433,7 @@ main header .stripes :nth-child(5){
     background:#fff url(/img/v3/connect/features/view-onboarding-demo.svg) no-repeat 9px 50%;
     background-size:24px 24px
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #onboarding-verification .content{
         display:grid;
         -ms-flex-line-pack:center;
@@ -1543,7 +1543,7 @@ main header .stripes :nth-child(5){
     color:#fff;
     background-color:#000000
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #compliance .eu-guide{
         padding:40px 40px 40px 140px
     }
@@ -1635,7 +1635,7 @@ main header .stripes :nth-child(5){
     background:#7692b3;
     filter:blur(30px)
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #platform-management .laptop{
         margin-top:2em;
         transform:none;
@@ -1843,7 +1843,7 @@ main header .stripes :nth-child(5){
     margin-left:auto;
     margin-right:auto
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #international-support{
         --gutter:30px;
         display:grid;
@@ -1903,7 +1903,7 @@ main header .stripes :nth-child(5){
     border-radius:4px;
     margin-top:1.5em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #international-support aside{
         margin:0
     }
@@ -2037,7 +2037,7 @@ main header .stripes :nth-child(5){
     padding:5px 0;
     border-top:1px solid #f9f9f9
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #features-list .main-list{
         grid-template-columns:repeat(auto-fit,minmax(300px,1fr))
     }
@@ -2239,7 +2239,7 @@ main header .stripes :nth-child(5){
     text-decoration:underline;
     text-transform:none
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     #code-examples{
         margin-top:100px
     }
@@ -2271,7 +2271,7 @@ main footer.container-lg .common-Uppercase{
 main footer.container-lg .common-Link{
     margin-top:1em
 }
-@media (min-width:770px){
+@media (min-width:1020px){
     main footer.container-lg{
         display:grid;
         grid:repeat(3,auto)/auto-flow 1fr;

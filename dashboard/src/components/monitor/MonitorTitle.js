@@ -52,7 +52,14 @@ export class MonitorTitle extends Component {
     }
 
     render() {
-        const { monitor, status, activeProbe, probes, logs } = this.props;
+        const {
+            monitor,
+            status,
+            activeProbe,
+            probes,
+            logs,
+            requesting,
+        } = this.props;
 
         const probe =
             monitor && probes && probes.length > 0
@@ -144,6 +151,7 @@ export class MonitorTitle extends Component {
                     </div>
                     <ShouldRender
                         if={
+                            !requesting &&
                             monitor &&
                             monitor.type &&
                             monitor.type === 'server-monitor' &&
@@ -203,6 +211,7 @@ MonitorTitle.propTypes = {
     activeProbe: PropTypes.number,
     probes: PropTypes.array,
     logs: PropTypes.array,
+    requesting: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
@@ -211,6 +220,7 @@ const mapStateToProps = state => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
+        requesting: state.monitor.fetchMonitorLogsRequest,
     };
 };
 
