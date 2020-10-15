@@ -71,5 +71,6 @@ deploy_production_log-js:
         refs:
             - release
             - hotfix-release
+            - feature-log-js
     environment:
         name: production
