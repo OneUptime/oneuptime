@@ -26,6 +26,8 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 
+let serverMonitorHandler;
+
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:
@@ -546,6 +548,31 @@ router.post(
             }
 
             const log = await ProbeService.saveMonitorLog(data);
+
+            if (monitor.type === 'server-monitor') {
+                if (serverMonitorHandler) clearTimeout(serverMonitorHandler);
+                const { stat: validUp, reasons } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.up
+                    ? ProbeService.conditions(null, null, monitor.criteria.up)
+                    : { stat: false, reasons: [] });
+                const { stat: validDown } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.down
+                    ? ProbeService.conditions(null, null, monitor.criteria.down)
+                    : { stat: false });
+                if (!validUp || validDown) {
+                    serverMonitorHandler = setTimeout(async () => {
+                        await ProbeService.saveMonitorLog({
+                            monitorId: monitor._id,
+                            status: 'offline',
+                            reason: reasons,
+                        });
+                        clearTimeout(serverMonitorHandler);
+                    }, 3 * 60 * 1000);
+                }
+            }
+
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error);
