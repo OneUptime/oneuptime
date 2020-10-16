@@ -635,6 +635,7 @@ describe('Incident API', function() {
             expect(res.body.data.length).to.be.equal(0);
         });
     });
+
     it('should send incident alert when balance is above minimum amount', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -648,11 +649,18 @@ describe('Incident API', function() {
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
-        const alert = await AlertModel.findOne({
+        const smsAlert = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
+            alertVia: 'sms',
         });
-        expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('Success');
+        expect(smsAlert).to.be.an('object');
+        expect(smsAlert.alertStatus).to.be.equal('Success');
+        const callAlert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id,
+            alertVia: 'call',
+        });
+        expect(callAlert).to.be.an('object');
+        expect(callAlert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
         request.get(`alert/${projectId}/alert/charges`, function(err, res) {
