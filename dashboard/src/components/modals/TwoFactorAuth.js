@@ -76,9 +76,7 @@ class TwoFactorAuthModal extends Component {
             values.userId = profileSettings.data.id;
             verifyTwoFactorAuthToken(values).then(response => {
                 setTwoFactorAuth(response.data.twoFactorAuthEnabled);
-                return closeModal({
-                    id: twoFactorAuthId,
-                });
+                this.props.closeThisDialog();
             });
         }
     };
