@@ -622,7 +622,7 @@ describe('Status API', function() {
             });
     });
 
-    it('should add status.fyipeapp.com without errors', function(done) {
+    it('should reject adding an existing domain', function(done) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.fyipeapp.com' };
         request
@@ -630,7 +630,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                expect(res).to.have.status(200);
+                expect(res).to.have.status(400);
                 done();
             });
     });
