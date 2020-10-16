@@ -583,6 +583,32 @@ describe('Status API', function() {
             });
     });
 
+    it('should save an array of valid domains', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: [{domain:'fyipe.z.com'},{domain:'fyipe1.z.com'}] };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                done();
+            });
+    });
+
+    it('should not save domains if one domain in the array is invalid', function(done) {
+        const authorization = `Basic ${token}`;
+        const data = { domain: [{domain:'fyipe.z1.com'},{domain:'fyipe.z1.hackerbay'}] };
+        request
+            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .set('Authorization', authorization)
+            .send(data)
+            .end(function(err, res) {
+                expect(res).to.have.status(400);
+                done();
+            });
+    });
+
     it('should save when domain is without subdomain', function(done) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'fyipe.com' };
