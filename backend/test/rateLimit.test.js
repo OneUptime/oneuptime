@@ -31,15 +31,9 @@ describe('API limit rate', function() {
         for (let i = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
-        _ = await Promise.all(requests);
-        try {
-            if (_) {
-                const response = await request.get('/');
-                expect(response.status).to.be.equal(429);
-            }
-        } catch (err) {
-            expect(err.status).to.be.equal(429);
-        }
+        await Promise.all(requests);
+        const response = await request.get('/');
+        expect(response.status).to.be.equal(429);
     });
     after(function(done) {
         sandbox.restore();
