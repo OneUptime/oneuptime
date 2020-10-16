@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import FyipeTimelineManager from './timelineManager';
 import Util from './util';
+import Http from 'http';
+import Https from 'https';
 
 class FyipeListiner {
     #BASE_URL = 'http://test'; // TODO proper base url config
@@ -16,13 +18,15 @@ class FyipeListiner {
         this.#timelineObj = new FyipeTimelineManager();
         this.#utilObj = new Util();
         this.#currentEventId = eventId;
+        this._setUpConsoleListener();
 
         if (this.#isWindow) {
             this._init();
+        } else {
+            this._setUpHttpsListener();
         }
     }
     _init() {
-        this._setUpConsoleListener();
         this._setUpDomListener();
         this._setUpFetchListener();
         this._setUpXhrListener();
@@ -69,9 +73,9 @@ class FyipeListiner {
                     );
                 },
             };
-        })(window.console);
+        })(global.console);
         //Then redefine the old console
-        window.console = console;
+        global.console = console;
     }
     // set up dom listener
     _setUpDomListener() {
@@ -107,19 +111,32 @@ class FyipeListiner {
     _setUpXhrListener() {
         const open = window.XMLHttpRequest.prototype.open;
         const _this = this;
-
         function openReplacement(method, url) {
+            console.log('start');
+            console.log(method);
+            console.log(url);
+            const obj = {
+                method,
+                url,
+                status_code: '',
+            };
             this.addEventListener('load', function() {
                 // check if it is not a request to Fyipe servers
                 if (!url.startsWith(_this.#BASE_URL)) {
-                    const obj = {
-                        method,
-                        url,
-                        status_code: this.status,
-                    };
+                    obj.status_code = this.status;
                     _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
                 }
             });
+            this.addEventListener('error', function(con) {
+                // check if it is not a request to Fyipe servers
+                console.log(con);
+                if (!url.startsWith(_this.#BASE_URL)) {
+                    obj.status_code = this.status;
+                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
+                }
+            });
+            console.log('end');
+
             // set up how to send this log to the server to take this log
             return open.apply(this, arguments);
         }
@@ -128,9 +145,9 @@ class FyipeListiner {
     }
     // set up fetch listener
     _setUpFetchListener() {
-        const currentFetch = window.fetch;
+        const currentFetch = global.fetch;
         const _this = this;
-        window.fetch = function(url, options) {
+        global.fetch = function(url, options) {
             const obj = {
                 url,
                 method: options ? options.method : 'GET', // get request doesnt have a method on fetch, so its set as default
@@ -152,6 +169,57 @@ class FyipeListiner {
 
             return promise;
         };
+    }
+    _setUpHttpsListener() {
+        override(Http);
+        override(Https);
+        const _this = this;
+        function override(module) {
+            const original = module.request;
+
+            function wrapper(outgoing) {
+                // Store a call to the original in req
+                const req = original.apply(this, arguments);
+                const log = requestDetails(outgoing);
+                const emit = req.emit;
+                req.emit = function(eventName, response) {
+                    switch (eventName) {
+                        case 'response': {
+                            response.on('end', () => {
+                                // get status from final response
+                                log.status = response.statusCode;
+                                if (!log.url.startsWith(_this.#BASE_URL)) {
+                                    _this._logHttpRequestEvent(
+                                        log,
+                                        _this.#utilObj.getErrorType().HTTP
+                                    );
+                                }
+                            });
+                        }
+                    }
+                    return emit.apply(this, arguments);
+                };
+                // return the original call
+                return req;
+            }
+            module.request = wrapper;
+        }
+        function requestDetails(req) {
+            const log = {
+                method: req.method || 'GET',
+                host: req.host || req.hostname || '<no host>',
+                port: req.port || '',
+                path: req.pathname || req.path || '/',
+                headers: req.headers || {},
+                protocol: req.protocol,
+                status: '',
+                url: '',
+            };
+            const portDetails = log.port !== '' ? `:${log.port}` : '';
+            const absoluteUrl = `${log.protocol}//${log.host}${portDetails}${log.path}`;
+            log.url = absoluteUrl;
+            return log;
+        }
     }
     _logConsoleEvent(content, type) {
         const timelineObj = {
@@ -180,6 +248,18 @@ class FyipeListiner {
     _logFetchEvent(content, type) {
         const timelineObj = {
             category: 'fetch',
+            data: {
+                content,
+            },
+            type,
+            eventId: this.#currentEventId,
+        };
+        // add timeline to the stack
+        this.#timelineObj.addToTimeline(timelineObj);
+    }
+    _logHttpRequestEvent(content, type) {
+        const timelineObj = {
+            category: type, // HTTP
             data: {
                 content,
             },

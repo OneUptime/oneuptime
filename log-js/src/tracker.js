@@ -1,5 +1,6 @@
 import FyipeListiner from './listener';
 import Util from './util';
+import { v4 as uuidv4 } from 'uuid';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -23,13 +24,14 @@ class FyipeTracker {
         }
     }
     _setEventId() {
-        this.#eventId = 'test1234';
+        this.#eventId = uuidv4();
     }
     getEventId() {
         return this.#eventId;
     }
     setTag(key, value) {
         this.#tags = { ...this.#tags, [key]: value };
+        console.log(this.#tags);
     }
     // pass an array of tags
     setTags(tags) {
