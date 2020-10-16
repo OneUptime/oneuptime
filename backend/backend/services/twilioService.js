@@ -13,6 +13,7 @@ const GlobalConfigService = require('./globalConfigService');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
+const { IS_TESTING } = require('../config/server');
 
 const _this = {
     findByOne: async function(query) {
@@ -518,7 +519,7 @@ const _this = {
                 to = '+' + to;
             }
             const alertPhoneVerificationCode =
-                IS_TESTING === 'true'
+                IS_TESTING
                     ? '123456'
                     : Math.random()
                           .toString(10)
@@ -603,4 +604,3 @@ const _this = {
 };
 
 module.exports = _this;
-const { IS_TESTING } = process.env;
