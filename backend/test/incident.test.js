@@ -577,7 +577,8 @@ describe('Incident API', function() {
             .send({
                 monitorIds: [monitorId],
             });
-        let alert = null;
+        let smsAlert = null;
+        let callAlert = null;
         if (selectMonitor) {
             const createEscalation = await request
                 .post(
@@ -609,14 +610,20 @@ describe('Incident API', function() {
                     .set('Authorization', authorization)
                     .send(incidentData);
                 await sleep(2000);
-                alert = await AlertModel.findOne({
+                smsAlert = await AlertModel.findOne({
                     incidentId: createdIncident.body._id,
                     alertVia: 'sms',
                 });
+                callAlert = await AlertModel.findOne({
+                    incidentId: createdIncident.body._id,
+                    alertVia: 'call',
+                });
             }
         }
-        expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(smsAlert).to.be.an('object');
+        expect(smsAlert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(callAlert).to.be.an('object');
+        expect(callAlert.alertStatus).to.be.equal('Blocked - Low balance');
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
