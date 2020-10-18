@@ -17,7 +17,7 @@ describe('API limit rate', function() {
         sandbox.stub(process.env, 'RATE_LIMITTER_REQUEST_LIMIT').value('3');
         sandbox.stub(process.env, 'RATE_LIMITTER_ENABLED').value('true');
         require('../server').close();
-        delete require.cache[require.resolve( '../server' )]
+        delete require.cache[require.resolve('../server')];
         app = require('../server');
         request = chai.request.agent(app);
         done();

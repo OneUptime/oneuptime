@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import { changeDeleteModal } from '../../actions/project';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -74,6 +75,13 @@ class DeleteMessaging extends Component {
         );
     }
 }
+
+DeleteMessaging.displayName = 'DeleteMessaging';
+DeleteMessaging.propTypes= {
+    changeDeleteModal: PropTypes.func.isRequired,
+    hide: PropTypes.func.isRequired,
+    requesting: PropTypes.bool.isRequired,
+};
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(

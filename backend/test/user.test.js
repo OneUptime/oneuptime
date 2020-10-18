@@ -106,7 +106,7 @@ describe('User API', function() {
                                 .end(function(err, res) {
                                     if (err) {
                                         throw err;
-                                    }                
+                                    }
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });

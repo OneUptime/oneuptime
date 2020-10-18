@@ -65,7 +65,7 @@ describe('Status API', function() {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(async function() {
             createUser(request, userData.user, function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
@@ -73,7 +73,7 @@ describe('Status API', function() {
                     err,
                     verificationToken
                 ) {
-                    if(err) throw err
+                    if (err) throw err;
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
@@ -85,7 +85,7 @@ describe('Status API', function() {
                                     password: userData.user.password,
                                 })
                                 .end(function(err, res) {
-                                    if(err) throw err
+                                    if (err) throw err;
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
@@ -93,7 +93,7 @@ describe('Status API', function() {
                                         .set('Authorization', authorization)
                                         .send(resourceCategory)
                                         .end(function(err, res) {
-                                            if(err) throw err
+                                            if (err) throw err;
                                             resourceCategoryId = res.body._id;
                                             monitor.resourceCategory = resourceCategoryId;
                                             ComponentModel.create({
@@ -113,7 +113,7 @@ describe('Status API', function() {
                                                         componentId,
                                                     })
                                                     .end(function(err, res) {
-                                                        if(err) throw err
+                                                        if (err) throw err;
                                                         monitorId =
                                                             res.body._id;
                                                         scheduledEvent.monitors = [
@@ -134,7 +134,8 @@ describe('Status API', function() {
                                                                 err,
                                                                 res
                                                             ) {
-                                                                if(err) throw err
+                                                                if (err)
+                                                                    throw err;
                                                                 scheduledEventId =
                                                                     res.body
                                                                         ._id;
@@ -175,7 +176,7 @@ describe('Status API', function() {
                 projectId,
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -208,7 +209,7 @@ describe('Status API', function() {
                 ],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -244,7 +245,7 @@ describe('Status API', function() {
                 ],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 privateStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -260,7 +261,7 @@ describe('Status API', function() {
             .get(`/statusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
@@ -273,7 +274,7 @@ describe('Status API', function() {
             .get(`/statusPage/${privateStatusPageId}/rss`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -283,7 +284,7 @@ describe('Status API', function() {
         request
             .get(`/statusPage/${privateStatusPageId}`)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(401);
                 done();
             });
@@ -298,7 +299,7 @@ describe('Status API', function() {
                 domain: 5,
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -313,7 +314,7 @@ describe('Status API', function() {
                 domain: 'wwwtest',
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -347,7 +348,7 @@ describe('Status API', function() {
                 ],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -360,7 +361,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
                 expect(res.body).to.have.property('monitors');
@@ -384,7 +385,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -405,7 +406,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -435,7 +436,7 @@ describe('Status API', function() {
                         responseTime: true,
                     })
                     .end(function(err, res) {
-                        if(err) throw err
+                        if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res).to.be.an('object');
                         expect(res.body).to.have.property('data');
@@ -453,7 +454,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -467,7 +468,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -489,7 +490,7 @@ describe('Status API', function() {
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
                 .end(function(err, res) {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(200);
                     expect(res.body.verified).to.be.true;
                     done();
@@ -505,7 +506,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.x.com';
                 // update the verification token to a live version
@@ -517,7 +518,7 @@ describe('Status API', function() {
                         .get(`/statusPage/null?url=${domain}`)
                         .send()
                         .end(function(err, res) {
-                            if(err) throw err
+                            if (err) throw err;
                             expect(res).to.have.status(200);
                             expect(res.body._id).to.be.equal(statusPageId);
                             done();
@@ -534,14 +535,14 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.y.com';
                 request
                     .get(`/statusPage/null?url=${domain}`)
                     .send()
                     .end(function(err, res) {
-                        if(err) throw err
+                        if (err) throw err;
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
                             'Domain not verified'
@@ -565,7 +566,7 @@ describe('Status API', function() {
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
                 .end(function(err, res) {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -589,7 +590,7 @@ describe('Status API', function() {
                         .set('Authorization', authorization)
                         .send({ domain, verificationToken })
                         .end(function(err, res) {
-                            if(err) throw err
+                            if (err) throw err;
                             expect(res).to.have.status(400);
                             done();
                         });
@@ -606,7 +607,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -614,13 +615,15 @@ describe('Status API', function() {
 
     it('should save an array of valid domains', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: [{domain:'fyipe.z.com'},{domain:'fyipe1.z.com'}] };
+        const data = {
+            domain: [{ domain: 'fyipe.z.com' }, { domain: 'fyipe1.z.com' }],
+        };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -628,13 +631,18 @@ describe('Status API', function() {
 
     it('should not save domains if one domain in the array is invalid', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: [{domain:'fyipe.z1.com'},{domain:'fyipe.z1.hackerbay'}] };
+        const data = {
+            domain: [
+                { domain: 'fyipe.z1.com' },
+                { domain: 'fyipe.z1.hackerbay' },
+            ],
+        };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -648,7 +656,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -662,7 +670,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -678,7 +686,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(project.newProject)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 const newProjectId = res.body._id;
                 request
                     .post(`/statusPage/${newProjectId}`)
@@ -693,7 +701,7 @@ describe('Status API', function() {
                         monitorIds: [monitorId],
                     })
                     .end(function(err, res) {
-                        if(err) throw err
+                        if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
                             .put(
@@ -702,7 +710,7 @@ describe('Status API', function() {
                             .set('Authorization', authorization)
                             .send(data)
                             .end(function(err, res) {
-                                if(err) throw err
+                                if (err) throw err;
                                 expect(res).to.have.status(200);
                                 expect(
                                     res.body.domains.length
@@ -724,7 +732,7 @@ describe('Status API', function() {
             .set('Authorization', authorization)
             .send(project.newSecondProject)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 const newProjectId = res.body._id;
                 request
                     .post(`/statusPage/${newProjectId}`)
@@ -739,7 +747,7 @@ describe('Status API', function() {
                         monitorIds: [monitorId],
                     })
                     .end(function(err, res) {
-                        if(err) throw err
+                        if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
                             .put(
@@ -748,7 +756,7 @@ describe('Status API', function() {
                             .set('Authorization', authorization)
                             .send(data)
                             .end(function(err, res) {
-                                if(err) throw err
+                                if (err) throw err;
                                 expect(res).to.have.status(400);
                                 expect(res.body.message).to.be.equals(
                                     'This domain is already associated with another project'
@@ -775,7 +783,7 @@ describe('Status API', function() {
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(200);
                     done();
                 });
@@ -794,7 +802,7 @@ describe('Status API', function() {
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -813,7 +821,7 @@ describe('Status API', function() {
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -834,7 +842,7 @@ describe('Status API', function() {
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -850,7 +858,7 @@ describe('Status API', function() {
                 .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(200);
                     done();
                 });
@@ -868,7 +876,7 @@ describe('Status API', function() {
                 .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err, res) => {
-                    if(err) throw err
+                    if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -895,7 +903,7 @@ describe('StatusPage API with Sub-Projects', function() {
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
                 .end(function(err, res) {
-                    if(err) throw err
+                    if (err) throw err;
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
                     createUser(request, userData.newUser, function(err, res) {
@@ -903,7 +911,7 @@ describe('StatusPage API with Sub-Projects', function() {
                         VerificationTokenModel.findOne(
                             { userId: subProjectUserId },
                             function(err, verificationToken) {
-                                if(err) throw err
+                                if (err) throw err;
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
@@ -918,7 +926,7 @@ describe('StatusPage API with Sub-Projects', function() {
                                                     userData.newUser.password,
                                             })
                                             .end(function(err, res) {
-                                                if(err) throw err
+                                                if (err) throw err;
                                                 newUserToken =
                                                     res.body.tokens
                                                         .jwtAccessToken;
@@ -983,7 +991,7 @@ describe('StatusPage API with Sub-Projects', function() {
                                 password: userData.anotherUser.password,
                             })
                             .end(function(err, res) {
-                                if(err) throw err
+                                if (err) throw err;
                                 anotherUserToken =
                                     res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${anotherUserToken}`;
@@ -1012,7 +1020,7 @@ describe('StatusPage API with Sub-Projects', function() {
                                         ],
                                     })
                                     .end(function(err, res) {
-                                        if(err) throw err
+                                        if (err) throw err;
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'
@@ -1031,7 +1039,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .get(`/statusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
@@ -1063,7 +1071,7 @@ describe('StatusPage API with Sub-Projects', function() {
                 ],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1100,7 +1108,7 @@ describe('StatusPage API with Sub-Projects', function() {
                 domains: [],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.title).to.equal('Status title');
@@ -1135,7 +1143,7 @@ describe('StatusPage API with Sub-Projects', function() {
                 ],
             })
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 subProjectStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.title).to.be.equal('Status title');
@@ -1149,7 +1157,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .get(`/statusPage/${subProjectId}/statuspage`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -1165,7 +1173,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .get(`/statusPage/${projectId}/statuspages`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('statusPages');
@@ -1191,7 +1199,7 @@ describe('StatusPage API with Sub-Projects', function() {
                     .get(`/statusPage/${subProjectStatusPageId}`)
                     .set('Authorization', authorization)
                     .end(function(err, res) {
-                        if(err) throw err
+                        if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.have.property('monitors');
@@ -1206,7 +1214,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1221,7 +1229,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
@@ -1233,7 +1241,7 @@ describe('StatusPage API with Sub-Projects', function() {
             .delete(`/statusPage/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
-                if(err) throw err
+                if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });

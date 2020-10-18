@@ -37,10 +37,6 @@ const incidentSettings = {
     title: `TEST: {{monitorName}}`,
     description: `TEST: {{incidentType}}`,
 };
-const incidentSettingsAfterSubstitution = {
-    title: `TEST: ${monitor.name}`,
-    description: `TEST: ${incidentData.incidentType}`,
-};
 
 describe('Incident Settings API', function() {
     this.timeout(500000);
