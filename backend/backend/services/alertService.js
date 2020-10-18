@@ -1216,22 +1216,40 @@ module.exports = {
                     contactPhone = countryCode + contactPhone;
                 }
 
-                // let hasEnoughBalance;
-                // let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     const owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
-                    await _this.hasEnoughBalance(
+                    const hasEnoughBalance = await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
                         owner.userId,
                         AlertType.SMS
                     );
-                    await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                        incident.projectId,
-                        contactPhone
-                    );
+                    // TODO : doesPhoneNumberComplyWithHighRiskConfig will be used after fixing the checking function.
+                    // const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                    //     incident.projectId,
+                    //     contactPhone
+                    // );
+                    if (!hasEnoughBalance) {
+                        return await SubscriberAlertService.create({
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage: 'The balance is not enough',
+                            eventType:
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                                    ? 'acknowledged'
+                                    : templateType ===
+                                      'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
+                        });
+                    }
                 }
 
                 let sendResult;
