@@ -46,7 +46,6 @@ export class DeleteProjectModal extends Component {
     render() {
         const { deleted } = this.state;
         const { deletedModal } = this.props;
-        console.log('is deleted: ', deleted, deletedModal);
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

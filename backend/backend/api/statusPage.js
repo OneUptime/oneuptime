@@ -74,6 +74,14 @@ router.put(
                     message: 'Domain is required.',
                 });
             }
+            for (const element of subDomain) {
+                if (!UtilService.isDomainValid(element.domain)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Domain is not valid.',
+                    });
+                }
+            }
         } else {
             if (typeof subDomain !== 'string') {
                 return sendErrorResponse(req, res, {

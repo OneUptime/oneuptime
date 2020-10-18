@@ -17,7 +17,7 @@ const GlobalConfigService = require('../backend/services/globalConfigService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const smtpCredential = require('./data/smtpCredential');
 
-let projectId, airtableId, jwtToken, emailSmtpId;
+let projectId, jwtToken, emailSmtpId;
 
 describe('Email SMTP Api Test', function() {
     this.timeout(200000);
@@ -29,7 +29,6 @@ describe('Email SMTP Api Test', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -71,7 +70,7 @@ describe('Email SMTP Api Test', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId] },
         });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should confirm that `master-admin` exists', done => {

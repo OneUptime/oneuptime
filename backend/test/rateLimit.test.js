@@ -4,17 +4,11 @@ const expect = require('chai').expect;
 const chai = require('chai');
 chai.use(require('chai-http'));
 const requests = [];
-let _;
 let app, request, sandbox;
 
 describe('API limit rate', function() {
     this.timeout(10000);
     before(function(done) {
-        process.env.PORT = 3020;
-        process.env.RATE_LIMITTER_TIME_PERIOD_IN_MS = 5000;
-        process.env.RATE_LIMITTER_REQUEST_LIMIT = 3;
-        process.env.RATE_LIMITTER_ENABLED = true;
-
         const sinon = require('sinon');
         sandbox = sinon.createSandbox();
         sandbox
@@ -22,6 +16,8 @@ describe('API limit rate', function() {
             .value('5000');
         sandbox.stub(process.env, 'RATE_LIMITTER_REQUEST_LIMIT').value('3');
         sandbox.stub(process.env, 'RATE_LIMITTER_ENABLED').value('true');
+        require('../server').close();
+        delete require.cache[require.resolve('../server')];
         app = require('../server');
         request = chai.request.agent(app);
         done();
@@ -31,15 +27,9 @@ describe('API limit rate', function() {
         for (let i = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
-        _ = await Promise.all(requests);
-        try {
-            if (_) {
-                const response = await request.get('/');
-                expect(response.status).to.be.equal(429);
-            }
-        } catch (err) {
-            expect(err.status).to.be.equal(429);
-        }
+        await Promise.all(requests);
+        const response = await request.get('/');
+        expect(response.status).to.be.equal(429);
     });
     after(function(done) {
         sandbox.restore();

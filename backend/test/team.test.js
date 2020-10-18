@@ -20,7 +20,7 @@ const stripe = require('stripe')(payment.paymentPrivateKey);
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, anotherUser;
+let token, userId, projectId, anotherUser;
 
 describe('Team API', function() {
     this.timeout(20000);
@@ -32,7 +32,6 @@ describe('Team API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -61,7 +60,7 @@ describe('Team API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /monitor/:projectId/monitor'

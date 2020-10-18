@@ -21,7 +21,7 @@ const DockerCredentialService = require('../backend/services/dockerCredentialSer
 
 let VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, componentId, monitorId, resourceCount = 0;
+let token, userId, projectId, componentId, monitorId, resourceCount = 0;
 
 describe('Component API', function() {
     this.timeout(30000);
@@ -33,7 +33,6 @@ describe('Component API', function() {
                 let project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -364,10 +363,8 @@ describe('Component API', function() {
 let subProjectId,
     newUserToken,
     newUserId,
-    newAirtableId,
     newProjectId,
     otherUserId,
-    otherAirtableId,
     otherProjectId,
     subProjectComponentId,
     newComponentId;
@@ -390,7 +387,6 @@ describe('Component API with Sub-Projects', function() {
                         let project = res.body.project;
                         newProjectId = project._id;
                         newUserId = res.body.id;
-                        newAirtableId = res.body.airtableId;
 
                         VerificationTokenModel.findOne(
                             { userId: newUserId },
@@ -464,11 +460,7 @@ describe('Component API with Sub-Projects', function() {
                 $in: [projectId, newProjectId, otherProjectId, subProjectId],
             },
         });
-        await AirtableService.deleteUser([
-            airtableId,
-            newAirtableId,
-            otherAirtableId,
-        ]);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should not create a component for user not present in project', function(done) {
@@ -476,7 +468,6 @@ describe('Component API with Sub-Projects', function() {
             let project = res.body.project;
             otherProjectId = project._id;
             otherUserId = res.body.id;
-            otherAirtableId = res.body.airtableId;
 
             VerificationTokenModel.findOne({ userId: otherUserId }, function(
                 err,
