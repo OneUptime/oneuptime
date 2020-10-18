@@ -1192,7 +1192,13 @@ module.exports = {
                         alertVia: AlertType.SMS,
                         alertStatus: null,
                         error: true,
-                        errorMessage: 'Alert Disabled',
+                        errorMessage: !hasGlobalTwilioSettings
+                            ? 'Twilio is not configured'
+                            : !areAlertsEnabledGlobally
+                            ? 'Alerts Disabled in  the global configuration'
+                            : IS_SAAS_SERVICE && !project.alertEnable
+                            ? 'Alerts Disabled for the project'
+                            : 'Uknown reason',
                         eventType:
                             templateType === 'Subscriber Incident Acknowldeged'
                                 ? 'acknowledged'
