@@ -7,6 +7,7 @@ import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
+import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime'
 
 const calculateTime = (statuses, start, range) => {
     const timeBlock = [];
@@ -75,8 +76,8 @@ const calculateTime = (statuses, start, range) => {
             moment(a.start).isSame(b.start)
                 ? 0
                 : moment(a.start).isAfter(b.start)
-                ? 1
-                : -1
+                    ? 1
+                    : -1
         );
         //Third step
         for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
@@ -308,9 +309,9 @@ export function MonitorChart({
                                             <span className="chart-font">
                                                 {checkLogs && data[0].cpuLoad
                                                     ? formatDecimal(
-                                                          data[0].cpuLoad,
-                                                          2
-                                                      )
+                                                        data[0].cpuLoad,
+                                                        2
+                                                    )
                                                     : 0}{' '}
                                                 %
                                             </span>
@@ -336,9 +337,9 @@ export function MonitorChart({
                                             <span className="chart-font">
                                                 {checkLogs && data[0].avgCpuLoad
                                                     ? formatDecimal(
-                                                          data[0].avgCpuLoad,
-                                                          2
-                                                      )
+                                                        data[0].avgCpuLoad,
+                                                        2
+                                                    )
                                                     : 0}{' '}
                                                 %
                                             </span>
@@ -397,8 +398,8 @@ export function MonitorChart({
                                             <span className="chart-font">
                                                 {checkLogs && data[0].memoryUsed
                                                     ? formatBytes(
-                                                          data[0].memoryUsed
-                                                      )
+                                                        data[0].memoryUsed
+                                                    )
                                                     : '0 Bytes'}
                                             </span>
                                         </span>
@@ -422,14 +423,14 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs &&
-                                                data[0].totalMemory
+                                                    data[0].totalMemory
                                                     ? formatBytes({
-                                                          value:
-                                                              data[0]
-                                                                  .totalMemory,
-                                                          decimalPlaces: 0,
-                                                          roundType: 'down',
-                                                      })
+                                                        value:
+                                                            data[0]
+                                                                .totalMemory,
+                                                        decimalPlaces: 0,
+                                                        roundType: 'down',
+                                                    })
                                                     : '0 Bytes'}
                                             </span>
                                         </span>
@@ -454,8 +455,8 @@ export function MonitorChart({
                                             <span className="chart-font">
                                                 {checkLogs && data[0].swapUsed
                                                     ? formatBytes(
-                                                          data[0].swapUsed
-                                                      )
+                                                        data[0].swapUsed
+                                                    )
                                                     : '0 Bytes'}
                                             </span>
                                         </span>
@@ -488,10 +489,10 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs &&
-                                                data[0].storageUsed
+                                                    data[0].storageUsed
                                                     ? formatBytes(
-                                                          data[0].storageUsed
-                                                      )
+                                                        data[0].storageUsed
+                                                    )
                                                     : '0 Bytes'}
                                             </span>
                                         </span>
@@ -515,10 +516,10 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs &&
-                                                data[0].totalStorage
+                                                    data[0].totalStorage
                                                     ? formatBytes(
-                                                          data[0].totalStorage
-                                                      )
+                                                        data[0].totalStorage
+                                                    )
                                                     : '0 Bytes'}
                                             </span>
                                         </span>
@@ -542,11 +543,11 @@ export function MonitorChart({
                                             {' '}
                                             <span className="chart-font">
                                                 {checkLogs &&
-                                                data[0].storageUsage
+                                                    data[0].storageUsage
                                                     ? formatDecimal(
-                                                          data[0].storageUsage,
-                                                          2
-                                                      )
+                                                        data[0].storageUsage,
+                                                        2
+                                                    )
                                                     : 0}{' '}
                                                 %
                                             </span>
@@ -581,7 +582,7 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].mainTemp
+                                                        data[0].mainTemp
                                                         ? data[0].mainTemp
                                                         : 0}{' '}
                                                     &deg;C
@@ -607,7 +608,7 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].maxTemp
+                                                        data[0].maxTemp
                                                         ? data[0].maxTemp
                                                         : 0}{' '}
                                                     &deg;C
@@ -664,64 +665,41 @@ export function MonitorChart({
                                     </div>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Monitor Status"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Monitor Status
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span
-                                                        id={`monitor-status-${monitor.name}`}
-                                                        className={`chart-font Text-color--${statusColor}`}
-                                                    >
-                                                        {monitorStatus}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Uptime Stats"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Uptime Stats
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        {uptime} %
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <ShouldRender if={data && data.length > 0}>
+                                    <>
                                         <div className="db-Trend-colInformation">
                                             <div
                                                 className="db-Trend-rowTitle"
-                                                title="Response Time"
+                                                title="Monitor Status"
                                             >
                                                 <div className="db-Trend-title">
                                                     <span className="chart-font">
-                                                        Response Time
+                                                        Monitor Status
+                                                </span>
+                                                </div>
+                                            </div>
+                                            <div className="db-Trend-row">
+                                                <div className="db-Trend-col db-Trend-colValue">
+                                                    <span>
+                                                        {' '}
+                                                        <span
+                                                            id={`monitor-status-${monitor.name}`}
+                                                            className={`chart-font Text-color--${statusColor}`}
+                                                        >
+                                                            {monitorStatus}
+                                                        </span>
                                                     </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="db-Trend-colInformation">
+                                            <div
+                                                className="db-Trend-rowTitle"
+                                                title="Uptime Stats"
+                                            >
+                                                <div className="db-Trend-title">
+                                                    <span className="chart-font">
+                                                        Uptime Stats
+                                                </span>
                                                 </div>
                                             </div>
                                             <div className="db-Trend-row">
@@ -729,15 +707,38 @@ export function MonitorChart({
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            {responseTime} ms
-                                                        </span>
+                                                            {uptime} %
+                                                    </span>
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </ShouldRender>
-                                </>
-                            )}
+                                        <ShouldRender if={data && data.length > 0}>
+                                            <div className="db-Trend-colInformation">
+                                                <div
+                                                    className="db-Trend-rowTitle"
+                                                    title="Response Time"
+                                                >
+                                                    <div className="db-Trend-title">
+                                                        <span className="chart-font">
+                                                            Response Time
+                                                    </span>
+                                                    </div>
+                                                </div>
+                                                <div className="db-Trend-row">
+                                                    <div className="db-Trend-col db-Trend-colValue">
+                                                        <span>
+                                                            {' '}
+                                                            <span className="chart-font">
+                                                                {formatMonitorResponseTime(responseTime)}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                    </>
+                                )}
                         </div>
                     </div>
                     <ShouldRender if={!isCurrentlyNotMonitoring}>
@@ -790,19 +791,18 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span
-                                                    className={`chart-font Text-color--${
-                                                        sslCertificate
-                                                            ? sslCertificate.selfSigned
-                                                                ? 'yellow'
-                                                                : sslCertExpiringIn <
-                                                                  30
+                                                    className={`chart-font Text-color--${sslCertificate
+                                                        ? sslCertificate.selfSigned
+                                                            ? 'yellow'
+                                                            : sslCertExpiringIn <
+                                                                30
                                                                 ? sslCertExpiringIn <
-                                                                  10
+                                                                    10
                                                                     ? 'red'
                                                                     : 'yellow'
                                                                 : 'green'
-                                                            : 'red'
-                                                    }`}
+                                                        : 'red'
+                                                        }`}
                                                 >
                                                     <small
                                                         id={`ssl-status-${monitor.name}`}
@@ -811,9 +811,9 @@ export function MonitorChart({
                                                             ? sslCertificate.selfSigned
                                                                 ? 'Self Signed'
                                                                 : sslCertExpiringIn <
-                                                                  30
-                                                                ? 'Expiring Soon'
-                                                                : 'Enabled'
+                                                                    30
+                                                                    ? 'Expiring Soon'
+                                                                    : 'Enabled'
                                                             : 'No SSL Found'}
                                                     </small>
                                                 </span>
@@ -844,9 +844,9 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.issuer
+                                                            sslCertificate.issuer
                                                             ? sslCertificate
-                                                                  .issuer.CN
+                                                                .issuer.CN
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -877,7 +877,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.expires
+                                                            sslCertificate.expires
                                                             ? sslCertificate.expires
                                                             : '-'}
                                                     </small>
@@ -909,7 +909,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.fingerprint
+                                                            sslCertificate.fingerprint
                                                             ? sslCertificate.fingerprint
                                                             : '-'}
                                                     </small>
@@ -970,7 +970,7 @@ export function MonitorChart({
                                                         id={`lighthouse-performance-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.performance
+                                                            lighthouseLog.performance
                                                             ? `${lighthouseLog.performance}%`
                                                             : '-'}
                                                     </small>
@@ -1004,7 +1004,7 @@ export function MonitorChart({
                                                         id={`lighthouse-accessibility-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.accessibility
+                                                            lighthouseLog.accessibility
                                                             ? `${lighthouseLog.accessibility}%`
                                                             : '-'}
                                                     </small>
@@ -1038,7 +1038,7 @@ export function MonitorChart({
                                                         id={`lighthouse-bestPractices-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.bestPractices
+                                                            lighthouseLog.bestPractices
                                                             ? `${lighthouseLog.bestPractices}%`
                                                             : '-'}
                                                     </small>
@@ -1072,7 +1072,7 @@ export function MonitorChart({
                                                         id={`lighthouse-seo-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.seo
+                                                            lighthouseLog.seo
                                                             ? `${lighthouseLog.seo}%`
                                                             : '-'}
                                                     </small>
@@ -1106,7 +1106,7 @@ export function MonitorChart({
                                                         id={`lighthouse-pwa-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.pwa
+                                                            lighthouseLog.pwa
                                                             ? `${lighthouseLog.pwa}%`
                                                             : '-'}
                                                     </small>
