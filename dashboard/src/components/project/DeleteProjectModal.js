@@ -11,7 +11,6 @@ import {
     switchProject,
 } from '../../actions/project';
 import { history } from '../../store';
-import DeleteRequestModal from './DeleteRequesModal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 

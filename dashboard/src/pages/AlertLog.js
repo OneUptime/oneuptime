@@ -31,7 +31,7 @@ class AlertLog extends Component {
         this.props.fetchProjectAlert(
             projectId,
             (skip || 0) > (limit || 10)
-                ? this.props.alerts.skip - this.props.alerts.limit
+                ? skip - limit
                 : 0,
             10
         );
