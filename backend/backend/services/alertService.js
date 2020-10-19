@@ -1273,12 +1273,12 @@ module.exports = {
                         alertStatus: null,
                         error: true,
                         errorMessage: !hasGlobalTwilioSettings
-                            ? 'Twilio is not configured'
+                            ? 'Twilio Settings not found on Admin Dashboard'
                             : !areAlertsEnabledGlobally
-                            ? 'Alerts Disabled in  the global configuration'
+                            ? 'Alert Disabled on Admin Dashboard'
                             : IS_SAAS_SERVICE && !project.alertEnable
-                            ? 'Alerts Disabled for the project'
-                            : 'Uknown reason',
+                            ? 'Alert Disabled for this project'
+                            : 'Error',
                         eventType:
                             templateType === 'Subscriber Incident Acknowldeged'
                                 ? 'acknowledged'
@@ -1319,7 +1319,7 @@ module.exports = {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            errorMessage: 'The balance is not enough',
+                            errorMessage: 'Low Balance',
                             eventType:
                                 templateType ===
                                 'Subscriber Incident Acknowldeged'
