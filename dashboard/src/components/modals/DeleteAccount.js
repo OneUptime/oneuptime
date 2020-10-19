@@ -323,3 +323,7 @@ function CancelBtn(props) {
         </button>
     );
 }
+CancelBtn.displayName = 'CancelBtn';
+CancelBtn.propTypes = {
+    closeThisDialog: PropTypes.func.isRequired,
+};
