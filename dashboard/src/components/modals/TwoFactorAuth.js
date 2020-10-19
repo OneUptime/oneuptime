@@ -66,7 +66,6 @@ class TwoFactorAuthModal extends Component {
     };
 
     submitForm = values => {
-        const { twoFactorAuthId, closeModal } = this.props;
         if (values.token) {
             const {
                 setTwoFactorAuth,
