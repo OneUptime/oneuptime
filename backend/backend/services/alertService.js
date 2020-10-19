@@ -1086,6 +1086,46 @@ module.exports = {
             }
 
             if (subscriber.alertVia == AlertType.Email) {
+                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                    {
+                        name: 'smtp',
+                    }
+                );
+                const areEmailAlertsEnabledInGlobalSettings =
+                hasGlobalSmtpSettings &&
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
+                    ? true
+                    : false;
+                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(incident.projectId);
+                if (
+                    !areEmailAlertsEnabledInGlobalSettings && 
+                    !hasCustomSmtpSettings
+                ) {
+                    return await SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Email,
+                        eventType:
+                        templateType === 'Subscriber Incident Acknowldeged'
+                            ? 'acknowledged'
+                            : templateType === 'Subscriber Incident Resolved'
+                            ? 'resolved'
+                            : 'identified',
+                        alertStatus: null,
+                        error: true,
+                        errorMessage: 
+                        (!hasGlobalSmtpSettings && !hasCustomSmtpSettings )
+                            ? 'SMTP Settings not found on Admin Dashboard'
+                            : (
+                                hasGlobalSmtpSettings &&
+                                !areEmailAlertsEnabledInGlobalSettings
+                            )
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : 'Error',
+                    });
+                }    
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
                     emailType: templateType,
