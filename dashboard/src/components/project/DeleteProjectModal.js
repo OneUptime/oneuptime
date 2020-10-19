@@ -132,6 +132,7 @@ DeleteProjectModal.propTypes = {
     projectId: PropTypes.string,
     visible: PropTypes.bool,
     isRequesting: PropTypes.bool,
+    deletedModal: PropTypes.bool,
 };
 
 export default withRouter(
