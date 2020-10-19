@@ -72,7 +72,7 @@ class Util {
     }
     _getUserDeviceDetails() {
         const deviceDetails = { device: null, browser: null };
-        if (window) {
+        if (typeof window !== 'undefined') {
             const details = window.navigator.appVersion;
             // get string between first parenthesis
             const deviceOS = details.substring(
