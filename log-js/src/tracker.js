@@ -21,6 +21,8 @@ class FyipeTracker {
         // set up error listener
         if (this.#isWindow) {
             this._setUpErrorListener();
+        } else {
+            this._setUpNodeErrorListener();
         }
     }
     _setEventId() {
@@ -82,6 +84,34 @@ class FyipeTracker {
                 _this.prepareErrorObject('error', errorObj);
             }
         };
+    }
+    _setUpNodeErrorListener() {
+        const _this = this;
+        process
+            .on('uncaughtException', err => {
+                // display for the user
+                console.log(`${err}`)
+                // any uncaught error
+                _this._manageErrorNode(err)
+            }).on('unhandledRejection', err => {
+                // display this for the user
+                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}\n`)
+                // any unhandled promise error
+                _this._manageErrorNode(err)
+            });
+    }
+    _manageErrorNode(error) {
+        // construct the error object
+        const errorObj = this.#utilObj._getErrorStackTrace(error);
+
+        // log error event
+        const content = {
+            message: errorObj.message,
+        };
+        this.#listenerObj.logErrorEvent(content);
+
+        // prepare to send to server
+        this.prepareErrorObject('error', errorObj);
     }
     addToTimeline(category, content, type) {
         const timeline = {
