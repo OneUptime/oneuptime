@@ -1181,14 +1181,16 @@ module.exports = {
                     }
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
-                hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
-                    ? true
-                    : false;
-                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(incident.projectId);
+                    hasGlobalSmtpSettings &&
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
+                        ? true
+                        : false;
+                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                    incident.projectId
+                );
                 if (
-                    !areEmailAlertsEnabledInGlobalSettings && 
+                    !areEmailAlertsEnabledInGlobalSettings &&
                     !hasCustomSmtpSettings
                 ) {
                     return await SubscriberAlertService.create({
@@ -1197,24 +1199,23 @@ module.exports = {
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
                         eventType:
-                        templateType === 'Subscriber Incident Acknowldeged'
-                            ? 'acknowledged'
-                            : templateType === 'Subscriber Incident Resolved'
-                            ? 'resolved'
-                            : 'identified',
+                            templateType === 'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
                         alertStatus: null,
                         error: true,
-                        errorMessage: 
-                        (!hasGlobalSmtpSettings && !hasCustomSmtpSettings )
-                            ? 'SMTP Settings not found on Admin Dashboard'
-                            : (
-                                hasGlobalSmtpSettings &&
-                                !areEmailAlertsEnabledInGlobalSettings
-                            )
-                            ? 'Alert Disabled on Admin Dashboard'
-                            : 'Error',
+                        errorMessage:
+                            !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                                ? 'SMTP Settings not found on Admin Dashboard'
+                                : hasGlobalSmtpSettings &&
+                                  !areEmailAlertsEnabledInGlobalSettings
+                                ? 'Alert Disabled on Admin Dashboard'
+                                : 'Error',
                     });
-                }    
+                }
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
                     emailType: templateType,
@@ -1349,17 +1350,41 @@ module.exports = {
                     const owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
+                    const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                        incident.projectId,
+                        contactPhone
+                    );
+                    if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                        const countryType = getCountryType(contactPhone);
+                        return await SubscriberAlertService.create({
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage:
+                                countryType === 'us'
+                                    ? 'Calls for numbers inside US not enabled for this project'
+                                    : countryType === 'non-us'
+                                    ? 'Calls for numbers outside US not enabled for this project'
+                                    : 'Calls to High Risk country not enabled for this project',
+                            eventType:
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                                    ? 'acknowledged'
+                                    : templateType ===
+                                      'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
+                        });
+                    }
                     const hasEnoughBalance = await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
                         owner.userId,
                         AlertType.SMS
                     );
-                    // TODO : doesPhoneNumberComplyWithHighRiskConfig will be used after fixing the checking function.
-                    // const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                    //     incident.projectId,
-                    //     contactPhone
-                    // );
                     if (!hasEnoughBalance) {
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
@@ -1466,6 +1491,8 @@ module.exports = {
                         { _id: alertId },
                         {
                             alertStatus: null,
+                            error: true,
+                            errorMessage: 'Error',
                         }
                     );
                     throw error;
