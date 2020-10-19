@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { reduxForm, Field } from 'redux-form';
 import { Spinner } from '../basic/Loader';
@@ -323,13 +322,11 @@ const TwoFactorAuthForm = reduxForm({
 
 TwoFactorAuthModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
-    closeModal: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     generateTwoFactorQRCode: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
     profileSettings: PropTypes.object,
     qrCode: PropTypes.object,
-    twoFactorAuthId: PropTypes.string,
     twoFactorAuthSetting: PropTypes.object,
     verifyTwoFactorAuthToken: PropTypes.func,
 };
@@ -345,7 +342,6 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            closeModal,
             setTwoFactorAuth,
             verifyTwoFactorAuthToken,
             generateTwoFactorQRCode,
