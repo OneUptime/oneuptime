@@ -10,6 +10,7 @@ class FyipeTracker {
     #tags = [];
     #extras = [];
     #isWindow = false;
+    #fingerprint = [];
     constructor() {
         this._setEventId();
         this.#isWindow = typeof window !== 'undefined';
@@ -57,6 +58,9 @@ class FyipeTracker {
     setExtra(key, extra) {
         this.#extras = { ...this.#extras, [key]: extra };
     }
+    setFingerprint(keys) {
+        this.#fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
+    }
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
@@ -90,14 +94,15 @@ class FyipeTracker {
         process
             .on('uncaughtException', err => {
                 // display for the user
-                console.log(`${err}`)
+                console.log(`${err}`);
                 // any uncaught error
-                _this._manageErrorNode(err)
-            }).on('unhandledRejection', err => {
+                _this._manageErrorNode(err);
+            })
+            .on('unhandledRejection', err => {
                 // display this for the user
-                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}\n`)
+                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}\n`);
                 // any unhandled promise error
-                _this._manageErrorNode(err)
+                _this._manageErrorNode(err);
             });
     }
     _manageErrorNode(error) {
@@ -136,6 +141,7 @@ class FyipeTracker {
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         const tags = this._getTags();
+        const fingerprint = this.#fingerprint;
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
         console.log({
@@ -145,6 +151,7 @@ class FyipeTracker {
             deviceDetails,
             eventId: this.getEventId(),
             tags,
+            fingerprint,
         });
 
         // generate a new event Id

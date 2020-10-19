@@ -45,6 +45,12 @@ class FyipeLogger {
         }
         this.#tracker.setTags(tags);
     }
+    setFingerprint(fingerprint) {
+        if (!(typeof fingerprint === 'string') && !Array.isArray(fingerprint)) {
+            return 'Invalid Fingerprint Format';
+        }
+        this.#tracker.setFingerprint(fingerprint);
+    }
     async log(data, tags = null) {
         const type = typeof data;
 
