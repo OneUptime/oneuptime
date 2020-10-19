@@ -36,9 +36,7 @@ module.exports = {
                             { resolved: true },
                             { createdAt: { $gte: start, $lte: end } },
                         ],
-                        $or: [
-                            { deleted: false }
-                        ]
+                        $or: [{ deleted: false }],
                     },
                 },
                 {

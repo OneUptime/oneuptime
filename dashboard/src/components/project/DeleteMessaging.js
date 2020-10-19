@@ -77,7 +77,7 @@ class DeleteMessaging extends Component {
 }
 
 DeleteMessaging.displayName = 'DeleteMessaging';
-DeleteMessaging.propTypes= {
+DeleteMessaging.propTypes = {
     changeDeleteModal: PropTypes.func.isRequired,
     hide: PropTypes.func.isRequired,
     requesting: PropTypes.bool.isRequired,
