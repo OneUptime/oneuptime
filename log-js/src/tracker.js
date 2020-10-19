@@ -11,12 +11,20 @@ class FyipeTracker {
     #extras = [];
     #isWindow = false;
     #fingerprint = [];
-    constructor() {
+    #options = {
+        maxTimeline: 1,
+    };
+    #MAX_ITEMS_ALLOWED_IN_STACK = 100;
+    #configKeys = ['baseUrl'];
+    constructor(options) {
+        // set up option
+        this._setUpOptions(options);
         this._setEventId();
         this.#isWindow = typeof window !== 'undefined';
         this.#listenerObj = new FyipeListiner(
             this.getEventId(),
-            this.#isWindow
+            this.#isWindow,
+            this.#options
         ); // Initialize Listener for timeline
         this.#utilObj = new Util();
         // set up error listener
@@ -24,6 +32,24 @@ class FyipeTracker {
             this._setUpErrorListener();
         } else {
             this._setUpNodeErrorListener();
+        }
+    }
+    _setUpOptions(options) {
+        for (const [key, value] of Object.entries(options)) {
+            // proceed with current key if it is not in the config keys
+            if (!this.#configKeys.includes(key)) {
+                if (this.#options[key]) {
+                    // set max timeline properly
+                    if (
+                        key === 'maxTimeline' &&
+                        value > this.#MAX_ITEMS_ALLOWED_IN_STACK
+                    ) {
+                        this.#options[key] = this.#MAX_ITEMS_ALLOWED_IN_STACK;
+                    } else {
+                        this.#options[key] = value;
+                    }
+                }
+            }
         }
     }
     _setEventId() {
@@ -34,7 +60,6 @@ class FyipeTracker {
     }
     setTag(key, value) {
         this.#tags = { ...this.#tags, [key]: value };
-        console.log(this.#tags);
     }
     // pass an array of tags
     setTags(tags) {

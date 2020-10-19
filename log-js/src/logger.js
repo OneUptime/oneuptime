@@ -5,12 +5,12 @@ class FyipeLogger {
     #applicationLogKey;
     #apiUrl;
     #tracker;
-    constructor(apiUrl, applicationLogId, applicationLogKey) {
+    constructor(apiUrl, applicationLogId, applicationLogKey, options = {}) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
         // set up application tracker also
-        this.#tracker = new FyipeTracker();
+        this.#tracker = new FyipeTracker(options);
     }
     _setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;

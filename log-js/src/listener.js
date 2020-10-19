@@ -13,9 +13,11 @@ class FyipeListiner {
     #currentEventId;
     #utilObj;
     #isWindow;
-    constructor(eventId, isWindow) {
+    #options;
+    constructor(eventId, isWindow, options) {
+        this.#options = options;
         this.#isWindow = isWindow;
-        this.#timelineObj = new FyipeTimelineManager();
+        this.#timelineObj = new FyipeTimelineManager(options);
         this.#utilObj = new Util();
         this.#currentEventId = eventId;
         this._setUpConsoleListener();
@@ -112,9 +114,6 @@ class FyipeListiner {
         const open = window.XMLHttpRequest.prototype.open;
         const _this = this;
         function openReplacement(method, url) {
-            console.log('start');
-            console.log(method);
-            console.log(url);
             const obj = {
                 method,
                 url,
@@ -127,15 +126,13 @@ class FyipeListiner {
                     _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
                 }
             });
-            this.addEventListener('error', function(con) {
+            this.addEventListener('error', function() {
                 // check if it is not a request to Fyipe servers
-                console.log(con);
                 if (!url.startsWith(_this.#BASE_URL)) {
                     obj.status_code = this.status;
                     _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
                 }
             });
-            console.log('end');
 
             // set up how to send this log to the server to take this log
             return open.apply(this, arguments);
