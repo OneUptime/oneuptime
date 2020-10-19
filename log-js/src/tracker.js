@@ -61,6 +61,14 @@ class FyipeTracker {
     setFingerprint(keys) {
         this.#fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
+    _getFingerprint(errorMessage) {
+        // if no fingerprint exist currently
+        if (this.#fingerprint.length < 1) {
+            // set up finger print based on error since none exist
+            this.setFingerprint(errorMessage);
+        }
+        return this.#fingerprint;
+    }
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
@@ -94,13 +102,15 @@ class FyipeTracker {
         process
             .on('uncaughtException', err => {
                 // display for the user
+                // eslint-disable-next-line no-console
                 console.log(`${err}`);
                 // any uncaught error
                 _this._manageErrorNode(err);
             })
             .on('unhandledRejection', err => {
                 // display this for the user
-                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}\n`);
+                // eslint-disable-next-line no-console
+                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error
                 _this._manageErrorNode(err);
             });
@@ -114,7 +124,6 @@ class FyipeTracker {
             message: errorObj.message,
         };
         this.#listenerObj.logErrorEvent(content);
-
         // prepare to send to server
         this.prepareErrorObject('error', errorObj);
     }
@@ -141,7 +150,7 @@ class FyipeTracker {
         const timeline = this.#listenerObj.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         const tags = this._getTags();
-        const fingerprint = this.#fingerprint;
+        const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
         console.log({
@@ -157,7 +166,17 @@ class FyipeTracker {
         // generate a new event Id
         this._setEventId();
         // clear the timeline after a successful call to the server
-        this.#listenerObj.clearTimeline(this.getEventId());
+        this._clear(this.getEventId());
+    }
+    _clear(newEventId) {
+        // clear tags
+        this.#tags = [];
+        // clear extras
+        this.#extras = [];
+        // clear fingerprint
+        this.#fingerprint = [];
+        // clear timeline
+        this.#listenerObj.clearTimeline(newEventId);
     }
 }
 export default FyipeTracker;
