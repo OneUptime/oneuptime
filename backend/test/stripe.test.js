@@ -14,7 +14,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 
-let token, projectId, userId, airtableId;
+let token, projectId, userId;
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let cardId, authorization;
@@ -29,7 +29,6 @@ describe('Stripe payment API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -68,7 +67,7 @@ describe('Stripe payment API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should sign up and a transaction of 1 $ should be made', function(done) {

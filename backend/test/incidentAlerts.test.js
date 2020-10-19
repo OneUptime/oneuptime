@@ -39,7 +39,7 @@ let GlobalConfigModel = require('../backend/models/globalConfig');
 const sleep = waitTimeInMs =>
   new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization, token, userId, airtableId, projectId, componentId, monitorId, scheduleId;
+let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
 
 describe('Incident Alerts', function () {
   this.timeout(30000);
@@ -51,7 +51,6 @@ describe('Incident Alerts', function () {
         let project = res.body.project;
         projectId = project._id;
         userId = res.body.id;
-        airtableId = res.body.airtableId;
 
         await UserModel.updateOne(
           { _id: userId },
@@ -187,7 +186,7 @@ describe('Incident Alerts', function () {
     await ProjectService.hardDeleteBy({ _id: projectId });
     await UserService.hardDeleteBy({ _id: userId });
     await NotificationService.hardDeleteBy({ projectId: projectId });
-    await AirtableService.deleteUser(airtableId);
+    await AirtableService.deleteAll({ tableName: 'User' });
   });
 
   describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {

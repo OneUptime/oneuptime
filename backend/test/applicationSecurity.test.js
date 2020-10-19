@@ -18,6 +18,7 @@ const ComponentService = require('../backend/services/componentService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
 const ApplicationSecurities = require('../backend/services/applicationSecurityService');
 const ApplicationSecurityLogService = require('../backend/services/applicationSecurityLogService');
+const AirtableService = require('../backend/services/airtableService');
 
 describe('Application Security API', function() {
     const timeout = 300000;
@@ -86,6 +87,7 @@ describe('Application Security API', function() {
         await GitCredentialService.hardDeleteBy({ projectId });
         await ApplicationSecurities.hardDelete({ componentId });
         await ApplicationSecurityLogService.hardDelete({ componentId });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create an application security', function(done) {

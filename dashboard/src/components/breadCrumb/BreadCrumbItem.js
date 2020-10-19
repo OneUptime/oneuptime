@@ -50,7 +50,9 @@ function BreadCrumbItem({
         }
         titleText.innerHTML = name;
         resourceType.innerHTML = type
-            ? type + ' Monitor'
+            ? type === 'server-monitor'
+                ? 'Server Monitor'
+                : type + ' Monitor'
             : status
             ? ' Status Page'
             : containerType

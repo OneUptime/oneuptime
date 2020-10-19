@@ -14,7 +14,7 @@ const ProjectService = require('../backend/services/projectService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AirtableService = require('../backend/services/airtableService');
 
-let token, projectId, userId, airtableId;
+let token, projectId, userId;
 
 describe('Monitor Criteria API', function() {
     this.timeout(20000);
@@ -26,7 +26,6 @@ describe('Monitor Criteria API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -64,7 +63,7 @@ describe('Monitor Criteria API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should get the monitor criteria', function(done) {

@@ -36,13 +36,13 @@ export class RowData extends Component {
                                 {statusPage.domains[0].domain}
                             </div>
                         ) : (
-                            <div
-                                id="domainNotSet"
-                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                            >
-                                Domain(s) not set yet
-                            </div>
-                        )}
+                                <div
+                                    id="domainNotSet"
+                                    className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                                >
+                                    Domain(s) not set yet
+                                </div>
+                            )}
                     </div>
                 </td>
                 <td
@@ -68,6 +68,20 @@ export class RowData extends Component {
                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Margin-right--16">
                                 <span>{monitors}</span>
+                            </div>
+                        </span>
+                    </div>
+                </td>
+                <td
+                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                    style={{ height: '1px', minWidth: '270px' }}
+                >
+                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                        <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <div className="Box-root Margin-right--16">
+                                <button className='Button' style={{ height: '48px' }} id='viewStatusPage'>
+                                    <span className='bs-Button'>View</span>
+                                </button>
                             </div>
                         </span>
                     </div>

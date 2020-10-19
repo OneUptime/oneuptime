@@ -7,7 +7,7 @@ child_process.execSync('react-env', {
     stdio: [0, 1, 2],
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
+app.get(['/env.js', '/dashboard/env.js'], function (req, res) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
         global.dashboardHost = 'https://' + req.host + '/dashboard';
@@ -53,7 +53,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function(req, res) {
+app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

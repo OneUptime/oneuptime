@@ -63,7 +63,7 @@ logger.log(item, tag);
 <script>
     function logError() {
         // constructor
-        const logger = new FyipeLogger.default(
+        const logger = new FyipeLogger(
             'API_URL', // https://fyipe.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
