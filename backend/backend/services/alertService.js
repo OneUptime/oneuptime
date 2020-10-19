@@ -570,6 +570,7 @@ module.exports = {
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         const firstName = user.name;
+        const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date)
@@ -578,6 +579,45 @@ module.exports = {
         }
 
         try {
+            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                {
+                    name: 'smtp',
+                }
+            );
+            const areEmailAlertsEnabledInGlobalSettings =
+            hasGlobalSmtpSettings &&
+            hasGlobalSmtpSettings.value &&
+            hasGlobalSmtpSettings.value['email-enabled']
+                ? true
+                : false;
+            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(projectId);
+            if (
+                !areEmailAlertsEnabledInGlobalSettings && 
+                !hasCustomSmtpSettings
+            ) {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.Email,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage: 
+                    (!hasGlobalSmtpSettings && !hasCustomSmtpSettings )
+                        ? 'SMTP Settings not found on Admin Dashboard'
+                        : (
+                            hasGlobalSmtpSettings &&
+                            !areEmailAlertsEnabledInGlobalSettings
+                        )
+                        ? 'Alert Disabled on Admin Dashboard'
+                        : 'Error.',
+
+                });
+            }
             await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
