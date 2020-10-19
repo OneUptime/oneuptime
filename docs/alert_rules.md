@@ -181,4 +181,13 @@
 -   Check limits for global config in both Enterprise and SaaS
 -   Ideally in Enterprise Mode - Enable Alerts in Project Billing Page should be hidden. So, you should NOT check if the alerts are enabled or disabled for the project. Just check if the alerts are enabled / disabled in admin dashboard (if using global config). If using local config (project config) - do not check if the alerts are enabled or disabled.
 
+In general, under the SAAS mode, the SMS/Call alerts can fail for one of the following reasons:
+1- The custom/global twilio settings are not configured.
+2- SMS/Call alerts are disabled in the global configurations, and the custom twilio settings are not set.
+3- SMS/Call alerts are disabled for a project (from billing page), and the custom twilio settings are not set.
+4- The project's balance is not enough, and the custom twilio settings are not set.
+5- If the API call fail for any reason (wrong credentials, service down etc...)
+
+The same reasons, excpet 3 and 4, can cause the failure of alerts under enterprise mode.
+
 Return back to the [main README](../README.md)
