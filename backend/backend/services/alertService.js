@@ -876,7 +876,7 @@ module.exports = {
         }
 
         if (
-            IS_SAAS_SERVICE !== 'true' ||
+            !IS_SAAS_SERVICE ||
             hasCustomTwilioSettings ||
             (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
         ) {

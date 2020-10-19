@@ -8,6 +8,7 @@ import uuid from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
+import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 
 export class MonitorLogsList extends Component {
     constructor(props) {
@@ -325,10 +326,9 @@ export class MonitorLogsList extends Component {
                                                                         <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                 <span>
-                                                                                    {
+                                                                                    {formatMonitorResponseTime(
                                                                                         log.responseTime
-                                                                                    }{' '}
-                                                                                    ms
+                                                                                    )}
                                                                                 </span>
                                                                             </span>
                                                                         </div>

@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
+const http = require('http');
 
 const { NODE_ENV } = process.env;
 
@@ -33,7 +34,11 @@ app.use(bodyParser.json());
 app.use(require('./backend/api/settings'));
 
 app.get('/', function(req, res) {
-    res.status(global.httpServerResponse.statusCode);
+    if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
+        res.status(global.httpServerResponse.statusCode);
+    } else {
+        res.status(422);
+    }
     setTimeout(function() {
         if (global.httpServerResponse.responseType.currentType === 'html') {
             res.setHeader('Content-Type', 'text/html');

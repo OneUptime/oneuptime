@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import PropTypes from 'prop-types';
 import { changeDeleteModal } from '../../actions/project';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -22,18 +23,20 @@ class DeleteMessaging extends Component {
                     <div>
                         <div className="icon_display-msg">
                             <div className="clear_times"></div>
-                            <div>We will stop monitoring your resources.</div>
+                            <div className="clear_msg_txt">
+                                We will stop monitoring your resources.
+                            </div>
                         </div>
                         <div className="icon_display-msg">
                             <div className="clear_times"></div>
-                            <div>
+                            <div className="clear_msg_txt">
                                 Your customers, users and team will lose access
                                 to the status page.
                             </div>
                         </div>
                         <div className="icon_display-msg">
                             <div className="clear_times"></div>
-                            <div>
+                            <div className="clear_msg_txt">
                                 Your team will NOT be alerted during downtime.
                             </div>
                         </div>
@@ -74,6 +77,13 @@ class DeleteMessaging extends Component {
         );
     }
 }
+
+DeleteMessaging.displayName = 'DeleteMessaging';
+DeleteMessaging.propTypes = {
+    changeDeleteModal: PropTypes.func.isRequired,
+    hide: PropTypes.func.isRequired,
+    requesting: PropTypes.bool.isRequired,
+};
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(

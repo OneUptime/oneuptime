@@ -22,7 +22,7 @@ const AirtableService = require('../backend/services/airtableService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const ComponentModel = require('../backend/models/component');
 
-let token, userId, airtableId, projectId, monitorId;
+let token, userId, projectId, monitorId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -44,7 +44,6 @@ describe('Reports API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -100,7 +99,7 @@ describe('Reports API', function() {
         await IncidentService.hardDeleteBy({ monitorId: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should return list of most active members', done => {
