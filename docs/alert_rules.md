@@ -186,8 +186,10 @@ In general, under the SAAS mode, the SMS/Call alerts can fail for one of the fol
 2- SMS/Call alerts are disabled in the global configurations, and the custom twilio settings are not set.
 3- SMS/Call alerts are disabled for a project (from billing page), and the custom twilio settings are not set.
 4- The project's balance is not enough, and the custom twilio settings are not set.
-5- If the API call fail for any reason (wrong credentials, service down etc...)
+5- The targeted phone number doesn't comply with the policy selected in the billing page (high risk countries not selected), and the custom twilio settings are not set.
+6- the alert phone number is not set (in case of on-call team alerts).
+7- If the API call fail for any reason (wrong credentials, service down etc...)
 
-The same reasons, excpet 3 and 4, can cause the failure of alerts under enterprise mode.
+The same reasons, excepet for 3, 4 and 5 , can cause the failure of alerts under enterprise mode.
 
 Return back to the [main README](../README.md)
