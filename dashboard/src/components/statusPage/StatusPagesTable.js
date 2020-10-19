@@ -99,51 +99,51 @@ class StatusPagesTable extends Component {
                 }
                 return subProjectStatusPage &&
                     subProjectStatusPage.statusPages ? (
-                        <RenderIfUserInSubProject
-                            subProjectId={subProjectStatusPage._id}
-                            key={i}
-                        >
-                            <div className="bs-BIM" key={i}>
-                                <div className="Box-root Margin-bottom--12">
-                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                        <ShouldRender if={subProjects.length > 0}>
-                                            <div className="Box-root Padding-top--20 Padding-left--20">
-                                                <Badge color={'blue'}>
-                                                    {subProject.name}
-                                                </Badge>
-                                            </div>
-                                        </ShouldRender>
-                                        <StatuspageProjectBox
-                                            switchStatusPages={
-                                                this.switchStatusPages
-                                            }
-                                            subProjectStatusPage={
-                                                subProjectStatusPage
-                                            }
-                                            statusPages={statusPages}
-                                            canPaginateBackward={
-                                                canPaginateBackward
-                                            }
-                                            canPaginateForward={canPaginateForward}
-                                            skip={skip}
-                                            limit={limit}
-                                            subProjectName={subProject.name}
-                                            currentProjectId={currentProjectId}
-                                            statusPageModalId={
-                                                this.state.statusPageModalId
-                                            }
-                                            openModal={this.props.openModal}
-                                            statusPage={this.props.statusPage}
-                                            prevClicked={this.prevClicked}
-                                            nextClicked={this.nextClicked}
-                                        />
-                                    </div>
+                    <RenderIfUserInSubProject
+                        subProjectId={subProjectStatusPage._id}
+                        key={i}
+                    >
+                        <div className="bs-BIM" key={i}>
+                            <div className="Box-root Margin-bottom--12">
+                                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                    <ShouldRender if={subProjects.length > 0}>
+                                        <div className="Box-root Padding-top--20 Padding-left--20">
+                                            <Badge color={'blue'}>
+                                                {subProject.name}
+                                            </Badge>
+                                        </div>
+                                    </ShouldRender>
+                                    <StatuspageProjectBox
+                                        switchStatusPages={
+                                            this.switchStatusPages
+                                        }
+                                        subProjectStatusPage={
+                                            subProjectStatusPage
+                                        }
+                                        statusPages={statusPages}
+                                        canPaginateBackward={
+                                            canPaginateBackward
+                                        }
+                                        canPaginateForward={canPaginateForward}
+                                        skip={skip}
+                                        limit={limit}
+                                        subProjectName={subProject.name}
+                                        currentProjectId={currentProjectId}
+                                        statusPageModalId={
+                                            this.state.statusPageModalId
+                                        }
+                                        openModal={this.props.openModal}
+                                        statusPage={this.props.statusPage}
+                                        prevClicked={this.prevClicked}
+                                        nextClicked={this.nextClicked}
+                                    />
                                 </div>
                             </div>
-                        </RenderIfUserInSubProject>
-                    ) : (
-                        false
-                    );
+                        </div>
+                    </RenderIfUserInSubProject>
+                ) : (
+                    false
+                );
             });
 
         // Add Project Statuspages to All Statuspages List
@@ -206,8 +206,8 @@ class StatusPagesTable extends Component {
                     </div>
                 </RenderIfUserInSubProject>
             ) : (
-                    false
-                );
+                false
+            );
 
         allStatusPages && allStatusPages.unshift(projectStatusPage);
 
@@ -252,12 +252,12 @@ function mapStateToProps(state) {
     projectStatusPage = projectStatusPage
         ? projectStatusPage
         : {
-            _id: currentProjectId,
-            statusPages: [],
-            count: 0,
-            skip: 0,
-            limit: 10,
-        };
+              _id: currentProjectId,
+              statusPages: [],
+              count: 0,
+              skip: 0,
+              limit: 10,
+          };
 
     // find subproject statuspages or assign default value
     const subProjectStatusPages = subProjects.map(subProject => {
@@ -267,12 +267,12 @@ function mapStateToProps(state) {
         return statusPage
             ? statusPage
             : {
-                _id: subProject._id,
-                statusPages: [],
-                count: 0,
-                skip: 0,
-                limit: 10,
-            };
+                  _id: subProject._id,
+                  statusPages: [],
+                  count: 0,
+                  skip: 0,
+                  limit: 10,
+              };
     });
     subProjectStatusPages.unshift(projectStatusPage);
     return {

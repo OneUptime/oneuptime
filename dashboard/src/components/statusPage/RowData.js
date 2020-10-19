@@ -36,13 +36,13 @@ export class RowData extends Component {
                                 {statusPage.domains[0].domain}
                             </div>
                         ) : (
-                                <div
-                                    id="domainNotSet"
-                                    className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                                >
-                                    Domain(s) not set yet
-                                </div>
-                            )}
+                            <div
+                                id="domainNotSet"
+                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                            >
+                                Domain(s) not set yet
+                            </div>
+                        )}
                     </div>
                 </td>
                 <td
@@ -79,8 +79,12 @@ export class RowData extends Component {
                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Margin-right--16">
-                                <button className='Button' style={{ height: '48px' }} id='viewStatusPage'>
-                                    <span className='bs-Button'>View</span>
+                                <button
+                                    className="Button"
+                                    style={{ height: '48px' }}
+                                    id="viewStatusPage"
+                                >
+                                    <span className="bs-Button">View</span>
                                 </button>
                             </div>
                         </span>

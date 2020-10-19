@@ -122,14 +122,28 @@ class DeleteAccount extends Component {
                                         </div>
                                         <div className="bs-Modal-content">
                                             <div>
-                                                <div className='icon_display-msg'>
-                                                    <div className='clear_times'></div><div className='clear_msg_txt'>We will stop monitoring your resources.</div>
+                                                <div className="icon_display-msg">
+                                                    <div className="clear_times"></div>
+                                                    <div className="clear_msg_txt">
+                                                        We will stop monitoring
+                                                        your resources.
+                                                    </div>
                                                 </div>
-                                                <div className='icon_display-msg'>
-                                                    <div className='clear_times'></div><div className='clear_msg_txt'>Your customers, users and team will lose access to the status page.</div>
+                                                <div className="icon_display-msg">
+                                                    <div className="clear_times"></div>
+                                                    <div className="clear_msg_txt">
+                                                        Your customers, users
+                                                        and team will lose
+                                                        access to the status
+                                                        page.
+                                                    </div>
                                                 </div>
-                                                <div className='icon_display-msg'>
-                                                    <div className='clear_times'></div><div className='clear_msg_txt'>Your team will NOT be alerted during downtime.</div>
+                                                <div className="icon_display-msg">
+                                                    <div className="clear_times"></div>
+                                                    <div className="clear_msg_txt">
+                                                        Your team will NOT be
+                                                        alerted during downtime.
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
