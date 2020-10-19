@@ -19,11 +19,11 @@ const StatusPageProjectBox = props => {
                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                             <span style={{ textTransform: 'capitalize' }}>
                                 {props.currentProjectId !==
-                                props.subProjectStatusPage._id
+                                    props.subProjectStatusPage._id
                                     ? props.subProjectName
                                     : props.subProjects.length > 0
-                                    ? 'Project'
-                                    : ''}{' '}
+                                        ? 'Project'
+                                        : ''}{' '}
                                 status page
                             </span>
                         </span>
@@ -92,6 +92,11 @@ const StatusPageProjectBox = props => {
                                     Monitors
                                 </div>
                             </td>
+                            <td>
+                                <div className="bs-ObjectList-cell">
+                                    Action
+                                </div>
+                            </td>
                         </tr>
                     </thead>
                     <tbody id="statusPagesListContainer">
@@ -150,11 +155,10 @@ const StatusPageProjectBox = props => {
                         <div className="Box-root Margin-right--8">
                             <button
                                 id="btnPrev"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateBackward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
                                         ? 'Is--disabled'
                                         : ''
-                                }`}
+                                    }`}
                                 data-db-analytics-name="list_view.pagination.previous"
                                 disabled={!props.canPaginateBackward}
                                 type="button"
@@ -176,11 +180,10 @@ const StatusPageProjectBox = props => {
                         <div className="Box-root">
                             <button
                                 id="btnNext"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateForward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateForward
                                         ? 'Is--disabled'
                                         : ''
-                                }`}
+                                    }`}
                                 data-db-analytics-name="list_view.pagination.next"
                                 disabled={!props.canPaginateForward}
                                 type="button"
