@@ -738,7 +738,7 @@ module.exports = {
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
-                    alertVia: AlertType.SMS,
+                    alertVia: AlertType.Call,
                     userId: user._id,
                     incidentId: incident._id,
                     alertStatus: null,
@@ -757,8 +757,8 @@ module.exports = {
                 user._id,
                 AlertType.Call
             );
-            if (hasEnoughBalance) {
-                await _this.create({
+            if (!hasEnoughBalance) {
+                return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1365,10 +1365,10 @@ module.exports = {
                             error: true,
                             errorMessage:
                                 countryType === 'us'
-                                    ? 'Calls for numbers inside US not enabled for this project'
+                                    ? 'SMS for numbers inside US not enabled for this project'
                                     : countryType === 'non-us'
-                                    ? 'Calls for numbers outside US not enabled for this project'
-                                    : 'Calls to High Risk country not enabled for this project',
+                                    ? 'SMS for numbers outside US not enabled for this project'
+                                    : 'SMS to High Risk country not enabled for this project',
                             eventType:
                                 templateType ===
                                 'Subscriber Incident Acknowldeged'
