@@ -93,7 +93,7 @@ module.exports = {
             phoneNumber.startsWith('+960') ||
             phoneNumber.startsWith('+372') ||
             phoneNumber.startsWith('+263') ||
-            phoneNumber.startsWith('+216') 
+            phoneNumber.startsWith('+216')
         ) {
             return 'risk';
         } else return 'non-us';

@@ -577,20 +577,20 @@ module.exports = {
         }
 
         try {
-            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                {
-                    name: 'smtp',
-                }
-            );
+            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
+                name: 'smtp',
+            });
             const areEmailAlertsEnabledInGlobalSettings =
-            hasGlobalSmtpSettings &&
-            hasGlobalSmtpSettings.value &&
-            hasGlobalSmtpSettings.value['email-enabled']
-                ? true
-                : false;
-            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(projectId);
+                hasGlobalSmtpSettings &&
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
+                    ? true
+                    : false;
+            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                projectId
+            );
             if (
-                !areEmailAlertsEnabledInGlobalSettings && 
+                !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
                 return await _this.create({
@@ -604,16 +604,13 @@ module.exports = {
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
-                    errorMessage: 
-                    (!hasGlobalSmtpSettings && !hasCustomSmtpSettings )
-                        ? 'SMTP Settings not found on Admin Dashboard'
-                        : (
-                            hasGlobalSmtpSettings &&
-                            !areEmailAlertsEnabledInGlobalSettings
-                        )
-                        ? 'Alert Disabled on Admin Dashboard'
-                        : 'Error.',
-
+                    errorMessage:
+                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                            ? 'SMTP Settings not found on Admin Dashboard'
+                            : hasGlobalSmtpSettings &&
+                              !areEmailAlertsEnabledInGlobalSettings
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : 'Error.',
                 });
             }
             await MailService.sendIncidentCreatedMail({
