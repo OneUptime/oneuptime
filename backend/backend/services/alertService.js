@@ -837,10 +837,26 @@ module.exports = {
         onCallScheduleStatus,
     }) {
         const _this = this;
-        let alertStatus, alert, balanceStatus;
+        let alert, balanceStatus;
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
+        if (!user.alertPhoneNumber) {
+            return await _this.create({
+                projectId,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
+                alertVia: AlertType.SMS,
+                userId: user._id,
+                incidentId: incident._id,
+                alertStatus: null,
+                error: true,
+                errorMessage: 'No phone number',
+            });
+        }
+
         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
             name: 'twilio',
         });
@@ -853,13 +869,13 @@ module.exports = {
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
         );
-        const areAlertsDisabled =
+
+        if (
             !hasCustomTwilioSettings &&
             ((IS_SAAS_SERVICE &&
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally));
-
-        if (areAlertsDisabled) {
+                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+        ) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -869,116 +885,121 @@ module.exports = {
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
+                alertStatus: null,
                 error: true,
-                alertStatus: 'Alerts Disabled',
+                errorMessage: !hasGlobalTwilioSettings
+                    ? 'Twilio Settings not found on Admin Dashboard'
+                    : !areAlertsEnabledGlobally
+                    ? 'Alert Disabled on Admin Dashboard'
+                    : IS_SAAS_SERVICE && !project.alertEnable
+                    ? 'Alert Disabled for this project'
+                    : 'Error',
             });
         }
 
-        if (!user.alertPhoneNumber || user.alertPhoneNumber === '') {
-            return await _this.create({
-                projectId: incident.projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: 'No Phone Number',
-            });
-        }
-
-        let hasEnoughBalance;
-        let doesPhoneNumberComplyWithHighRiskConfig;
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            hasEnoughBalance = await _this.hasEnoughBalance(
+            const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                incident.projectId,
+                user.alertPhoneNumber
+            );
+            if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                const countryType = getCountryType(user.alertPhoneNumber);
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage:
+                        countryType === 'us'
+                            ? 'SMS for numbers inside US not enabled for this project'
+                            : countryType === 'non-us'
+                            ? 'SMS for numbers outside US not enabled for this project'
+                            : 'SMS to High Risk country not enabled for this project',
+                });
+            }
+            const hasEnoughBalance = await _this.hasEnoughBalance(
                 incident.projectId,
                 user.alertPhoneNumber,
                 user._id,
                 AlertType.SMS
             );
-            doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                incident.projectId,
-                user.alertPhoneNumber
-            );
-        }
-
-        if (
-            !IS_SAAS_SERVICE ||
-            hasCustomTwilioSettings ||
-            (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
-        ) {
-            let alertStatus = await TwilioService.sendIncidentCreatedMessage(
-                date,
-                monitor.name,
-                user.alertPhoneNumber,
-                incident._id,
-                user._id,
-                user.name,
-                incident.incidentType,
-                projectId
-            );
-
-            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
-                await _this.create({
+            if (!hasEnoughBalance) {
+                return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
                     alertStatus: null,
                     error: true,
-                    errorMessage: alertStatus.message,
+                    errorMessage: 'Low Balance',
                 });
-            } else if (alertStatus) {
-                alertStatus = 'Success';
-                alert = await _this.create({
-                    projectId: incident.projectId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    monitorId,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: alertStatus,
-                });
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    balanceStatus = await _this.getBalanceStatus(
-                        incident.projectId,
-                        user.alertPhoneNumber,
-                        AlertType.SMS
-                    );
-                    AlertChargeService.create(
-                        incident.projectId,
-                        balanceStatus.chargeAmount,
-                        balanceStatus.closingBalance,
-                        alert._id,
-                        monitorId,
-                        incident._id,
-                        user.alertPhoneNumber
-                    );
-                }
             }
-        } else if (
-            !hasEnoughBalance &&
-            doesPhoneNumberComplyWithHighRiskConfig
-        ) {
-            alertStatus = 'Blocked - Low balance';
-            return await _this.create({
+        }
+
+        let alertStatus = await TwilioService.sendIncidentCreatedMessage(
+            date,
+            monitor.name,
+            user.alertPhoneNumber,
+            incident._id,
+            user._id,
+            user.name,
+            incident.incidentType,
+            projectId
+        );
+
+        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+            await _this.create({
                 projectId: incident.projectId,
                 monitorId,
+                alertVia: AlertType.SMS,
+                userId: user._id,
+                incidentId: incident._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
+                alertStatus: null,
+                error: true,
+                errorMessage: alertStatus.message,
+            });
+        } else if (alertStatus) {
+            alertStatus = 'Success';
+            alert = await _this.create({
+                projectId: incident.projectId,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus,
             });
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                balanceStatus = await _this.getBalanceStatus(
+                    incident.projectId,
+                    user.alertPhoneNumber,
+                    AlertType.SMS
+                );
+                AlertChargeService.create(
+                    incident.projectId,
+                    balanceStatus.chargeAmount,
+                    balanceStatus.closingBalance,
+                    alert._id,
+                    monitorId,
+                    incident._id,
+                    user.alertPhoneNumber
+                );
+            }
         }
     },
 
