@@ -383,7 +383,7 @@ export class IncidentStatus extends Component {
                                                             }}
                                                             id={`${monitorName}_IncidentReport`}
                                                         >
-                                                            {console.log(incidentReason[0] === 'Status Code was 408', ' kola')}
+
                                                             <ReactMarkdown
                                                                 source={`This ${this.props
                                                                     .incident
@@ -396,17 +396,14 @@ export class IncidentStatus extends Component {
                                                                             incidentReason.map(
                                                                                 (a, i) => {
                                                                                     if (i === 0) {
-
                                                                                         return (
                                                                                             '- **&middot; ' +
                                                                                             a +
                                                                                             '**.'
                                                                                         )
-
                                                                                     } else {
                                                                                         const milliSeconds = a.match(/\d+/)[0]
                                                                                         const time = formatMonitorResponseTime(Number(milliSeconds))
-                                                                                        console.log(milliSeconds, time)
                                                                                         return (
                                                                                             '- **&middot; ' +
                                                                                             a.replace(milliSeconds + ' ms', time) +
