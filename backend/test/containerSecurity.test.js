@@ -18,6 +18,7 @@ const ComponentService = require('../backend/services/componentService');
 const DockerCredentialService = require('../backend/services/dockerCredentialService');
 const ContainerSecurityService = require('../backend/services/containerSecurityService');
 const ContainerSecurityLogService = require('../backend/services/containerSecurityLogService');
+const AirtableService = require('../backend/services/airtableService');
 
 describe('Container Security API', function() {
     const timeout = 30000;
@@ -86,6 +87,7 @@ describe('Container Security API', function() {
         await DockerCredentialService.hardDeleteBy({ projectId });
         await ContainerSecurityService.hardDelete({ componentId });
         await ContainerSecurityLogService.hardDelete({ componentId });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create a container security', function(done) {

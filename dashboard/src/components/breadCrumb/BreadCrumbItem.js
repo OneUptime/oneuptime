@@ -36,7 +36,8 @@ function BreadCrumbItem({
         const typeContainer = titleElement.querySelector('#typeContainer');
         titleIcon.setAttribute(
             'class',
-            `page-title-icon db-SideNav-icon--${pages[pageTitle ?? name]
+            `page-title-icon db-SideNav-icon--${
+                pages[pageTitle ?? name]
             } db-SideNav-icon--selected`
         );
         if (!type && !status && !containerType) {
@@ -53,10 +54,10 @@ function BreadCrumbItem({
                 ? 'Server Monitor'
                 : type + ' Monitor'
             : status
-                ? ' Status Page'
-                : containerType
-                    ? containerType
-                    : null;
+            ? ' Status Page'
+            : containerType
+            ? containerType
+            : null;
     }
 
     return (

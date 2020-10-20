@@ -30,9 +30,7 @@ class AlertLog extends Component {
     prevClicked = (projectId, skip, limit) => {
         this.props.fetchProjectAlert(
             projectId,
-            (skip || 0) > (limit || 10)
-                ? this.props.alerts.skip - this.props.alerts.limit
-                : 0,
+            (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
         if (SHOULD_LOG_ANALYTICS) {

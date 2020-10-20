@@ -17,7 +17,7 @@ const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, scheduleId, userId, airtableId;
+let token, projectId, scheduleId, userId;
 
 describe('Schedule API', function() {
     this.timeout(30000);
@@ -28,7 +28,6 @@ describe('Schedule API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -57,7 +56,7 @@ describe('Schedule API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ScheduleService.hardDeleteBy({ _id: scheduleId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /schedule/:projectId/create'

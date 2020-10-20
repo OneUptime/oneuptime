@@ -32,7 +32,6 @@ const sleep = waitTimeInMs =>
 
 let token,
     userId,
-    airtableId,
     projectId,
     monitorId,
     incidentId,
@@ -60,7 +59,6 @@ describe('Incident API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -141,7 +139,7 @@ describe('Incident API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await IntegrationService.hardDeleteBy({
             monitorId,
         });
@@ -579,7 +577,8 @@ describe('Incident API', function() {
             .send({
                 monitorIds: [monitorId],
             });
-        let alert = null;
+        let smsAlert = null;
+        let callAlert = null;
         if (selectMonitor) {
             const createEscalation = await request
                 .post(
@@ -611,14 +610,20 @@ describe('Incident API', function() {
                     .set('Authorization', authorization)
                     .send(incidentData);
                 await sleep(2000);
-                alert = await AlertModel.findOne({
+                smsAlert = await AlertModel.findOne({
                     incidentId: createdIncident.body._id,
                     alertVia: 'sms',
                 });
+                callAlert = await AlertModel.findOne({
+                    incidentId: createdIncident.body._id,
+                    alertVia: 'call',
+                });
             }
         }
-        expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(smsAlert).to.be.an('object');
+        expect(smsAlert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(callAlert).to.be.an('object');
+        expect(callAlert.alertStatus).to.be.equal('Blocked - Low balance');
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
@@ -630,6 +635,7 @@ describe('Incident API', function() {
             expect(res.body.data.length).to.be.equal(0);
         });
     });
+
     it('should send incident alert when balance is above minimum amount', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -643,11 +649,18 @@ describe('Incident API', function() {
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
-        const alert = await AlertModel.findOne({
+        const smsAlert = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
+            alertVia: 'sms',
         });
-        expect(alert).to.be.an('object');
-        expect(alert.alertStatus).to.be.equal('Success');
+        expect(smsAlert).to.be.an('object');
+        expect(smsAlert.alertStatus).to.be.equal('Success');
+        const callAlert = await AlertModel.findOne({
+            incidentId: createdIncident.body._id,
+            alertVia: 'call',
+        });
+        expect(callAlert).to.be.an('object');
+        expect(callAlert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
         request.get(`alert/${projectId}/alert/charges`, function(err, res) {
