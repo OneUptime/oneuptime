@@ -157,40 +157,40 @@ export default function incident(state = initialState, action) {
                     incidents: isExistingIncident
                         ? state.incidents.incidents.length > 0
                             ? state.incidents.incidents.map(incident => {
-                                  return incident._id ===
-                                      action.payload.projectId
-                                      ? {
-                                            _id: action.payload.projectId,
-                                            incidents: [
-                                                action.payload,
-                                                ...incident.incidents.filter(
-                                                    (inc, index) => index < 9
-                                                ),
-                                            ],
-                                            count: incident.count + 1,
-                                            skip: incident.skip,
-                                            limit: incident.limit,
-                                        }
-                                      : incident;
-                              })
+                                return incident._id ===
+                                    action.payload.projectId
+                                    ? {
+                                        _id: action.payload.projectId,
+                                        incidents: [
+                                            action.payload,
+                                            ...incident.incidents.filter(
+                                                (inc, index) => index < 9
+                                            ),
+                                        ],
+                                        count: incident.count + 1,
+                                        skip: incident.skip,
+                                        limit: incident.limit,
+                                    }
+                                    : incident;
+                            })
                             : [
-                                  {
-                                      _id: action.payload.projectId,
-                                      incidents: [action.payload],
-                                      count: 1,
-                                      skip: 0,
-                                      limit: 0,
-                                  },
-                              ]
+                                {
+                                    _id: action.payload.projectId,
+                                    incidents: [action.payload],
+                                    count: 1,
+                                    skip: 0,
+                                    limit: 0,
+                                },
+                            ]
                         : state.incidents.incidents.concat([
-                              {
-                                  _id: action.payload.projectId,
-                                  incidents: [action.payload],
-                                  count: 1,
-                                  skip: 0,
-                                  limit: 0,
-                              },
-                          ]),
+                            {
+                                _id: action.payload.projectId,
+                                incidents: [action.payload],
+                                count: 1,
+                                skip: 0,
+                                limit: 0,
+                            },
+                        ]),
                     error: null,
                     requesting: false,
                     success: true,
@@ -348,11 +348,13 @@ export default function incident(state = initialState, action) {
 
         case types.INCIDENT_TIMELINE_SUCCESS: {
             const incident = Object.assign({}, state.incident.incident);
+            console.log(state.incident)
             if (incident) incident.timeline = action.payload.data;
+            console.log(incident)
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    incident,
+                    ...incident,
                     count: action.payload.count,
                     skip: action.payload.skip,
                     limit: action.payload.limit,
@@ -397,12 +399,12 @@ export default function incident(state = initialState, action) {
                     incidents: state.incidents.incidents.map(incident => {
                         return incident._id === action.payload.projectId
                             ? {
-                                  _id: action.payload.projectId,
-                                  incidents: [...action.payload.data],
-                                  count: action.payload.count,
-                                  skip: action.payload.skip,
-                                  limit: action.payload.limit,
-                              }
+                                _id: action.payload.projectId,
+                                incidents: [...action.payload.data],
+                                count: action.payload.count,
+                                skip: action.payload.skip,
+                                limit: action.payload.limit,
+                            }
                             : incident;
                     }),
                     error: null,
@@ -490,6 +492,10 @@ export default function incident(state = initialState, action) {
         case types.RESOLVE_INCIDENT_SUCCESS:
             if (action.payload.multiple) {
                 return Object.assign({}, state, {
+                    incident: {
+                        ...state.incident,
+                        incident: action.payload.data
+                    },
                     unresolvedincidents: {
                         requesting: false,
                         resolving: false,
@@ -649,18 +655,18 @@ export default function incident(state = initialState, action) {
                         incidentMessage._id === action.payload._id
                 ).length > 0
                     ? state.incidentMessages[action.payload.incidentId._id][
-                          action.payload.type
-                      ].incidentMessages.map(incidentMessage => {
-                          if (incidentMessage._id === action.payload._id) {
-                              incidentMessage = action.payload;
-                          }
-                          return incidentMessage;
-                      })
+                        action.payload.type
+                    ].incidentMessages.map(incidentMessage => {
+                        if (incidentMessage._id === action.payload._id) {
+                            incidentMessage = action.payload;
+                        }
+                        return incidentMessage;
+                    })
                     : [action.payload].concat(
-                          state.incidentMessages[action.payload.incidentId._id][
-                              action.payload.type
-                          ].incidentMessages
-                      );
+                        state.incidentMessages[action.payload.incidentId._id][
+                            action.payload.type
+                        ].incidentMessages
+                    );
             if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
@@ -670,20 +676,20 @@ export default function incident(state = initialState, action) {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
                         ...state.incidentMessages[
-                            action.payload.incidentId._id
+                        action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId._id
+                            action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count: action.payload.updated
                                 ? state.incidentMessages[
-                                      action.payload.incidentId._id
-                                  ][action.payload.type].count
+                                    action.payload.incidentId._id
+                                ][action.payload.type].count
                                 : state.incidentMessages[
-                                      action.payload.incidentId._id
-                                  ][action.payload.type].count + 1,
+                                    action.payload.incidentId._id
+                                ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -707,19 +713,19 @@ export default function incident(state = initialState, action) {
         case types.INTERNAL_NOTE_FAILED:
             noteStatus = action.payload.updated
                 ? {
-                      edit: {
-                          requesting: false,
-                          success: false,
-                          error: action.payload.error,
-                      },
-                  }
+                    edit: {
+                        requesting: false,
+                        success: false,
+                        error: action.payload.error,
+                    },
+                }
                 : {
-                      create: {
-                          requesting: false,
-                          success: false,
-                          error: action.payload.error,
-                      },
-                  };
+                    create: {
+                        requesting: false,
+                        success: false,
+                        error: action.payload.error,
+                    },
+                };
             return Object.assign({}, state, {
                 internalNotes: {
                     ...state.internalNotes,
@@ -737,19 +743,19 @@ export default function incident(state = initialState, action) {
                         incidentMessage._id === action.payload._id
                 ).length > 0
                     ? state.incidentMessages[action.payload.incidentId._id][
-                          action.payload.type
-                      ].incidentMessages.map(incidentMessage => {
-                          if (incidentMessage._id === action.payload._id) {
-                              noteFound = true;
-                              incidentMessage = action.payload;
-                          }
-                          return incidentMessage;
-                      })
+                        action.payload.type
+                    ].incidentMessages.map(incidentMessage => {
+                        if (incidentMessage._id === action.payload._id) {
+                            noteFound = true;
+                            incidentMessage = action.payload;
+                        }
+                        return incidentMessage;
+                    })
                     : [action.payload].concat(
-                          state.incidentMessages[action.payload.incidentId._id][
-                              action.payload.type
-                          ].incidentMessages
-                      );
+                        state.incidentMessages[action.payload.incidentId._id][
+                            action.payload.type
+                        ].incidentMessages
+                    );
             if (incidentMessages.length > 10) incidentMessages.pop();
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
@@ -759,21 +765,21 @@ export default function incident(state = initialState, action) {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
                         ...state.incidentMessages[
-                            action.payload.incidentId._id
+                        action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId._id
+                            action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count:
                                 noteFound || action.payload.updated
                                     ? state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count
+                                        action.payload.incidentId._id
+                                    ][action.payload.type].count
                                     : state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count + 1,
+                                        action.payload.incidentId._id
+                                    ][action.payload.type].count + 1,
                         },
                     },
                 },
@@ -798,19 +804,19 @@ export default function incident(state = initialState, action) {
         case types.INVESTIGATION_NOTE_FAILED:
             noteStatus = action.payload.updated
                 ? {
-                      edit: {
-                          requesting: false,
-                          success: false,
-                          error: action.payload.error,
-                      },
-                  }
+                    edit: {
+                        requesting: false,
+                        success: false,
+                        error: action.payload.error,
+                    },
+                }
                 : {
-                      create: {
-                          requesting: false,
-                          success: false,
-                          error: action.payload.error,
-                      },
-                  };
+                    create: {
+                        requesting: false,
+                        success: false,
+                        error: action.payload.error,
+                    },
+                };
             return Object.assign({}, state, {
                 investigationNotes: {
                     ...state.investigationNotes,
@@ -847,20 +853,20 @@ export default function incident(state = initialState, action) {
                         ...state.incidentMessages,
                         [action.payload.incidentId._id]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId._id
+                            action.payload.incidentId._id
                             ],
                             [action.payload.type]: {
                                 ...state.incidentMessages[
-                                    action.payload.incidentId._id
+                                action.payload.incidentId._id
                                 ][action.payload.type],
                                 incidentMessages,
                                 count: incidentFound
                                     ? state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count
+                                        action.payload.incidentId._id
+                                    ][action.payload.type].count
                                     : state.incidentMessages[
-                                          action.payload.incidentId._id
-                                      ][action.payload.type].count + 1,
+                                        action.payload.incidentId._id
+                                    ][action.payload.type].count + 1,
                             },
                         },
                     },
@@ -894,7 +900,7 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incident:
                         state.incident.incident &&
-                        state.incident.incident._id === action.payload.data._id
+                            state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
                 },
@@ -922,7 +928,7 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incident:
                         state.incident.incident &&
-                        state.incident.incident._id === action.payload.data._id
+                            state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
                 },
@@ -1128,20 +1134,20 @@ export default function incident(state = initialState, action) {
                     action.payload.incidentId
                 ][action.payload.type]
                     ? {
-                          ...state.incidentMessages[action.payload.incidentId][
-                              action.payload.type
-                          ],
-                          error: action.payload.error,
-                      }
+                        ...state.incidentMessages[action.payload.incidentId][
+                        action.payload.type
+                        ],
+                        error: action.payload.error,
+                    }
                     : {
-                          incidentMessages: [],
-                          error: action.payload.error,
-                          requesting: false,
-                          success: false,
-                          skip: 0,
-                          limit: 10,
-                          count: null,
-                      },
+                        incidentMessages: [],
+                        error: action.payload.error,
+                        requesting: false,
+                        success: false,
+                        skip: 0,
+                        limit: 10,
+                        count: null,
+                    },
             };
             return Object.assign({}, state, {
                 incidentMessages: failureIncidentMessage,
@@ -1155,32 +1161,32 @@ export default function incident(state = initialState, action) {
                         action.payload.incidentId
                     ]
                         ? state.incidentMessages[action.payload.incidentId][
-                              action.payload.type
-                          ]
+                            action.payload.type
+                        ]
                             ? {
-                                  ...state.incidentMessages[
-                                      action.payload.incidentId
-                                  ][action.payload.type],
-                                  requesting: true,
-                              }
+                                ...state.incidentMessages[
+                                action.payload.incidentId
+                                ][action.payload.type],
+                                requesting: true,
+                            }
                             : {
-                                  incidentMessages: [],
-                                  error: null,
-                                  requesting: true,
-                                  success: false,
-                                  skip: 0,
-                                  limit: 10,
-                                  count: null,
-                              }
+                                incidentMessages: [],
+                                error: null,
+                                requesting: true,
+                                success: false,
+                                skip: 0,
+                                limit: 10,
+                                count: null,
+                            }
                         : {
-                              incidentMessages: [],
-                              error: null,
-                              requesting: true,
-                              success: false,
-                              skip: 0,
-                              limit: 10,
-                              count: null,
-                          },
+                            incidentMessages: [],
+                            error: null,
+                            requesting: true,
+                            success: false,
+                            skip: 0,
+                            limit: 10,
+                            count: null,
+                        },
                 },
             };
             return Object.assign({}, state, {
@@ -1208,11 +1214,11 @@ export default function incident(state = initialState, action) {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
                         ...state.incidentMessages[
-                            action.payload.incidentId._id
+                        action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId._id
+                            action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                         },
@@ -1236,7 +1242,7 @@ export default function incident(state = initialState, action) {
                         ...state.incidentMessages[action.payload.incidentId],
                         [action.payload.type]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId
+                            action.payload.incidentId
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count:
