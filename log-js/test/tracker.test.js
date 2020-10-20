@@ -96,11 +96,43 @@ describe('Tags', function() {
     });
     it('should add multiple tags ', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
-        const tag = { key: 'location', value: 'Atlanta' };
-        tracker.setTags([tag, tag, tag]);
+        const tags = [
+            { key: 'location', value: 'Atlanta' },
+            { key: 'city', value: 'anywhere' },
+            { key: 'device', value: 'iOS' },
+        ];
+        tracker.setTags(tags);
         const availableTags = tracker.getTags();
         expect(availableTags).to.be.an('array');
         expect(availableTags.length).to.equal(3);
+    });
+});
+describe('Fingerpint', function() {
+    it('should create fingerprint as message for error capture without any fingerprint', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Uncaught Exception';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.fingerprint[0]).to.equal(errorMessage);
+    });
+    it('should use defined fingerprint array for error capture with fingerprint', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const fingerprints = ['custom', 'errors'];
+        tracker.setFingerprint(fingerprints);
+        const errorMessage = 'Uncaught Exception';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.fingerprint[0]).to.equal(fingerprints[0]);
+        expect(event.fingerprint[1]).to.equal(fingerprints[1]);
+    });
+    it('should use defined fingerprint string for error capture with fingerprint', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const fingerprint = 'custom-fingerprint';
+        tracker.setFingerprint(fingerprint);
+        const errorMessage = 'Uncaught Exception';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.fingerprint[0]).to.equal(fingerprint);
     });
 });
 describe('Capture Message', function() {
