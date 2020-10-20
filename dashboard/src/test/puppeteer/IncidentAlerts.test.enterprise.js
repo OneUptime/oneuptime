@@ -58,6 +58,7 @@ describe('Schedule', () => {
             );
             await init.logout(page);
             await init.loginUser(user, page);
+            await init.setAlertPhoneNumber('+19173976123', '123456', page);
             await init.addMonitorToComponent(componentName, monitorName, page);
             await init.addAnExternalSubscriber(
                 componentName,
@@ -90,7 +91,6 @@ describe('Schedule', () => {
                 page
             );
             await page.click('#saveSchedulePolicy');
-            await init.setAlertPhoneNumber('+19173976123', '123456', page);
         });
         done();
     });
