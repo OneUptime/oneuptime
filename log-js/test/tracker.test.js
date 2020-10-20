@@ -5,17 +5,17 @@ const chai = require('chai');
 const expect = chai.expect;
 
 import FyipeLogger from '../src/logger';
+const customTimeline = {
+    category: 'cart',
+    content: {
+        message: 'test-content',
+    },
+    type: 'info',
+};
 
-describe('FyipeLogger Tracker', function() {
+describe('Tracker Timeline', function() {
     it('should take in custom timeline event', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
-        const customTimeline = {
-            category: 'cart',
-            content: {
-                message: 'test-content',
-            },
-            type: 'info',
-        };
         tracker.addTimeline(
             customTimeline.category,
             customTimeline.content,
@@ -28,13 +28,6 @@ describe('FyipeLogger Tracker', function() {
     });
     it('should ensure timeline event contains eventId and timestamp', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
-        const customTimeline = {
-            category: 'cart',
-            content: {
-                message: 'test-content',
-            },
-            type: 'info',
-        };
         tracker.addTimeline(
             customTimeline.category,
             customTimeline.content,
@@ -46,13 +39,6 @@ describe('FyipeLogger Tracker', function() {
     });
     it('should ensure different timeline event have the same eventId', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
-        const customTimeline = {
-            category: 'cart',
-            content: {
-                message: 'test-content',
-            },
-            type: 'info',
-        };
         tracker.addTimeline(
             customTimeline.category,
             customTimeline.content,
@@ -70,13 +56,6 @@ describe('FyipeLogger Tracker', function() {
     it('should ensure new timeline event after max timeline are discarded', function() {
         const options = { maxTimeline: 2 };
         const tracker = new FyipeLogger('URL', 'ID', 'KEY', options);
-        const customTimeline = {
-            category: 'cart',
-            content: {
-                message: 'test-content',
-            },
-            type: 'info',
-        };
         const customTimeline2 = {
             category: 'logout',
             content: {
@@ -84,6 +63,7 @@ describe('FyipeLogger Tracker', function() {
             },
             type: 'success',
         };
+        // add 3 timelinee events
         tracker.addTimeline(
             customTimeline.category,
             customTimeline.content,
@@ -100,8 +80,50 @@ describe('FyipeLogger Tracker', function() {
             'debug'
         );
         const timeline = tracker.getTimeline();
-        expect(timeline.length).to.equal(options.maxTimeline); // two timeline events
+        expect(timeline.length).to.equal(options.maxTimeline);
         expect(timeline[0].type).to.equal(customTimeline.type);
         expect(timeline[1].category).to.equal(customTimeline2.category);
+    });
+});
+describe('Tags', function() {
+    it('should add tags ', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const tag = { key: 'location', value: 'Atlanta' };
+        tracker.setTag(tag.key, tag.value);
+        const availableTags = tracker.getTags();
+        expect(availableTags).to.be.an('array');
+        expect(availableTags.length).to.equal(1);
+    });
+    it('should add multiple tags ', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const tag = { key: 'location', value: 'Atlanta' };
+        tracker.setTags([tag, tag, tag]);
+        const availableTags = tracker.getTags();
+        expect(availableTags).to.be.an('array');
+        expect(availableTags.length).to.equal(3);
+    });
+});
+describe('Capture Message', function() {
+    it('should create an event ready for the server', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'This is a test';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.type).to.equal('message');
+        expect(event.exception.message).to.equal(errorMessage);
+    });
+    it('should create an event ready for the server while having the timeline with same event id', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        tracker.addTimeline(
+            customTimeline.category,
+            customTimeline.content,
+            customTimeline.type
+        );
+        const errorMessage = 'This is a test';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+        expect(event.timeline.length).to.equal(1);
+        expect(event.eventId).to.equal(event.timeline[0].eventId);
+        expect(event.exception.message).to.equal(errorMessage);
     });
 });
