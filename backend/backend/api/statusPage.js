@@ -33,7 +33,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     req,
     res
 ) {
@@ -221,7 +221,7 @@ router.delete(
 // Params:
 // Param1:
 // Returns: response status, error message
-router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     req,
     res
 ) {
@@ -311,7 +311,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
     }
 
-    upload(req, res, async function(error) {
+    upload(req, res, async function (error) {
         const files = req.files || {};
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -388,7 +388,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 // Param1: req.params-> {projectId};
 // Returns: response status, error message
 
-router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
+router.get('/:projectId/dashboard', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -412,7 +412,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function (req, res) {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
@@ -427,7 +427,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
+router.get('/:projectId/statuspage', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -446,7 +446,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 });
 
 // External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, async function(req, res) {
+router.get('/:statusPageId', checkUser, async function (req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -483,7 +483,7 @@ router.get('/:statusPageId', checkUser, async function(req, res) {
     }
 });
 
-router.get('/:statusPageId/rss', checkUser, async function(req, res) {
+router.get('/:statusPageId/rss', checkUser, async function (req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
     const user = req.user;
@@ -562,14 +562,14 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 ],
             };
             const finalFeed = toXML(feedObj, xmlOptions);
-            res.contentType('application/rss');
+            res.contentType('application/xml');
             return sendItemResponse(req, res, finalFeed);
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
-router.get('/:projectId/:statusPageId/notes', checkUser, async function(
+router.get('/:projectId/:statusPageId/notes', checkUser, async function (
     req,
     res
 ) {
@@ -591,7 +591,7 @@ router.get('/:projectId/:statusPageId/notes', checkUser, async function(
     }
 });
 
-router.get('/:projectId/incident/:incidentId', checkUser, async function(
+router.get('/:projectId/incident/:incidentId', checkUser, async function (
     req,
     res
 ) {
@@ -607,7 +607,7 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
+router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function (
     req,
     res
 ) {
@@ -627,7 +627,7 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
+router.get('/:projectId/:monitorId/individualnotes', checkUser, async function (
     req,
     res
 ) {
@@ -673,7 +673,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:statusPageId/events', checkUser, async function(
+router.get('/:projectId/:statusPageId/events', checkUser, async function (
     req,
     res
 ) {
@@ -695,7 +695,7 @@ router.get('/:projectId/:statusPageId/events', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function(
+router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function (
     req,
     res
 ) {
@@ -715,7 +715,7 @@ router.get('/:projectId/:statusPageId/futureEvents', checkUser, async function(
     }
 });
 
-router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
+router.get('/:projectId/notes/:scheduledEventId', checkUser, async function (
     req,
     res
 ) {
@@ -735,7 +735,7 @@ router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
+router.get('/:projectId/:monitorId/individualevents', checkUser, async function (
     req,
     res
 ) {
@@ -777,7 +777,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 router.get(
     '/:projectId/scheduledEvent/:scheduledEventId',
     checkUser,
-    async function(req, res) {
+    async function (req, res) {
         const { scheduledEventId } = req.params;
 
         try {
@@ -792,7 +792,7 @@ router.get(
 );
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
+router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function (
     req,
     res
 ) {
@@ -810,7 +810,7 @@ router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
     }
 });
 
-router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
+router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function (
     req,
     res
 ) {
@@ -854,7 +854,7 @@ router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
     }
 });
 
-router.get('/:projectId/probes', checkUser, async function(req, res) {
+router.get('/:projectId/probes', checkUser, async function (req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -871,7 +871,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function (req, res) {
         const statusPageId = req.params.statusPageId;
         const userId = req.user ? req.user.id : null;
         try {
@@ -887,7 +887,7 @@ router.delete(
     }
 );
 
-router.get('/:projectId/timeline/:incidentId', checkUser, async function(
+router.get('/:projectId/timeline/:incidentId', checkUser, async function (
     req,
     res
 ) {
@@ -909,7 +909,7 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:statusPageId/timelines', checkUser, async function(
+router.get('/:projectId/:statusPageId/timelines', checkUser, async function (
     req,
     res
 ) {
