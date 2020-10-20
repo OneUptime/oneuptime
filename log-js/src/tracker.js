@@ -16,6 +16,7 @@ class FyipeTracker {
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
     #configKeys = ['baseUrl'];
+    #event;
     constructor(options) {
         // set up option
         this._setUpOptions(options);
@@ -181,7 +182,7 @@ class FyipeTracker {
         const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
-        console.log({
+        this.#event = {
             type,
             timeline,
             exception: errorStackTrace,
@@ -189,12 +190,16 @@ class FyipeTracker {
             eventId: this.getEventId(),
             tags,
             fingerprint,
-        });
+        };
+        console.log(event);
 
         // generate a new event Id
         this._setEventId();
         // clear the timeline after a successful call to the server
         this._clear(this.getEventId());
+    }
+    getCurrentEvent() {
+        return this.#event;
     }
     _clear(newEventId) {
         // clear tags

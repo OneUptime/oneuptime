@@ -30,6 +30,9 @@ class FyipeLogger {
     getTimeline() {
         return this.#tracker.getTimeline();
     }
+    getCurrentEvent() {
+        return this.#tracker.getCurrentEvent;
+    }
     captureMessage(message) {
         this.#tracker.captureMessage(message);
     }
