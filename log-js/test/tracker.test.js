@@ -159,3 +159,34 @@ describe('Capture Message', function() {
         expect(event.exception.message).to.equal(errorMessage);
     });
 });
+describe('Capture Exception', function() {
+    it('should create an event ready for the server', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Error Found';
+        tracker.captureException(new Error(errorMessage));
+        const event = tracker.getCurrentEvent();
+        expect(event.type).to.equal('exception');
+        expect(event.exception.message).to.equal(errorMessage);
+    });
+    it('should create an event with a array of stacktrace ', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Error Found';
+        tracker.captureException(new Error(errorMessage));
+        const event = tracker.getCurrentEvent();
+        expect(event.type).to.equal('exception');
+        expect(event.exception.message).to.equal(errorMessage);
+        expect(event.exception.stacktrace).to.be.an('object');
+        expect(event.exception.stacktrace.frames).to.be.an('array');
+    });
+    it('should create an event with the object of the a stacktrace in place', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Error Found';
+        tracker.captureException(new Error(errorMessage));
+        const event = tracker.getCurrentEvent();
+        const frame = event.exception.stacktrace.frames[0];
+        expect(frame).to.have.property('methodName');
+        expect(frame).to.have.property('lineNumber');
+        expect(frame).to.have.property('columnNumber');
+        expect(frame).to.have.property('fileName');
+    });
+});
