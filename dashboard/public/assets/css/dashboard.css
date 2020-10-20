@@ -51302,3 +51302,39 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .clear_msg_txt {
   font-weight: 600;
 }
+
+.bs-Fieldset-rows.bs-header {
+  padding: 0;
+  display: flex;
+}
+
+.bs-left-side {
+  width: 35%;
+  padding: 15px;
+}
+
+.bs-right-side {
+  width: 35%;
+  padding: 15px;
+}
+
+.bs-content {
+  margin-bottom: 20px;
+}
+
+.bs-Fieldset-rows.bs-header label {
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgb(143, 140, 140);
+}
+
+.bs-content-inside {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+@media (max-width: 900px) {
+  .bs-left-side, .bs-right-side {
+    width: 100%;
+  }
+}
