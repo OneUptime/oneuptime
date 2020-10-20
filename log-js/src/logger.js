@@ -31,7 +31,7 @@ class FyipeLogger {
         return this.#tracker.getTimeline();
     }
     getCurrentEvent() {
-        return this.#tracker.getCurrentEvent;
+        return this.#tracker.getCurrentEvent();
     }
     captureMessage(message) {
         this.#tracker.captureMessage(message);
@@ -50,6 +50,9 @@ class FyipeLogger {
             return 'Invalid Tags type';
         }
         this.#tracker.setTags(tags);
+    }
+    getTags() {
+        return this.#tracker._getTags();
     }
     setFingerprint(fingerprint) {
         if (!(typeof fingerprint === 'string') && !Array.isArray(fingerprint)) {

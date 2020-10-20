@@ -60,7 +60,7 @@ class FyipeTracker {
         return this.#eventId;
     }
     setTag(key, value) {
-        this.#tags = { ...this.#tags, [key]: value };
+        this.#tags = [...this.#tags, { [key]: value }];
     }
     // pass an array of tags
     setTags(tags) {
@@ -191,7 +191,7 @@ class FyipeTracker {
             tags,
             fingerprint,
         };
-        console.log(event);
+        console.log(this.#event);
 
         // generate a new event Id
         this._setEventId();
