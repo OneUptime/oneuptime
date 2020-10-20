@@ -7,7 +7,6 @@ import { history } from '../../store';
 function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
-
     const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
 
     return (
@@ -51,18 +50,19 @@ Row.propTypes = {
 function parseSchedule(schedule) {
     const { name, monitorIds, _id } = schedule;
     const { escalationIds } = schedule;
+    const escalation = escalationIds[0] && escalationIds[0].teams
     const userIds = [];
-    if (escalationIds && escalationIds.length) {
-        for (let i = 0; i < escalationIds.length; i++) {
+    if (escalation && escalation.length) {
+        for (let i = 0; i < escalation.length; i++) {
             if (
-                escalationIds[i] &&
-                escalationIds[i].teamMember &&
-                escalationIds[i].teamMember.length
+                escalation[i] &&
+                escalation[i].teamMembers &&
+                escalation[i].teamMembers.length
             ) {
-                for (let j = 0; j < escalationIds[i].teamMember.length; j++) {
-                    escalationIds[i].teamMember[j] &&
-                        escalationIds[i].teamMember[j].userId &&
-                        userIds.push(escalationIds[i].teamMember[j].userId);
+                for (let j = 0; j < escalation[i].teamMembers.length; j++) {
+                    escalation[i].teamMembers[j] &&
+                        escalation[i].teamMembers[j].userId &&
+                        userIds.push(escalation[i].teamMembers[j].userId);
                 }
             }
         }
@@ -86,21 +86,21 @@ function parseSchedule(schedule) {
 function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
-              if (Array.isArray(schedule)) return null;
-              schedule = parseSchedule(schedule);
-              return (
-                  <Row
-                      name={schedule.name}
-                      users={schedule.users}
-                      monitors={schedule.monitors}
-                      isRequesting={isRequesting}
-                      id={schedule.id}
-                      key={`oncall ${index}`}
-                      match={match}
-                      subProjectId={subProjectId}
-                  />
-              );
-          })
+            if (Array.isArray(schedule)) return null;
+            schedule = parseSchedule(schedule);
+            return (
+                <Row
+                    name={schedule.name}
+                    users={schedule.users}
+                    monitors={schedule.monitors}
+                    isRequesting={isRequesting}
+                    id={schedule.id}
+                    key={`oncall ${index}`}
+                    match={match}
+                    subProjectId={subProjectId}
+                />
+            );
+        })
         : null;
 }
 
