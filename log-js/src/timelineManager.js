@@ -8,7 +8,8 @@ class FyipeTimelineManager {
     _addItemToTimeline(item) {
         // get the size of the stack
         if (this.#timeLineStack.length === this.#options.maxTimeline) {
-            this.#timeLineStack.shift(); // remove the oldest item
+            // this.#timeLineStack.shift(); // remove the oldest item
+            return; // It discards new timline update once maximum is reached
         }
         // add time to it
         item.timestamp = Date.now();

@@ -12,7 +12,7 @@ class FyipeTracker {
     #isWindow = false;
     #fingerprint = [];
     #options = {
-        maxTimeline: 1,
+        maxTimeline: 5,
     };
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
     #configKeys = ['baseUrl'];
@@ -162,6 +162,9 @@ class FyipeTracker {
         };
         this.#listenerObj.logCustomTimelineEvent(timeline);
     }
+    getTimeline() {
+        return this.#listenerObj.getTimeline();
+    }
     captureMessage(message) {
         this.prepareErrorObject('message', { message });
     }
@@ -172,7 +175,7 @@ class FyipeTracker {
     }
     prepareErrorObject(type, errorStackTrace) {
         // get current timeline
-        const timeline = this.#listenerObj.getTimeline();
+        const timeline = this.getTimeline();
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         const tags = this._getTags();
         const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace

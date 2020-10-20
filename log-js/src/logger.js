@@ -27,6 +27,9 @@ class FyipeLogger {
     addTimeline(category, content, type) {
         this.#tracker.addToTimeline(category, content, type);
     }
+    getTimeline() {
+        return this.#tracker.getTimeline();
+    }
     captureMessage(message) {
         this.#tracker.captureMessage(message);
     }
