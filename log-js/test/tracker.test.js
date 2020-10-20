@@ -189,4 +189,51 @@ describe('Capture Exception', function() {
         expect(frame).to.have.property('columnNumber');
         expect(frame).to.have.property('fileName');
     });
+    it('should create an event and new event should have different id ', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Error Found';
+        const errorMessageObj = 'Object Error Found';
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+
+        tracker.captureException(new Error(errorMessageObj));
+        const newEvent = tracker.getCurrentEvent();
+
+        // ensure that the first event have a type message, same error message
+        expect(event.type).to.equal('message');
+        expect(event.exception.message).to.equal(errorMessage);
+
+        // ensure that the second event have a type exception, same error message
+        expect(newEvent.type).to.equal('exception');
+        expect(newEvent.exception.message).to.equal(errorMessageObj);
+
+        // confim their eventId is different
+        expect(event.eventId).to.not.equal(newEvent.eventId);
+    });
+    it('should create an event and new event should have timeline and tags', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const errorMessage = 'Error Found';
+        const errorMessageObj = 'Object Error Found';
+        // add a timelie action to the first event
+        tracker.addTimeline(customTimeline);
+        tracker.captureMessage(errorMessage);
+        const event = tracker.getCurrentEvent();
+
+        // add a tag to the second event
+        tracker.setTag('test', 'content');
+        tracker.captureException(new Error(errorMessageObj));
+        const newEvent = tracker.getCurrentEvent();
+
+        // ensure that the first event have a type message, same error message and one timeline
+        expect(event.type).to.equal('message');
+        expect(event.exception.message).to.equal(errorMessage);
+        expect(event.timeline).to.have.lengthOf(1);
+        expect(event.tags).to.have.lengthOf(0);
+
+        // ensure that the second event have a type exception, same error message and no timeline
+        expect(newEvent.type).to.equal('exception');
+        expect(newEvent.exception.message).to.equal(errorMessageObj);
+        expect(newEvent.timeline).to.have.lengthOf(0);
+        expect(newEvent.tags).to.have.lengthOf(1);
+    });
 });
