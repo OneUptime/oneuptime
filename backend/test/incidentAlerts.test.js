@@ -10,18 +10,19 @@ let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
 const {
-  verifyToken,
-  login,
-  getAuthorizationHeader, 
-  createComponent,
-  createMonitor,
-  addSubscriberToMonitor,
-  createSchedule,
-  updateSchedule,
   addEscalation,
+  addSubscriberToMonitor,
+  createComponent,
   createIncident,
-  markIncidentAsResolved,
+  createMonitor,
+  createSchedule,
+  getAuthorizationHeader, 
+  getOnCallAlerts,
   getSubscribersAlerts,
+  login,
+  markIncidentAsResolved,
+  updateSchedule,
+  verifyToken,
 } = require('./test-utils');
 let UserService = require('../backend/services/userService');
 let ProjectService = require('../backend/services/projectService');
@@ -1475,8 +1476,8 @@ describe('Email Incident Alerts',function () {
         ]
       }]
     });
-
   });
+
   /**
    * Global SMTP configurations : not set.
    * Custom SMTP congigurations : not set.
@@ -1518,6 +1519,25 @@ describe('Email Incident Alerts',function () {
     }
     expect(eventTypesSent.includes('resolved')).to.equal(true);
     expect(eventTypesSent.includes('identified')).to.equal(true);
+
+    const onCallAlerts = await getOnCallAlerts({
+      request,
+      authorization,
+      projectId,
+      incidentId
+    });
+    expect(onCallAlerts).to.have.status(200);
+    expect(onCallAlerts.body).to.an('object');
+    expect(onCallAlerts.body.count).to.equal(1);
+    expect(onCallAlerts.body.data).to.an('array');
+    expect(onCallAlerts.body.data.length).to.equal(1);
+   
+    const onCallAlert = onCallAlerts.body.data[0];
+    const { alertVia, alertStatus, error,errorMessage } = onCallAlert;
+    expect(alertVia).to.equal('email');
+    expect(alertStatus).to.equal(null);
+    expect(error).to.equal(true);
+    expect(errorMessage).equal('SMTP Settings not found on Admin Dashboard');
 
   });
 });
