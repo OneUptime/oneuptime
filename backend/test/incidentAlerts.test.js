@@ -56,131 +56,126 @@ const EmailSmtpService = require('../backend/services/emailSmtpService');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
+let authorization, userId, projectId, componentId, monitorId, scheduleId;
 
 describe('SMS/Calls Incident Alerts', function() {
     this.timeout(30000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(() => {
-            createUser(request, userData.user, async function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const user = await createUser(request, userData.user);
+        const project = user.body.project;
+        projectId = project._id;
+        userId = user.body.id;
 
-                await UserModel.updateOne(
-                    { _id: userId },
-                    { alertPhoneNumber: '+19173976235' }
-                );
+        await UserModel.updateOne(
+            { _id: userId },
+            { alertPhoneNumber: '+19173976235' }
+        );
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(async function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    authorization = `Basic ${token}`;
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
+        });
+        const token = verificationToken.token;
+        await verifyToken({ request, token });
+        const { email, password } = userData.user;
+        const userLogin = await login({ request, email, password });
+        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        authorization = getAuthorizationHeader({ jwtToken });
 
-                                    const component = await request
-                                        .post(`/component/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            projectId,
-                                            name: 'test',
-                                            criteria: {},
-                                            data: {},
-                                        });
-                                    componentId = component.body._id;
+        const component = await createComponent({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                projectId,
+                name: 'test',
+                criteria: {},
+                data: {},
+            },
+        });
+        componentId = component.body._id;
 
-                                    const monitor = await request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            componentId,
-                                            projectId,
-                                            type: 'device',
-                                            name: 'test monitor ',
-                                            data: { deviceId: 'abcdef' },
-                                            deviceId: 'abcdef',
-                                            criteria: {},
-                                        });
-                                    monitorId = monitor.body._id;
+        const monitor = await createMonitor({
+            request,
+            authorization,
+            projectId,
+            payload: {
+                componentId,
+                projectId,
+                type: 'device',
+                name: 'test monitor ',
+                data: { deviceId: 'abcdef' },
+                deviceId: 'abcdef',
+                criteria: {},
+            },
+        });
+        monitorId = monitor.body._id;
 
-                                    await request
-                                        .post(`/stripe/${projectId}/addBalance`)
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            rechargeBalanceAmount: '2000',
-                                        });
-
-                                    await request
-                                        .post(
-                                            `/subscriber/${projectId}/subscribe/${monitorId}`
-                                        )
-                                        .set('Authorization', authorization)
-                                        .send({
-                                            alertVia: 'sms',
-                                            contactPhone: '9173976235',
-                                            countryCode: 'us',
-                                        });
-
-                                    const schedule = await request
-                                        .post(`/schedule/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({ name: 'test schedule' });
-                                    scheduleId = schedule.body._id;
-
-                                    await request
-                                        .put(
-                                            `/schedule/${projectId}/${scheduleId}`
-                                        )
-                                        .set('Authorization', authorization)
-                                        .send({ monitorIds: [monitorId] });
-
-                                    await request
-                                        .post(
-                                            `/schedule/${projectId}/${scheduleId}/addescalation`
-                                        )
-                                        .set('Authorization', authorization)
-                                        .send([
-                                            {
-                                                callReminders: '1',
-                                                smsReminders: '1',
-                                                emailReminders: '1',
-                                                email: false,
-                                                sms: true,
-                                                call: true,
-                                                teams: [
-                                                    {
-                                                        teamMembers: [
-                                                            {
-                                                                member: '',
-                                                                timezone: '',
-                                                                startTime: '',
-                                                                endTime: '',
-                                                                userId,
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                        ]);
-                                    done();
-                                });
-                        });
-                });
+        await request
+            .post(`/stripe/${projectId}/addBalance`)
+            .set('Authorization', authorization)
+            .send({
+                rechargeBalanceAmount: '2000',
             });
+
+        await addSubscriberToMonitor({
+            request,
+            authorization,
+            monitorId,
+            projectId,
+            payload: {
+                alertVia: 'sms',
+                contactPhone: '9173976235',
+                countryCode: 'us',
+            },
+        });
+
+        const schedule = await createSchedule({
+            request,
+            authorization,
+            projectId,
+            name: 'test schedule',
+        });
+        scheduleId = schedule.body._id;
+
+        await updateSchedule({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: { monitorIds: [monitorId] },
+        });
+
+        await addEscalation({
+            request,
+            authorization,
+            projectId,
+            scheduleId,
+            payload: [
+                {
+                    callReminders: '1',
+                    smsReminders: '1',
+                    emailReminders: '1',
+                    email: false,
+                    sms: true,
+                    call: true,
+                    teams: [
+                        {
+                            teamMembers: [
+                                {
+                                    member: '',
+                                    timezone: '',
+                                    startTime: '',
+                                    endTime: '',
+                                    userId,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
         });
     });
 
@@ -244,44 +239,49 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(billingEndpointResponse).to.have.status(200);
             await ProjectService.updateBy({ _id: projectId }, { balance: 0 });
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -298,19 +298,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
@@ -356,44 +357,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -412,19 +418,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
@@ -487,44 +494,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 }
             );
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -543,19 +555,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
@@ -629,44 +642,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 }
             );
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -685,19 +703,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
@@ -760,44 +779,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -814,19 +838,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error } = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
@@ -868,44 +893,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -922,19 +952,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 if (alertVia === 'sms') {
                     expect(alertStatus).to.equal('Success');
@@ -985,44 +1016,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -1041,19 +1077,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 if (alertVia === 'call') {
                     expect(alertStatus).to.equal('Success');
@@ -1103,44 +1140,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -1159,19 +1201,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
@@ -1228,44 +1271,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(customTwilioSettingResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -1282,19 +1330,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error } = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
@@ -1355,44 +1404,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 });
             expect(customTwilioSettingResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -1409,19 +1463,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error } = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
@@ -1465,44 +1520,49 @@ describe('SMS/Calls Incident Alerts', function() {
                 expect(deleteCustomTwilioSettingResponse).to.have.status(200);
             }
 
-            const incidentCreationEndpointResponse = await request
-                .post(`/incident/${projectId}/${monitorId}`)
-                .set('Authorization', authorization)
-                .send({
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
                     monitorId,
                     projectId,
                     title: 'test monitor  is offline.',
                     incidentType: 'offline',
                     description: 'Incident description',
-                });
-            expect(incidentCreationEndpointResponse).to.have.status(200);
+                },
+            });
+            expect(newIncident).to.have.status(200);
 
-            const { _id: incidentId } = incidentCreationEndpointResponse.body;
+            const { _id: incidentId } = newIncident.body;
 
-            const incidentResolveEndpointResponse = await request
-                .post(`/incident/${projectId}/resolve/${incidentId}`)
-                .set('Authorization', authorization);
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(incidentResolveEndpointResponse).to.have.status(200);
+            expect(incidentResolved).to.have.status(200);
 
             await sleep(10 * 1000);
 
-            const subscribersAlertsEndpointReponse = await request
-                .get(
-                    `/subscriberAlert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const subscribersAlerts = await getSubscribersAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(subscribersAlertsEndpointReponse).to.have.status(200);
-            expect(subscribersAlertsEndpointReponse.body).to.an('object');
-            expect(subscribersAlertsEndpointReponse.body.count).to.equal(2);
-            expect(subscribersAlertsEndpointReponse.body.data).to.an('array');
-            expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
-                2
-            );
+            expect(subscribersAlerts).to.have.status(200);
+            expect(subscribersAlerts.body).to.an('object');
+            expect(subscribersAlerts.body.count).to.equal(2);
+            expect(subscribersAlerts.body.data).to.an('array');
+            expect(subscribersAlerts.body.data.length).to.equal(2);
 
             const eventTypesSent = [];
-            for (const event of subscribersAlertsEndpointReponse.body.data) {
+            for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
                     alertVia,
@@ -1521,19 +1581,20 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${incidentId}?skip=0&limit=999`
-                )
-                .set('Authorization', authorization);
+            const onCallAlerts = await getOnCallAlerts({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
 
-            expect(oncallAlertsEndpointReponse).to.have.status(200);
-            expect(oncallAlertsEndpointReponse.body).to.an('object');
-            expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
-            expect(oncallAlertsEndpointReponse.body.data).to.an('array');
-            expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
+            expect(onCallAlerts).to.have.status(200);
+            expect(onCallAlerts.body).to.an('object');
+            expect(onCallAlerts.body.count).to.equal(2);
+            expect(onCallAlerts.body.data).to.an('array');
+            expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList = [];
-            for (const event of oncallAlertsEndpointReponse.body.data) {
+            for (const event of onCallAlerts.body.data) {
                 const { alertVia, alertStatus, error, errorMessage } = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
@@ -1701,7 +1762,7 @@ describe('Email Incident Alerts', function() {
             incidentId,
         });
         expect(incidentResolved).to.have.status(200);
-        await sleep(10 * 1000);
+        await sleep(15 * 1000);
         const subscribersAlerts = await getSubscribersAlerts({
             request,
             authorization,
@@ -1797,7 +1858,7 @@ describe('Email Incident Alerts', function() {
             incidentId,
         });
         expect(incidentResolved).to.have.status(200);
-        await sleep(10 * 1000);
+        await sleep(15 * 1000);
         const subscribersAlerts = await getSubscribersAlerts({
             request,
             authorization,
@@ -1888,7 +1949,7 @@ describe('Email Incident Alerts', function() {
             incidentId,
         });
         expect(incidentResolved).to.have.status(200);
-        await sleep(10 * 1000);
+        await sleep(15 * 1000);
         const subscribersAlerts = await getSubscribersAlerts({
             request,
             authorization,
@@ -1980,7 +2041,7 @@ describe('Email Incident Alerts', function() {
             incidentId,
         });
         expect(incidentResolved).to.have.status(200);
-        await sleep(10 * 1000);
+        await sleep(15 * 1000);
         const subscribersAlerts = await getSubscribersAlerts({
             request,
             authorization,
@@ -2062,7 +2123,7 @@ describe('Email Incident Alerts', function() {
             incidentId,
         });
         expect(incidentResolved).to.have.status(200);
-        await sleep(10 * 1000);
+        await sleep(15 * 1000);
         const subscribersAlerts = await getSubscribersAlerts({
             request,
             authorization,
