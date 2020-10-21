@@ -9,6 +9,20 @@ let app = require('../server');
 let GlobalConfig = require('./utils/globalConfig');
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
+const {
+  verifyToken,
+  login,
+  getAuthorizationHeader, 
+  createComponent,
+  createMonitor,
+  addSubscriberToMonitor,
+  createSchedule,
+  updateSchedule,
+  addEscalation,
+  createIncident,
+  markIncidentAsResolved,
+  getSubscribersAlerts,
+} = require('./test-utils');
 let UserService = require('../backend/services/userService');
 let ProjectService = require('../backend/services/projectService');
 let ComponentService = require('../backend/services/componentService');
@@ -41,7 +55,7 @@ const sleep = waitTimeInMs =>
 
 let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
 
-describe('Incident Alerts', function () {
+describe('SMS/Calls Incident Alerts', function () {
   this.timeout(30000);
 
   before(function (done) {
@@ -99,7 +113,7 @@ describe('Incident Alerts', function () {
                       data: { deviceId: "abcdef" },
                       deviceId: "abcdef",
                       criteria: {},
-                    })
+                    });
                   monitorId = monitor.body._id;
 
                   await request
@@ -119,7 +133,7 @@ describe('Incident Alerts', function () {
                   const schedule = await request
                     .post(`/schedule/${projectId}`)
                     .set('Authorization', authorization)
-                    .send({ name: "test schedule" })
+                    .send({ name: "test schedule" });
                   scheduleId = schedule.body._id;
 
                   await request
@@ -1363,5 +1377,147 @@ describe('Incident Alerts', function () {
       expect(alertsSentList.includes('sms')).to.equal(true);
       expect(alertsSentList.includes('call')).to.equal(true);
     });
+  });
+});
+
+describe('Email Incident Alerts',function () {
+  before(async function() {
+    this.timeout(30000);
+    const createdUser = await createUser(request, userData.user);
+    const project = createdUser.body.project;
+    projectId = project._id;
+    userId = createdUser.body.id;
+    const verificationToken = await VerificationTokenModel.findOne({userId});
+    const token = verificationToken.token;
+    await verifyToken({request,token}); 
+    const {email, password}= userData.user;
+    const userLogin = await login({request, email, password});
+    const jwtToken = userLogin.body.tokens.jwtAccessToken;
+    authorization = getAuthorizationHeader({jwtToken});
+    const component = await createComponent({
+      request,
+      authorization,
+      projectId,
+      payload:{
+          projectId,
+          name: "test",
+          criteria: {},
+          data: {},
+        }
+    });
+    componentId = component.body._id;
+    const monitor = await createMonitor({
+      request,
+      authorization,
+      projectId,
+      payload:{
+        componentId,
+        projectId,
+        type: "device",
+        name: "test monitor ",
+        data: { deviceId: "abcdef" },
+        deviceId: "abcdef",
+        criteria: {},
+      }
+    });
+    monitorId = monitor.body._id;
+    await addSubscriberToMonitor({
+      request, 
+      authorization, 
+      projectId, 
+      monitorId, 
+      payload: {
+        alertVia: "email",
+        contactEmail: "test@hackerbay.io"
+      }
+    });
+    const schedule = await createSchedule({
+      request,
+      authorization,
+      projectId,
+      name:'test schedule'
+    });
+    scheduleId = schedule.body._id;
+    await updateSchedule({
+      request,
+      authorization,
+      projectId,
+      scheduleId,
+      payload:{
+        monitorIds:[monitorId]
+      }
+    });
+    await addEscalation({
+      request,
+      authorization,
+      projectId,
+      scheduleId,
+      payload:[{
+        callReminders: "1",
+        smsReminders: "1",
+        emailReminders: "1",
+        email: true,
+        sms: false,
+        call: false,
+        teams: [
+          {
+            teamMembers:
+              [
+                {
+                  member: "",
+                  timezone: "",
+                  startTime: "",
+                  endTime: "",
+                  userId
+                }
+              ]
+          }
+        ]
+      }]
+    });
+
+  });
+  /**
+   * Global SMTP configurations : not set.
+   * Custom SMTP congigurations : not set.
+   */
+  it('should not send Email alerts if no SMTP configuration are set.',async function(){
+    this.timeout(30000);
+    const newIncident = await createIncident({
+      request,
+      authorization,
+      projectId,
+      monitorId,
+      payload:{
+        monitorId,
+        projectId,
+        title: "test monitor  is offline.",
+        incidentType: "offline",
+        description: 'Incident description',
+      }
+    });
+    expect(newIncident).to.have.status(200);
+    const { _id: incidentId } = newIncident.body;
+    const incidentResolved = await markIncidentAsResolved({request,authorization,projectId,incidentId});
+    expect(incidentResolved).to.have.status(200);
+    await sleep(10 * 1000);
+    const subscribersAlerts = await getSubscribersAlerts({request,authorization,projectId,incidentId,});
+    expect(subscribersAlerts).to.have.status(200);
+    expect(subscribersAlerts.body).to.an('object');
+    expect(subscribersAlerts.body.count).to.equal(2);
+    expect(subscribersAlerts.body.data).to.an('array');
+    expect(subscribersAlerts.body.data.length).to.equal(2);
+    const eventTypesSent = []
+    for (const event of subscribersAlerts.body.data) {
+      const { alertStatus, alertVia, eventType, error, errorMessage } = event;
+      eventTypesSent.push(eventType);
+      expect(alertStatus).to.equal(null);
+      expect(alertVia).to.equal('email');
+      expect(error).to.equal(true);
+      expect(errorMessage).to.equal('SMTP Settings not found on Admin Dashboard');
+    }
+    expect(eventTypesSent.includes('resolved')).to.equal(true);
+    expect(eventTypesSent.includes('identified')).to.equal(true);
+
   });
 });
