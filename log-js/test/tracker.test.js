@@ -93,6 +93,8 @@ describe('Tags', function() {
         const availableTags = tracker.getTags();
         expect(availableTags).to.be.an('array');
         expect(availableTags.length).to.equal(1);
+        expect(availableTags[0]).to.have.property('key');
+        expect(availableTags[0]).to.have.property('value');
     });
     it('should add multiple tags ', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
@@ -105,6 +107,22 @@ describe('Tags', function() {
         const availableTags = tracker.getTags();
         expect(availableTags).to.be.an('array');
         expect(availableTags.length).to.equal(3);
+    });
+    it('should overwrite existing keys to avoid duplicate tags ', function() {
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY');
+        const tags = [
+            { key: 'location', value: 'Atlanta' },
+            { key: 'city', value: 'anywhere' },
+            { key: 'location', value: 'Paris' },
+            { key: 'device', value: 'iOS' },
+            { key: 'location', value: 'London' },
+        ];
+        tracker.setTags(tags);
+        const availableTags = tracker.getTags();
+        expect(availableTags).to.be.an('array');
+        expect(availableTags.length).to.equal(3); // since location repeated itself multiple times
+        expect(availableTags[0].key).to.be.equal('location');
+        expect(availableTags[0].value).to.be.equal('London'); // latest value for that tag
     });
 });
 describe('Fingerpint', function() {
@@ -178,7 +196,7 @@ describe('Capture Exception', function() {
         expect(event.exception.stacktrace).to.be.an('object');
         expect(event.exception.stacktrace.frames).to.be.an('array');
     });
-    it('should create an event with the object of the a stacktrace in place', function() {
+    it('should create an event with the object of the stacktrace in place', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
         const errorMessage = 'Error Found';
         tracker.captureException(new Error(errorMessage));
@@ -210,7 +228,7 @@ describe('Capture Exception', function() {
         // confim their eventId is different
         expect(event.eventId).to.not.equal(newEvent.eventId);
     });
-    it('should create an event and new event should have timeline and tags', function() {
+    it('should create an event that has timeline and new event having tags', function() {
         const tracker = new FyipeLogger('URL', 'ID', 'KEY');
         const errorMessage = 'Error Found';
         const errorMessageObj = 'Object Error Found';
