@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function (query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -22,8 +22,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'escalationIds',
-                    select: 'teamMember',
-                    populate: { path: 'teamMember.userId', select: 'name' },
+                    select: 'teams',
+                    populate: { path: 'teams.teamMembers.userId', select: 'name' },
                 });
             return schedules;
         } catch (error) {
@@ -32,7 +32,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -57,7 +57,7 @@ module.exports = {
         }
     },
 
-    create: async function(data) {
+    create: async function (data) {
         try {
             const scheduleModel = new ScheduleModel();
             scheduleModel.name = data.name || null;
@@ -87,7 +87,7 @@ module.exports = {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -102,7 +102,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             const schedule = await ScheduleModel.findOneAndUpdate(
                 query,
@@ -134,7 +134,7 @@ module.exports = {
         }
     },
 
-    removeMonitor: async function(monitorId) {
+    removeMonitor: async function (monitorId) {
         try {
             const schedule = await ScheduleModel.findOneAndUpdate(
                 { monitorIds: monitorId },
@@ -149,7 +149,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -193,7 +193,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -211,7 +211,7 @@ module.exports = {
         }
     },
 
-    saveSchedule: async function(schedule) {
+    saveSchedule: async function (schedule) {
         try {
             schedule = await schedule.save();
             return schedule;
@@ -221,7 +221,7 @@ module.exports = {
         }
     },
 
-    deleteMonitor: async function(monitorId) {
+    deleteMonitor: async function (monitorId) {
         try {
             await ScheduleModel.update(
                 { deleted: false },
@@ -233,7 +233,7 @@ module.exports = {
         }
     },
 
-    addEscalation: async function(scheduleId, escalations, userId) {
+    addEscalation: async function (scheduleId, escalations, userId) {
         try {
             const _this = this;
             const escalationIds = [];
@@ -267,7 +267,7 @@ module.exports = {
         }
     },
 
-    getEscalations: async function(scheduleId) {
+    getEscalations: async function (scheduleId) {
         try {
             const _this = this;
             const schedule = await _this.findOneBy({ _id: scheduleId });
@@ -287,7 +287,7 @@ module.exports = {
         }
     },
 
-    getUserEscalations: async function(subProjectIds, userId) {
+    getUserEscalations: async function (subProjectIds, userId) {
         try {
             const escalations = await EscalationService.findBy({
                 query: {
@@ -302,7 +302,7 @@ module.exports = {
         }
     },
 
-    escalationCheck: async function(escalationIds, scheduleId, userId) {
+    escalationCheck: async function (escalationIds, scheduleId, userId) {
         try {
             const _this = this;
             let scheduleIds = await _this.findOneBy({ _id: scheduleId });
@@ -321,7 +321,7 @@ module.exports = {
         }
     },
 
-    deleteEscalation: async function(escalationId) {
+    deleteEscalation: async function (escalationId) {
         try {
             await ScheduleModel.update(
                 { deleted: false },
@@ -333,11 +333,11 @@ module.exports = {
         }
     },
 
-    getSubProjectSchedules: async function(subProjectIds) {
+    getSubProjectSchedules: async function (subProjectIds) {
         const _this = this;
         const subProjectSchedules = await Promise.all(
             subProjectIds.map(async id => {
-                const schedules = await _this.findBy({ projectId: id }, 10, 0);
+                const schedules = await _this.findBy({ projectId: id }, 10, 0)
                 const count = await _this.countBy({ projectId: id });
                 return { schedules, count, _id: id, skip: 0, limit: 10 };
             })
@@ -345,7 +345,7 @@ module.exports = {
         return subProjectSchedules;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await ScheduleModel.deleteMany(query);
             return 'Schedule(s) removed successfully';
@@ -355,7 +355,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         const schedule = await _this.findBy(query);
