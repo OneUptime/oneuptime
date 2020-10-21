@@ -621,9 +621,13 @@ describe('Incident API', function() {
             }
         }
         expect(smsAlert).to.be.an('object');
-        expect(smsAlert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(smsAlert.alertStatus).to.be.equal(null);
+        expect(smsAlert.error).to.be.equal(true);
+        expect(smsAlert.errorMessage).to.be.equal('Low Balance');
         expect(callAlert).to.be.an('object');
-        expect(callAlert.alertStatus).to.be.equal('Blocked - Low balance');
+        expect(callAlert.alertStatus).to.be.equal(null);
+        expect(callAlert.error).to.be.equal(true);
+        expect(callAlert.errorMessage).to.be.equal('Low Balance');
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
