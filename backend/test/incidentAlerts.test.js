@@ -1688,4 +1688,90 @@ describe('Email Incident Alerts',function () {
     expect(error).to.equal(false);
     await GlobalConfigService.hardDeleteBy({name: 'smtp'});
   });
+  /**
+  * Global SMTP configurations : set.
+  * Email alerts disabled
+  * Custom SMTP congigurations : set.
+  */
+  it('should send Email alerts if global SMTP configurations are set, email alerts disabled in global configurations, and custom SMTP settings are set.',async function(){
+    this.timeout(30000);
+    await GlobalConfigService.create({
+      name: 'smtp',
+      value: {
+          'email-enabled': false,
+          email: 'ibukun.o.dairo@gmail.com',
+          password: 'ZEC1kY9xFN6aVf3j',
+          'from-name': 'Ibukun',
+          from: 'ibukun.o.dairo@gmail.com',
+          'smtp-server': 'smtp-relay.sendinblue.com',
+          'smtp-port': '465',
+          'smtp-secure': true,
+      },
+    });
+    await EmailSmtpService.create(
+      {
+        projectId,
+        user:'ibukun.o.dairo@gmail.com',
+        pass:'ZEC1kY9xFN6aVf3j',
+        host:'smtp-relay.sendinblue.com',
+        port:'465',
+        from:'ibukun.o.dairo@gmail.com',
+        name:'Ibukun',
+        secure:true,
+      }
+    )
+    const newIncident = await createIncident({
+      request,
+      authorization,
+      projectId,
+      monitorId,
+      payload:{
+        monitorId,
+        projectId,
+        title: "test monitor  is offline.",
+        incidentType: "offline",
+        description: 'Incident description',
+      }
+    });
+    expect(newIncident).to.have.status(200);
+    const { _id: incidentId } = newIncident.body;
+    const incidentResolved = await markIncidentAsResolved({request,authorization,projectId,incidentId});
+    expect(incidentResolved).to.have.status(200);
+    await sleep(10 * 1000);
+    const subscribersAlerts = await getSubscribersAlerts({request,authorization,projectId,incidentId,});
+    expect(subscribersAlerts).to.have.status(200);
+    expect(subscribersAlerts.body).to.an('object');
+    expect(subscribersAlerts.body.count).to.equal(2);
+    expect(subscribersAlerts.body.data).to.an('array');
+    expect(subscribersAlerts.body.data.length).to.equal(2);
+    const eventTypesSent = []
+    for (const event of subscribersAlerts.body.data) {
+      const { alertStatus, alertVia, eventType, error, errorMessage } = event;
+      eventTypesSent.push(eventType);
+      expect(alertStatus).to.equal('Sent');
+      expect(alertVia).to.equal('email');
+      expect(error).to.equal(false);
+    }
+    expect(eventTypesSent.includes('resolved')).to.equal(true);
+    expect(eventTypesSent.includes('identified')).to.equal(true);
+    const onCallAlerts = await getOnCallAlerts({
+      request,
+      authorization,
+      projectId,
+      incidentId
+    });
+    expect(onCallAlerts).to.have.status(200);
+    expect(onCallAlerts.body).to.an('object');
+    expect(onCallAlerts.body.count).to.equal(1);
+    expect(onCallAlerts.body.data).to.an('array');
+    expect(onCallAlerts.body.data.length).to.equal(1);
+    const onCallAlert = onCallAlerts.body.data[0];
+    const { alertVia, alertStatus, error } = onCallAlert;
+    expect(alertVia).to.equal('email');
+    expect(alertStatus).to.equal('Success');
+    expect(error).to.equal(false);
+    await GlobalConfigService.hardDeleteBy({name: 'smtp'});
+    await EmailSmtpService.hardDeleteBy({projectId});
+
+  });
 });
