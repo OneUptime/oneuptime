@@ -60,7 +60,15 @@ class FyipeTracker {
         return this.#eventId;
     }
     setTag(key, value) {
-        this.#tags = [...this.#tags, { [key]: value }];
+        // get the index if the key exist already
+        const index = this.#tags.findIndex(tag => tag.key === key);
+        if (index !== -1) {
+            // replace value if it exist
+            this.#tags[index].value = value;
+        } else {
+            // push key and value if it doesnt
+            this.#tags = [...this.#tags, { key, value }];
+        }
     }
     // pass an array of tags
     setTags(tags) {
