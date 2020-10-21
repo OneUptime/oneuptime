@@ -5,7 +5,7 @@ import Http from 'http';
 import Https from 'https';
 
 class FyipeListiner {
-    #BASE_URL = 'http://test'; // TODO proper base url config
+    #BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
     #timelineObj;
     #debounceDuration = 1000;
     #keypressTimeout = undefined;
