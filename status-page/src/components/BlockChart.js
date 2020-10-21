@@ -66,16 +66,14 @@ class BlockChart extends Component {
                 let downtime;
                 if (this.props.time.downTime < 60) {
                     downTimeInMinutes = this.props.time.downTime;
-                    downtime = `${downTimeInMinutes} second${
-                        downTimeInMinutes === 1 ? '' : 's'
-                    }`;
+                    downtime = `${downTimeInMinutes} second${downTimeInMinutes === 1 ? '' : 's'
+                        }`;
                 } else {
                     downTimeInMinutes = Math.floor(
                         this.props.time.downTime / 60
                     );
-                    downtime = `${downTimeInMinutes} minute${
-                        downTimeInMinutes === 1 ? '' : 's'
-                    }`;
+                    downtime = `${downTimeInMinutes} minute${downTimeInMinutes === 1 ? '' : 's'
+                        }`;
                 }
 
                 if (downTimeInMinutes > 60) {
@@ -95,16 +93,14 @@ class BlockChart extends Component {
                 let degradedtime;
                 if (this.props.time.degradedTime < 60) {
                     degradedTimeInMinutes = this.props.time.degradedTime;
-                    degradedtime = `${degradedTimeInMinutes} second${
-                        degradedTimeInMinutes === 1 ? '' : 's'
-                    }`;
+                    degradedtime = `${degradedTimeInMinutes} second${degradedTimeInMinutes === 1 ? '' : 's'
+                        }`;
                 } else {
                     degradedTimeInMinutes = Math.floor(
                         this.props.time.degradedTime / 60
                     );
-                    degradedtime = `${degradedTimeInMinutes} minute${
-                        degradedTimeInMinutes === 1 ? '' : 's'
-                    }`;
+                    degradedtime = `${degradedTimeInMinutes} minute${degradedTimeInMinutes === 1 ? '' : 's'
+                        }`;
                 }
 
                 if (degradedTimeInMinutes > 60) {
@@ -130,7 +126,7 @@ class BlockChart extends Component {
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
-            title1 = 'No data available';
+            title1 = '100% uptime';
             if (colors)
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
