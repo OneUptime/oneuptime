@@ -1,3 +1,5 @@
+const GlobalConfigService = require('../backend/services/globalConfigService');
+
 module.exports = {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
     login: async ({ request, email, password }) => {
