@@ -59,7 +59,7 @@ const validate = values => {
         ) {
             //At least one registred field need must be assigned a value
             monitorErrors.uptime = true;
-            monitorErrors.error = 'You must select at least one bar chart';
+            monitorErrors.error = 'You must select at least one chart type';
         }
         monitorsArrayErrors[i] = monitorErrors;
     }
@@ -129,13 +129,13 @@ export class Monitors extends Component {
         const subProject = !status.projectId
             ? null
             : this.props.currentProject._id === status.projectId._id ||
-              this.props.currentProject._id === status.projectId
-            ? this.props.currentProject
-            : subProjects.filter(
-                  subProject =>
-                      subProject._id === status.projectId._id ||
-                      subProject._id === status.projectId
-              )[0];
+                this.props.currentProject._id === status.projectId
+                ? this.props.currentProject
+                : subProjects.filter(
+                    subProject =>
+                        subProject._id === status.projectId._id ||
+                        subProject._id === status.projectId
+                )[0];
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -207,31 +207,31 @@ export class Monitors extends Component {
                                             >
                                                 {!this.props.monitors.length >
                                                     0 &&
-                                                !this.props.monitors
-                                                    .requesting ? (
-                                                    <>
-                                                        No monitors are added to
+                                                    !this.props.monitors
+                                                        .requesting ? (
+                                                        <>
+                                                            No monitors are added to
                                                         this project.{' '}
-                                                        <Link
-                                                            to={
-                                                                '/dashboard/project/' +
-                                                                this.props
-                                                                    .currentProject
-                                                                    ._id +
-                                                                '/components'
-                                                            }
-                                                        >
-                                                            {' '}
+                                                            <Link
+                                                                to={
+                                                                    '/dashboard/project/' +
+                                                                    this.props
+                                                                        .currentProject
+                                                                        ._id +
+                                                                    '/components'
+                                                                }
+                                                            >
+                                                                {' '}
                                                             Please create one.{' '}
-                                                        </Link>
+                                                            </Link>
+                                                        </>
+                                                    ) : !this.props
+                                                        .monitorsInForm ? (
+                                                            <>
+                                                                No monitors are added to
+                                                                this status page.
                                                     </>
-                                                ) : !this.props
-                                                      .monitorsInForm ? (
-                                                    <>
-                                                        No monitors are added to
-                                                        this status page.
-                                                    </>
-                                                ) : null}
+                                                        ) : null}
                                             </div>
                                         </div>
                                     </div>
@@ -284,8 +284,8 @@ export class Monitors extends Component {
                                     >
                                         {!this.props.statusPage.monitors
                                             .requesting && (
-                                            <span>Save Changes </span>
-                                        )}
+                                                <span>Save Changes </span>
+                                            )}
                                         {this.props.statusPage.monitors
                                             .requesting && <FormLoader />}
                                     </button>
