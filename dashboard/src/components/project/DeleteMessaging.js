@@ -41,12 +41,15 @@ class DeleteMessaging extends Component {
                                 Your team will NOT be alerted during downtime.
                             </div>
                         </div>
-                        {
-                            IS_SAAS_SERVICE &&
-                            <div className='icon_display-msg'>
-                                <div className='clear_times'></div><div className='clear_msg_txt'>Your card will not be charged and your subscription is cancelled.</div>
+                        {IS_SAAS_SERVICE && (
+                            <div className="icon_display-msg">
+                                <div className="clear_times"></div>
+                                <div className="clear_msg_txt">
+                                    Your card will not be charged and your
+                                    subscription is cancelled.
+                                </div>
                             </div>
-                        }
+                        )}
                     </div>
                 </div>
                 <div className="bs-Modal-footer">

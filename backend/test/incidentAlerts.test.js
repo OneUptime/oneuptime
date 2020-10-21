@@ -1902,13 +1902,7 @@ describe('Email Incident Alerts', function() {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent = [];
         for (const event of subscribersAlerts.body.data) {
-            const {
-                alertStatus,
-                alertVia,
-                eventType,
-                error,
-                errorMessage,
-            } = event;
+            const { alertStatus, alertVia, eventType, error } = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');
@@ -2000,13 +1994,7 @@ describe('Email Incident Alerts', function() {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent = [];
         for (const event of subscribersAlerts.body.data) {
-            const {
-                alertStatus,
-                alertVia,
-                eventType,
-                error,
-                errorMessage,
-            } = event;
+            const { alertStatus, alertVia, eventType, error } = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');
@@ -2088,13 +2076,7 @@ describe('Email Incident Alerts', function() {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent = [];
         for (const event of subscribersAlerts.body.data) {
-            const {
-                alertStatus,
-                alertVia,
-                eventType,
-                error,
-                errorMessage,
-            } = event;
+            const { alertStatus, alertVia, eventType, error } = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');

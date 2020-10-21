@@ -130,7 +130,7 @@ class BlockChart extends Component {
         } else {
             bar = 'bar empty';
             title = moment(this.props.time.date).format('LL');
-            title1 = 'No data available';
+            title1 = '100% uptime';
             if (colors)
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b})`;
         }
