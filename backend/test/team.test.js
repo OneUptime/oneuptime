@@ -245,16 +245,14 @@ describe('Team API with Sub-Projects', async function() {
         const verificationToken = await VerificationTokenModel.findOne({
             userId: subProjectUserId,
         });
-        request
+        await request
             .get(`/user/confirmation/${verificationToken.token}`)
-            .redirects(0)
-            .end(async function() {
-                const res3 = await request.post('/user/login').send({
-                    email: userData.newUser.email,
-                    password: userData.newUser.password,
-                });
-                newUserToken = res3.body.tokens.jwtAccessToken;
-            });
+            .redirects(0);
+        const res3 = await request.post('/user/login').send({
+            email: userData.newUser.email,
+            password: userData.newUser.password,
+        });
+        newUserToken = res3.body.tokens.jwtAccessToken;
     });
 
     after(async function() {
