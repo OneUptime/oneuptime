@@ -21,7 +21,7 @@ class FyipeTimelineManager {
         this._addItemToTimeline(item);
         // Temporary showing the stack here in the console
         // eslint-disable-next-line no-console
-        console.log(this.#timeLineStack);
+        // console.log(this.#timeLineStack);
     }
     // return the timeline
     getTimeline() {
