@@ -53,6 +53,22 @@ describe('Tracker Timeline', function() {
         expect(timeline.length).to.equal(2); // two timeline events
         expect(timeline[0].eventId).to.equal(timeline[1].eventId); // their eveentId is the same till there is an error sent to the server
     });
+    it('should ensure max timline cant be set as a negative number', function() {
+        const options = { maxTimeline: -5 };
+        const tracker = new FyipeLogger('URL', 'ID', 'KEY', options);
+        tracker.addTimeline(
+            customTimeline.category,
+            customTimeline.content,
+            customTimeline.type
+        );
+        tracker.addTimeline(
+            customTimeline.category,
+            customTimeline.content,
+            'error'
+        );
+        const timeline = tracker.getTimeline();
+        expect(timeline.length).to.equal(2); // two timeline events
+    });
     it('should ensure new timeline event after max timeline are discarded', function() {
         const options = { maxTimeline: 2 };
         const tracker = new FyipeLogger('URL', 'ID', 'KEY', options);

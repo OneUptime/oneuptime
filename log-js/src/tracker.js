@@ -40,10 +40,10 @@ class FyipeTracker {
             // proceed with current key if it is not in the config keys
             if (!this.#configKeys.includes(key)) {
                 if (this.#options[key]) {
-                    // set max timeline properly
+                    // set max timeline properly after checkig conditions
                     if (
                         key === 'maxTimeline' &&
-                        value > this.#MAX_ITEMS_ALLOWED_IN_STACK
+                        (value > this.#MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.#options[key] = this.#MAX_ITEMS_ALLOWED_IN_STACK;
                     } else {
