@@ -1541,11 +1541,11 @@ describe('Email Incident Alerts',function () {
     expect(errorMessage).equal('SMTP Settings not found on Admin Dashboard');
   });
 
-    /**
-   * Global SMTP configurations : set.
-   * Email alert disabled
-   * Custom SMTP congigurations : not set.
-   */
+  /**
+  * Global SMTP configurations : set.
+  * Email alerts disabled
+  * Custom SMTP congigurations : not set.
+  */
   it('should not send Email alerts if global SMTP configurations are set and email are disabled in global configurations.',async function(){
     this.timeout(30000);
     await GlobalConfigService.create({
@@ -1613,6 +1613,79 @@ describe('Email Incident Alerts',function () {
     expect(alertStatus).to.equal(null);
     expect(error).to.equal(true);
     expect(errorMessage).equal('Alert Disabled on Admin Dashboard');
+    await GlobalConfigService.hardDeleteBy({name: 'smtp'});
+  });
+
+  /**
+  * Global SMTP configurations : set.
+  * Email alerts enabled
+  * Custom SMTP congigurations : not set.
+  */
+  it('should send Email alerts if global SMTP configurations are set and email are enabled in global configurations.',async function(){
+    this.timeout(30000);
+    await GlobalConfigService.create({
+      name: 'smtp',
+      value: {
+          'email-enabled': true,
+          email: 'ibukun.o.dairo@gmail.com',
+          password: 'ZEC1kY9xFN6aVf3j',
+          'from-name': 'Ibukun',
+          from: 'ibukun.o.dairo@gmail.com',
+          'smtp-server': 'smtp-relay.sendinblue.com',
+          'smtp-port': '465',
+          'smtp-secure': true,
+      },
+    });
+    const newIncident = await createIncident({
+      request,
+      authorization,
+      projectId,
+      monitorId,
+      payload:{
+        monitorId,
+        projectId,
+        title: "test monitor  is offline.",
+        incidentType: "offline",
+        description: 'Incident description',
+      }
+    });
+    expect(newIncident).to.have.status(200);
+    const { _id: incidentId } = newIncident.body;
+    const incidentResolved = await markIncidentAsResolved({request,authorization,projectId,incidentId});
+    expect(incidentResolved).to.have.status(200);
+    await sleep(10 * 1000);
+    const subscribersAlerts = await getSubscribersAlerts({request,authorization,projectId,incidentId,});
+    expect(subscribersAlerts).to.have.status(200);
+    expect(subscribersAlerts.body).to.an('object');
+    expect(subscribersAlerts.body.count).to.equal(2);
+    expect(subscribersAlerts.body.data).to.an('array');
+    expect(subscribersAlerts.body.data.length).to.equal(2);
+    const eventTypesSent = []
+    for (const event of subscribersAlerts.body.data) {
+      const { alertStatus, alertVia, eventType, error, errorMessage } = event;
+      eventTypesSent.push(eventType);
+      expect(alertStatus).to.equal('Sent');
+      expect(alertVia).to.equal('email');
+      expect(error).to.equal(false);
+    }
+    expect(eventTypesSent.includes('resolved')).to.equal(true);
+    expect(eventTypesSent.includes('identified')).to.equal(true);
+    const onCallAlerts = await getOnCallAlerts({
+      request,
+      authorization,
+      projectId,
+      incidentId
+    });
+    expect(onCallAlerts).to.have.status(200);
+    expect(onCallAlerts.body).to.an('object');
+    expect(onCallAlerts.body.count).to.equal(1);
+    expect(onCallAlerts.body.data).to.an('array');
+    expect(onCallAlerts.body.data.length).to.equal(1);
+    const onCallAlert = onCallAlerts.body.data[0];
+    const { alertVia, alertStatus, error } = onCallAlert;
+    expect(alertVia).to.equal('email');
+    expect(alertStatus).to.equal('Success');
+    expect(error).to.equal(false);
     await GlobalConfigService.hardDeleteBy({name: 'smtp'});
   });
 });
