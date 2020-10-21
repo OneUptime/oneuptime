@@ -185,7 +185,6 @@ class SubscribeBox extends Component {
                             >
                                 <div className="directions">
                                     Get the{' '}
-
                                     <a
                                         href={`${API_URL}/statusPage/${statusPage._id}/rss`}
                                         target="_blank"

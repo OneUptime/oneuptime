@@ -50,7 +50,7 @@ Row.propTypes = {
 function parseSchedule(schedule) {
     const { name, monitorIds, _id } = schedule;
     const { escalationIds } = schedule;
-    const escalation = escalationIds[0] && escalationIds[0].teams
+    const escalation = escalationIds[0] && escalationIds[0].teams;
     const userIds = [];
     if (escalation && escalation.length) {
         for (let i = 0; i < escalation.length; i++) {
@@ -86,21 +86,21 @@ function parseSchedule(schedule) {
 function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
-            if (Array.isArray(schedule)) return null;
-            schedule = parseSchedule(schedule);
-            return (
-                <Row
-                    name={schedule.name}
-                    users={schedule.users}
-                    monitors={schedule.monitors}
-                    isRequesting={isRequesting}
-                    id={schedule.id}
-                    key={`oncall ${index}`}
-                    match={match}
-                    subProjectId={subProjectId}
-                />
-            );
-        })
+              if (Array.isArray(schedule)) return null;
+              schedule = parseSchedule(schedule);
+              return (
+                  <Row
+                      name={schedule.name}
+                      users={schedule.users}
+                      monitors={schedule.monitors}
+                      isRequesting={isRequesting}
+                      id={schedule.id}
+                      key={`oncall ${index}`}
+                      match={match}
+                      subProjectId={subProjectId}
+                  />
+              );
+          })
         : null;
 }
 
