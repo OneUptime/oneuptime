@@ -22,36 +22,24 @@ let token, projectId, userId, smsTemplateId;
 describe('SMS Template API', function() {
     this.timeout(20000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                });
-            });
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, userData.user);
+        const project = res.body.project;
+        projectId = project._id;
+        userId = res.body.id;
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        const res1 = await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+        token = res1.body.tokens.jwtAccessToken;
     });
 
     after(async function() {
@@ -72,84 +60,68 @@ describe('SMS Template API', function() {
     });
 
     // 'post /:projectId'
-    it('should create an sms template with valid data', function(done) {
+    it('should create an sms template with valid data', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/smsTemplate/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 body: 'SMS Body',
                 smsType: 'Subscriber Incident Created',
-            })
-            .end(function(err, res) {
-                smsTemplateId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.body).to.be.equal('SMS Body');
-                done();
             });
+        smsTemplateId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.body).to.be.equal('SMS Body');
     });
 
-    it('should sanitize dirty template data sent to endpoint', function(done) {
+    it('should sanitize dirty template data sent to endpoint', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/smsTemplate/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 body: '<img src=x onerror=alert(1)//>',
                 smsType: 'Subscriber Incident Created',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body.body).to.be.equal('<img src="x">');
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body.body).to.be.equal('<img src="x">');
     });
 
-    it('should get an array of sms templates by valid projectId', function(done) {
+    it('should get an array of sms templates by valid projectId', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/smsTemplate/${projectId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
     });
 
-    it('should get an sms template by valid smsTemplateId', function(done) {
+    it('should get an sms template by valid smsTemplateId', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
     });
 
-    it('should update an sms template by valid smsTemplateId', function(done) {
+    it('should update an sms template by valid smsTemplateId', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
             .send({
                 body: 'New SMS Body',
             })
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.body).to.be.equal('New SMS Body');
-
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.body).to.be.equal('New SMS Body');
     });
 
-    it('should update default sms template', function(done) {
+    it('should update default sms template', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/smsTemplate/${projectId}`)
             .send([
                 {
@@ -157,23 +129,17 @@ describe('SMS Template API', function() {
                     smsType: 'Subscriber Incident Acknowldeged',
                 },
             ])
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(res.body[1].body).to.be.equal('Updated SMS Body');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body[1].body).to.be.equal('Updated SMS Body');
     });
 
-    it('should deleted an sms template', function(done) {
+    it('should deleted an sms template', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
     });
 });
