@@ -122,6 +122,15 @@ module.exports = {
             throw error;
         }
     },
+    hardDeleteBy: async function(query) {
+        try {
+            await incidentPriorityModel.deleteMany(query);
+            return 'Incident priorities removed successfully!';
+        } catch (error) {
+            ErrorService.log('incidentPrioritiesService.deleteMany', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

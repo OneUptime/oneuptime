@@ -351,8 +351,8 @@ module.exports = {
                             jobRole: data.companyRole,
                             createdAt,
                         });
-                    } catch (e) {
-                        //
+                    } catch (error) {
+                        ErrorService.log('userService.signup', error);
                     }
 
                     if (record && record.id) {
@@ -361,7 +361,7 @@ module.exports = {
                         user.airtableId = null;
                     }
 
-                    if (IS_TESTING === 'true') {
+                    if (IS_TESTING) {
                         user.verificationToken = verificationToken;
                     }
 
@@ -931,8 +931,8 @@ const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
 const iplocation = require('iplocation').default;
 const jwtSecretKey = process.env['JWT_SECRET'];
-const { IS_SAAS_SERVICE } = require('../config/server');
-const { NODE_ENV, IS_TESTING } = process.env;
+const { IS_SAAS_SERVICE, IS_TESTING } = require('../config/server');
+const { NODE_ENV } = process.env;
 const VerificationTokenModel = require('../models/verificationToken');
 const MailService = require('../services/mailService');
 const AirtableService = require('./airtableService');

@@ -352,7 +352,7 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    incident,
+                    ...incident,
                     count: action.payload.count,
                     skip: action.payload.skip,
                     limit: action.payload.limit,
@@ -490,6 +490,10 @@ export default function incident(state = initialState, action) {
         case types.RESOLVE_INCIDENT_SUCCESS:
             if (action.payload.multiple) {
                 return Object.assign({}, state, {
+                    incident: {
+                        ...state.incident,
+                        incident: action.payload.data,
+                    },
                     unresolvedincidents: {
                         requesting: false,
                         resolving: false,

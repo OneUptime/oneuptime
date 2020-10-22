@@ -16,7 +16,7 @@ const ProjectService = require('../backend/services/projectService');
 const NotificationService = require('../backend/services/notificationService');
 const AirtableService = require('../backend/services/airtableService');
 
-let token, userId, airtableId, projectId, componentId, applicationLog;
+let token, userId, projectId, componentId, applicationLog;
 const log = {
     applicationLogKey: 'Wrong-key',
     content: 'this is a log',
@@ -38,7 +38,6 @@ describe('Application Log API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -552,6 +551,6 @@ describe('Application Log API', function() {
             },
         });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 });

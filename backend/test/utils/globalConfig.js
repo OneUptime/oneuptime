@@ -21,7 +21,7 @@ module.exports = {
             name: 'twilio',
             value: {
                 'sms-enabled': true,
-                'call-enabled': false,
+                'call-enabled': true,
                 'account-sid': 'AC4b957669470069d68cd5a09d7f91d7c6',
                 'authentication-token': '79a35156d9967f0f6d8cc0761ef7d48d',
                 phone: '+15005550006',

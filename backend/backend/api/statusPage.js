@@ -74,6 +74,14 @@ router.put(
                     message: 'Domain is required.',
                 });
             }
+            for (const element of subDomain) {
+                if (!UtilService.isDomainValid(element.domain)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Domain is not valid.',
+                    });
+                }
+            }
         } else {
             if (typeof subDomain !== 'string') {
                 return sendErrorResponse(req, res, {
@@ -554,7 +562,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 ],
             };
             const finalFeed = toXML(feedObj, xmlOptions);
-            res.contentType('application/rss');
+            res.contentType('application/xml');
             return sendItemResponse(req, res, finalFeed);
         }
     } catch (error) {

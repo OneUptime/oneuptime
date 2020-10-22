@@ -17,7 +17,7 @@ const AirtableService = require('../backend/services/airtableService');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let userId, airtableId, projectId;
+let userId, projectId;
 
 describe('Email verification API', function() {
     this.timeout(20000);
@@ -28,7 +28,6 @@ describe('Email verification API', function() {
             createUser(request, userData.user, function(err, res) {
                 userId = res.body.id;
                 projectId = res.body.project._id;
-                airtableId = res.body.airtableId;
 
                 done();
             });
@@ -47,7 +46,7 @@ describe('Email verification API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should send email verification', async function() {

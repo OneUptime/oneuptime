@@ -59,7 +59,7 @@ const validate = values => {
         ) {
             //At least one registred field need must be assigned a value
             monitorErrors.uptime = true;
-            monitorErrors.error = 'You must select at least one bar chart';
+            monitorErrors.error = 'You must select at least one chart type';
         }
         monitorsArrayErrors[i] = monitorErrors;
     }
