@@ -128,7 +128,6 @@ describe('Twilio API', function() {
         const configuration = await GlobalConfigService.findOneBy({
             name: 'twilio',
         });
-        console.log('configuration', configuration);
         const value = configuration.value;
 
         const payload = {
