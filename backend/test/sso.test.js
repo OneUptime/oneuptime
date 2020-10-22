@@ -24,7 +24,7 @@ const ssoObject = {
     ipRanges: '127.0.0.1',
 };
 
-let token, userId, airtableId;
+let token, userId;
 
 describe('SSO API', function() {
     this.timeout(300000);
@@ -34,7 +34,6 @@ describe('SSO API', function() {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.adminUser, function(err, res) {
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -76,7 +75,7 @@ describe('SSO API', function() {
                 ],
             },
         });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     describe('should reject request of an unauthenticated user', function() {

@@ -1704,6 +1704,15 @@ const _this = {
             throw error;
         }
     },
+    hasCustomSmtpSettings: async projectId => {
+        const smtpConfigurations = await EmailSmtpService.findOneBy({
+            projectId,
+            enabled: true,
+        });
+        return Object.keys(smtpConfigurations).length
+            ? smtpConfigurations
+            : false;
+    },
 };
 
 module.exports = _this;

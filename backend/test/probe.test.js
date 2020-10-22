@@ -24,6 +24,7 @@ const DockerCredentialService = require('../backend/services/dockerCredentialSer
 const ContainerSecurityService = require('../backend/services/containerSecurityService');
 let probeId;
 const GlobalConfig = require('./utils/globalConfig');
+const AirtableService = require('../backend/services/airtableService');
 let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const sleep = waitTimeInMs =>
@@ -99,6 +100,7 @@ describe('Probe API', function() {
                 $in: [probeServerName1, probeServerName2],
             },
         });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should add a probe by admin', function(done) {
@@ -216,84 +218,6 @@ describe('Probe API', function() {
                         done();
                     });
             });
-    });
-
-    it('should get application securities yet to be scanned or scanned 24hrs ago', function(done) {
-        const authorization = `Basic ${token}`;
-        const probeName = 'US';
-        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
-        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
-
-        GitCredentialService.create({
-            gitUsername: gitCredential.gitUsername,
-            gitPassword: gitCredential.gitPassword,
-            projectId,
-        }).then(function(credential) {
-            const data = {
-                name: 'Test',
-                gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                gitCredential: credential._id,
-            };
-
-            request
-                .post(`/security/${projectId}/${componentId}/application`)
-                .set('Authorization', authorization)
-                .send(data)
-                .end(function() {
-                    request
-                        .get('/probe/applicationSecurities')
-                        .set({
-                            probeName,
-                            probeKey,
-                            clusterKey,
-                        })
-                        .end(function(err, res) {
-                            expect(res).to.have.status(200);
-                            expect(res.body).to.be.an('array');
-                            done();
-                        });
-                });
-        });
-    });
-
-    it('should get container securities yet to be scanned or scanned 24hrs ago', function(done) {
-        const authorization = `Basic ${token}`;
-        const probeName = 'US';
-        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
-        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
-
-        DockerCredentialService.create({
-            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
-            dockerUsername: dockerCredential.dockerUsername,
-            dockerPassword: dockerCredential.dockerPassword,
-            projectId,
-        }).then(function(credential) {
-            const data = {
-                name: 'Test',
-                dockerCredential: credential._id,
-                imagePath: dockerCredential.imagePath,
-                imageTags: dockerCredential.imageTags,
-            };
-
-            request
-                .post(`/security/${projectId}/${componentId}/container`)
-                .set('Authorization', authorization)
-                .send(data)
-                .end(function() {
-                    request
-                        .get('/probe/containerSecurities')
-                        .set({
-                            probeName,
-                            probeKey,
-                            clusterKey,
-                        })
-                        .end(function(err, res) {
-                            expect(res).to.have.status(200);
-                            expect(res.body).to.be.an('array');
-                            done();
-                        });
-                });
-        });
     });
 
     it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function() {
@@ -476,5 +400,83 @@ describe('Probe API', function() {
         expect(res.body.count).to.equal(1);
 
         await MonitorService.hardDeleteBy({ _id: monitor._id });
+    });
+
+    it('should get application securities yet to be scanned or scanned 24hrs ago', function(done) {
+        const authorization = `Basic ${token}`;
+        const probeName = 'US';
+        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+
+        GitCredentialService.create({
+            gitUsername: gitCredential.gitUsername,
+            gitPassword: gitCredential.gitPassword,
+            projectId,
+        }).then(function(credential) {
+            const data = {
+                name: 'Test',
+                gitRepositoryUrl: gitCredential.gitRepositoryUrl,
+                gitCredential: credential._id,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/application`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function() {
+                    request
+                        .get('/probe/applicationSecurities')
+                        .set({
+                            probeName,
+                            probeKey,
+                            clusterKey,
+                        })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('array');
+                            done();
+                        });
+                });
+        });
+    });
+
+    it('should get container securities yet to be scanned or scanned 24hrs ago', function(done) {
+        const authorization = `Basic ${token}`;
+        const probeName = 'US';
+        const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+
+        DockerCredentialService.create({
+            dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
+            dockerUsername: dockerCredential.dockerUsername,
+            dockerPassword: dockerCredential.dockerPassword,
+            projectId,
+        }).then(function(credential) {
+            const data = {
+                name: 'Test',
+                dockerCredential: credential._id,
+                imagePath: dockerCredential.imagePath,
+                imageTags: dockerCredential.imageTags,
+            };
+
+            request
+                .post(`/security/${projectId}/${componentId}/container`)
+                .set('Authorization', authorization)
+                .send(data)
+                .end(function() {
+                    request
+                        .get('/probe/containerSecurities')
+                        .set({
+                            probeName,
+                            probeKey,
+                            clusterKey,
+                        })
+                        .end(function(err, res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.be.an('array');
+                            done();
+                        });
+                });
+        });
     });
 });

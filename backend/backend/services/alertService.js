@@ -13,8 +13,7 @@ module.exports = {
     ) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const balance = project.balance;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        const countryType = getCountryType(countryCode);
+        const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         if (balance > alertChargeAmount.minimumBalance) {
             await PaymentService.chargeAlert(
@@ -34,8 +33,7 @@ module.exports = {
     ) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const alertOptions = project.alertOptions;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        let countryType = getCountryType(countryCode);
+        let countryType = getCountryType(alertPhoneNumber);
         if (countryType === 'us') {
             countryType = 'billingUS';
         } else if (countryType === 'non-us') {
@@ -570,6 +568,7 @@ module.exports = {
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
         const firstName = user.name;
+        const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date)
@@ -578,6 +577,42 @@ module.exports = {
         }
 
         try {
+            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
+                name: 'smtp',
+            });
+            const areEmailAlertsEnabledInGlobalSettings =
+                hasGlobalSmtpSettings &&
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
+                    ? true
+                    : false;
+            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                projectId
+            );
+            if (
+                !areEmailAlertsEnabledInGlobalSettings &&
+                !hasCustomSmtpSettings
+            ) {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.Email,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage:
+                        !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                            ? 'SMTP Settings not found on Admin Dashboard'
+                            : hasGlobalSmtpSettings &&
+                              !areEmailAlertsEnabledInGlobalSettings
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : 'Error.',
+                });
+            }
             await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -627,13 +662,29 @@ module.exports = {
         onCallScheduleStatus,
     }) {
         const _this = this;
-        let alertStatus, alert, balanceStatus;
+        let alert, balanceStatus;
         const date = new Date();
         const monitorId = monitor._id;
         const accessToken = UserService.getAccessToken({
             userId: user._id,
             expiresIn: 12 * 60 * 60 * 1000,
         });
+        if (!user.alertPhoneNumber) {
+            return await _this.create({
+                projectId: incident.projectId,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
+                alertVia: AlertType.Call,
+                userId: user._id,
+                incidentId: incident._id,
+                alertStatus: null,
+                error: true,
+                errorMessage: 'No phone number',
+            });
+        }
+
         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
             name: 'twilio',
         });
@@ -662,91 +713,78 @@ module.exports = {
                 alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
+                alertStatus: null,
                 error: true,
-                alertStatus: 'Alerts Disabled',
+                errorMessage: !hasGlobalTwilioSettings
+                    ? 'Twilio Settings not found on Admin Dashboard'
+                    : !areAlertsEnabledGlobally
+                    ? 'Alert Disabled on Admin Dashboard'
+                    : IS_SAAS_SERVICE && !project.alertEnable
+                    ? 'Alert Disabled for this project'
+                    : 'Error',
             });
         }
 
-        if (!user.alertPhoneNumber || user.alertPhoneNumber === '') {
-            return await _this.create({
-                projectId: incident.projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.Call,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: 'No Phone Number',
-            });
-        }
-
-        let hasEnoughBalance;
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            hasEnoughBalance = await _this.hasEnoughBalance(
-                project._id,
-                user.alertPhoneNumber,
-                user._id,
-                AlertType.Call
-            );
-        }
-        if (!IS_SAAS_SERVICE || hasCustomTwilioSettings || hasEnoughBalance) {
-            const alertStatus = await TwilioService.sendIncidentCreatedCall(
-                date,
-                monitor.name,
-                user.alertPhoneNumber,
-                accessToken,
-                incident._id,
+            const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
                 incident.projectId,
-                incident.incidentType
+                user.alertPhoneNumber
             );
-            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+            if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                const countryType = getCountryType(user.alertPhoneNumber);
                 return await _this.create({
-                    projectId: project._id,
+                    projectId: incident.projectId,
+                    monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
-                    monitorId,
                     alertVia: AlertType.Call,
                     userId: user._id,
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
-                    errorMessage: alertStatus.message,
+                    errorMessage:
+                        countryType === 'us'
+                            ? 'Calls for numbers inside US not enabled for this project'
+                            : countryType === 'non-us'
+                            ? 'Calls for numbers outside US not enabled for this project'
+                            : 'Calls to High Risk country not enabled for this project',
                 });
-            } else if (alertStatus) {
-                alert = await _this.create({
-                    projectId: project._id,
+            }
+            const hasEnoughBalance = await _this.hasEnoughBalance(
+                project._id,
+                user.alertPhoneNumber,
+                user._id,
+                AlertType.Call
+            );
+            if (!hasEnoughBalance) {
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
-                    monitorId,
                     alertVia: AlertType.Call,
                     userId: user._id,
                     incidentId: incident._id,
-                    alertStatus: 'Success',
+                    alertStatus: null,
+                    error: true,
+                    errorMessage: 'Low Balance',
                 });
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    balanceStatus = await _this.getBalanceStatus(
-                        project._id,
-                        user.alertPhoneNumber,
-                        AlertType.Call
-                    );
-                    AlertChargeService.create(
-                        incident.projectId,
-                        balanceStatus.chargeAmount,
-                        balanceStatus.closingBalance,
-                        alert._id,
-                        monitorId,
-                        incident._id,
-                        user.alertPhoneNumber
-                    );
-                }
             }
-        } else {
-            alertStatus = 'Blocked - Low balance';
+        }
+        const alertStatus = await TwilioService.sendIncidentCreatedCall(
+            date,
+            monitor.name,
+            user.alertPhoneNumber,
+            accessToken,
+            incident._id,
+            incident.projectId,
+            incident.incidentType
+        );
+        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId: project._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
@@ -754,8 +792,38 @@ module.exports = {
                 alertVia: AlertType.Call,
                 userId: user._id,
                 incidentId: incident._id,
-                alertStatus,
+                alertStatus: null,
+                error: true,
+                errorMessage: 'Error',
             });
+        } else if (alertStatus) {
+            alert = await _this.create({
+                projectId: project._id,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
+                alertVia: AlertType.Call,
+                userId: user._id,
+                incidentId: incident._id,
+                alertStatus: 'Success',
+            });
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                balanceStatus = await _this.getBalanceStatus(
+                    project._id,
+                    user.alertPhoneNumber,
+                    AlertType.Call
+                );
+                AlertChargeService.create(
+                    incident.projectId,
+                    balanceStatus.chargeAmount,
+                    balanceStatus.closingBalance,
+                    alert._id,
+                    monitorId,
+                    incident._id,
+                    user.alertPhoneNumber
+                );
+            }
         }
     },
 
@@ -769,10 +837,26 @@ module.exports = {
         onCallScheduleStatus,
     }) {
         const _this = this;
-        let alertStatus, alert, balanceStatus;
+        let alert, balanceStatus;
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
+        if (!user.alertPhoneNumber) {
+            return await _this.create({
+                projectId,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
+                alertVia: AlertType.SMS,
+                userId: user._id,
+                incidentId: incident._id,
+                alertStatus: null,
+                error: true,
+                errorMessage: 'No phone number',
+            });
+        }
+
         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
             name: 'twilio',
         });
@@ -785,13 +869,13 @@ module.exports = {
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
         );
-        const areAlertsDisabled =
+
+        if (
             !hasCustomTwilioSettings &&
             ((IS_SAAS_SERVICE &&
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally));
-
-        if (areAlertsDisabled) {
+                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+        ) {
             return await _this.create({
                 projectId: incident.projectId,
                 schedule: schedule._id,
@@ -801,116 +885,121 @@ module.exports = {
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
+                alertStatus: null,
                 error: true,
-                alertStatus: 'Alerts Disabled',
+                errorMessage: !hasGlobalTwilioSettings
+                    ? 'Twilio Settings not found on Admin Dashboard'
+                    : !areAlertsEnabledGlobally
+                    ? 'Alert Disabled on Admin Dashboard'
+                    : IS_SAAS_SERVICE && !project.alertEnable
+                    ? 'Alert Disabled for this project'
+                    : 'Error',
             });
         }
 
-        if (!user.alertPhoneNumber || user.alertPhoneNumber === '') {
-            return await _this.create({
-                projectId: incident.projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: 'No Phone Number',
-            });
-        }
-
-        let hasEnoughBalance;
-        let doesPhoneNumberComplyWithHighRiskConfig;
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            hasEnoughBalance = await _this.hasEnoughBalance(
+            const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                incident.projectId,
+                user.alertPhoneNumber
+            );
+            if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                const countryType = getCountryType(user.alertPhoneNumber);
+                return await _this.create({
+                    projectId: incident.projectId,
+                    monitorId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    errorMessage:
+                        countryType === 'us'
+                            ? 'SMS for numbers inside US not enabled for this project'
+                            : countryType === 'non-us'
+                            ? 'SMS for numbers outside US not enabled for this project'
+                            : 'SMS to High Risk country not enabled for this project',
+                });
+            }
+            const hasEnoughBalance = await _this.hasEnoughBalance(
                 incident.projectId,
                 user.alertPhoneNumber,
                 user._id,
                 AlertType.SMS
             );
-            doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                incident.projectId,
-                user.alertPhoneNumber
-            );
-        }
-
-        if (
-            IS_SAAS_SERVICE !== 'true' ||
-            hasCustomTwilioSettings ||
-            (hasEnoughBalance && doesPhoneNumberComplyWithHighRiskConfig)
-        ) {
-            let alertStatus = await TwilioService.sendIncidentCreatedMessage(
-                date,
-                monitor.name,
-                user.alertPhoneNumber,
-                incident._id,
-                user._id,
-                user.name,
-                incident.incidentType,
-                projectId
-            );
-
-            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
-                await _this.create({
+            if (!hasEnoughBalance) {
+                return await _this.create({
                     projectId: incident.projectId,
                     monitorId,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
                     alertStatus: null,
                     error: true,
-                    errorMessage: alertStatus.message,
+                    errorMessage: 'Low Balance',
                 });
-            } else if (alertStatus) {
-                alertStatus = 'Success';
-                alert = await _this.create({
-                    projectId: incident.projectId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
-                    monitorId,
-                    alertVia: AlertType.SMS,
-                    userId: user._id,
-                    incidentId: incident._id,
-                    alertStatus: alertStatus,
-                });
-                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    balanceStatus = await _this.getBalanceStatus(
-                        incident.projectId,
-                        user.alertPhoneNumber,
-                        AlertType.SMS
-                    );
-                    AlertChargeService.create(
-                        incident.projectId,
-                        balanceStatus.chargeAmount,
-                        balanceStatus.closingBalance,
-                        alert._id,
-                        monitorId,
-                        incident._id,
-                        user.alertPhoneNumber
-                    );
-                }
             }
-        } else if (
-            !hasEnoughBalance &&
-            doesPhoneNumberComplyWithHighRiskConfig
-        ) {
-            alertStatus = 'Blocked - Low balance';
-            return await _this.create({
+        }
+
+        let alertStatus = await TwilioService.sendIncidentCreatedMessage(
+            date,
+            monitor.name,
+            user.alertPhoneNumber,
+            incident._id,
+            user._id,
+            user.name,
+            incident.incidentType,
+            projectId
+        );
+
+        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+            await _this.create({
                 projectId: incident.projectId,
                 monitorId,
+                alertVia: AlertType.SMS,
+                userId: user._id,
+                incidentId: incident._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
+                alertStatus: null,
+                error: true,
+                errorMessage: alertStatus.message,
+            });
+        } else if (alertStatus) {
+            alertStatus = 'Success';
+            alert = await _this.create({
+                projectId: incident.projectId,
+                schedule: schedule._id,
+                escalation: escalation._id,
+                onCallScheduleStatus: onCallScheduleStatus._id,
+                monitorId,
                 alertVia: AlertType.SMS,
                 userId: user._id,
                 incidentId: incident._id,
                 alertStatus,
             });
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                balanceStatus = await _this.getBalanceStatus(
+                    incident.projectId,
+                    user.alertPhoneNumber,
+                    AlertType.SMS
+                );
+                AlertChargeService.create(
+                    incident.projectId,
+                    balanceStatus.chargeAmount,
+                    balanceStatus.closingBalance,
+                    alert._id,
+                    monitorId,
+                    incident._id,
+                    user.alertPhoneNumber
+                );
+            }
         }
     },
 
@@ -1086,6 +1175,47 @@ module.exports = {
             }
 
             if (subscriber.alertVia == AlertType.Email) {
+                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                    {
+                        name: 'smtp',
+                    }
+                );
+                const areEmailAlertsEnabledInGlobalSettings =
+                    hasGlobalSmtpSettings &&
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
+                        ? true
+                        : false;
+                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                    incident.projectId
+                );
+                if (
+                    !areEmailAlertsEnabledInGlobalSettings &&
+                    !hasCustomSmtpSettings
+                ) {
+                    return await SubscriberAlertService.create({
+                        projectId: incident.projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Email,
+                        eventType:
+                            templateType === 'Subscriber Incident Acknowldeged'
+                                ? 'acknowledged'
+                                : templateType ===
+                                  'Subscriber Incident Resolved'
+                                ? 'resolved'
+                                : 'identified',
+                        alertStatus: null,
+                        error: true,
+                        errorMessage:
+                            !hasGlobalSmtpSettings && !hasCustomSmtpSettings
+                                ? 'SMTP Settings not found on Admin Dashboard'
+                                : hasGlobalSmtpSettings &&
+                                  !areEmailAlertsEnabledInGlobalSettings
+                                ? 'Alert Disabled on Admin Dashboard'
+                                : 'Error',
+                    });
+                }
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId: incident.projectId,
                     emailType: templateType,
@@ -1192,7 +1322,13 @@ module.exports = {
                         alertVia: AlertType.SMS,
                         alertStatus: null,
                         error: true,
-                        errorMessage: 'Alert Disabled',
+                        errorMessage: !hasGlobalTwilioSettings
+                            ? 'Twilio Settings not found on Admin Dashboard'
+                            : !areAlertsEnabledGlobally
+                            ? 'Alert Disabled on Admin Dashboard'
+                            : IS_SAAS_SERVICE && !project.alertEnable
+                            ? 'Alert Disabled for this project'
+                            : 'Error',
                         eventType:
                             templateType === 'Subscriber Incident Acknowldeged'
                                 ? 'acknowledged'
@@ -1210,22 +1346,64 @@ module.exports = {
                     contactPhone = countryCode + contactPhone;
                 }
 
-                // let hasEnoughBalance;
-                // let doesPhoneNumberComplyWithHighRiskConfig;
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     const owner = project.users.filter(
                         user => user.role === 'Owner'
                     )[0];
-                    await _this.hasEnoughBalance(
+                    const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                        incident.projectId,
+                        contactPhone
+                    );
+                    if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                        const countryType = getCountryType(contactPhone);
+                        return await SubscriberAlertService.create({
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage:
+                                countryType === 'us'
+                                    ? 'SMS for numbers inside US not enabled for this project'
+                                    : countryType === 'non-us'
+                                    ? 'SMS for numbers outside US not enabled for this project'
+                                    : 'SMS to High Risk country not enabled for this project',
+                            eventType:
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                                    ? 'acknowledged'
+                                    : templateType ===
+                                      'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
+                        });
+                    }
+                    const hasEnoughBalance = await _this.hasEnoughBalance(
                         incident.projectId,
                         contactPhone,
                         owner.userId,
                         AlertType.SMS
                     );
-                    await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                        incident.projectId,
-                        contactPhone
-                    );
+                    if (!hasEnoughBalance) {
+                        return await SubscriberAlertService.create({
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.SMS,
+                            alertStatus: null,
+                            error: true,
+                            errorMessage: 'Low Balance',
+                            eventType:
+                                templateType ===
+                                'Subscriber Incident Acknowldeged'
+                                    ? 'acknowledged'
+                                    : templateType ===
+                                      'Subscriber Incident Resolved'
+                                    ? 'resolved'
+                                    : 'identified',
+                        });
+                    }
                 }
 
                 let sendResult;
@@ -1313,6 +1491,8 @@ module.exports = {
                         { _id: alertId },
                         {
                             alertStatus: null,
+                            error: true,
+                            errorMessage: 'Error',
                         }
                     );
                     throw error;
@@ -1418,8 +1598,7 @@ module.exports = {
     getBalanceStatus: async function(projectId, alertPhoneNumber, alertType) {
         const project = await ProjectService.findOneBy({ _id: projectId });
         const balance = project.balance;
-        const countryCode = alertPhoneNumber.split(' ')[0];
-        const countryType = getCountryType(countryCode);
+        const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
         return {
             chargeAmount: alertChargeAmount.price,

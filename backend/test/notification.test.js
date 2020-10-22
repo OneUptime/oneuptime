@@ -18,7 +18,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 
-let projectId, token, userId, airtableId;
+let projectId, token, userId;
 
 describe('Notification API', function() {
     this.timeout(20000);
@@ -30,7 +30,6 @@ describe('Notification API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -69,7 +68,7 @@ describe('Notification API', function() {
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create a new notification', done => {

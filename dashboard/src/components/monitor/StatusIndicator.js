@@ -16,8 +16,9 @@ function StatusIndicator({ status, resourceName }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'slate5';
+            statusColor = 'slate';
     }
+
     resourceName
         ? (content = (
               <div className="Flex-flex">
