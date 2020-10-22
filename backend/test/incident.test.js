@@ -53,87 +53,69 @@ const testServerMonitor = {
 
 describe('Incident API', function() {
     this.timeout(500000);
-    before(function(done) {
+    before(async function() {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, userData.user);
+        projectId = res.body.project._id;
+        userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'New Component',
-                                        projectId,
-                                    }).then(component => {
-                                        componentId = component._id;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({ ...monitor, componentId })
-                                            .end(async function(err, res) {
-                                                monitorId = res.body._id;
-
-                                                await IntegrationService.create(
-                                                    projectId,
-                                                    userId,
-                                                    {
-                                                        monitorId,
-                                                        userId,
-                                                        endpoint:
-                                                            'http://127.0.0.1:3010/api/webhooks/msteams',
-                                                    },
-                                                    'msteams',
-                                                    {
-                                                        incidentCreated: true,
-                                                        incidentResolved: true,
-                                                        incidentAcknowledged: true,
-                                                    }
-                                                );
-
-                                                await IntegrationService.create(
-                                                    projectId,
-                                                    userId,
-                                                    {
-                                                        monitorId,
-                                                        userId,
-                                                        endpoint:
-                                                            'http://127.0.0.1:3010/api/webhooks/slack',
-                                                    },
-                                                    'slack',
-                                                    {
-                                                        incidentCreated: true,
-                                                        incidentResolved: true,
-                                                        incidentAcknowledged: true,
-                                                    }
-                                                );
-                                                expect(res).to.have.status(200);
-                                                expect(
-                                                    res.body.name
-                                                ).to.be.equal(monitor.name);
-                                                done();
-                                            });
-                                    });
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        const res1 = await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+
+        token = res1.body.tokens.jwtAccessToken;
+        const authorization = `Basic ${token}`;
+        const component = await ComponentModel.create({
+            name: 'New Component',
+            projectId,
+        });
+        componentId = component._id;
+        const res2 = await request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({ ...monitor, componentId });
+        monitorId = res2.body._id;
+        await IntegrationService.create(
+            projectId,
+            userId,
+            {
+                monitorId,
+                userId,
+                endpoint: 'http://127.0.0.1:3010/api/webhooks/msteams',
+            },
+            'msteams',
+            {
+                incidentCreated: true,
+                incidentResolved: true,
+                incidentAcknowledged: true,
+            }
+        );
+
+        await IntegrationService.create(
+            projectId,
+            userId,
+            {
+                monitorId,
+                userId,
+                endpoint: 'http://127.0.0.1:3010/api/webhooks/slack',
+            },
+            'slack',
+            {
+                incidentCreated: true,
+                incidentResolved: true,
+                incidentAcknowledged: true,
+            }
+        );
+        expect(res2).to.have.status(200);
+        expect(res2.body.name).to.be.equal(monitor.name);
     });
 
     after(async function() {
@@ -631,13 +613,12 @@ describe('Incident API', function() {
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(0);
-        });
+        const res = await request.get(`alert/${projectId}/alert/charges`);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data).to.be.an('array');
+        expect(res.body.data.length).to.be.equal(0);
     });
 
     it('should send incident alert when balance is above minimum amount', async function() {
@@ -667,13 +648,12 @@ describe('Incident API', function() {
         expect(callAlert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(1);
-        });
+        const res = await request.get(`alert/${projectId}/alert/charges`);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data).to.be.an('array');
+        expect(res.body.data.length).to.be.equal(1);
     });
 });
 
