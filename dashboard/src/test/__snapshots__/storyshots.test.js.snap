@@ -8250,7 +8250,7 @@ exports[`Storyshots Modals FeedbackModal 1`] = `
                       onDragStart={[Function]}
                       onDrop={[Function]}
                       onFocus={[Function]}
-                      placeholder="Anything we can to help?"
+                      placeholder="Anything we can do to help?"
                       style={
                         Object {
                           "height": "100px",
