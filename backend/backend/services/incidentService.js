@@ -305,19 +305,19 @@ module.exports = {
     async _sendIncidentCreatedAlert(incident) {
         try {
             await AlertService.sendCreatedIncident(incident);
-            await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
-
+            
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
                 _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
+                monitor.componentId && monitor.componentId._id
+                ? monitor.componentId._id
+                : monitor.componentId,
             });
+            await AlertService.sendCreatedIncidentToSubscribers(incident, component);
             const meta = {
                 type: 'Incident',
                 componentId:
@@ -346,12 +346,12 @@ module.exports = {
                     component
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created'
-                );
+                // await WebHookService.sendNotification(
+                //     incident.projectId,
+                //     incident,
+                //     incident.monitorId,
+                //     'created'
+                // );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
                     incident.projectId,
@@ -378,12 +378,12 @@ module.exports = {
                     component
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created'
-                );
+                // await WebHookService.sendNotification(
+                //     incident.projectId,
+                //     incident,
+                //     incident.monitorId,
+                //     'created'
+                // );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
                     incident.projectId,
@@ -491,7 +491,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     monitor,
-                    'acknowledged'
+                    'acknowledged',
+                    component,
+                    downtimestring
                 );
 
                 await SlackService.sendNotification(
@@ -729,7 +731,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
-                    'resolved'
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
@@ -768,7 +772,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
-                    'resolved'
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
