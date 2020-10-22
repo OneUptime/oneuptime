@@ -6,6 +6,7 @@ function StatusIndicator({ status, resourceName }) {
     let statusColor, content;
 
     switch (status.toLowerCase()) {
+
         case 'online':
             statusColor = 'green';
             break;
@@ -16,27 +17,28 @@ function StatusIndicator({ status, resourceName }) {
             statusColor = 'red';
             break;
         default:
-            statusColor = 'slate5';
+            statusColor = 'slate';
     }
+
     resourceName
         ? (content = (
-              <div className="Flex-flex">
-                  <div
-                      className={`db-Badge Box-background--${statusColor}`}
-                  ></div>
+            <div className="Flex-flex">
+                <div
+                    className={`db-Badge Box-background--${statusColor}`}
+                ></div>
 
-                  <span
-                      id={`resource_status_${resourceName}`}
-                      className={`Text-color--${statusColor}`}
-                  >
-                      {' '}
-                      {` ${status}`}{' '}
-                  </span>
-              </div>
-          ))
+                <span
+                    id={`resource_status_${resourceName}`}
+                    className={`Text-color--${statusColor}`}
+                >
+                    {' '}
+                    {` ${status}`}{' '}
+                </span>
+            </div>
+        ))
         : (content = (
-              <div className={`db-Badge Box-background--${statusColor}`}></div>
-          ));
+            <div className={`db-Badge Box-background--${statusColor}`}></div>
+        ));
 
     return content;
 }
