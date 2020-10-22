@@ -24,6 +24,7 @@ import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
 
+import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
@@ -445,15 +446,64 @@ export class IncidentStatus extends Component {
                                                         <label className="">
                                                             Cause
                                                         </label>
-                                                        <div className="bs-content-inside">
-                                                            <div>
-                                                                {
-                                                                    this.props
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                marginTop:
+                                                                    '6px',
+                                                            }}
+                                                            id={`${monitorName}_IncidentReport`}
+                                                        >
+                                                            <ReactMarkdown
+                                                                source={`This ${this.props
                                                                         .incident
-                                                                        .createdById
-                                                                        .name
-                                                                }
-                                                            </div>
+                                                                        .incidentType
+                                                                    } incident was created because the monitor's${incidentReason &&
+                                                                        incidentReason.length >
+                                                                        1
+                                                                        ? ':\n' +
+                                                                        incidentReason
+                                                                            .map(
+                                                                                a => {
+                                                                                    if (
+                                                                                        a.includes(
+                                                                                            'Response Time'
+                                                                                        )
+                                                                                    ) {
+                                                                                        const milliSeconds = a.match(
+                                                                                            /\d+/
+                                                                                        )[0];
+                                                                                        const time = formatMonitorResponseTime(
+                                                                                            Number(
+                                                                                                milliSeconds
+                                                                                            )
+                                                                                        );
+                                                                                        return (
+                                                                                            '- **&middot; ' +
+                                                                                            a.replace(
+                                                                                                milliSeconds +
+                                                                                                ' ms',
+                                                                                                time
+                                                                                            ) +
+                                                                                            '**.'
+                                                                                        );
+                                                                                    } else {
+                                                                                        return (
+                                                                                            '- **&middot; ' +
+                                                                                            a +
+                                                                                            '**.'
+                                                                                        );
+                                                                                    }
+                                                                                }
+                                                                            )
+                                                                            .join(
+                                                                                '\n'
+                                                                            )
+                                                                        : ' **' +
+                                                                        incidentReason.pop() +
+                                                                        '**.'
+                                                                    }`}
+                                                            />
                                                         </div>
                                                     </div>
                                                 )}
