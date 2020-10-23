@@ -524,7 +524,10 @@ describe('Incident API', function() {
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
-        const res = await request.get(`alert/${projectId}/alert/charges`);
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/alert/${projectId}/alert/charges`)
+            .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
