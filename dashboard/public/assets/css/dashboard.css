@@ -51308,13 +51308,18 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   display: flex;
 }
 
+.bs-Fieldset.bs-container {
+  width: 65%;
+  margin: auto;
+}
+
 .bs-left-side {
-  width: 35%;
+  width: 50%;
   padding: 15px;
 }
 
 .bs-right-side {
-  width: 35%;
+  width: 50%;
   padding: 15px;
 }
 
@@ -51325,7 +51330,8 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .bs-Fieldset-rows.bs-header label {
   font-weight: 600;
   text-transform: uppercase;
-  color: rgb(143, 140, 140);
+  color: rgb(70, 68, 68);
+  font-size: 14px;
 }
 
 .bs-content-inside {
@@ -51333,8 +51339,37 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
   font-size: 16px;
 }
 
-@media (max-width: 900px) {
-  .bs-left-side, .bs-right-side {
+.bs-margin {
+  margin-top: 6px;
+}
+
+.bs-margin-more {
+  margin-top: 15px;
+}
+
+.bs-Button.bs-ack-btn {
+  text-transform: capitalize !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.bs-container-input {
+  padding: 6px;
+  margin: 7px 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.Fieldset-extra {
+  flex: 12% 0 0;
+}
+
+@media (max-width: 768px) {
+  .bs-Fieldset.bs-container {
     width: 100%;
+  }
+  .Fieldset-extra {
+    flex: 20% 0 0;
   }
 }

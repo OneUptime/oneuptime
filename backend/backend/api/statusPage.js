@@ -541,14 +541,14 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 },
                 _content: [
                     {
-                        Title: `Incidents for status page ${statusPage.title}`,
+                        Title: `Incidents for status page ${statusPage.name}`,
                     },
                     {
                         Description:
                             'RSS feed for all incidents related to monitors attached to status page',
                     },
                     {
-                        Link: `${global.apiHost}/statusPage/rss`,
+                        Link: `${global.apiHost}/statusPage/${statusPageId}/rss`,
                     },
                     {
                         LastBuildDate: () => new Date(),

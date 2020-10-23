@@ -59,7 +59,7 @@ export class FeedbackModal extends Component {
                                         <Field
                                             component={RenderTextArea}
                                             className="db-FeedbackForm-textarea"
-                                            placeholder="Anything we can to help?"
+                                            placeholder="Anything we can do to help?"
                                             defaultValue={''}
                                             name="feedback"
                                             style={{ height: '100px' }}

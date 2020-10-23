@@ -790,7 +790,7 @@ function compareStatus(incident, log) {
         : log.status;
 }
 
-export const getMonitorStatus = (incidents, logs) => {
+export const getMonitorStatus = (incidents, logs, type) => {
     const incident = incidents && incidents.length > 0 ? incidents[0] : null;
     const log = logs && logs.length > 0 ? logs[0] : null;
 
@@ -803,8 +803,9 @@ export const getMonitorStatus = (incidents, logs) => {
                     : 'online'
                 : log
                     ? log.status
-                    : 'No Data';
-
+                    : type === 'server monitor'
+                        ? 'No Data'
+                        : 'online';
     return statusCompare || 'online';
 };
 
