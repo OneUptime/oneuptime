@@ -92,6 +92,9 @@ const StatusPageProjectBox = props => {
                                     Monitors
                                 </div>
                             </td>
+                            <td>
+                                <div className="bs-ObjectList-cell">Action</div>
+                            </td>
                         </tr>
                     </thead>
                     <tbody id="statusPagesListContainer">

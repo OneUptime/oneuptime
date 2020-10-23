@@ -260,24 +260,22 @@ function TD6({ text }) {
             <div className="db-ListViewItem-link">
                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                        {text === 'Pending' && (
+                        {text === 'Pending' ? (
                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                     {text}
                                 </span>
                             </div>
-                        )}
-                        {(text === 'Success' || text === 'Sent') && (
+                        ) : text === 'Success' || text === 'Sent' ? (
                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                     Sent
                                 </span>
                             </div>
-                        )}
-                        {text === null && (
+                        ) : (
                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    Error
+                                    {text ? text : 'Error'}
                                 </span>
                             </div>
                         )}
@@ -332,6 +330,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                                   createdAt: alert.createdAt,
                                   alertStatus: alert.alertStatus,
                                   eventType: alert.eventType,
+                                  errorMessage: alert.errorMessage,
                               }),
                           })
                       }
@@ -354,7 +353,7 @@ class SubscriberAlertTableRowsClass extends React.Component {
                       <TD3 text={alert.alertVia} />
                       <TD4 text={alert.createdAt} />
                       <TD5 text={alert.eventType} />
-                      <TD6 text={alert.alertStatus} />
+                      <TD6 text={alert.alertStatus || alert.errorMessage} />
                   </tr>
               ))
             : null;

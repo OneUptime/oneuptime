@@ -21,7 +21,6 @@ const scheduledEventNoteService = require('../backend/services/scheduledEventNot
 
 let token,
     userId,
-    airtableId,
     projectId,
     scheduledEventId,
     componentId,
@@ -74,7 +73,6 @@ describe('Scheduled Event Note', function() {
                 const project = res.body.project;
                 userId = res.body.id;
                 projectId = project._id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -199,7 +197,7 @@ describe('Scheduled Event Note', function() {
         });
         await scheduledEventNoteService.hardDelete({ scheduledEventId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should get all scheduled event notes => internal notes', function(done) {

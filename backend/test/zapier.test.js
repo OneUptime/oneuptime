@@ -23,7 +23,6 @@ let token,
     projectId,
     apiKey,
     userId,
-    airtableId,
     zapierId,
     monitorId,
     incidentId;
@@ -45,7 +44,6 @@ describe('Zapier API', function() {
                 projectId = project._id;
                 userId = res.body.id;
                 apiKey = project.apiKey;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -116,7 +114,7 @@ describe('Zapier API', function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ZapierService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         delete require.cache[require.resolve('../server')];
         app.close();
     });

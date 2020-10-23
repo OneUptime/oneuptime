@@ -18,7 +18,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
-let token, userId, airtableId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;
+let token, userId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -52,7 +52,6 @@ describe('Webhook API', function() {
             createUser(request, userData.user, async function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 // make created user master admin
                 await UserService.updateBy(
@@ -109,7 +108,7 @@ describe('Webhook API', function() {
             },
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await IntegrationService.hardDeleteBy({
             _id: { $in: [msTeamsId, msTeamsId1, slackId, slackId1] },
         });

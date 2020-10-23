@@ -24,8 +24,6 @@ class Schedule extends Component {
     }
 
     async componentDidMount() {
-        this.setState({ isLoading: true });
-
         const { subProjectId, scheduleId } = this.props;
         try {
             await Promise.all([
@@ -33,10 +31,8 @@ class Schedule extends Component {
                 this.props.subProjectTeamLoading(subProjectId),
                 this.props.teamLoading(subProjectId),
             ]);
-
-            this.setState({ isLoading: false, error: null });
         } catch (e) {
-            this.setState({ error: e, isLoading: false });
+            this.setState({ error: e });
         }
     }
 

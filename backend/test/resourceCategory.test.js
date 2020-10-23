@@ -17,7 +17,7 @@ const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, resourceCategoryId, apiKey;
+let token, userId, projectId, resourceCategoryId, apiKey;
 const resourceCategory = {
     resourceCategoryName: 'New Resource Category',
 };
@@ -34,7 +34,6 @@ describe('Resource Category API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -73,7 +72,7 @@ describe('Resource Category API', function() {
             },
         });
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should reject the request of an unauthenticated user', function(done) {

@@ -13,6 +13,7 @@ const UserService = require('../backend/services/userService');
 const MonitorService = require('../backend/services/monitorService');
 const IncidentService = require('../backend/services/incidentService');
 const IncidentSettings = require('../backend/services/incidentSettingsService');
+const IncidentPrioritiesService = require('../backend/services/incidentPrioritiesService');
 const ComponentService = require('../backend/services/componentService');
 const ProjectService = require('../backend/services/projectService');
 const NotificationService = require('../backend/services/notificationService');
@@ -22,6 +23,7 @@ const {
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
+const AirtableService = require('../backend/services/airtableService');
 
 let token, userId, projectId, monitorId, componentId, incidentId;
 
@@ -35,10 +37,6 @@ const incidentSettings = {
     title: `TEST: {{monitorName}}`,
     description: `TEST: {{incidentType}}`,
 };
-const incidentSettingsAfterSubstitution = {
-    title: `TEST: ${monitor.name}`,
-    description: `TEST: ${incidentData.incidentType}`,
-};
 
 describe('Incident Settings API', function() {
     this.timeout(500000);
@@ -48,7 +46,6 @@ describe('Incident Settings API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -95,12 +92,14 @@ describe('Incident Settings API', function() {
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
-        await IncidentSettings.hardDeleteBy({ projectId: projectId });
+        await IncidentSettings.hardDeleteBy({ projectId });
+        await IncidentPrioritiesService.hardDeleteBy({ projectId });
         await UserService.hardDeleteBy({ _id: userId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ComponentService.hardDeleteBy({ _id: componentId });
-        await NotificationService.hardDeleteBy({ projectId: projectId });
+        await NotificationService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should return the list of the available variables', async () => {
@@ -134,10 +133,16 @@ describe('Incident Settings API', function() {
 
     it('should update the default incident settings.', async () => {
         const authorization = `Basic ${token}`;
+        const incidentPriorityObject = await IncidentPrioritiesService.findOne({
+            projectId,
+            name: 'High',
+        });
+        expect(incidentPriorityObject).to.not.equal(null);
+        const { _id: incidentPriority } = incidentPriorityObject;
         let res = await request
             .put(`/incidentSettings/${projectId}`)
             .set('Authorization', authorization)
-            .send(incidentSettings);
+            .send({ ...incidentSettings, incidentPriority });
         expect(res).to.have.status(200);
         res = await request
             .get(`/incidentSettings/${projectId}`)
@@ -151,20 +156,19 @@ describe('Incident Settings API', function() {
         expect(res.body.description).to.eql(incidentSettings.description);
     });
 
-    it('should substitute variables with their values when an incident is created.', async () => {
+    it('should not substitute variables with their values when an incident is created manually.', async () => {
         const authorization = `Basic ${token}`;
+        const payload = { ...incidentData, ...incidentSettings };
         const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send(incidentData);
+            .send(payload);
 
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         incidentId = res.body._id;
         const incident = await IncidentService.findOneBy({ _id: incidentId });
-        expect(incident.title).to.eql(incidentSettingsAfterSubstitution.title);
-        expect(incident.description).to.eql(
-            incidentSettingsAfterSubstitution.description
-        );
+        expect(incident.title).to.eql(incidentSettings.title);
+        expect(incident.description).to.eql(incidentSettings.description);
     });
 });
