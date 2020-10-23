@@ -92,8 +92,8 @@ const StatusPageProjectBox = props => {
                                     Monitors
                                 </div>
                             </td>
-                            <td>
-                                <div className="bs-ObjectList-cell">
+                            <td colSpan="6" style={{ float: 'right', marginRight: '100px' }} className="status-page-btn-action-col">
+                                <div className="bs-ObjectList-cell table-row-cell" style={{ paddingLeft: '124px' }}>
                                     Action
                                 </div>
                             </td>
@@ -156,8 +156,8 @@ const StatusPageProjectBox = props => {
                             <button
                                 id="btnPrev"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
-                                        ? 'Is--disabled'
-                                        : ''
+                                    ? 'Is--disabled'
+                                    : ''
                                     }`}
                                 data-db-analytics-name="list_view.pagination.previous"
                                 disabled={!props.canPaginateBackward}
@@ -181,8 +181,8 @@ const StatusPageProjectBox = props => {
                             <button
                                 id="btnNext"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateForward
-                                        ? 'Is--disabled'
-                                        : ''
+                                    ? 'Is--disabled'
+                                    : ''
                                     }`}
                                 data-db-analytics-name="list_view.pagination.next"
                                 disabled={!props.canPaginateForward}

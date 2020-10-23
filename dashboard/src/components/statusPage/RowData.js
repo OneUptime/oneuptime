@@ -63,9 +63,10 @@ export class RowData extends Component {
                 <td
                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                     style={{ height: '1px', minWidth: '270px' }}
+
                 >
                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                        <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Margin-right--16">
                                 <span>{monitors}</span>
                             </div>
@@ -76,11 +77,15 @@ export class RowData extends Component {
                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                     style={{ height: '1px', minWidth: '270px' }}
                 >
-                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 table-view-item-btn-cell" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            <div className="Box-root Margin-right--16">
-                                <button className='Button' style={{ height: '48px' }} id='viewStatusPage'>
-                                    <span className='bs-Button'>View</span>
+                            <div className="Box-root" style={{ marginRight: '4px' }}>
+                                <button
+                                    className="Button"
+                                    style={{ height: '48px' }}
+                                    id="viewStatusPage"
+                                >
+                                    <span className="bs-Button">View Status Page</span>
                                 </button>
                             </div>
                         </span>

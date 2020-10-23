@@ -51271,5 +51271,16 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
     min-width: 0;
     border: none;
 }
-
+@media only screen and (max-width: 768px){
+  .status-page-btn-action-col{
+    float: none!important;
+    margin-right: 0!important;
+  }
+  .table-row-cell{
+    padding: 9px 10px!important;
+  }
+  .table-view-item-btn-cell{
+    display: block!important
+  }
+}
 
