@@ -46,9 +46,8 @@ export class IncidentMessageThread extends Component {
                         <button
                             className="bs-Button bs-ButtonLegacy ActionIconParent"
                             type="button"
-                            id={`add-${
-                                title.toLowerCase().split(' ')[0]
-                            }-message`}
+                            id={`add-${title.toLowerCase().split(' ')[0]
+                                }-message`}
                             onClick={() =>
                                 openModal({
                                     id: createMessageModalId,
@@ -119,245 +118,254 @@ export class IncidentMessageThread extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {incidentMessages &&
-                            incidentMessages.incidentMessages ? (
-                                incidentMessages.incidentMessages.map(
-                                    (incidentMessage, i) => {
-                                        return (
-                                            <tr
-                                                id={`${type}_incident_message_${i}`}
-                                                key={i}
-                                                className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                            >
-                                                <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                                    style={{
-                                                        height: '1px',
-                                                        minWidth: '400px',
-                                                    }}
+                                incidentMessages.incidentMessages ? (
+                                    incidentMessages.incidentMessages.map(
+                                        (incidentMessage, i) => {
+                                            return (
+                                                <tr
+                                                    id={`${type}_incident_message_${i}`}
+                                                    key={i}
+                                                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                                 >
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <div
-                                                            className="Box-root Margin-right--16"
-                                                            style={{
-                                                                cursor:
-                                                                    'pointer',
-                                                            }}
-                                                        >
-                                                            <img
-                                                                src="/dashboard/assets/img/profile-user.svg"
-                                                                className="userIcon"
-                                                                alt="usericon"
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                        style={{
+                                                            height: '1px',
+                                                            minWidth: '400px',
+                                                        }}
+                                                    >
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                            <div
+                                                                className="Box-root Margin-right--16"
                                                                 style={{
-                                                                    marginBottom:
-                                                                        '-5px',
-                                                                }}
-                                                            />
-                                                            <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {incidentMessage.createdById &&
-                                                                incidentMessage
-                                                                    .createdById
-                                                                    .name
-                                                                    ? incidentMessage
-                                                                          .createdById
-                                                                          .name
-                                                                    : 'Unknown User'}
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="Margin-left--30">
-                                                            <span
-                                                                id={`content_${type}_incident_message_${i}`}
-                                                                style={{
-                                                                    display:
-                                                                        'block',
+                                                                    cursor:
+                                                                        'pointer',
                                                                 }}
                                                             >
-                                                                <Markdown>
-                                                                    {
-                                                                        incidentMessage.content
+                                                                <img
+                                                                    src={
+                                                                        incidentMessage.createdById &&
+                                                                            incidentMessage
+                                                                                .createdById
+                                                                                .name
+                                                                            ? '/dashboard/assets/img/profile-user.svg'
+                                                                            : '/dashboard/assets/img/fyipe.svg'
                                                                     }
-                                                                </Markdown>
-                                                            </span>
-                                                            <ShouldRender
-                                                                if={
-                                                                    incidentMessage.updated
-                                                                }
-                                                            >
-                                                                <span
-                                                                    id={`edited_${type}_incident_message_${i}`}
-                                                                    className="Text-color--dark Margin-right--4"
-                                                                >
-                                                                    (edited)
-                                                                </span>
-                                                            </ShouldRender>
-                                                            <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
-                                                                <span
+                                                                    className="userIcon"
+                                                                    alt="usericon"
                                                                     style={{
-                                                                        fontWeight:
-                                                                            '500',
-                                                                        fontSize:
-                                                                            '11px',
+                                                                        marginBottom:
+                                                                            '-5px',
+                                                                    }}
+                                                                />
+                                                                <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    {incidentMessage.createdById &&
+                                                                        incidentMessage
+                                                                            .createdById
+                                                                            .name
+                                                                        ? incidentMessage
+                                                                            .createdById
+                                                                            .name
+                                                                        : incident.createdByZapier
+                                                                            ? 'Zapier'
+                                                                            : 'Fyipe'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="Margin-left--30">
+                                                                <span
+                                                                    id={`content_${type}_incident_message_${i}`}
+                                                                    style={{
+                                                                        display:
+                                                                            'block',
                                                                     }}
                                                                 >
-                                                                    Posted on{' '}
-                                                                    {currentTimeZone
-                                                                        ? momentTz(
-                                                                              incidentMessage.createdAt
-                                                                          )
-                                                                              .tz(
-                                                                                  currentTimeZone
-                                                                              )
-                                                                              .format(
-                                                                                  'lll'
-                                                                              )
-                                                                        : moment(
-                                                                              incidentMessage.createdAt
-                                                                          ).format(
-                                                                              'lll'
-                                                                          )}
+                                                                    <Markdown>
+                                                                        {
+                                                                            incidentMessage.content
+                                                                        }
+                                                                    </Markdown>
                                                                 </span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                ></td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{
-                                                        height: '1px',
-                                                        minWidth: '150px',
-                                                    }}
-                                                >
-                                                    {incidentMessage.incident_state ? (
-                                                        <div className="db-ListViewItem-link">
-                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <div className="Box-root Flex-flex">
-                                                                        <div className="Box-root Flex-flex">
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                                                        <span>
-                                                                                            {
-                                                                                                incidentMessage.incident_state
-                                                                                            }
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+                                                                <ShouldRender
+                                                                    if={
+                                                                        incidentMessage.updated
+                                                                    }
+                                                                >
+                                                                    <span
+                                                                        id={`edited_${type}_incident_message_${i}`}
+                                                                        className="Text-color--dark Margin-right--4"
+                                                                    >
+                                                                        (edited)
+                                                                </span>
+                                                                </ShouldRender>
+                                                                <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    <span
+                                                                        style={{
+                                                                            fontWeight:
+                                                                                '500',
+                                                                            fontSize:
+                                                                                '11px',
+                                                                        }}
+                                                                    >
+                                                                        Posted on{' '}
+                                                                        {currentTimeZone
+                                                                            ? momentTz(
+                                                                                incidentMessage.createdAt
+                                                                            )
+                                                                                .tz(
+                                                                                    currentTimeZone
+                                                                                )
+                                                                                .format(
+                                                                                    'lll'
+                                                                                )
+                                                                            : moment(
+                                                                                incidentMessage.createdAt
+                                                                            ).format(
+                                                                                'lll'
+                                                                            )}
+                                                                    </span>
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                    ) : null}
-                                                </td>
-                                                <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
-                                                <td
-                                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                    style={{ height: '1px' }}
-                                                >
-                                                    <ShouldRender
-                                                        if={
-                                                            incidentMessage.createdById &&
-                                                            User.getUserId() ===
+                                                    </td>
+                                                    <td
+                                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                        style={{ height: '1px' }}
+                                                    ></td>
+                                                    <td
+                                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                        style={{
+                                                            height: '1px',
+                                                            minWidth: '150px',
+                                                        }}
+                                                    >
+                                                        {incidentMessage.incident_state ? (
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex-flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {
+                                                                                                    incidentMessage.incident_state
+                                                                                                }
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ) : null}
+                                                    </td>
+                                                    <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
+                                                    <td
+                                                        className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                        style={{ height: '1px' }}
+                                                    >
+                                                        <ShouldRender
+                                                            if={
+                                                                incidentMessage.createdById &&
+                                                                User.getUserId() ===
                                                                 incidentMessage
                                                                     .createdById
                                                                     ._id
-                                                        }
-                                                    >
-                                                        <div className="db-ListViewItem-link">
-                                                            <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
-                                                                <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
-                                                                            <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <button
-                                                                                        className="bs-Button bs-DeprecatedButton"
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            openModal(
-                                                                                                {
-                                                                                                    id: editMessageModalId,
-                                                                                                    onClose: () =>
-                                                                                                        '',
-                                                                                                    content: DataPathHoC(
-                                                                                                        NewIncidentMessage,
-                                                                                                        {
-                                                                                                            incident,
-                                                                                                            formId: `Edit${type}Form`,
-                                                                                                            type,
-                                                                                                            incidentMessage,
-                                                                                                            edit: true,
-                                                                                                        }
-                                                                                                    ),
-                                                                                                }
-                                                                                            )
-                                                                                        }
-                                                                                        id={`edit_${type}_incident_message_${i}`}
-                                                                                    >
-                                                                                        <span>
-                                                                                            <img
-                                                                                                src={`/dashboard/assets/img/edit.svg`}
-                                                                                                style={{
-                                                                                                    height:
-                                                                                                        '10px',
-                                                                                                    width:
-                                                                                                        '10px',
-                                                                                                }}
-                                                                                                alt="edit"
-                                                                                            />{' '}
+                                                            }
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <button
+                                                                                            className="bs-Button bs-DeprecatedButton"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                openModal(
+                                                                                                    {
+                                                                                                        id: editMessageModalId,
+                                                                                                        onClose: () =>
+                                                                                                            '',
+                                                                                                        content: DataPathHoC(
+                                                                                                            NewIncidentMessage,
+                                                                                                            {
+                                                                                                                incident,
+                                                                                                                formId: `Edit${type}Form`,
+                                                                                                                type,
+                                                                                                                incidentMessage,
+                                                                                                                edit: true,
+                                                                                                            }
+                                                                                                        ),
+                                                                                                    }
+                                                                                                )
+                                                                                            }
+                                                                                            id={`edit_${type}_incident_message_${i}`}
+                                                                                        >
+                                                                                            <span>
+                                                                                                <img
+                                                                                                    src={`/dashboard/assets/img/edit.svg`}
+                                                                                                    style={{
+                                                                                                        height:
+                                                                                                            '10px',
+                                                                                                        width:
+                                                                                                            '10px',
+                                                                                                    }}
+                                                                                                    alt="edit"
+                                                                                                />{' '}
                                                                                             Edit
                                                                                         </span>
-                                                                                    </button>
-                                                                                    <button
-                                                                                        className="bs-Button bs-DeprecatedButton bs-Button--icon bs-Button--delete"
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            openModal(
-                                                                                                {
-                                                                                                    id: deleteMessageModalId,
-                                                                                                    onClose: () =>
-                                                                                                        '',
-                                                                                                    onConfirm: () =>
-                                                                                                        deleteIncidentMessage(
-                                                                                                            incidentMessage._id
+                                                                                        </button>
+                                                                                        <button
+                                                                                            className="bs-Button bs-DeprecatedButton bs-Button--icon bs-Button--delete"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                openModal(
+                                                                                                    {
+                                                                                                        id: deleteMessageModalId,
+                                                                                                        onClose: () =>
+                                                                                                            '',
+                                                                                                        onConfirm: () =>
+                                                                                                            deleteIncidentMessage(
+                                                                                                                incidentMessage._id
+                                                                                                            ),
+                                                                                                        content: DataPathHoC(
+                                                                                                            DeleteIncidentMessage,
+                                                                                                            {
+                                                                                                                incidentMessage,
+                                                                                                            }
                                                                                                         ),
-                                                                                                    content: DataPathHoC(
-                                                                                                        DeleteIncidentMessage,
-                                                                                                        {
-                                                                                                            incidentMessage,
-                                                                                                        }
-                                                                                                    ),
-                                                                                                }
-                                                                                            )
-                                                                                        }
-                                                                                        id={`delete_${type}_incident_message_${i}`}
-                                                                                    >
-                                                                                        <span>
-                                                                                            Delete
+                                                                                                    }
+                                                                                                )
+                                                                                            }
+                                                                                            id={`delete_${type}_incident_message_${i}`}
+                                                                                        >
+                                                                                            <span>
+                                                                                                Delete
                                                                                         </span>
-                                                                                    </button>
+                                                                                        </button>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                </span>
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </ShouldRender>
-                                                </td>
-                                            </tr>
-                                        );
-                                    }
-                                )
-                            ) : (
-                                <tr></tr>
-                            )}
+                                                        </ShouldRender>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                    )
+                                ) : (
+                                    <tr></tr>
+                                )}
                         </tbody>
                     </table>
                 </div>
@@ -365,17 +373,17 @@ export class IncidentMessageThread extends Component {
                 {requesting ? <ListLoader /> : null}
 
                 {incidentMessages &&
-                incidentMessages.incidentMessages &&
-                incidentMessages.incidentMessages.length < 1 ? (
-                    <div
-                        style={{
-                            textAlign: 'center',
-                            padding: '25px',
-                        }}
-                    >
-                        {`You don't have any messages yet, start up a conversation`}
-                    </div>
-                ) : null}
+                    incidentMessages.incidentMessages &&
+                    incidentMessages.incidentMessages.length < 1 ? (
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                padding: '25px',
+                            }}
+                        >
+                            {`You don't have any messages yet, start up a conversation`}
+                        </div>
+                    ) : null}
                 {error}
 
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -384,7 +392,7 @@ export class IncidentMessageThread extends Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 {count
                                     ? count +
-                                      (count > 1 ? ' Messages' : ' Message')
+                                    (count > 1 ? ' Messages' : ' Message')
                                     : '0 Messages'}
                             </span>
                         </span>
@@ -393,9 +401,8 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    id={`btn-${
-                                        title.toLowerCase().split(' ')[0]
-                                    }-Prev`}
+                                    id={`btn-${title.toLowerCase().split(' ')[0]
+                                        }-Prev`}
                                     onClick={() => {
                                         olderMessage();
                                     }}
@@ -416,9 +423,8 @@ export class IncidentMessageThread extends Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    id={`btn-${
-                                        title.toLowerCase().split(' ')[0]
-                                    }-Next`}
+                                    id={`btn-${title.toLowerCase().split(' ')[0]
+                                        }-Next`}
                                     onClick={() => {
                                         newerMessage();
                                     }}
