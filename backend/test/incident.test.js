@@ -562,12 +562,15 @@ describe('Incident API', function() {
         expect(callAlert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
-        const res = await request.get(`alert/${projectId}/alert/charges`);
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/alert/${projectId}/alert/charges`)
+            .set('Authorization', authorization);
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body.data).to.be.an('array');
-        expect(res.body.data.length).to.be.equal(1);
+        expect(res.body.data.length).to.be.equal(2);
     });
 });
 
