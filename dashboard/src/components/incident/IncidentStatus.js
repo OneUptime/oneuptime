@@ -457,9 +457,9 @@ export class IncidentStatus extends Component {
                                                             >
                                                                 <ReactMarkdown
                                                                     source={`This ${this
-                                                                            .props
-                                                                            .incident
-                                                                            .incidentType
+                                                                        .props
+                                                                        .incident
+                                                                        .incidentType
                                                                         } incident was created because the moniitor's${incidentReason &&
                                                                             incidentReason.length >
                                                                             1
@@ -509,9 +509,7 @@ export class IncidentStatus extends Component {
                                                                                             'Response Time'
                                                                                         )
                                                                                     ) {
-                                                                                        const milliSeconds = a.match(
-                                                                                            /\d+/
-                                                                                        )[0];
+                                                                                        const milliSeconds = a.match(/\d+/)[0];
                                                                                         const time = formatMonitorResponseTime(
                                                                                             Number(
                                                                                                 milliSeconds
@@ -547,9 +545,9 @@ export class IncidentStatus extends Component {
                                                             >
                                                                 <ReactMarkdown
                                                                     source={`This ${this
-                                                                            .props
-                                                                            .incident
-                                                                            .incidentType
+                                                                        .props
+                                                                        .incident
+                                                                        .incidentType
                                                                         } incident was created because the monitor's${incidentReason &&
                                                                             incidentReason.length >
                                                                             1
