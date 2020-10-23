@@ -23,8 +23,8 @@ if (isLocalhost) {
     const address = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
-        ? '0.0.0.0'
-        : '127.0.0.1';
+            ? '0.0.0.0'
+            : '127.0.0.1';
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
@@ -247,8 +247,8 @@ export const ValidateField = {
                     ? undefined
                     : 'Please select a value'
                 : value.length && value.trim() !== ''
-                ? undefined
-                : 'Please select a value'
+                    ? undefined
+                    : 'Please select a value'
             : 'Please select a value',
 
     maxValue10000: value =>
@@ -555,16 +555,16 @@ export function makeCriteria(val) {
         if (val[i].field1 && val[i].field1.length) {
             val3.field1 =
                 val[i].field1 &&
-                typeof val[i].field1 === 'string' &&
-                val[i].field1.indexOf(';')
+                    typeof val[i].field1 === 'string' &&
+                    val[i].field1.indexOf(';')
                     ? val[i].field1.replace(/;/g, '')
                     : val[i].field1;
         }
         if (val[i].field2 && val[i].field2.length) {
             val3.field2 =
                 val[i].field2 &&
-                typeof val[i].field2 === 'string' &&
-                val[i].field2.indexOf(';')
+                    typeof val[i].field2 === 'string' &&
+                    val[i].field2.indexOf(';')
                     ? val[i].field2.replace(/;/g, '')
                     : val[i].field2;
         }
@@ -770,10 +770,10 @@ export const formatBytes = (a, b, c, d, e) => {
     return (
         formatDecimal(
             ((b = Math),
-            (c = b.log),
-            (d = 1e3),
-            (e = (c(value) / c(d)) | 0),
-            value / b.pow(d, e)),
+                (c = b.log),
+                (d = 1e3),
+                (e = (c(value) / c(d)) | 0),
+                value / b.pow(d, e)),
             decimalPlaces >= 0 ? decimalPlaces : 2,
             roundType
         ) +
@@ -790,7 +790,7 @@ function compareStatus(incident, log) {
         : log.status;
 }
 
-export const getMonitorStatus = (incidents, logs) => {
+export const getMonitorStatus = (incidents, logs, type) => {
     const incident = incidents && incidents.length > 0 ? incidents[0] : null;
     const log = logs && logs.length > 0 ? logs[0] : null;
 
@@ -798,13 +798,14 @@ export const getMonitorStatus = (incidents, logs) => {
         incident && log
             ? compareStatus(incident, log)
             : incident
-            ? !incident.resolved
-                ? incident.incidentType
-                : 'online'
-            : log
-            ? log.status
-            : 'No Data';
-
+                ? !incident.resolved
+                    ? incident.incidentType
+                    : 'online'
+                : log
+                    ? log.status
+                    : type === 'server monitor'
+                        ? 'No Data'
+                        : 'online';
     return statusCompare || 'online';
 };
 
@@ -847,57 +848,57 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
         monitorLogs && monitorLogs.length > 0
             ? probe
                 ? monitorLogs.filter(probeLogs => {
-                      return (
-                          probeLogs._id === null || probeLogs._id === probe._id
-                      );
-                  })
+                    return (
+                        probeLogs._id === null || probeLogs._id === probe._id
+                    );
+                })
                 : monitorLogs
             : [];
     let logs =
         probesLog &&
-        probesLog[0] &&
-        probesLog[0].logs &&
-        probesLog[0].logs.length > 0
+            probesLog[0] &&
+            probesLog[0].logs &&
+            probesLog[0].logs.length > 0
             ? probesLog[0].logs
             : [];
     logs =
         logs && logs.length > 0
             ? logs.filter(log =>
-                  moment(new Date(log.createdAt)).isBetween(
-                      start,
-                      end,
-                      'day',
-                      '[]'
-                  )
-              )
+                moment(new Date(log.createdAt)).isBetween(
+                    start,
+                    end,
+                    'day',
+                    '[]'
+                )
+            )
             : [];
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter(probeStatuses => {
-                      return (
-                          probeStatuses._id === null ||
-                          probeStatuses._id === probe._id
-                      );
-                  })
+                    return (
+                        probeStatuses._id === null ||
+                        probeStatuses._id === probe._id
+                    );
+                })
                 : monitorStatuses
             : [];
     let statuses =
         probesStatus &&
-        probesStatus[0] &&
-        probesStatus[0].statuses &&
-        probesStatus[0].statuses.length > 0
+            probesStatus[0] &&
+            probesStatus[0].statuses &&
+            probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
     statuses =
         statuses && statuses.length > 0
             ? statuses.filter(
-                  status =>
-                      moment(new Date(status.startTime)).isBefore(end) &&
-                      (status.endTime === null ||
-                          moment(new Date(status.endTime)).isAfter(start))
-              )
+                status =>
+                    moment(new Date(status.startTime)).isBefore(end) &&
+                    (status.endTime === null ||
+                        moment(new Date(status.endTime)).isAfter(start))
+            )
             : [];
 
     return { logs, statuses };

@@ -8,6 +8,7 @@ module.exports = {
     Call: 'call',
     Email: 'email',
     SMS: 'sms',
+    Webhook: 'webhook',
     getAlertChargeAmount: function(type, country) {
         if (type === 'sms') {
             if (country === 'us') {

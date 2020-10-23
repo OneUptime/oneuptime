@@ -80,8 +80,8 @@ class ContainerSecurityForm extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                <div className="bs-container-input">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Name
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -110,8 +110,8 @@ class ContainerSecurityForm extends Component {
                                                             0
                                                     }
                                                 >
-                                                    <div className="bs-Fieldset-row bs-u-justify--center">
-                                                        <label className="bs-Fieldset-label">
+                                                    <div className="bs-container-input">
+                                                        <label className="bs-Fieldset-label Fieldset-extra">
                                                             Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
@@ -150,8 +150,8 @@ class ContainerSecurityForm extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-                                                <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                <div className="bs-container-input">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Docker Credential
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -211,8 +211,8 @@ class ContainerSecurityForm extends Component {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                <div className="bs-container-input">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Image Path
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -234,8 +234,8 @@ class ContainerSecurityForm extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                <div className="bs-container-input">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Image Tags
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
