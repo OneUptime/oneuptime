@@ -456,8 +456,8 @@ export class IncidentStatus extends Component {
                                                         >
                                                             <ReactMarkdown
                                                                 source={`This ${this.props
-                                                                        .incident
-                                                                        .incidentType
+                                                                    .incident
+                                                                    .incidentType
                                                                     } incident was created because the monitor's${incidentReason &&
                                                                         incidentReason.length >
                                                                         1
@@ -465,6 +465,7 @@ export class IncidentStatus extends Component {
                                                                         incidentReason
                                                                             .map(
                                                                                 a => {
+
                                                                                     if (
                                                                                         a.includes(
                                                                                             'Response Time'
@@ -500,7 +501,32 @@ export class IncidentStatus extends Component {
                                                                                 '\n'
                                                                             )
                                                                         : ' **' +
-                                                                        incidentReason.pop() +
+                                                                        incidentReason.map((a) => {
+                                                                            if (
+                                                                                a.includes(
+                                                                                    'Response Time'
+                                                                                )
+                                                                            ) {
+                                                                                const milliSeconds = a.match(
+                                                                                    /\d+/
+                                                                                )[0];
+                                                                                const time = formatMonitorResponseTime(
+                                                                                    Number(
+                                                                                        milliSeconds
+                                                                                    )
+                                                                                );
+                                                                                return (
+                                                                                    a.replace(
+                                                                                        milliSeconds +
+                                                                                        ' ms',
+                                                                                        time
+                                                                                    )
+                                                                                )
+                                                                            } else {
+                                                                                return a
+                                                                            }
+                                                                        })
+                                                                        +
                                                                         '**.'
                                                                     }`}
                                                             />
