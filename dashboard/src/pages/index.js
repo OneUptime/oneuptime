@@ -49,6 +49,7 @@ import FyipeApi from './FyipeApi';
 import ChangePasswordSetting from './ChangePasswordSetting';
 import DeleteAccountPage from './DeleteAccountPage';
 import Consulting from './Consulting';
+import ErrorTracking from './ErrorTracking';
 import Advanced from './Advanced';
 
 export default {
@@ -92,5 +93,6 @@ export default {
     ScheduledEvent,
     ScheduledEventDetail,
     Consulting,
+    ErrorTracking,
     Advanced,
 };

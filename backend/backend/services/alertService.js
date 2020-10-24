@@ -1008,7 +1008,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident) {
+    sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
             if (incident) {
@@ -1035,7 +1035,7 @@ module.exports = {
                             );
                         }
                     } else {
-                        await _this.sendSubscriberAlert(subscriber, incident);
+                        await _this.sendSubscriberAlert(subscriber, incident, null, null, component);
                     }
                 });
             }
@@ -1140,7 +1140,8 @@ module.exports = {
         subscriber,
         incident,
         templateType = 'Subscriber Incident Created',
-        statusPage
+        statusPage,
+        component
     ) {
         try {
             const _this = this;
@@ -1502,6 +1503,14 @@ module.exports = {
                     );
                     throw error;
                 }
+            } else if (subscriber.alertVia == AlertType.Webhook) {
+                await WebHookService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'created',
+                    component
+                );
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
@@ -1679,3 +1688,5 @@ const OnCallScheduleStatusService = require('./onCallScheduleStatusService');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
+const WebHookService = require('../services/webHookService');
+const SlackService = require('../services/slackService');
