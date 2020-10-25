@@ -32,6 +32,8 @@ function Row(props) {
             <OnCallTableBody text={props.monitors} />
 
             <OnCallTableBody text={props.users} />
+
+            <OnCallTableBody text={props.bottonTitle} type="button" />
         </tr>
     );
 }
@@ -45,6 +47,7 @@ Row.propTypes = {
     id: PropTypes.string.isRequired,
     monitors: PropTypes.string,
     subProjectId: PropTypes.string,
+    bottonTitle: PropTypes.string,
 };
 
 function parseSchedule(schedule) {
@@ -83,24 +86,25 @@ function parseSchedule(schedule) {
     return { name, users, monitors, id };
 }
 
-function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
+function OnCallTableRows({ schedules, isRequesting, match, subProjectId, bottonTitle }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
-              if (Array.isArray(schedule)) return null;
-              schedule = parseSchedule(schedule);
-              return (
-                  <Row
-                      name={schedule.name}
-                      users={schedule.users}
-                      monitors={schedule.monitors}
-                      isRequesting={isRequesting}
-                      id={schedule.id}
-                      key={`oncall ${index}`}
-                      match={match}
-                      subProjectId={subProjectId}
-                  />
-              );
-          })
+            if (Array.isArray(schedule)) return null;
+            schedule = parseSchedule(schedule);
+            return (
+                <Row
+                    name={schedule.name}
+                    users={schedule.users}
+                    monitors={schedule.monitors}
+                    isRequesting={isRequesting}
+                    id={schedule.id}
+                    key={`oncall ${index}`}
+                    match={match}
+                    subProjectId={subProjectId}
+                    bottonTitle={bottonTitle}
+                />
+            );
+        })
         : null;
 }
 
