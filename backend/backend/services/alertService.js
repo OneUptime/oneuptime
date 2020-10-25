@@ -1035,7 +1035,13 @@ module.exports = {
                             );
                         }
                     } else {
-                        await _this.sendSubscriberAlert(subscriber, incident, null, null, component);
+                        await _this.sendSubscriberAlert(
+                            subscriber,
+                            incident,
+                            null,
+                            null,
+                            component
+                        );
                     }
                 });
             }

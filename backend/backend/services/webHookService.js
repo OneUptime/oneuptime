@@ -1,6 +1,6 @@
 module.exports = {
     // process messages to be sent to slack workspace channels
-    sendNotification: async function (
+    sendNotification: async function(
         projectId,
         incident,
         monitor,
@@ -62,7 +62,15 @@ module.exports = {
     },
 
     // send notification to slack workspace channels
-    async notify(project, monitor, incident, integration, monitorStatus, component, duration) {
+    async notify(
+        project,
+        monitor,
+        incident,
+        integration,
+        monitorStatus,
+        component,
+        duration
+    ) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
             const yellow = '#fedc56';
@@ -77,13 +85,13 @@ module.exports = {
                             title_link: uri,
                             text: `Incident on *${component.name} / ${
                                 monitor.name
-                                }* is resolved by ${
+                            }* is resolved by ${
                                 incident.resolvedBy
                                     ? incident.resolvedBy.name
                                     : 'Fyipe'
-                                } after being ${
+                            } after being ${
                                 incident.incidentType
-                                } for ${duration}`,
+                            } for ${duration}`,
                         },
                     ],
                 };
@@ -96,13 +104,13 @@ module.exports = {
                             title_link: uri,
                             text: `Incident on *${component.name} / ${
                                 monitor.name
-                                }* is acknowledged by ${
+                            }* is acknowledged by ${
                                 incident.acknowledgedBy
                                     ? incident.acknowledgedBy.name
                                     : 'Fyipe'
-                                } after being ${
+                            } after being ${
                                 incident.incidentType
-                                } for ${duration}`,
+                            } for ${duration}`,
                         },
                     ],
                 };
@@ -114,8 +122,8 @@ module.exports = {
                                 incident.incidentType === 'online'
                                     ? green
                                     : incident.incidentType === 'degraded'
-                                        ? yellow
-                                        : '#f00',
+                                    ? yellow
+                                    : '#f00',
                             title: `New ${incident.incidentType} incident for ${monitor.name}`,
                             title_link: uri,
                             fields: [
@@ -131,32 +139,32 @@ module.exports = {
                                 },
                                 ...(incident.title
                                     ? [
-                                        {
-                                            title: 'Incident Title:',
-                                            value: incident.title,
-                                            short: true,
-                                        },
-                                    ]
+                                          {
+                                              title: 'Incident Title:',
+                                              value: incident.title,
+                                              short: true,
+                                          },
+                                      ]
                                     : []),
                                 ...(incident.description
                                     ? [
-                                        {
-                                            title: 'Incident Description:',
-                                            value: incident.description,
-                                            short: true,
-                                        },
-                                    ]
+                                          {
+                                              title: 'Incident Description:',
+                                              value: incident.description,
+                                              short: true,
+                                          },
+                                      ]
                                     : []),
                                 ...(incident.incidentPriority
                                     ? [
-                                        {
-                                            title: 'Incident Priority:',
-                                            value:
-                                                incident.incidentPriority
-                                                    .name,
-                                            short: true,
-                                        },
-                                    ]
+                                          {
+                                              title: 'Incident Priority:',
+                                              value:
+                                                  incident.incidentPriority
+                                                      .name,
+                                              short: true,
+                                          },
+                                      ]
                                     : []),
                                 {
                                     title: 'Created By:',
@@ -171,9 +179,9 @@ module.exports = {
                                         incident.incidentType === 'online'
                                             ? 'Online'
                                             : incident.incidentType ===
-                                                'degraded'
-                                                ? 'Degraded'
-                                                : 'Offline',
+                                              'degraded'
+                                            ? 'Degraded'
+                                            : 'Offline',
                                     short: true,
                                 },
                             ],
@@ -217,7 +225,7 @@ module.exports = {
                 await axios.post(
                     integration.data.endpoint,
                     {
-                        ...payload
+                        ...payload,
                     },
                     {
                         headers: {

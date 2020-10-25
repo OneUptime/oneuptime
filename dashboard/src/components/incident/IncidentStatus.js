@@ -455,80 +455,80 @@ export class IncidentStatus extends Component {
                                                             id={`${monitorName}_IncidentReport`}
                                                         >
                                                             <ReactMarkdown
-                                                                source={`This ${this.props
-                                                                    .incident
-                                                                    .incidentType
-                                                                    } incident was created because the monitor's${incidentReason &&
-                                                                        incidentReason.length >
+                                                                source={`This ${
+                                                                    this.props
+                                                                        .incident
+                                                                        .incidentType
+                                                                } incident was created because the monitor's${
+                                                                    incidentReason &&
+                                                                    incidentReason.length >
                                                                         1
                                                                         ? ':\n' +
-                                                                        incidentReason
-                                                                            .map(
-                                                                                a => {
-
-                                                                                    if (
-                                                                                        a.includes(
-                                                                                            'Response Time'
-                                                                                        )
-                                                                                    ) {
-                                                                                        const milliSeconds = a.match(
-                                                                                            /\d+/
-                                                                                        )[0];
-                                                                                        const time = formatMonitorResponseTime(
-                                                                                            Number(
-                                                                                                milliSeconds
-                                                                                            )
-                                                                                        );
-                                                                                        return (
-                                                                                            '- **&middot; ' +
-                                                                                            a.replace(
-                                                                                                milliSeconds +
-                                                                                                ' ms',
-                                                                                                time
-                                                                                            ) +
-                                                                                            '**.'
-                                                                                        );
-                                                                                    } else {
-                                                                                        return (
-                                                                                            '- **&middot; ' +
-                                                                                            a +
-                                                                                            '**.'
-                                                                                        );
-                                                                                    }
-                                                                                }
-                                                                            )
-                                                                            .join(
-                                                                                '\n'
-                                                                            )
+                                                                          incidentReason
+                                                                              .map(
+                                                                                  a => {
+                                                                                      if (
+                                                                                          a.includes(
+                                                                                              'Response Time'
+                                                                                          )
+                                                                                      ) {
+                                                                                          const milliSeconds = a.match(
+                                                                                              /\d+/
+                                                                                          )[0];
+                                                                                          const time = formatMonitorResponseTime(
+                                                                                              Number(
+                                                                                                  milliSeconds
+                                                                                              )
+                                                                                          );
+                                                                                          return (
+                                                                                              '- **&middot; ' +
+                                                                                              a.replace(
+                                                                                                  milliSeconds +
+                                                                                                      ' ms',
+                                                                                                  time
+                                                                                              ) +
+                                                                                              '**.'
+                                                                                          );
+                                                                                      } else {
+                                                                                          return (
+                                                                                              '- **&middot; ' +
+                                                                                              a +
+                                                                                              '**.'
+                                                                                          );
+                                                                                      }
+                                                                                  }
+                                                                              )
+                                                                              .join(
+                                                                                  '\n'
+                                                                              )
                                                                         : ' **' +
-                                                                        incidentReason.map((a) => {
-                                                                            if (
-                                                                                a.includes(
-                                                                                    'Response Time'
-                                                                                )
-                                                                            ) {
-                                                                                const milliSeconds = a.match(
-                                                                                    /\d+/
-                                                                                )[0];
-                                                                                const time = formatMonitorResponseTime(
-                                                                                    Number(
-                                                                                        milliSeconds
-                                                                                    )
-                                                                                );
-                                                                                return (
-                                                                                    a.replace(
-                                                                                        milliSeconds +
-                                                                                        ' ms',
-                                                                                        time
-                                                                                    )
-                                                                                )
-                                                                            } else {
-                                                                                return a
-                                                                            }
-                                                                        })
-                                                                        +
-                                                                        '**.'
-                                                                    }`}
+                                                                          incidentReason.map(
+                                                                              a => {
+                                                                                  if (
+                                                                                      a.includes(
+                                                                                          'Response Time'
+                                                                                      )
+                                                                                  ) {
+                                                                                      const milliSeconds = a.match(
+                                                                                          /\d+/
+                                                                                      )[0];
+                                                                                      const time = formatMonitorResponseTime(
+                                                                                          Number(
+                                                                                              milliSeconds
+                                                                                          )
+                                                                                      );
+                                                                                      return a.replace(
+                                                                                          milliSeconds +
+                                                                                              ' ms',
+                                                                                          time
+                                                                                      );
+                                                                                  } else {
+                                                                                      return a;
+                                                                                  }
+                                                                              }
+                                                                          ) +
+                                                                          '**.'
+                                                                }`}
                                                             />
                                                         </div>
                                                     </div>

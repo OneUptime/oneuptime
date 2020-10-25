@@ -798,14 +798,14 @@ export const getMonitorStatus = (incidents, logs, type) => {
         incident && log
             ? compareStatus(incident, log)
             : incident
-                ? !incident.resolved
-                    ? incident.incidentType
-                    : 'online'
-                : log
-                    ? log.status
-                    : type === 'server monitor'
-                        ? 'No Data'
-                        : 'online';
+            ? !incident.resolved
+                ? incident.incidentType
+                : 'online'
+            : log
+            ? log.status
+            : type === 'server monitor'
+            ? 'No Data'
+            : 'online';
     return statusCompare || 'online';
 };
 

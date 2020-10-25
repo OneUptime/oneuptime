@@ -172,10 +172,10 @@ export class MonitorViewHeader extends Component {
         const status = requesting
             ? 'requesting'
             : getMonitorStatus(
-                monitor.incidents,
-                logs,
-                monitorType.replace('-', ' ')
-            );
+                  monitor.incidents,
+                  logs,
+                  monitorType.replace('-', ' ')
+              );
         let deleting = false;
         if (
             monitorState &&
@@ -198,19 +198,20 @@ export class MonitorViewHeader extends Component {
                             </div>
                         ) : null
                     ) : (
-                            <div className="Box-root Padding-top--20 Padding-left--20">
-                                <Badge color={'blue'}>
-                                    {subProject && subProject.name}
-                                </Badge>
-                            </div>
-                        )}
+                        <div className="Box-root Padding-top--20 Padding-left--20">
+                            <Badge color={'blue'}>
+                                {subProject && subProject.name}
+                            </Badge>
+                        </div>
+                    )}
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
-                            className={`Box-root Padding-top--20 ${(subProjects && subProjects.length > 0) ||
+                            className={`Box-root Padding-top--20 ${
+                                (subProjects && subProjects.length > 0) ||
                                 (subProject && subProject.name)
-                                ? 'Padding-left--4'
-                                : 'Padding-left--20'
-                                }`}
+                                    ? 'Padding-left--4'
+                                    : 'Padding-left--20'
+                            }`}
                         >
                             <Badge color={'slate5'}>
                                 {monitor && monitor.resourceCategory
@@ -344,9 +345,9 @@ export class MonitorViewHeader extends Component {
                                         const status = checkLogs
                                             ? logs[0].status
                                             : getMonitorStatus(
-                                                monitor.incidents,
-                                                logs
-                                            );
+                                                  monitor.incidents,
+                                                  logs
+                                              );
                                         const probe = probes.filter(
                                             probe => probe._id === location._id
                                         );
@@ -392,8 +393,8 @@ export class MonitorViewHeader extends Component {
                             showAll={true}
                         />
                     ) : (
-                            ''
-                        )}
+                        ''
+                    )}
                     <br />
                 </div>
             </div>
