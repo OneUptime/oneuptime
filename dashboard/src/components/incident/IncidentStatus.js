@@ -174,6 +174,7 @@ export class IncidentStatus extends Component {
         const incidentReason =
             this.props.incident.reason &&
             this.props.incident.reason.split('\n');
+            console.log('C: ', this.props.incident.incidentType, this.props.incident.reason)
 
         return (
             <div
@@ -499,11 +500,7 @@ export class IncidentStatus extends Component {
                                                                 id={`${monitorName}_IncidentReport`}
                                                             >
                                                                 <ReactMarkdown
-                                                                    source={`This ${this
-                                                                            .props
-                                                                            .incident
-                                                                            .incidentType
-                                                                        } incident was created because the monitor's${incidentReason &&
+                                                                    source={`${incidentReason &&
                                                                             incidentReason.length >
                                                                             1
                                                                             ? ':\n' +
