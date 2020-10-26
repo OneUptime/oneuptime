@@ -118,7 +118,7 @@ class DeleteAccount extends Component {
                                     <div className="bs-Modal-header">
                                         <div className="bs-Modal-header-copy">
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                <span>Delete Account</span>
+                                                <span>Confirm Deletion</span>
                                             </span>
                                         </div>
                                         <div className="bs-Modal-content">
@@ -146,17 +146,14 @@ class DeleteAccount extends Component {
                                                         alerted during downtime.
                                                     </div>
                                                 </div>
-                                                {IS_SAAS_SERVICE && (
-                                                    <div className="icon_display-msg">
-                                                        <div className="clear_times"></div>
-                                                        <div className="clear_msg_txt">
-                                                            Your card will not
-                                                            be charged and your
-                                                            subscription is
-                                                            cancelled.
-                                                        </div>
+                                                <div className="icon_display-msg">
+                                                    <div className="clear_times"></div>
+                                                    <div className="clear_msg_txt">
+                                                        All of your projects
+                                                        will be deleted
+                                                        permanently,
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -225,6 +222,21 @@ class DeleteAccount extends Component {
                                                 ACCOUNT&#34; in the textbox
                                                 below to delete your account.
                                             </span>
+                                            {IS_SAAS_SERVICE && (
+                                                <>
+                                                    <div
+                                                        className="clear_msg_txt"
+                                                        style={{
+                                                            marginTop: '10px',
+                                                        }}
+                                                    >
+                                                        Your card will not be
+                                                        charged and your
+                                                        subscription is
+                                                        cancelled.
+                                                    </div>
+                                                </>
+                                            )}
                                             <Field
                                                 required={true}
                                                 component="input"
