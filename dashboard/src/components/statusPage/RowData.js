@@ -72,6 +72,7 @@ export class RowData extends Component {
                         </span>
                     </div>
                 </td>
+
                 <td
                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
                     style={{ height: '1px', minWidth: '270px' }}

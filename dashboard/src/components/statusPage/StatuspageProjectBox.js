@@ -189,8 +189,8 @@ const StatusPageProjectBox = props => {
                             <button
                                 id="btnNext"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateForward
-                                        ? 'Is--disabled'
-                                        : ''
+                                    ? 'Is--disabled'
+                                    : ''
                                     }`}
                                 data-db-analytics-name="list_view.pagination.next"
                                 disabled={!props.canPaginateForward}
