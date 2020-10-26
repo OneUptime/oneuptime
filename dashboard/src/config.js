@@ -803,7 +803,7 @@ export const getMonitorStatus = (incidents, logs) => {
                 : 'online'
             : log
             ? log.status
-            : 'online';
+            : 'No Data';
 
     return statusCompare || 'online';
 };

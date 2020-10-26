@@ -21,7 +21,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const { testphoneNumber } = require('./utils/config');
 const GlobalConfig = require('./utils/globalConfig');
 
-let token, userId, airtableId, projectId, monitorId;
+let token, userId, projectId, monitorId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -37,7 +37,6 @@ describe('Twilio API', function() {
             createUser(request, userData.user, async function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 // make created user master admin
                 await UserService.updateBy(
@@ -109,7 +108,7 @@ describe('Twilio API', function() {
         await IncidentService.hardDeleteBy({ monitorId: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should send verification sms code for adding alert phone number', function(done) {

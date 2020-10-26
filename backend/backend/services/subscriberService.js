@@ -200,31 +200,24 @@ module.exports = {
 
     subscriberCheck: async function(subscriber) {
         const _this = this;
-        let existingSubscriber = null;
-        if (subscriber.statusPageId) {
-            if (subscriber.alertVia === 'sms') {
-                existingSubscriber = await _this.findByOne({
-                    monitorId: subscriber.monitorId,
-                    contactPhone: subscriber.contactPhone,
-                    countryCode: subscriber.countryCode,
-                    statusPageId: subscriber.statusPageId,
-                });
-            } else if (subscriber.alertVia === 'email') {
-                existingSubscriber = await _this.findByOne({
-                    monitorId: subscriber.monitorId,
-                    contactEmail: subscriber.contactEmail,
-                    statusPageId: subscriber.statusPageId,
-                });
-            } else if (subscriber.alertVia === 'webhook') {
-                existingSubscriber = await _this.findByOne({
-                    monitorId: subscriber.monitorId,
-                    contactWebhook: subscriber.contactWebhook,
-                    contactEmail: subscriber.contactEmail,
-                    statusPageId: subscriber.statusPageId,
-                });
-            }
-        }
-        return existingSubscriber !== null ? true : false;
+        const existingSubscriber = await _this.findByOne({
+            monitorId: subscriber.monitorId,
+            ...(subscriber.statusPageId && {
+                statusPageId: subscriber.statusPageId,
+            }),
+            ...(subscriber.alertVia === 'sms' && {
+                contactPhone: subscriber.contactPhone,
+                countryCode: subscriber.countryCode,
+            }),
+            ...(subscriber.alertVia === 'email' && {
+                contactEmail: subscriber.contactEmail,
+            }),
+            ...(subscriber.alertVia === 'webhook' && {
+                contactWebhook: subscriber.contactWebhook,
+                contactEmail: subscriber.contactEmail,
+            }),
+        });
+        return existingSubscriber !== null;
     },
 
     findByOne: async function(query) {

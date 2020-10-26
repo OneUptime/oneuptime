@@ -9308,7 +9308,8 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     background-image: url('../icons/info-light.svg');
 }
 .db-SideNav-icon--appLog {
-    background-image: url('../icons/app-log-light.svg');
+    background-image: url('../icons/app-log.svg');
+    filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
 }
 .db-SideNav-icon--square {
     background-image: url('../icons/square-light.svg');
@@ -9491,6 +9492,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 }
 .db-SideNav-icon--appLog.db-SideNav-icon--selected {
     background-image: url('../icons/app-log.svg');
+    filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
 }
 .db-SideNav-icon--square.db-SideNav-icon--selected {
     background-image: url('../icons/square.svg');

@@ -150,7 +150,11 @@ class AlertDetailsModal extends Component {
                                                         id="alertStatus"
                                                         className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap"
                                                     >
-                                                        Error
+                                                        {this.props.data
+                                                            .errorMessage
+                                                            ? this.props.data
+                                                                  .errorMessage
+                                                            : 'Error'}
                                                     </span>
                                                 </div>
                                             )}

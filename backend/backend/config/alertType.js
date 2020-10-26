@@ -80,22 +80,20 @@ module.exports = {
             } else return {};
         } else return {};
     },
-    getCountryType: function(code) {
-        if (code === '+1') {
+    getCountryType: function(phoneNumber) {
+        if (phoneNumber.startsWith('+1')) {
             return 'us';
         } else if (
-            [
-                '+53',
-                '+371',
-                '+252',
-                '+370',
-                '+224',
-                '220',
-                '960',
-                '372',
-                '263',
-                '+216',
-            ].includes(code)
+            phoneNumber.startsWith('+53') ||
+            phoneNumber.startsWith('+371') ||
+            phoneNumber.startsWith('+252') ||
+            phoneNumber.startsWith('+370') ||
+            phoneNumber.startsWith('+224') ||
+            phoneNumber.startsWith('+220') ||
+            phoneNumber.startsWith('+960') ||
+            phoneNumber.startsWith('+372') ||
+            phoneNumber.startsWith('+263') ||
+            phoneNumber.startsWith('+216')
         ) {
             return 'risk';
         } else return 'non-us';

@@ -10,15 +10,16 @@ let app = require('../server');
 
 let request = chai.request.agent(app);
 let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let UserModel = require('../backend/models/user');
-let IncidentService = require('../backend/services/incidentService');
-let GlobalConfig = require('./utils/globalConfig');
-let ProjectService = require('../backend/services/projectService');
-let StatusPageService = require('../backend/services/statusPageService');
-let MonitorService = require('../backend/services/monitorService');
-let AlertService = require('../backend/services/alertService');
-let NotificationService = require('../backend/services/notificationService');
+const UserService = require('../backend/services/userService');
+const UserModel = require('../backend/models/user');
+const IncidentService = require('../backend/services/incidentService');
+const GlobalConfig = require('./utils/globalConfig');
+const ProjectService = require('../backend/services/projectService');
+const StatusPageService = require('../backend/services/statusPageService');
+const MonitorService = require('../backend/services/monitorService');
+const AlertService = require('../backend/services/alertService');
+const AirtableService = require('../backend/services/airtableService');
+const NotificationService = require('../backend/services/notificationService');
 const ComponentModel = require('../backend/models/component');
 
 let token,
@@ -97,6 +98,7 @@ describe('Alert API', function() {
             await NotificationService.hardDeleteBy({ projectId: projectId });
             await AlertService.hardDeleteBy({ _id: alertId });
             await GlobalConfig.removeTestConfig();
+            await AirtableService.deleteAll({ tableName: 'User' });
         });
 
         // 'post /:projectId'

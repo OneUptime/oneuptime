@@ -19,7 +19,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
 // let token, userId, projectId;
-let token, projectId, subProjectId, userId, airtableId;
+let token, projectId, subProjectId, userId;
 
 describe('Project API', function() {
     this.timeout(30000);
@@ -31,7 +31,6 @@ describe('Project API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -69,7 +68,7 @@ describe('Project API', function() {
                 ],
             },
         });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /user/signup'

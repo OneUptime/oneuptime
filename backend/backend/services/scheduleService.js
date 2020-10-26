@@ -22,8 +22,11 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'escalationIds',
-                    select: 'teamMember',
-                    populate: { path: 'teamMember.userId', select: 'name' },
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name',
+                    },
                 });
             return schedules;
         } catch (error) {

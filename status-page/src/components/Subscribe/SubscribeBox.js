@@ -188,7 +188,6 @@ class SubscribeBox extends Component {
                                     <a
                                         href={`${API_URL}/statusPage/${statusPage._id}/rss`}
                                         target="_blank"
-                                        download="incidents-rss.xml"
                                         rel="noopener noreferrer"
                                     >
                                         RSS feed

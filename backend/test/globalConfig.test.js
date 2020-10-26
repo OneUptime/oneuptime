@@ -15,7 +15,7 @@ const AirtableService = require('../backend/services/airtableService');
 const GlobalConfigService = require('../backend/services/globalConfigService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const GlobalConfig = require('./utils/globalConfig');
-let projectId, userId, airtableId, token;
+let projectId, userId, token;
 
 describe('Global Config API', function() {
     this.timeout(20000);
@@ -27,7 +27,6 @@ describe('Global Config API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -62,7 +61,7 @@ describe('Global Config API', function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({ email: data.user.email });
         await ProjectService.hardDeleteBy({ _id: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfigService.hardDeleteBy({
             name: {
                 $in: ['TestName', 'Other TestName', 'auditLogMonitoringStatus'],
