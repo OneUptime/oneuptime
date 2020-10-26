@@ -10,28 +10,34 @@ export class ProjectDetails extends Component {
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root">
+                            <div className="Box-root" style={{ width: '100%' }}>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <div>
+                                    <div style={{ width: '100%' }}>
                                         {this.props.project.deleted ? (
-                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                style={{ float: 'right' }}
+                                            >
                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span>Deleted</span>
                                                 </span>
                                             </div>
                                         ) : this.props.project.isBlocked ? (
-                                            <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                            <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                style={{ float: 'right' }}
+                                            >
                                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span>Blocked</span>
                                                 </span>
                                             </div>
                                         ) : (
-                                            <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span>Active</span>
-                                                </span>
-                                            </div>
-                                        )}
+                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        style={{ float: 'right' }}
+                                                    >
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span>Active</span>
+                                                        </span>
+                                                    </div>
+                                                )}
                                     </div>
                                     <span>Project Details</span>
                                 </span>
@@ -59,9 +65,9 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null
                                                             ? this.props.project
-                                                                  .name
+                                                                .name
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -78,9 +84,9 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null
                                                             ? this.props.project
-                                                                  ._id
+                                                                ._id
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -97,9 +103,9 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null
                                                             ? this.props.project
-                                                                  .apiKey
+                                                                .apiKey
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
