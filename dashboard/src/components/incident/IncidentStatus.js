@@ -428,11 +428,14 @@ export class IncidentStatus extends Component {
                                                         </label>
                                                         <div className="bs-content-inside">
                                                             <span className="value">
-                                                                {
-                                                                    this.props
-                                                                        .incident
-                                                                        .title
-                                                                }
+                                                                <ReactMarkdown
+                                                                    source={
+                                                                        this
+                                                                            .props
+                                                                            .incident
+                                                                            .title
+                                                                    }
+                                                                />
                                                             </span>
                                                         </div>
                                                     </div>
@@ -460,29 +463,88 @@ export class IncidentStatus extends Component {
                                                             <label className="">
                                                                 Cause
                                                         </label>
-                                                            <div className="bs-content-inside">
-                                                                <Link
-                                                                    style={{
-                                                                        textDecoration:
-                                                                            'underline',
-                                                                    }}
-                                                                    to={
-                                                                        '/dashboard/profile/'
-                                                                        + this.props
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    marginTop:
+                                                                        '6px',
+                                                                }}
+                                                                id={`${monitorName}_IncidentReport`}
+                                                            >
+                                                                <ReactMarkdown
+                                                                    source={`This ${this.props
                                                                             .incident
-                                                                            .createdById
-                                                                            ._id
-                                                                    }
-                                                                >
-                                                                    <div>
-                                                                        {
-                                                                            this.props
-                                                                                .incident
-                                                                                .createdById
-                                                                                .name
-                                                                        }
-                                                                    </div>
-                                                                </Link>
+                                                                            .incidentType
+                                                                        } incident was created because the monitor's${incidentReason &&
+                                                                            incidentReason.length >
+                                                                            1
+                                                                            ? ':\n' +
+                                                                            incidentReason
+                                                                                .map(
+                                                                                    a => {
+                                                                                        if (
+                                                                                            a.includes(
+                                                                                                'Response Time'
+                                                                                            )
+                                                                                        ) {
+                                                                                            const milliSeconds = a.match(
+                                                                                                /\d+/
+                                                                                            )[0];
+                                                                                            const time = formatMonitorResponseTime(
+                                                                                                Number(
+                                                                                                    milliSeconds
+                                                                                                )
+                                                                                            );
+                                                                                            return (
+                                                                                                '- **&middot; ' +
+                                                                                                a.replace(
+                                                                                                    milliSeconds +
+                                                                                                    ' ms',
+                                                                                                    time
+                                                                                                ) +
+                                                                                                '**.'
+                                                                                            );
+                                                                                        } else {
+                                                                                            return (
+                                                                                                '- **&middot; ' +
+                                                                                                a +
+                                                                                                '**.'
+                                                                                            );
+                                                                                        }
+                                                                                    }
+                                                                                )
+                                                                                .join(
+                                                                                    '\n'
+                                                                                )
+                                                                            : ' **' +
+                                                                            incidentReason.map(
+                                                                                a => {
+                                                                                    if (
+                                                                                        a.includes(
+                                                                                            'Response Time'
+                                                                                        )
+                                                                                    ) {
+                                                                                        const milliSeconds = a.match(
+                                                                                            /\d+/
+                                                                                        )[0];
+                                                                                        const time = formatMonitorResponseTime(
+                                                                                            Number(
+                                                                                                milliSeconds
+                                                                                            )
+                                                                                        );
+                                                                                        return a.replace(
+                                                                                            milliSeconds +
+                                                                                            ' ms',
+                                                                                            time
+                                                                                        );
+                                                                                    } else {
+                                                                                        return a;
+                                                                                    }
+                                                                                }
+                                                                            ) +
+                                                                            '**.'
+                                                                        }`}
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}
@@ -499,7 +561,11 @@ export class IncidentStatus extends Component {
                                                                 id={`${monitorName}_IncidentReport`}
                                                             >
                                                                 <ReactMarkdown
-                                                                    source={`${incidentReason &&
+                                                                    source={`This ${this
+                                                                            .props
+                                                                            .incident
+                                                                            .incidentType
+                                                                        } incident was created because the monitor's${incidentReason &&
                                                                             incidentReason.length >
                                                                             1
                                                                             ? ':\n' +
