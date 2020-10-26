@@ -6,6 +6,8 @@ import {
     userData,
     validationError,
     subscribeUser,
+    openSubscribeMenu,
+    userDataReset,
 } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
@@ -71,6 +73,10 @@ class Message extends Component {
         }
     };
 
+    handleClose = () => {
+        this.props.userDataReset();
+        this.props.openSubscribeMenu();
+    };
     render() {
         return (
             <div>
@@ -78,17 +84,35 @@ class Message extends Component {
                     Get email notifications when an incident is{' '}
                     <strong>created</strong>.
                 </div>
-                <form id="subscribe-form-email" onSubmit={this.handleSubmit}>
-                    <input
-                        name="email"
-                        onChange={this.handleChange}
-                        type="text"
-                        placeholder="Email Address"
-                        className="input-full"
-                    />
+                <form
+                    id="subscribe-form-email"
+                    onSubmit={
+                        this.props.subscribed && this.props.subscribed.success
+                            ? this.handleClose
+                            : this.handleSubmit
+                    }
+                >
+                    {this.props.subscribed && this.props.subscribed.success ? (
+                        <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                            <span>You are subscribed to this monitor</span>
+                        </div>
+                    ) : (
+                            <input
+                                name="email"
+                                onChange={this.handleChange}
+                                type="text"
+                                placeholder="Email Address"
+                                className="input-full"
+                            />
+                        )}
                     <input
                         type="submit"
-                        value="Subscribe"
+                        value={
+                            this.props.subscribed &&
+                                this.props.subscribed.success
+                                ? 'Close'
+                                : 'Subscribe'
+                        }
                         className="subscribe-btn-full"
                         id="subscribe-btn-email"
                     ></input>
@@ -118,7 +142,16 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ userData, validationError, subscribeUser }, dispatch);
+    bindActionCreators(
+        {
+            userData,
+            validationError,
+            subscribeUser,
+            openSubscribeMenu,
+            userDataReset,
+        },
+        dispatch
+    );
 
 Message.propTypes = {
     userData: PropTypes.func,
@@ -127,6 +160,8 @@ Message.propTypes = {
     error: PropTypes.string,
     statuspage: PropTypes.object,
     subscribeUser: PropTypes.func,
+    openSubscribeMenu: PropTypes.func,
+    userDataReset: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Message);
