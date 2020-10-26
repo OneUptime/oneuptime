@@ -24,6 +24,7 @@ import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
+import ViewJsonLogs from '../modals/ViewJsonLogs';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -642,6 +643,38 @@ export class IncidentStatus extends Component {
                                                                               '**.'
                                                                     }`}
                                                                 />
+                                                                <button
+                                                                    title="viewMore"
+                                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        this.props.openModal(
+                                                                            {
+                                                                                id: this
+                                                                                    .state
+                                                                                    .viewJsonModalId,
+                                                                                content: DataPathHoC(
+                                                                                    ViewJsonLogs,
+                                                                                    {
+                                                                                        viewJsonModalId: this
+                                                                                            .state
+                                                                                            .viewJsonModalId,
+                                                                                        jsonLog: {},
+                                                                                        title:
+                                                                                            'Response',
+                                                                                        rootName:
+                                                                                            'content',
+                                                                                    }
+                                                                                ),
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span>
+                                                                        View
+                                                                        More
+                                                                    </span>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     )}
