@@ -129,6 +129,10 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/scheduledEvents/
             ) &&
+                route.title === 'Error Tracking') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/error-tracking/
+            ) &&
                 route.title === 'Scheduled Events') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
                 route.title === 'Consulting & Services');

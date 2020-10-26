@@ -309,10 +309,8 @@ module.exports = {
         await page.click(selector);
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
-        // eslint-disable-next-line no-empty
-        if (noOption) {
-        } else {
-            await page.keyboard.press('Enter');
+        if (!noOption) {
+            await page.keyboard.press('Tab');
         }
         await page.waitFor(1000);
     },

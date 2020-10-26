@@ -21,19 +21,19 @@ const ScheduleProjectBox = props => (
                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                             <span style={{ textTransform: 'capitalize' }}>
                                 {props.currentProject._id !==
-                                props.subProjectSchedule._id
+                                    props.subProjectSchedule._id
                                     ? props.subProjectName
                                     : props.subProjects.length > 0
-                                    ? 'Project'
-                                    : ''}{' '}
+                                        ? 'Project'
+                                        : ''}{' '}
                                 on-call schedules
                             </span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 {IsOwnerSubProject(props.currentProject) ||
-                                IsAdminSubProject(props.subProject) ||
-                                IsOwnerSubProject(props.subProject)
+                                    IsAdminSubProject(props.subProject) ||
+                                    IsOwnerSubProject(props.subProject)
                                     ? "Schedules let's you connect members to monitors, so only members who are responsible for certain monitors are alerted."
                                     : 'When monitors go down, Fyipe alerts your team.'}
                             </span>
@@ -84,6 +84,8 @@ const ScheduleProjectBox = props => (
                             <OnCallTableHeader text="Monitor" />
 
                             <OnCallTableHeader text="Team Members" />
+
+                            <OnCallTableHeader text="Actions" />
                         </tr>
                     </thead>
                     <tbody className="Table-body">
@@ -91,6 +93,7 @@ const ScheduleProjectBox = props => (
                             schedules={sortByName(props.schedules)}
                             requesting={props.isRequesting}
                             subProjectId={props.subProjectSchedule._id}
+                            bottonTitle="View Schedule"
                         />
                     </tbody>
                 </table>
@@ -140,11 +143,10 @@ const ScheduleProjectBox = props => (
                         <div className="Box-root Margin-right--8">
                             <button
                                 id="btnPrev"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateBackward
-                                        ? 'Is--disabled'
-                                        : ''
-                                }`}
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
+                                    ? 'Is--disabled'
+                                    : ''
+                                    }`}
                                 data-db-analytics-name="list_view.pagination.previous"
                                 disabled={!props.canPaginateBackward}
                                 type="button"
@@ -166,11 +168,10 @@ const ScheduleProjectBox = props => (
                         <div className="Box-root">
                             <button
                                 id="btnNext"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateForward
-                                        ? 'Is--disabled'
-                                        : ''
-                                }`}
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateForward
+                                    ? 'Is--disabled'
+                                    : ''
+                                    }`}
                                 data-db-analytics-name="list_view.pagination.next"
                                 disabled={!props.canPaginateForward}
                                 type="button"

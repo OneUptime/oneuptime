@@ -24,7 +24,6 @@ import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
 
-import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
@@ -100,6 +99,17 @@ export class IncidentStatus extends Component {
             this.props.incident.projectId,
             this.props.incident._id
         );
+    };
+
+    handleIncident = () => {
+        if (!this.props.incident.acknowledged) {
+            this.acknowledge();
+        } else if (
+            this.props.incident.acknowledged &&
+            !this.props.incident.resolved
+        ) {
+            this.resolve();
+        }
     };
 
     render() {
@@ -274,7 +284,7 @@ export class IncidentStatus extends Component {
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
-                                        <div className="bs-Fieldset-rows bs-header">
+                                        <div className="bs-Fieldset-rows bs-header bs-content-1">
                                             <div className="bs-left-side">
                                                 <div className="bs-content">
                                                     <label>Incident ID</label>
@@ -284,6 +294,10 @@ export class IncidentStatus extends Component {
                                                             style={{
                                                                 marginTop:
                                                                     '6px',
+                                                                fontWeight:
+                                                                    '600',
+                                                                fontSize:
+                                                                    '18px',
                                                             }}
                                                         >
                                                             {`#${this.props.incident.idNumber}`}
@@ -354,7 +368,7 @@ export class IncidentStatus extends Component {
                                                                     .incidentType ===
                                                                 'offline' ? (
                                                                     <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper bs-font-increase">
                                                                             <span>
                                                                                 offline
                                                                         </span>
@@ -370,7 +384,7 @@ export class IncidentStatus extends Component {
                                                                         .incidentType ===
                                                                     'online' ? (
                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper bs-font-increase">
                                                                                 <span>
                                                                                     online
                                                                         </span>
@@ -386,7 +400,7 @@ export class IncidentStatus extends Component {
                                                                             .incidentType ===
                                                                         'degraded' ? (
                                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
+                                                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper bs-font-increase">
                                                                                     <span>
                                                                                         degraded
                                                                         </span>
@@ -694,7 +708,7 @@ export class IncidentStatus extends Component {
                                                                 Acknowledge
                                                         </label>
                                                             <div
-                                                                className="bs-content-inside"
+                                                                className="bs-content-inside bs-font-increase"
                                                                 title="Let your team know you're working on this incident."
                                                             >
                                                                 <div className="Box-root Flex-flex Flex-alignItems--center">
@@ -706,43 +720,13 @@ export class IncidentStatus extends Component {
                                                                         >
                                                                             <label
                                                                                 id={`btnAcknowledge_${this.props.count}`}
-                                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--circle"
-                                                                                type="button"
-                                                                                onClick={
-                                                                                    this
-                                                                                        .acknowledge
-                                                                                }
+                                                                                className="Bs-btn-no"
                                                                             >
                                                                                 <span>
                                                                                     Acknowledge
                                                                                     Incident
                                                                             </span>
                                                                             </label>
-                                                                        </ShouldRender>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                (this
-                                                                                    .props
-                                                                                    .incidentRequest &&
-                                                                                    this
-                                                                                        .props
-                                                                                        .incidentRequest
-                                                                                        .requesting) ||
-                                                                                (this
-                                                                                    .props
-                                                                                    .multipleIncidentRequest &&
-                                                                                    this
-                                                                                        .props
-                                                                                        .multipleIncidentRequest
-                                                                                        .requesting)
-                                                                            }
-                                                                        >
-                                                                            <Spinner
-                                                                                style={{
-                                                                                    stroke:
-                                                                                        '#000000',
-                                                                                }}
-                                                                            />
                                                                         </ShouldRender>
                                                                     </div>
                                                                 </div>
@@ -857,7 +841,7 @@ export class IncidentStatus extends Component {
                                                         </label>
                                                             <div className="bs-content-inside">
                                                                 <div
-                                                                    className="Box-root Flex-flex Flex-alignItems--center"
+                                                                    className="Box-root Flex-flex Flex-alignItems--center bs-font-increase"
                                                                     title="Let your team know you've fixed this incident."
                                                                 >
                                                                     <div>
@@ -868,43 +852,13 @@ export class IncidentStatus extends Component {
                                                                         >
                                                                             <label
                                                                                 id={`btnResolve_${this.props.count}`}
-                                                                                className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
-                                                                                type="button"
-                                                                                onClick={
-                                                                                    this
-                                                                                        .resolve
-                                                                                }
+                                                                                className="Bs-btn-no"
                                                                             >
                                                                                 <span>
                                                                                     Resolve
                                                                                     Incident
                                                                             </span>
                                                                             </label>
-                                                                        </ShouldRender>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                (this
-                                                                                    .props
-                                                                                    .incidentRequest &&
-                                                                                    this
-                                                                                        .props
-                                                                                        .incidentRequest
-                                                                                        .resolving) ||
-                                                                                (this
-                                                                                    .props
-                                                                                    .multipleIncidentRequest &&
-                                                                                    this
-                                                                                        .props
-                                                                                        .multipleIncidentRequest
-                                                                                        .resolving)
-                                                                            }
-                                                                        >
-                                                                            <Spinner
-                                                                                style={{
-                                                                                    stroke:
-                                                                                        '#000000',
-                                                                                }}
-                                                                            />
                                                                         </ShouldRender>
                                                                     </div>
                                                                 </div>
@@ -942,6 +896,55 @@ export class IncidentStatus extends Component {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-bottom--12">
+                            <button
+                                className="bs-Button bs-btn-extra"
+                                id={`${monitorName}_EditIncidentDetails`}
+                                disabled={
+                                    this.props.incident.acknowledged &&
+                                    this.props.incident.resolved
+                                }
+                                type="button"
+                                onClick={this.handleIncident}
+                            >
+                                <span>
+                                    <ShouldRender
+                                        if={
+                                            (this.props.incidentRequest &&
+                                                this.props.incidentRequest
+                                                    .requesting) ||
+                                            (this.props
+                                                .multipleIncidentRequest &&
+                                                this.props
+                                                    .multipleIncidentRequest
+                                                    .requesting) ||
+                                            (this.props.incidentRequest &&
+                                                this.props.incidentRequest
+                                                    .resolving) ||
+                                            (this.props
+                                                .multipleIncidentRequest &&
+                                                this.props
+                                                    .multipleIncidentRequest
+                                                    .resolving)
+                                        }
+                                    >
+                                        <Spinner
+                                            style={{
+                                                stroke: '#000000',
+                                            }}
+                                        />
+                                    </ShouldRender>
+                                    {!this.props.incident.acknowledged
+                                        ? 'Acknowledge Incident'
+                                        : this.props.incident.acknowledged &&
+                                            !this.props.incident.resolved
+                                            ? 'Resolve Incident'
+                                            : 'Acknowledged and Resolved'}
+                                </span>
+                            </button>
+                        </div>
+
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-vertical--12">
                             <ShouldRender
                                 if={this.props.multiple && this.props.incident}
