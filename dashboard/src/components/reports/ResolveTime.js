@@ -3,16 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
-import {
-    ResponsiveContainer,
-    AreaChart as Chart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-} from 'recharts';
+import { Chart } from 'react-google-charts';
 import {
     getResolveTime,
     getResolveTimeError,
@@ -25,29 +16,6 @@ const noDataStyle = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '150px',
-};
-
-const CustomTooltip = ({ active, payload, label }) => {
-    if (active) {
-        return (
-            <div className="custom-tooltip">
-                <h3>{label}</h3>
-                <p className="label">{`${payload[0].name} : ${
-                    payload && payload[0] ? payload[0].value : 0
-                } secs`}</p>
-            </div>
-        );
-    }
-
-    return null;
-};
-
-CustomTooltip.displayName = 'CustomTooltip';
-
-CustomTooltip.propTypes = {
-    active: PropTypes.bool,
-    payload: PropTypes.array,
-    label: PropTypes.string,
 };
 
 class ResolveTime extends Component {
@@ -98,27 +66,73 @@ class ResolveTime extends Component {
     render() {
         const { resolveTime } = this.state;
         const { resolveTimeReports, filter } = this.props;
+        const areaChartData = [
+            [
+                filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : '',
+                'Average Resolve Time',
+                {
+                    role: 'tooltip',
+                    type: 'string',
+                    p: { html: true },
+                },
+            ],
+        ];
+        resolveTime.map(element => {
+            const value = [
+                element[filter],
+                element.averageResolved,
+                `<div class="custom-tooltip"> <h3>${element[filter]} </h3> <p class="label"> Average Resolve Time : ${element.averageResolved} secs </p></div>`,
+            ];
+            areaChartData.push(value);
+            return element;
+        });
 
         if (resolveTime && resolveTime.length > 0) {
             return (
-                <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={resolveTime} margin={{ left: -15 }}>
-                        <Legend verticalAlign="top" height={36} />
-                        <XAxis dataKey={filter} />
-                        <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <Area
-                            type="linear"
-                            isAnimationActive={false}
-                            name="Average Resolve Time"
-                            dataKey="averageResolved"
-                            stroke="#000000"
-                            strokeWidth={1.5}
-                            fill="#e2e1f2"
-                        />
-                    </Chart>
-                </ResponsiveContainer>
+                <Chart
+                    width={'100%'}
+                    height={'400px'}
+                    chartType="AreaChart"
+                    loader={<Loader />}
+                    data={areaChartData}
+                    options={{
+                        animation: {
+                            startup: true,
+                        },
+                        hAxis: {
+                            textStyle: {
+                                color: '#757575',
+                            },
+                        },
+                        vAxis: {
+                            minValue: 0,
+                            gridlines: {
+                                minSpacing: 20,
+                                count: 5,
+                            },
+                            minorGridlines: {
+                                count: 0,
+                            },
+                            textStyle: {
+                                color: '#757575',
+                            },
+                        },
+                        // For the legend to fit, we make the chart area smaller
+                        chartArea: {
+                            width: '70%',
+                            height: '70%',
+                        },
+                        // lineWidth: 25
+                        colors: ['#000000'],
+                        lineWidth: '1.5',
+                        legend: {
+                            position: 'top',
+                            alignment: 'center',
+                            textStyle: { color: '#757575', fontSize: 16 },
+                        },
+                        tooltip: { isHtml: true },
+                    }}
+                />
             );
         } else {
             return (
