@@ -29,7 +29,7 @@
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^3.4.3",
+        "react-scripts": "^3.4.4",
         "react-stripe-elements": "^1.6.0",
         "redux": "^3.7.2",
         "redux-form": "^7.3.0",
@@ -39,7 +39,7 @@
         "valid-url": "^1.0.9"
     },
     "scripts": {
-        "dev": "PORT=3003 react-scripts start",
+        "dev": "PORT=3003 && react-scripts start",
         "build": "react-scripts build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
