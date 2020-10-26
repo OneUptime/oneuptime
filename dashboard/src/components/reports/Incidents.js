@@ -76,6 +76,10 @@ class Incidents extends Component {
                     p: { html: true },
                 },
             ],
+            // ['Copper', 8.94, '#b87333'],
+            // ['Silver', 10.49, 'silver'],
+            // ['Gold', 19.3, 'gold'],
+            // ['Platinum', 21.45, '#e5e4e2'],
         ];
         incidents.map(element => {
             const value = [
@@ -96,13 +100,17 @@ class Incidents extends Component {
                 <Chart
                     width={'100%'}
                     height={'400px'}
-                    chartType="AreaChart"
+                    chartType="Bar"
                     loader={<Loader />}
                     data={areaChartData}
                     options={{
                         animation: {
                             startup: true,
                         },
+                        bar: {
+                            groupWidth: '40%',
+                        },
+                        bars: 'vertical',
                         hAxis: {
                             textStyle: {
                                 color: '#757575',
@@ -121,14 +129,8 @@ class Incidents extends Component {
                                 color: '#757575',
                             },
                         },
-                        // For the legend to fit, we make the chart area smaller
-                        chartArea: {
-                            width: '70%',
-                            height: '70%',
-                        },
                         // lineWidth: 25
                         colors: ['#000000'],
-                        lineWidth: '1.5',
                         legend: {
                             position: 'top',
                             alignment: 'center',
