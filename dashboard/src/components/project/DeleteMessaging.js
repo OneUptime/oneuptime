@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { changeDeleteModal } from '../../actions/project';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { IS_SAAS_SERVICE } from '../../config';
 
 class DeleteMessaging extends Component {
     handleClick = () => {
@@ -41,15 +40,6 @@ class DeleteMessaging extends Component {
                                 Your team will NOT be alerted during downtime.
                             </div>
                         </div>
-                        {IS_SAAS_SERVICE && (
-                            <div className="icon_display-msg">
-                                <div className="clear_times"></div>
-                                <div className="clear_msg_txt">
-                                    Your card will not be charged and your
-                                    subscription is cancelled.
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
                 <div className="bs-Modal-footer">
