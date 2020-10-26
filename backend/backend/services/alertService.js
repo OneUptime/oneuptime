@@ -508,9 +508,14 @@ module.exports = {
             if (!user) {
                 continue;
             }
+            /**
+             *  sendSMSAlert & sendCallAlert should not run in parallel
+             *  otherwise we will have a wrong project balance in the end.
+             *
+             */
 
             if (escalation.sms && shouldSendSMSReminder) {
-                _this.sendSMSAlert({
+                await _this.sendSMSAlert({
                     incident,
                     user,
                     project,
@@ -534,7 +539,7 @@ module.exports = {
             }
 
             if (escalation.call && shouldSendCallReminder) {
-                _this.sendCallAlert({
+                await _this.sendCallAlert({
                     incident,
                     user,
                     project,
@@ -814,7 +819,7 @@ module.exports = {
                     user.alertPhoneNumber,
                     AlertType.Call
                 );
-                AlertChargeService.create(
+                await AlertChargeService.create(
                     incident.projectId,
                     balanceStatus.chargeAmount,
                     balanceStatus.closingBalance,
@@ -990,7 +995,7 @@ module.exports = {
                     user.alertPhoneNumber,
                     AlertType.SMS
                 );
-                AlertChargeService.create(
+                await AlertChargeService.create(
                     incident.projectId,
                     balanceStatus.chargeAmount,
                     balanceStatus.closingBalance,
@@ -1030,7 +1035,13 @@ module.exports = {
                             );
                         }
                     } else {
-                        await _this.sendSubscriberAlert(subscriber, incident, null, null, component);
+                        await _this.sendSubscriberAlert(
+                            subscriber,
+                            incident,
+                            null,
+                            null,
+                            component
+                        );
                     }
                 });
             }

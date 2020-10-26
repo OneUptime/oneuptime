@@ -307,17 +307,20 @@ module.exports = {
             await AlertService.sendCreatedIncident(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
-            
+
             const monitor = await MonitorService.findOneBy({
                 _id: incident.monitorId,
             });
             const component = await ComponentService.findOneBy({
                 _id:
-                monitor.componentId && monitor.componentId._id
-                ? monitor.componentId._id
-                : monitor.componentId,
+                    monitor.componentId && monitor.componentId._id
+                        ? monitor.componentId._id
+                        : monitor.componentId,
             });
-            await AlertService.sendCreatedIncidentToSubscribers(incident, component);
+            await AlertService.sendCreatedIncidentToSubscribers(
+                incident,
+                component
+            );
             const meta = {
                 type: 'Incident',
                 componentId:

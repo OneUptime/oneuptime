@@ -36,13 +36,13 @@ export class RowData extends Component {
                                 {statusPage.domains[0].domain}
                             </div>
                         ) : (
-                                <div
-                                    id="domainNotSet"
-                                    className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                                >
-                                    Domain(s) not set yet
-                                </div>
-                            )}
+                            <div
+                                id="domainNotSet"
+                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                            >
+                                Domain(s) not set yet
+                            </div>
+                        )}
                     </div>
                 </td>
                 <td
