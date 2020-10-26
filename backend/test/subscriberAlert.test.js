@@ -23,7 +23,7 @@ const EmailSmtpService = require('../backend/services/emailSmtpService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, airtableId, projectId, monitorId, incidentId, subscriberId;
+let token, userId, projectId, monitorId, incidentId, subscriberId;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -39,7 +39,6 @@ describe('Subcriber Alert API', function() {
             createUser(request, userData.user, function(err, res) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -107,7 +106,7 @@ describe('Subcriber Alert API', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SubscriberService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 

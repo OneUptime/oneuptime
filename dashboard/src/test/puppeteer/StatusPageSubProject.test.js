@@ -175,8 +175,8 @@ describe('StatusPage API With SubProjects', () => {
         const fn = async ({ page, data }) => {
             const user = {
                 email: data.email,
-                password: data.password
-            }
+                password: data.password,
+            };
             await init.loginUser(user, page);
             const statuspageName = utils.generateRandomString();
             await init.addStatusPageToProject(
@@ -184,24 +184,21 @@ describe('StatusPage API With SubProjects', () => {
                 data.subProjectName,
                 page
             );
-            await page.waitForSelector('tr.statusPageListItem')
-            await page.$$('tr.statusPageListItem')
+            await page.waitForSelector('tr.statusPageListItem');
+            await page.$$('tr.statusPageListItem');
             await page.waitForSelector('#viewStatusPage');
             await page.click('#viewStatusPage');
 
-
             const element = await page.$(`#cb${statuspageName}`);
-            const statusPageNameOnStatusPage = await (await element.getProperty('textContent')).jsonValue()
+            const statusPageNameOnStatusPage = await (
+                await element.getProperty('textContent')
+            ).jsonValue();
 
-            expect(statuspageName).toEqual(statusPageNameOnStatusPage)
-
-        }
-        await cluster.execute(
-            { email, password, subProjectName },
-            fn
-        );
-        done()
-    }, 50000)
+            expect(statuspageName).toEqual(statusPageNameOnStatusPage);
+        };
+        await cluster.execute({ email, password, subProjectName }, fn);
+        done();
+    }, 50000);
     test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
         const fn = async ({ page, data }) => {
             const user = {

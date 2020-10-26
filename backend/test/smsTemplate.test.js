@@ -17,7 +17,7 @@ const AirtableService = require('../backend/services/airtableService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, userId, airtableId, smsTemplateId;
+let token, projectId, userId, smsTemplateId;
 
 describe('SMS Template API', function() {
     this.timeout(20000);
@@ -29,7 +29,6 @@ describe('SMS Template API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -69,7 +68,7 @@ describe('SMS Template API', function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await SmsTemplateService.hardDeleteBy({ projectId: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /:projectId'

@@ -14,6 +14,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const GitCredentialService = require('../backend/services/gitCredentialService');
+const AirtableService = require('../backend/services/airtableService');
 
 describe('Git Credential API', function() {
     const timeout = 30000;
@@ -60,6 +61,7 @@ describe('Git Credential API', function() {
         await GitCredentialService.hardDeleteBy({
             projectId,
         });
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should add git credential', function(done) {

@@ -392,13 +392,7 @@ class MonitorInfo extends Component {
                 id={this.props.id}
                 ref={this.container}
             >
-                <div
-                    className="uptime-graph-header"
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                    }}
-                >
+                <div className="uptime-graph-header">
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <ShouldRender if={isGroupedByMonitorCategory}>
                             <div

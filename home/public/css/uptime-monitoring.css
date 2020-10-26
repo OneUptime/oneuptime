@@ -12,7 +12,7 @@ main h2[class^=common-Uppercase]{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .columns{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -24,7 +24,7 @@ main h2[class^=common-Uppercase]{
     position:relative;
     overflow:hidden
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     .angle-clip-container{
         margin-top:-470px
     }
@@ -151,7 +151,7 @@ main header{
     overflow:hidden;
     padding-bottom:80px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header{
         overflow:visible;
         padding:0;
@@ -165,12 +165,12 @@ main header .stripes{
     bottom:260px;
     transform:skewY(-12deg)
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     main header .stripes{
         bottom:290px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .stripes{
         bottom:440px
     }
@@ -211,7 +211,7 @@ main header .stripes .s4{
     min-width:0;
     background:linear-gradient(90deg,#f783c3,#f399ff)
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .stripes .s4{
         right:calc(50% + 90px);
         min-width:430px
@@ -228,7 +228,7 @@ main header .intro{
     position:relative;
     padding-top:120px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .intro{
         padding-top:158px
     }
@@ -237,13 +237,13 @@ main header .intro .columns{
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     main header .intro .columns{
         -ms-flex-direction:column;
         flex-direction:column
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .intro .columns{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -259,14 +259,14 @@ main header .intro .intro-copy{
     max-width:550px;
     margin-top:-18px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     main header .intro .intro-copy{
         -ms-flex-align:center;
         align-items:center;
         text-align:center
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .intro .intro-copy{
         -ms-flex-align:start;
         align-items:flex-start;
@@ -281,7 +281,7 @@ main header .intro .intro-copy .common-ProductLockup{
     
     }
 }
-@media (min-width:1160px){
+@media (min-width:1020px){
     main header .intro .intro-copy .common-ProductLockup{
        
     }
@@ -303,7 +303,7 @@ main header .intro .common-ButtonGroup{
     justify-content:center;
     margin-top:20px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .intro .common-ButtonGroup{
         margin-left:50px;
         margin-top:-8px
@@ -334,7 +334,7 @@ main header .icosahedron{
         margin-right:auto
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     main header .icosahedron{
         margin-left:-60px;
         margin-top:60px
@@ -346,12 +346,12 @@ section.prevention{
 section.prevention .intro-copy{
     margin-top:30px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.prevention .intro-copy{
         margin-top:70px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.prevention .intro-copy{
         margin-left:500px;
         margin-top:120px;
@@ -361,7 +361,7 @@ section.prevention .intro-copy{
 section.prevention ul{
     margin-top:20px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.prevention ul{
         margin-top:60px
     }
@@ -370,7 +370,7 @@ section.techguide{
     max-width:1140px;
     margin-top:60px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.techguide{
         margin-top:80px
     }
@@ -381,7 +381,7 @@ section.techguide .common-Card{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.techguide .common-Card{
         -ms-flex-direction:row;
         flex-direction:row;
@@ -413,7 +413,7 @@ section.techguide .chart{
     height:225px;
     margin-top:40px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.techguide .chart{
         width:430px;
         margin-left:90px;
@@ -533,7 +533,7 @@ section.simplify{
     position:relative;
     padding-top:90px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify{
         padding-top:120px
     }
@@ -551,7 +551,7 @@ section.simplify:before{
 section.simplify .intro-copy{
     max-width:840px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .intro-copy{
         text-align:center
     }
@@ -563,7 +563,7 @@ section.simplify .rules{
     align-items:center;
     margin-top:50px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .rules{
         -ms-flex-direction:row;
         flex-direction:row
@@ -574,7 +574,7 @@ section.simplify .rules .copy{
     min-width:280px;
     max-width:600px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .rules .copy{
         -ms-flex-preferred-size:32%;
         flex-basis:32%;
@@ -591,7 +591,7 @@ section.simplify .rules .rule-builder{
     padding:10px;
     
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .rules .rule-builder{
         -ms-flex-preferred-size:68%;
         flex-basis:68%;
@@ -692,7 +692,7 @@ section.simplify .manual-review{
     padding-bottom:90px;
     margin-top:30px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify .manual-review{
         padding-top:10px;
         padding-bottom:120px;
@@ -715,7 +715,7 @@ section.simplify .manual-review .container-lg{
     -ms-flex-align:center;
     align-items:center
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .manual-review .container-lg{
         -ms-flex-direction:row;
         flex-direction:row
@@ -726,7 +726,7 @@ section.simplify .manual-review .copy{
     min-width:280px;
     max-width:600px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .manual-review .copy{
         -ms-flex-preferred-size:30%;
         flex-basis:30%;
@@ -741,12 +741,12 @@ section.simplify .manual-review .review-queue{
     flex-shrink:0;
     width:calc(100% + 70px);
     height:256px;
-    max-width:670px;
+    max-width:1020px;
     position:relative;
     margin-bottom:30px;
     overflow:hidden
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.simplify .manual-review .review-queue{
         -ms-flex-negative:1;
         flex-shrink:1;
@@ -869,7 +869,7 @@ section.simplify .manual-review .review-queue .charge .detail{
         margin:0 10px
     }
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify .manual-review .review-queue .charge .detail{
         margin:0 20px
     }
@@ -889,7 +889,7 @@ section.simplify .manual-review .review-queue .charge .detail.customer{
         display:block
     }
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify .manual-review .review-queue .charge .detail.customer{
         max-width:none
     }
@@ -907,7 +907,7 @@ section.simplify .manual-review .review-queue .charge .detail h3{
     text-overflow:ellipsis;
     transition:color .5s cubic-bezier(.645,.045,.355,1)
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify .manual-review .review-queue .charge .detail h3{
         font-size:17px
     }
@@ -937,7 +937,7 @@ section.simplify .manual-review .review-queue .charge .detail p{
     text-overflow:ellipsis;
     transition:color .5s cubic-bezier(.645,.045,.355,1)
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.simplify .manual-review .review-queue .charge .detail p{
         font-size:16px
     }
@@ -1024,7 +1024,7 @@ section.take-action{
     position:relative;
     padding:90px 20px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.take-action{
         padding:120px 20px
     }
@@ -1047,7 +1047,7 @@ section.take-action .intro-copy{
     max-width:840px;
     margin:0 auto
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.take-action .intro-copy{
         text-align:center
     }
@@ -1055,7 +1055,7 @@ section.take-action .intro-copy{
 section.take-action ul.feature-list{
     margin-top:20px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     section.take-action ul.feature-list{
         margin-top:60px
     }
@@ -1072,7 +1072,7 @@ section.take-action .video-container{
     z-index:1;
     pointer-events:none
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.take-action .video-container{
         max-width:600px
     }
@@ -1158,7 +1158,7 @@ section.take-action .video-caption{
     margin-top:30px;
     font-style:italic
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     section.take-action .video-caption{
         text-align:center
     }

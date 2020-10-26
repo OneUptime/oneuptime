@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
-import { Validate } from '../../config';
+import { IS_SAAS_SERVICE, Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
@@ -60,6 +60,15 @@ class DeleteCaution extends Component {
                         </span>
                         <br />
                         <br />
+                        {IS_SAAS_SERVICE && (
+                            <>
+                                <div className="clear_msg_txt">
+                                    Your card will not be charged and your
+                                    subscription will be cancelled.
+                                </div>
+                                <br />
+                            </>
+                        )}
                         <div>
                             <Field
                                 required={true}

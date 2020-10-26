@@ -488,7 +488,7 @@ module.exports = {
             if (monitors && monitors.length) {
                 await monitors.map(async m => {
                     if (m.type === 'script') {
-                        await MonitorModel.update(
+                        await MonitorModel.updateOne(
                             { _id: m._id, deleted: false },
                             { $set: { scriptRunStatus: 'inProgress' } },
                             { multi: true }
@@ -503,12 +503,12 @@ module.exports = {
                             pt => String(pt.probeId) === String(probeId)
                         )
                     ) {
-                        await MonitorModel.update(
+                        await MonitorModel.updateOne(
                             { _id: monitor._id },
                             { $push: { pollTime: { probeId, date: newdate } } }
                         );
                     } else {
-                        await MonitorModel.update(
+                        await MonitorModel.updateOne(
                             {
                                 _id: monitor._id,
                                 pollTime: {

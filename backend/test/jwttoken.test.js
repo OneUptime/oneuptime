@@ -16,7 +16,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 
-let token, projectId, refreshToken, userId, airtableId;
+let token, projectId, refreshToken, userId;
 
 describe('Jwt Token API', function() {
     this.timeout(20000);
@@ -28,7 +28,6 @@ describe('Jwt Token API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -68,7 +67,7 @@ describe('Jwt Token API', function() {
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should get new access and refresh token when provided a valid jwtRefreshToken', function(done) {

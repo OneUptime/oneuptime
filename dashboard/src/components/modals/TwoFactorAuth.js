@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { reduxForm, Field } from 'redux-form';
 import { Spinner } from '../basic/Loader';
@@ -43,6 +42,7 @@ class TwoFactorAuthModal extends Component {
                         .getElementById('enableTwoFactorAuthButton')
                         .click();
                 } else {
+                    e.preventDefault(); // prevent default behaviour of trying to submit the form
                     return document.getElementById('nextFormButton').click();
                 }
             default:
@@ -65,7 +65,6 @@ class TwoFactorAuthModal extends Component {
     };
 
     submitForm = values => {
-        const { twoFactorAuthId, closeModal } = this.props;
         if (values.token) {
             const {
                 setTwoFactorAuth,
@@ -75,9 +74,7 @@ class TwoFactorAuthModal extends Component {
             values.userId = profileSettings.data.id;
             verifyTwoFactorAuthToken(values).then(response => {
                 setTwoFactorAuth(response.data.twoFactorAuthEnabled);
-                return closeModal({
-                    id: twoFactorAuthId,
-                });
+                this.props.closeThisDialog();
             });
         }
     };
@@ -217,6 +214,13 @@ class TwoFactorAuthModal extends Component {
                                                                 <QRCode
                                                                     size={230}
                                                                     value={`${qrCode.data.otpauth_url}`}
+                                                                    imageSettings={{
+                                                                        src:
+                                                                            'data:image/svg+xml;base64,77u/PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHZlcnNpb249IjEuMSIgYmFzZVByb2ZpbGU9ImZ1bGwiIHdpZHRoPSIyNzkuODQ3IiBoZWlnaHQ9IjI3OS44NDciIHZpZXdCb3g9IjAgMCAyNzkuODUgMjc5Ljg1IiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCAyNzkuODUgMjc5Ljg1IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCgk8cmVjdCB4PSIwIiB5PSItNi4xMDM1MmUtMDA1IiBmaWxsPSI6IzAwMDAwMCIgZmlsbC1vcGFjaXR5PSIxIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB3aWR0aD0iMjc5Ljg0NyIgaGVpZ2h0PSIyNzkuODQ3Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZmlsbC1vcGFjaXR5PSIxIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNIDIxMC42NDksMTAzLjUwMUMgMjA4LjQzMSwxMDIuNTczIDIwNS45MDEsMTAyLjEwOSAyMDMuMDU5LDEwMi4xMDlDIDE5NS4wODUsMTAyLjEwOSAxOTEuMDk3LDEwNi40MDggMTkxLjA5NywxMTUuMDA2TCAxOTEuMDk3LDEyNC4zNzlMIDIwNy44NjUsMTI0LjM3OUwgMjA3Ljg2NSwxMzYuOTA2TCAxOTEuMTYzLDEzNi45MDZMIDE5MS4xNjMsMTkzLjk3M0wgMTc1Ljg1MiwxOTMuOTczTCAxNzUuODUyLDEzNi45MDZMIDE2My4zMjUsMTM2LjkwNkwgMTYzLjMyNSwxMjQuMzc5TCAxNzUuODUyLDEyNC4zNzlMIDE3NS44NTIsMTEzLjE1N0MgMTc1Ljg1MiwxMDUuODY1IDE3OC4yNzcsMTAwLjExMiAxODMuMTI3LDk1LjkwMDNDIDE4Ny45NzcsOTEuNjg4NCAxOTQuMDQxLDg5LjU4MjYgMjAxLjMxOSw4OS41ODI2QyAyMDUuMjQ4LDg5LjU4MjYgMjA4LjM1OCw4OS45OTU4IDIxMC42NDksOTAuODIyMkwgMjEwLjY0OSwxMDMuNTAxIFogIi8+DQoJPHJlY3QgeD0iMjE3LjYwOCIgeT0iMTI0LjM3OSIgZmlsbD0iI0ZGRkZGRiIgZmlsbC1vcGFjaXR5PSIxIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB3aWR0aD0iMTUuMzEwNSIgaGVpZ2h0PSI2OS41OTM0Ii8+DQoJPHBhdGggZmlsbD0iIzZDREI1NiIgZmlsbC1vcGFjaXR5PSIxIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJNIDEyOS42MDEsOTcuODE4TCAxNDQuMSw5Ny44MThDIDE0Ni4zMDksOTcuODE4IDE0OC4xLDk5LjYwODggMTQ4LjEsMTAxLjgxOEwgMTQ4LjEsMTg5LjgxM0MgMTQ4LjEsMTkyLjAyMiAxNDYuMzA5LDE5My44MTMgMTQ0LjEsMTkzLjgxM0wgMTI5LjYwMSwxOTMuODEzQyAxMjcuMzkyLDE5My44MTMgMTI1LjYwMSwxOTIuMDIyIDEyNS42MDEsMTg5LjgxM0wgMTI1LjYwMSwxMDEuODE4QyAxMjUuNjAxLDk5LjYwODggMTI3LjM5Miw5Ny44MTggMTI5LjYwMSw5Ny44MTggWiAiLz4NCgk8cGF0aCBmaWxsPSIjNkNEQjU2IiBmaWxsLW9wYWNpdHk9IjEiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0gOTUuODUzMSw5OC41Njc3TCAxMTAuMzUyLDk4LjU2NzdDIDExMi41NjEsOTguNTY3NyAxMTQuMzUyLDEwMC4zNTggMTE0LjM1MiwxMDIuNTY4TCAxMTQuMzUyLDE5MC41NjNDIDExNC4zNTIsMTkyLjc3MiAxMTIuNTYxLDE5NC41NjMgMTEwLjM1MiwxOTQuNTYzTCA5NS44NTMxLDE5NC41NjNDIDkzLjY0NCwxOTQuNTYzIDkxLjg1MzEsMTkyLjc3MiA5MS44NTMxLDE5MC41NjNMIDkxLjg1MzEsMTAyLjU2OEMgOTEuODUzMSwxMDAuMzU4IDkzLjY0NCw5OC41Njc3IDk1Ljg1MzEsOTguNTY3NyBaICIvPg0KCTxwYXRoIGZpbGw9IiM2Q0RCNTYiIGZpbGwtb3BhY2l0eT0iMSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZD0iTSA2MC4zNTUsOTguMDY3NEwgNzQuODUzOSw5OC4wNjc0QyA3Ny4wNjMsOTguMDY3NCA3OC44NTM5LDk5Ljg1ODMgNzguODUzOSwxMDIuMDY3TCA3OC44NTM5LDE5MC4wNjNDIDc4Ljg1MzksMTkyLjI3MiA3Ny4wNjMsMTk0LjA2MyA3NC44NTM5LDE5NC4wNjNMIDYwLjM1NSwxOTQuMDYzQyA1OC4xNDU4LDE5NC4wNjMgNTYuMzU1LDE5Mi4yNzIgNTYuMzU1LDE5MC4wNjNMIDU2LjM1NSwxMDIuMDY3QyA1Ni4zNTUsOTkuODU4MyA1OC4xNDU4LDk4LjA2NzQgNjAuMzU1LDk4LjA2NzQgWiAiLz4NCjwvc3ZnPg0K',
+                                                                        height: 24,
+                                                                        width: 24,
+                                                                        excavate: true,
+                                                                    }}
                                                                     style={{
                                                                         display:
                                                                             'block',
@@ -318,13 +322,11 @@ const TwoFactorAuthForm = reduxForm({
 
 TwoFactorAuthModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
-    closeModal: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     generateTwoFactorQRCode: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
     profileSettings: PropTypes.object,
     qrCode: PropTypes.object,
-    twoFactorAuthId: PropTypes.string,
     twoFactorAuthSetting: PropTypes.object,
     verifyTwoFactorAuthToken: PropTypes.func,
 };
@@ -340,7 +342,6 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            closeModal,
             setTwoFactorAuth,
             verifyTwoFactorAuthToken,
             generateTwoFactorQRCode,

@@ -708,7 +708,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -716,7 +716,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#up_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -736,7 +736,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -744,7 +744,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#degraded_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -764,7 +764,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #responseType',
-                    'evals',
+                    'responseBody',
                     page
                 );
                 await page.waitForSelector(
@@ -772,7 +772,7 @@ describe('API Monitor API', () => {
                 );
                 await init.selectByText(
                     'ul#down_1000 > li:last-of-type #filter',
-                    'jsExpression',
+                    'evaluateResponse',
                     page
                 );
                 await page.waitForSelector(
@@ -1059,82 +1059,6 @@ describe('API Monitor API', () => {
 
                 spanElement = await page.$(selector);
                 expect(spanElement).toBeNull();
-            });
-        },
-        operationTimeOut
-    );
-});
-
-describe('Server Monitor API', () => {
-    const operationTimeOut = 500000;
-
-    let cluster;
-
-    beforeAll(async () => {
-        jest.setTimeout(500000);
-
-        cluster = await Cluster.launch({
-            concurrency: Cluster.CONCURRENCY_PAGE,
-            puppeteerOptions: utils.puppeteerLaunchConfig,
-            puppeteer,
-            timeout: utils.timeout,
-        });
-
-        cluster.on('taskerror', err => {
-            throw err;
-        });
-
-        return await cluster.execute(null, async ({ page }) => {
-            const user = {
-                email: utils.generateRandomBusinessEmail(),
-                password,
-            };
-            await init.registerUser(user, page);
-            await init.loginUser(user, page);
-        });
-    });
-
-    afterAll(async done => {
-        await cluster.idle();
-        await cluster.close();
-        done();
-    });
-
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
-
-    test(
-        'should set server monitor offline if no data is uploaded in 3 minutes',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                // Create Component first
-                // Redirects automatically component to details page
-                await init.addComponent(componentName, page);
-
-                await page.waitForSelector('#form-new-monitor');
-                await page.click('input[id=name]');
-                await page.type('input[id=name]', monitorName);
-                await init.selectByText('#type', 'server-monitor', page);
-                await page.click('button[type=submit]');
-
-                let spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
-                );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
-                spanElement.should.be.exactly(monitorName);
-
-                await page.waitFor(180000);
-
-                await page.waitForSelector('span#activeIncidentsText', {
-                    visible: true,
-                });
-                let activeIncidents = await page.$('span#activeIncidentsText');
-                activeIncidents = await activeIncidents.getProperty(
-                    'innerText'
-                );
-                activeIncidents = await activeIncidents.jsonValue();
-                expect(activeIncidents).toEqual('1 Incident Currently Active');
             });
         },
         operationTimeOut

@@ -69,7 +69,7 @@ const fetchIdpSAMLResponse = async function({
     return SAMLResponse;
 };
 
-let projectId, userId, airtableId, token;
+let projectId, userId, token;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
 describe('User API', function() {
@@ -79,15 +79,20 @@ describe('User API', function() {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, data.user, function(err, res) {
+                if (err) {
+                    throw err;
+                }
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
                     verificationToken
                 ) {
+                    if (err) {
+                        throw err;
+                    }
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
@@ -99,6 +104,9 @@ describe('User API', function() {
                                     password: data.user.password,
                                 })
                                 .end(function(err, res) {
+                                    if (err) {
+                                        throw err;
+                                    }
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -121,7 +129,7 @@ describe('User API', function() {
         });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await LoginIPLog.deleteMany({ userId });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     // 'post /user/signup'

@@ -169,7 +169,7 @@ export class ResourceCategories extends Component {
                                             </div>
                                             <span
                                                 id="createResourceCategoryButton"
-                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
+                                                className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper"
                                             >
                                                 <span>
                                                     Create Resource Category

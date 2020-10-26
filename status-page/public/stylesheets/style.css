@@ -34,6 +34,7 @@ body {
 .innernew {
   margin: auto;
   padding: 0 8px;
+  width: 609px;
 }
 
 /* end */
@@ -78,6 +79,7 @@ div.block-chart {
   padding: 9px 0 4px;
   overflow: hidden;
   width: 101%; /* IE overflow fix */
+  width: 100% !important;
 }
 
 div.block-chart::-webkit-scrollbar {
@@ -403,6 +405,7 @@ div.block-chart::-webkit-scrollbar {
   font-size: 13px;
   color: #8898aa;
   padding-left: 10px;
+  margin-top: 0;
 }
 
 .url {
@@ -496,7 +499,18 @@ div.block-chart::-webkit-scrollbar {
 }
 
 
-div.feed-header {
+.feed-header {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  padding-left: 40px;
+  padding-right: 40px;
+  margin-bottom: 25px;
+}
+
+.individual-header {
+  display: flex;
+  flex-flow: column nowrap;
   margin-bottom: 25px;
 }
 
@@ -614,7 +628,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 
             div#footer li.last { border: 0; }
 
-    div#footer p { color: #8898aa; position: absolute; right: 10px; top: 40px; }
+    div#footer p { color: #8898aa; position: absolute; right: 10px; top: 26px; }
 
 /******* Tipsy Tooltips ******/
 
@@ -753,6 +767,7 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
   background-color: #000;
   color: #fff;
   box-shadow: none;
+  margin: 0;
 }
 .subscribe-overlay{
   background:rgba(82, 95, 127, 0.25);
@@ -820,32 +835,62 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 */
 .icon-container .icon-message{
   background-image: url(/status-page/images/email.svg);
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-message{
   background-image: url(/status-page/images/email.svg);
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 
 .icon-container .icon-call{
   background-image: url(/status-page/images/phone.svg);
+  background-size: 20px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-call{
   background-image: url(/status-page/images/phone.svg);
+  background-size: 20px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-webhook{
   background-image: url(/status-page/images/code.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-webhook{
   background-image: url(/status-page/images/code.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-rss{
   background-image: url(/status-page/images/rss.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-rss{
   background-image: url(/status-page/images/rss.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-close{
   background-image: url(/status-page/images/close.svg);
@@ -1190,7 +1235,7 @@ margin-left:10px;
 }
 
 .time__wrapper {
-  display: flex;
+  /* display: flex; */
   align-items: center;
   margin-left: 5px;
 }
@@ -1209,11 +1254,68 @@ margin-left:10px;
   outline: transparent;
 }
 
-@media screen and (max-width: 500px) {
-  .box-inner {
-    padding: 16px;
+.uptime-graph-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+@media screen and (max-width: 650px) {
+  .innernew {
+    width: 90%;
+    margin-top: 20px;
   }
 
+  .scheduledEvent,
+  .incidentlist {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .box-inner {
+    padding: 20px;
+  }
+
+  .uptime-graph-header {
+    flex-direction: column;
+  }
+
+  .percentage {
+    display: block;
+    margin-top: 15px;
+  }
+
+  .incident-bubble {
+    left: 20px;
+  }
+
+  .feed-header {
+    font-size: 14px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .sp__icon--more {
+    top: 20px;
+    bottom: 0;
+  }
+
+  .sp__icon--forward {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+
+  .largestatus .title {
+    font-size: 25px;
+  }
+
+  .largestatus .status-time {
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 500px) {
   .largestatus {
     padding: 0 16px;
     padding-left: 64px;
@@ -1222,6 +1324,14 @@ margin-left:10px;
   .status-bubble {
     left: 16px;
     border-radius: 100px;
+  }
+
+  .note__wrapper {
+    padding: 15px;
+  }
+
+  .innernew {
+    width: 93%;
   }
 }
 

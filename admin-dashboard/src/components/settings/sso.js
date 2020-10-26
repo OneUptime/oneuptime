@@ -129,7 +129,7 @@ export class Component extends React.Component {
                                                     paddingBottom: 3,
                                                 }}
                                             >
-                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                     <span>Add SSO</span>
                                                     <span className="new-btn__keycode">
                                                         N

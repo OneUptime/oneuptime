@@ -7,7 +7,6 @@ import { history } from '../../store';
 function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
-
     const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
 
     return (
@@ -33,6 +32,8 @@ function Row(props) {
             <OnCallTableBody text={props.monitors} />
 
             <OnCallTableBody text={props.users} />
+
+            <OnCallTableBody text={props.bottonTitle} type="button" />
         </tr>
     );
 }
@@ -46,23 +47,25 @@ Row.propTypes = {
     id: PropTypes.string.isRequired,
     monitors: PropTypes.string,
     subProjectId: PropTypes.string,
+    bottonTitle: PropTypes.string,
 };
 
 function parseSchedule(schedule) {
     const { name, monitorIds, _id } = schedule;
     const { escalationIds } = schedule;
+    const escalation = escalationIds[0] && escalationIds[0].teams;
     const userIds = [];
-    if (escalationIds && escalationIds.length) {
-        for (let i = 0; i < escalationIds.length; i++) {
+    if (escalation && escalation.length) {
+        for (let i = 0; i < escalation.length; i++) {
             if (
-                escalationIds[i] &&
-                escalationIds[i].teamMember &&
-                escalationIds[i].teamMember.length
+                escalation[i] &&
+                escalation[i].teamMembers &&
+                escalation[i].teamMembers.length
             ) {
-                for (let j = 0; j < escalationIds[i].teamMember.length; j++) {
-                    escalationIds[i].teamMember[j] &&
-                        escalationIds[i].teamMember[j].userId &&
-                        userIds.push(escalationIds[i].teamMember[j].userId);
+                for (let j = 0; j < escalation[i].teamMembers.length; j++) {
+                    escalation[i].teamMembers[j] &&
+                        escalation[i].teamMembers[j].userId &&
+                        userIds.push(escalation[i].teamMembers[j].userId);
                 }
             }
         }
@@ -83,24 +86,25 @@ function parseSchedule(schedule) {
     return { name, users, monitors, id };
 }
 
-function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
+function OnCallTableRows({ schedules, isRequesting, match, subProjectId, bottonTitle }) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
-              if (Array.isArray(schedule)) return null;
-              schedule = parseSchedule(schedule);
-              return (
-                  <Row
-                      name={schedule.name}
-                      users={schedule.users}
-                      monitors={schedule.monitors}
-                      isRequesting={isRequesting}
-                      id={schedule.id}
-                      key={`oncall ${index}`}
-                      match={match}
-                      subProjectId={subProjectId}
-                  />
-              );
-          })
+            if (Array.isArray(schedule)) return null;
+            schedule = parseSchedule(schedule);
+            return (
+                <Row
+                    name={schedule.name}
+                    users={schedule.users}
+                    monitors={schedule.monitors}
+                    isRequesting={isRequesting}
+                    id={schedule.id}
+                    key={`oncall ${index}`}
+                    match={match}
+                    subProjectId={subProjectId}
+                    bottonTitle={bottonTitle}
+                />
+            );
+        })
         : null;
 }
 

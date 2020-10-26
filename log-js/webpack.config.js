@@ -1,13 +1,16 @@
 const path = require('path');
 
-module.exports = {
+const serverBuild = {
     mode: 'production',
     entry: './src/logger.js',
+    target: 'node',
     output: {
         path: path.resolve('dist'),
         filename: 'logger.js',
         library: 'FyipeLogger',
+        libraryExport: 'default',
         libraryTarget: 'umd',
+        globalObject: 'this',
     },
     module: {
         rules: [
@@ -27,3 +30,9 @@ module.exports = {
         extensions: ['.js'],
     },
 };
+const webBuild = {
+    ...serverBuild,
+    target: 'web',
+    output: { ...serverBuild.output, filename: 'logger.min.js' },
+};
+module.exports = [serverBuild, webBuild];

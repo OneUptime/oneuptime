@@ -9,10 +9,22 @@ module.exports = {
                     companyName: userData.companyName,
                 })
                 .end(function(err, res) {
+                    if (err) {
+                        if (callback) {
+                            return callback(err, res);
+                        }
+                        return reject(err);
+                    }
                     stripe.paymentIntents.confirm(res.body.id, function(
                         err,
                         paymentIntent
                     ) {
+                        if (err) {
+                            if (callback) {
+                                return callback(err, res);
+                            }
+                            return reject(err);
+                        }
                         request
                             .post('/user/signup')
                             .send({

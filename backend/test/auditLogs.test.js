@@ -16,7 +16,7 @@ const ProjectService = require('../backend/services/projectService');
 const AirtableService = require('../backend/services/airtableService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, projectId, userId, airtableId;
+let token, projectId, userId;
 let testSuiteStartTime, testCaseStartTime;
 
 describe('Audit Logs API', function() {
@@ -30,7 +30,6 @@ describe('Audit Logs API', function() {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                airtableId = res.body.airtableId;
 
                 VerificationTokenModel.findOne({ userId }, function(
                     err,
@@ -67,7 +66,7 @@ describe('Audit Logs API', function() {
                 ],
             },
         });
-        await AirtableService.deleteUser(airtableId);
+        await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.removeTestConfig();
 
         // Deleting any auditLogs created between this test suite.

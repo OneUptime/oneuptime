@@ -13,6 +13,7 @@ const GlobalConfigService = require('./globalConfigService');
 const UserService = require('./userService');
 const SmsCountService = require('./smsCountService');
 const AlertService = require('./alertService');
+const { IS_TESTING } = require('../config/server');
 
 const _this = {
     findByOne: async function(query) {
@@ -138,7 +139,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             let { template } = await _this.getTemplate(
@@ -151,6 +153,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -223,7 +226,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             const _this = this;
@@ -237,6 +241,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -306,7 +311,8 @@ const _this = {
         incident,
         projectName,
         projectId,
-        componentName
+        componentName,
+        statusPageUrl
     ) {
         try {
             const _this = this;
@@ -320,6 +326,7 @@ const _this = {
                 incidentTime: incidentTime,
                 incidentType: incident.incidentType,
                 componentName,
+                statusPageUrl,
             };
             template = template(data);
             const customTwilioSettings = await _this.findByOne({
@@ -511,12 +518,11 @@ const _this = {
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
-            const alertPhoneVerificationCode =
-                IS_TESTING === 'true'
-                    ? '123456'
-                    : Math.random()
-                          .toString(10)
-                          .substr(2, 6);
+            const alertPhoneVerificationCode = IS_TESTING
+                ? '123456'
+                : Math.random()
+                      .toString(10)
+                      .substr(2, 6);
             if (customTwilioSettings) {
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options = {
@@ -597,4 +603,3 @@ const _this = {
 };
 
 module.exports = _this;
-const { IS_TESTING } = process.env;

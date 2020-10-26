@@ -398,7 +398,7 @@ function AlertTableRows({ alerts }) {
                   <TD4 text={alert.alertVia} />
                   <TD5 />
                   <TD6 text={alert.createdAt} />
-                  <TD7 text={alert.alertStatus} />
+                  <TD7 text={alert.alertStatus || alert.errorMessage} />
               </tr>
           ))
         : null;

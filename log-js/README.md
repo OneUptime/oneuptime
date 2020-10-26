@@ -2,7 +2,7 @@
 
 # Fyipe Application Logger
 
-A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard
+A fyipe application logger that can be used to send logs about your applications created on your fypie dashboard. It also provides a way to track errors in your application.
 
 ## Installation
 
@@ -25,10 +25,16 @@ $ npm install fyipe-log-js
 import FyipeLogger from 'fyipe-log-js';
 
 // constructor
+
+// set up tracking configurations
+const options = {
+    maxTimeline: 10,
+};
 const logger = new FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
-    'APPLICATION_LOG_KEY'
+    'APPLICATION_LOG_KEY',
+    options // Optional Field
 );
 
 // Sending a string log to the server
@@ -63,7 +69,7 @@ logger.log(item, tag);
 <script>
     function logError() {
         // constructor
-        const logger = new FyipeLogger.default(
+        const logger = new FyipeLogger(
             'API_URL', // https://fyipe.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
@@ -82,6 +88,53 @@ logger.log(item, tag);
 </script>
 ```
 
+### Error Tracking APIs
+
+```javascript
+import FyipeLogger from 'fyipe-log-js';
+
+// constructor
+
+// set up tracking configurations
+const options = {
+    maxTimeline: 10,
+};
+const logger = new FyipeLogger(
+    'API_URL', // https://fyipe.com/api
+    'APPLICATION_LOG_ID',
+    'APPLICATION_LOG_KEY',
+    options // Optional Field
+);
+
+// capturing a timeline manually
+logger.addTimeline(
+    'payment',
+    { account: 'debit', amount: '6000.00', userId: 401 },
+    'info'
+);
+
+// setting custom tags
+logger.setTag('category', 'Customer'); // a single tag
+logger.setTags([
+    { key: 'type', value: 'notice' },
+    { key: 'location', value: 'online' },
+]); // an array of tags
+
+// capturing error exception authomatically
+NonExistingMethodCall(); // this is authomatically captured and sent to your fyipe dashboard
+
+// capturing error exception manually
+try {
+    // your code logic
+    NonExistingMethodCall();
+} catch (error) {
+    logger.captureException(error);
+}
+
+// capturing error message
+logger.captureMessage('Message');
+```
+
 ## API Documentation
 
 Main API to send logs to the server.
@@ -94,27 +147,35 @@ Main API to send logs to the server.
     -   [Basic Usage](#basic-usage)
         -   [In a Node.js Project](#in-a-nodejs-project)
         -   [In the Browser](#in-the-browser)
+        -   [Error Tracking APIs](#error-tracking-apis)
     -   [API Documentation](#api-documentation)
-        -   [new FyipeLogger(apiUrl, applicationId, applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
+        -   [new FyipeLogger(apiUrl, applicationId, applicationKey, options)](#new-fyipeloggerapiurl-applicationid-applicationkey-options)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(log, tags)](#loggerwarninglog-tags)
             -   [logger.error(log, tags)](#loggererrorlog-tags)
+            -   [logger.setTag(key, value)](#loggersettagkey-value)
+            -   [logger.setTags([{key, value}])](#loggersettagskey-value)
+            -   [logger.setFingerprint(fingerprint)](#loggersetfingerprintfingerprint)
+            -   [logger.addTimeline(category, content, type)](#loggeraddtimelinecategory-content-type)
+            -   [logger.captureMessage(message)](#loggercapturemessagemessage)
+            -   [logger.captureExceptio(error)](#loggercaptureexceptioerror)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
 
-### new FyipeLogger(apiUrl, applicationId, applicationKey)
+### new FyipeLogger(apiUrl, applicationId, applicationKey, options)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
 **Kind**: Constructor
 **Returns**: <code>null</code>
 
-| Param          | Type                | Description              |
-| -------------- | ------------------- | ------------------------ |
-| apiUrl         | <code>string</code> | The Server URL.          |
-| applicationId  | <code>string</code> | The Application Log ID.  |
-| applicationKey | <code>string</code> | The Application Log Key. |
+| Param          | Type                | Description                                         |
+| -------------- | ------------------- | --------------------------------------------------- |
+| apiUrl         | <code>string</code> | The Server URL.                                     |
+| applicationId  | <code>string</code> | The Application Log ID.                             |
+| applicationKey | <code>string</code> | The Application Log Key.                            |
+| options        | <code>object</code> | Set of configuration to be used for error tracking. |
 
 #### logger.log(log, tags)
 
@@ -151,6 +212,76 @@ Logs a request of type `error` to the server.
 | ----- | ------------------------------------------ | ----------------------------------------------------------- |
 | log   | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
 | tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
+
+#### logger.setTag(key, value)
+
+Set a tag for the error to be captured.
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description            |
+| ----- | ------------------- | ---------------------- |
+| key   | <code>string</code> | The key for the tag.   |
+| value | <code>string</code> | The value for thr tag. |
+
+#### logger.setTags([{key, value}])
+
+Set an array of tags for the error to be captured.
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description            |
+| ----- | ------------------- | ---------------------- |
+| key   | <code>string</code> | The key for the tag.   |
+| value | <code>string</code> | The value for the tag. |
+
+#### logger.setFingerprint(fingerprint)
+
+Set fingerprint for the next error to be captured.
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param       | Type                                                 | Description                                                   |
+| ----------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| fingerprint | <code>string</code> \| <code>array of strings</code> | The set of string used to group error messages on the server. |
+
+#### logger.addTimeline(category, content, type)
+
+Add a custom timeline element to the next error to be sent to the server
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param    | Type                                       | Description                         |
+| -------- | ------------------------------------------ | ----------------------------------- |
+| category | <code>string</code>                        | The category of the timeline event. |
+| content  | <code>string</code> \| <code>Object</code> | The content of the timeline event.  |
+| type     | <code>string</code>                        | The type of timeline event.         |
+
+#### logger.captureMessage(message)
+
+Capture a custom error message to be sent to the server
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param   | Type                | Description                           |
+| ------- | ------------------- | ------------------------------------- |
+| message | <code>string</code> | The message to be sent to the server. |
+
+#### logger.captureExceptio(error)
+
+Capture a custom error object to be sent to the server
+
+**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description                                |
+| ----- | ------------------- | ------------------------------------------ |
+| error | <code>object</code> | The Error Object to be sent to the server. |
 
 ## Contribution
 

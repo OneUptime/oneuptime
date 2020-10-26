@@ -13,7 +13,7 @@
     overflow-x:auto;
     -webkit-overflow-scrolling:touch
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .LocalNavigation{
         overflow-x:hidden
     }
@@ -39,7 +39,7 @@
     text-align:center;
     white-space:nowrap
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .LocalNavigation-list li{
         white-space:normal
     }
@@ -59,7 +59,7 @@
 .LocalNavigation-list a:hover{
     color:#000000
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     .LocalNavigation-list a{
         padding-left:8px;
         padding-right:8px

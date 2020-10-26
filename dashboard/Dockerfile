@@ -5,6 +5,8 @@
 # Pull base image nodejs image.
 FROM node:12.16.1
 
+ENV NODE_OPTIONS="--max-old-space-size=8192"
+
 #SET ENV Variables
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

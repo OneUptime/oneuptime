@@ -65,7 +65,7 @@ main header{
 #stripes>span:hover{
     opacity:0.5;
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #stripes span{
         height:150px
     }
@@ -85,7 +85,7 @@ main header{
         background:#11bdff
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #stripes span{
         height:190px
     }
@@ -123,7 +123,7 @@ main header{
     position:relative
 }
 
-@media (min-width:800px){
+@media (min-width:1020px){
     .checkbox-feature{
         width:25%; 
         display: flex; 
@@ -139,8 +139,15 @@ main header{
     }
 }
 
+@media (max-width:1020px){
+
+    .cta-button-section{
+        padding: 0px;
+    }
+}
+
+
 .checkbox-feature{
-    width:50%; 
     display: flex; 
     justify-content: center;
 }
@@ -153,27 +160,26 @@ main header{
     display: none;
 }
 
-@media (min-width:670px){
+@media (min-width:1020px){
     #intro{
         display:-ms-flexbox;
         display:flex;
         -ms-flex-align:center;
         align-items:center;
-        height:750px
+        height:unset;
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #intro{
-        height:750px
+        height:unset;
     }
 }
 #intro .container-lg{
-    padding-top:70px;
-    padding-bottom:100px
+    padding-top:50px;
+    padding-bottom:50px;
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #intro .container-lg{
-        margin-top:-7%;
         padding-top:0;
         padding-bottom:0
     }
@@ -253,8 +259,10 @@ main header{
 
 .cta-button-style{
 
-    margin-left: calc(50% - 75px); 
+    margin:auto;
     margin-top: 70px;
+    margin-bottom: 70px;
+    justify-content: center;
 }
 
 .stars-panel{
@@ -264,16 +272,16 @@ main header{
 }
 
 
-@media (min-width:670px){
+@media (min-width:1020px){
     .cta-button-style{
-        margin-left: calc(50% - 200px); 
+       margin: auto;
         margin-top: 70px;
     }
 
     .stars-panel{
         display:flex;
         justify-content: space-evenly;
-        margin-top: 200px;
+        margin-top: 130px;
     }
 }
 
@@ -291,13 +299,13 @@ main header{
     }
 }
 
-@media only screen and (max-width: 880px) {
+@media only screen and (max-width: 1020px) {
     #introimage{
         display:none;
     }
 }
 
-@media (min-width:670px){
+@media (min-width:1020px){
     @supports (width:auto){
         #intro .announcement{
             width:auto
@@ -332,7 +340,7 @@ main header{
     font-size:32px;
     font-weight:400;
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #intro h1{
         font-size:40px
     }
@@ -344,12 +352,12 @@ main header{
     font-size: 20px;
     line-height: 28px;
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #intro p{
         max-width:60%
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #intro p{
         max-width:50%
     }
@@ -359,17 +367,29 @@ main header{
     display:flex;
     margin-top:40px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
+    #intro ul{
+        margin-top:65px;
+        margin-bottom:65px;
+    }
+    #intro li:first-child a{
+        margin-right:23px;
+        color:#fff;
+        background:#000000;
+        text-shadow:0 1px 3px rgba(36,180,126,.4)
+    }
+}
+@media (max-width:1020px){
     #intro ul{
         margin-top:65px
     }
+    #intro li:first-child a{
+        color:#fff;
+        background:#000000;
+        text-shadow:0 1px 3px rgba(36,180,126,.4)
+    }
 }
-#intro li:first-child a{
-    margin-right:23px;
-    color:#fff;
-    background:#000000;
-    text-shadow:0 1px 3px rgba(36,180,126,.4)
-}
+
 #intro li:first-child svg{
     position:relative;
     top:1px;
@@ -378,7 +398,7 @@ main header{
 #intro li:last-child{
     display:none
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #intro li:last-child{
         display:block
     }
@@ -430,7 +450,7 @@ main header{
     height:675px;
     margin-top:115px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #app-illustrations{
         -ms-flex-wrap:wrap;
         flex-wrap:wrap;
@@ -459,7 +479,7 @@ main header{
         display:none
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #app-illustrations{
         width:829px;
         margin-left:-10px;
@@ -507,7 +527,7 @@ main header{
 #complete-toolkit .common-Link--arrow{
     margin-bottom:280px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #complete-toolkit .common-UppercaseTitle{
         margin:0 25%
     }
@@ -519,7 +539,7 @@ main header{
         margin-bottom:80px
     }
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #complete-toolkit{
         position:relative;
         bottom:30px;
@@ -565,7 +585,7 @@ main header{
 #complete-toolkit .common-Link{
     display:block
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #complete-toolkit .common-Link{
         margin-top:35px;
         border-top:2px solid #f1f7fb
@@ -596,7 +616,7 @@ main header{
     margin:30px auto;
     padding:0 20px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #developers-first p{
         max-width:730px;
         margin-bottom:50px;
@@ -719,7 +739,7 @@ main header{
     color:#fa755a;
     text-decoration:underline
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #notebook{
         position:relative;
         padding-bottom:65px
@@ -806,7 +826,7 @@ main header{
 #global-scale{
     border-width:1px 0 0
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #secondary .cols{
         display:-ms-flexbox;
         display:flex
@@ -867,7 +887,7 @@ main header{
 #customer-logos li{
     margin:10px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #customer-logos a{
         padding-top:70px;
         padding-bottom:65px
@@ -957,7 +977,7 @@ main header{
     align-content:space-between;
     background:linear-gradient(100grad,#545fdd,#000000 50%)
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #comparison .stripes{
         height:calc(100% - 120px)
     }
@@ -1010,7 +1030,7 @@ main header{
     box-shadow:0 15px 35px rgba(50,50,93,.1),0 5px 15px rgba(0,0,0,.07);
     border-radius:4px
 }
-@media (min-width:880px){
+@media (min-width:1020px){
     #comparison .common-UppercaseTitle{
         margin-bottom:65px
     }
@@ -1043,7 +1063,7 @@ main header{
 #comparison .common-BodyText{
     margin:20px
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #comparison .common-BodyText{
         margin:38px 40px
     }
@@ -1100,7 +1120,7 @@ main header{
     margin-left:25%;
     background:#fa755a
 }
-@media (min-width:670px){
+@media (min-width:1020px){
     #comparison li:nth-child(5) .label{
         margin-left:58%
     }
@@ -1150,7 +1170,7 @@ main header{
     text-align: center;
 }
 
-@media (min-width:670px){
+@media (min-width:1020px){
     .status-image{
         height: 120px;
         width: 650px;
@@ -1177,7 +1197,7 @@ main header{
 .flex-Box{
     display: flex;
 }
-@media screen and (max-width:330px){
+@media screen and (max-width:1020px){
     #intro h1 {
         font-weight: 300;
         font-size: 60px !important;
@@ -1186,7 +1206,7 @@ main header{
         display: block;
     }
 }
-@media screen and (max-width:420px){
+@media screen and (max-width:1020px){
     #intro li:last-child {
         margin-top: 15px;
         display: block;
@@ -1195,7 +1215,7 @@ main header{
     #intro ul {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        margin-right: calc(50% - 150px);
+        justify-content: center;
+        margin-bottom: 0px;
     }
 }

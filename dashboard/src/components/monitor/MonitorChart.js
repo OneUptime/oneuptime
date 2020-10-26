@@ -7,6 +7,7 @@ import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
+import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 
 const calculateTime = (statuses, start, range) => {
     const timeBlock = [];
@@ -729,7 +730,9 @@ export function MonitorChart({
                                                     <span>
                                                         {' '}
                                                         <span className="chart-font">
-                                                            {responseTime} ms
+                                                            {formatMonitorResponseTime(
+                                                                responseTime
+                                                            )}
                                                         </span>
                                                     </span>
                                                 </div>

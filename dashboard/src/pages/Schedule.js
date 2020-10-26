@@ -24,8 +24,6 @@ class Schedule extends Component {
     }
 
     async componentDidMount() {
-        this.setState({ isLoading: true });
-
         const { subProjectId, scheduleId } = this.props;
         try {
             await Promise.all([
@@ -33,15 +31,13 @@ class Schedule extends Component {
                 this.props.subProjectTeamLoading(subProjectId),
                 this.props.teamLoading(subProjectId),
             ]);
-
-            this.setState({ isLoading: false, error: null });
         } catch (e) {
-            this.setState({ error: e, isLoading: false });
+            this.setState({ error: e });
         }
     }
 
     render() {
-        const { editSchedule, isLoading, error } = this.state;
+        const { editSchedule, error } = this.state;
 
         const {
             escalations,
@@ -51,10 +47,6 @@ class Schedule extends Component {
             schedule,
         } = this.props;
         const name = schedule ? schedule.name : null;
-
-        if (isLoading) {
-            return <div></div>;
-        }
 
         if (error) {
             return <div></div>;
