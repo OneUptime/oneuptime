@@ -151,4 +151,43 @@ describe('Schedule', () => {
         },
         operationTimeOut
     );
+
+    test(
+        'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
+        async () => {
+            await cluster.execute(null, async ({ page }) => {
+                const projectName = 'newproject';
+                const newScheduleName = 'test';
+                await init.addProject(page, projectName);
+
+                await page.waitForSelector('#onCallSchedules a', {
+                    visible: true,
+                });
+                await page.$eval('#onCallSchedules a', elem => elem.click());
+                const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
+                await page.waitForSelector(createScheduleBtn, {
+                    visible: true,
+                });
+                await page.$eval(createScheduleBtn, elem => elem.click());
+
+                await page.waitForSelector('#name');
+                await page.type('#name', newScheduleName);
+                await page.click('#btnCreateSchedule');
+                await page.waitForSelector('#viewOnCallSchedule', {
+                    visible: true,
+                });
+                await page.click('#viewOnCallSchedule');
+                await page.waitForSelector(`#cb${newScheduleName}`, {
+                    visible: true,
+                });
+                const onCallScheduleName = await page.$eval(
+                    `#cb${newScheduleName}`,
+                    el => el.textContent
+                );
+
+                expect(onCallScheduleName).toEqual(newScheduleName);
+            });
+        },
+        operationTimeOut
+    );
 });

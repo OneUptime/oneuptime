@@ -88,7 +88,8 @@ class ResourceTabularList extends Component {
                         ).logs;
                         monitorStatus = getMonitorStatus(
                             monitor.incidents,
-                            logs
+                            logs,
+                            componentResource.type
                         );
                     }
                 }

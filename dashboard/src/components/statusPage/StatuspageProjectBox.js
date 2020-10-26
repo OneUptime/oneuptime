@@ -92,8 +92,18 @@ const StatusPageProjectBox = props => {
                                     Monitors
                                 </div>
                             </td>
-                            <td>
-                                <div className="bs-ObjectList-cell">Action</div>
+
+                            <td
+                                colSpan="6"
+                                style={{ float: 'right', marginRight: '100px' }}
+                                className="status-page-btn-action-col"
+                            >
+                                <div
+                                    className="bs-ObjectList-cell table-row-cell"
+                                    style={{ paddingLeft: '124px' }}
+                                >
+                                    Action
+                                </div>
                             </td>
                         </tr>
                     </thead>

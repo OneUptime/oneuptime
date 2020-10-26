@@ -21,36 +21,26 @@ let projectId, userId, token;
 describe('Tutorial API', function() {
     this.timeout(80000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(120000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, userData.user);
+        const project = res.body.project;
+        projectId = project._id;
+        userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+
+        const res1 = await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+        token = res1.body.tokens.jwtAccessToken;
     });
 
     after(async function() {
@@ -68,115 +58,94 @@ describe('Tutorial API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get the user tutorial status', function(done) {
+    it('should get the user tutorial status', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get('/tutorial')
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body._id).to.be.equal(userId);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body._id).to.be.equal(userId);
     });
 
-    it('should not update the user tutorial status if project id is not given', function(done) {
+    it('should not update the user tutorial status if project id is not given', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
                 type: 'monitor',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    `Project ID can't be null`
-                );
-                done();
             });
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal(`Project ID can't be null`);
     });
 
-    it('should update the user custom component tutorial status per project', function(done) {
+    it('should update the user custom component tutorial status per project', async function() {
         const authorization = `Basic ${token}`;
         const type = 'component';
-        request
+        const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
                 type,
                 projectId,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body.data[projectId]).to.be.an('object');
-                expect(res.body.data[projectId][type]).to.be.an('object');
-                expect(res.body.data[projectId][type].show).to.be.equal(false);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data[projectId]).to.be.an('object');
+        expect(res.body.data[projectId][type]).to.be.an('object');
+        expect(res.body.data[projectId][type].show).to.be.equal(false);
     });
-    it('should update the user custom team memb er tutorial status per project', function(done) {
+
+    it('should update the user custom team memb er tutorial status per project', async function() {
         const authorization = `Basic ${token}`;
         const type = 'teamMember';
-        request
+        const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
                 type,
                 projectId,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body.data[projectId]).to.be.an('object');
-                expect(res.body.data[projectId][type]).to.be.an('object');
-                expect(res.body.data[projectId][type].show).to.be.equal(false);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data[projectId]).to.be.an('object');
+        expect(res.body.data[projectId][type]).to.be.an('object');
+        expect(res.body.data[projectId][type].show).to.be.equal(false);
     });
-    it('should get the user tutorial status for a project', function(done) {
+
+    it('should get the user tutorial status for a project', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get('/tutorial')
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body._id).to.be.equal(userId);
-                expect(res.body.data[projectId]).to.be.an('object');
-                expect(res.body.data[projectId].component.show).to.be.equal(
-                    false
-                );
-                expect(res.body.data[projectId].teamMember.show).to.be.equal(
-                    false
-                );
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body._id).to.be.equal(userId);
+        expect(res.body.data[projectId]).to.be.an('object');
+        expect(res.body.data[projectId].component.show).to.be.equal(false);
+        expect(res.body.data[projectId].teamMember.show).to.be.equal(false);
     });
-    it('should update the user status page tutorial status per project', function(done) {
+
+    it('should update the user status page tutorial status per project', async function() {
         const authorization = `Basic ${token}`;
         const type = 'statusPage';
-        request
+        const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
                 type,
                 projectId,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body.data[projectId]).to.be.an('object');
-                expect(res.body.data[projectId][type]).to.be.an('object');
-                expect(res.body.data[projectId][type].show).to.be.equal(false);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data[projectId]).to.be.an('object');
+        expect(res.body.data[projectId][type]).to.be.an('object');
+        expect(res.body.data[projectId][type].show).to.be.equal(false);
     });
 });

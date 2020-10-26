@@ -167,12 +167,15 @@ export class MonitorViewHeader extends Component {
             startDate,
             endDate
         );
-
+        const monitorType = monitor.type;
         const requesting = monitorState.fetchMonitorLogsRequest;
         const status = requesting
             ? 'requesting'
-            : getMonitorStatus(monitor.incidents, logs);
-
+            : getMonitorStatus(
+                  monitor.incidents,
+                  logs,
+                  monitorType.replace('-', ' ')
+              );
         let deleting = false;
         if (
             monitorState &&

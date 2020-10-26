@@ -27,6 +27,7 @@
         "multer-gridfs-storage": "^3.3.0",
         "nanoid": "^1.3.0",
         "node-cron": "^2.0.3",
+        "node-forge": "^0.10.0",
         "node-html-parser": "^1.2.18",
         "nodemailer": "^4.6.2",
         "nodemailer-express-handlebars": "^3.1.0",
@@ -34,7 +35,7 @@
         "query-string": "^6.12.1",
         "rand-token": "^0.4.0",
         "rate-limit-redis": "^1.7.0",
-        "saml2-js": "^2.0.5",
+        "saml2-js": "^2.0.6",
         "simple-git": "^2.5.0",
         "slugify": "^1.3.1",
         "socket.io": "^2.3.0",
@@ -46,7 +47,8 @@
         "uuid": "^3.2.1",
         "valid-url": "^1.0.9",
         "winston": "^2.4.0",
-        "winston-slack-transport": "^2.0.0"
+        "winston-slack-transport": "^2.0.0",
+        "xml-encryption": "^1.2.1"
     },
     "scripts": {
         "start": "node server.js",

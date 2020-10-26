@@ -31,66 +31,45 @@ const monitor = {
 describe('Twilio API', function() {
     this.timeout(20000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, async function(err, res) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        let res = await createUser(request, userData.user);
+        expect(res).to.have.status(200);
+        projectId = res.body.project._id;
+        userId = res.body.id;
 
-                // make created user master admin
-                await UserService.updateBy(
-                    { email: userData.user.email },
-                    { role: 'master-admin' }
-                );
+        // make created user master admin
+        await UserService.updateBy(
+            { email: userData.user.email },
+            { role: 'master-admin' }
+        );
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(err, res) {
-                                            monitorId = res.body._id;
-                                            request
-                                                .post(
-                                                    `/incident/${projectId}/${monitorId}`
-                                                )
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send(incidentData)
-                                                .end((err, res) => {
-                                                    expect(res).to.have.status(
-                                                        200
-                                                    );
-                                                    expect(res.body).to.be.an(
-                                                        'object'
-                                                    );
-                                                    done();
-                                                });
-                                        });
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        res = await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+        expect(res).to.have.status(200);
+        token = res.body.tokens.jwtAccessToken;
+        const authorization = `Basic ${token}`;
+        res = await request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send(monitor);
+        expect(res).to.have.status(200);
+        monitorId = res.body._id;
+        res = await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
     });
 
     after(async function() {
@@ -111,108 +90,100 @@ describe('Twilio API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should send verification sms code for adding alert phone number', function(done) {
+    it('should send verification sms code for adding alert phone number', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
                 to: testphoneNumber,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                done();
             });
+        expect(res).to.have.status(200);
     });
 
-    it('should send test sms to the provided phone number', done => {
+    it('should send test sms to the provided phone number', async function() {
         const authorization = `Basic ${token}`;
-
-        GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-            const payload = {
-                accountSid: value['account-sid'],
-                authToken: value['authentication-token'],
-                phoneNumber: value.phone,
-                testphoneNumber,
-            };
-
-            request
-                .post('/twilio/sms/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end((err, res) => {
-                    expect(res).to.have.status(200);
-                    expect(res.body).to.be.an('object');
-                    expect(res.body).to.have.property('message');
-                    done();
-                });
+        const configuration = await GlobalConfigService.findOneBy({
+            name: 'twilio',
         });
+        const value = configuration.value;
+        const payload = {
+            accountSid: value['account-sid'],
+            authToken: value['authentication-token'],
+            phoneNumber: value.phone,
+            testphoneNumber,
+        };
+
+        const res = await request
+            .post('/twilio/sms/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
     });
 
-    it('should return status code 400 when any of the payload field is missing', done => {
+    it('should return status code 400 when any of the payload field is missing', async function() {
         const authorization = `Basic ${token}`;
-
-        GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-            const payload = {
-                accountSid: value['account-sid'],
-                authToken: value['authentication-token'],
-                phoneNumber: '',
-            };
-
-            request
-                .post('/twilio/sms/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end((err, res) => {
-                    expect(res).to.have.status(400);
-                    done();
-                });
+        const configuration = await GlobalConfigService.findOneBy({
+            name: 'twilio',
         });
+        const value = configuration.value;
+
+        const payload = {
+            accountSid: value['account-sid'],
+            authToken: value['authentication-token'],
+            phoneNumber: '',
+        };
+
+        const res = await request
+            .post('/twilio/sms/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(400);
     });
 
-    it('should return status code 400 when accountSid is invalid', done => {
+    it('should return status code 400 when accountSid is invalid', async function() {
         const authorization = `Basic ${token}`;
-
-        GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-            value['account-sid'] = 'xxuerandomsid';
-            const payload = {
-                accountSid: value['account-sid'],
-                authToken: value['authentication-token'],
-                phoneNumber: value.phone,
-                testphoneNumber,
-            };
-
-            request
-                .post('/twilio/sms/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end((err, res) => {
-                    expect(res).to.have.status(400);
-                    done();
-                });
+        const configuration = await GlobalConfigService.findOneBy({
+            name: 'twilio',
         });
+        const value = configuration.value;
+
+        value['account-sid'] = 'xxuerandomsid';
+        const payload = {
+            accountSid: value['account-sid'],
+            authToken: value['authentication-token'],
+            phoneNumber: value.phone,
+            testphoneNumber,
+        };
+
+        const res = await request
+            .post('/twilio/sms/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(400);
     });
 
-    it('should return status code 400 when authToken is invalid', done => {
+    it('should return status code 400 when authToken is invalid', async function() {
         const authorization = `Basic ${token}`;
-
-        GlobalConfigService.findOneBy({ name: 'twilio' }).then(({ value }) => {
-            value['authentication-token'] = 'xxuerandomsid';
-            const payload = {
-                accountSid: value['account-sid'],
-                authToken: value['authentication-token'],
-                phoneNumber: value.phone,
-                testphoneNumber,
-            };
-
-            request
-                .post('/twilio/sms/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end((err, res) => {
-                    expect(res).to.have.status(400);
-                    done();
-                });
+        const configuration = await GlobalConfigService.findOneBy({
+            name: 'twilio',
         });
+        const value = configuration.value;
+
+        value['authentication-token'] = 'xxuerandomsid';
+        const payload = {
+            accountSid: value['account-sid'],
+            authToken: value['authentication-token'],
+            phoneNumber: value.phone,
+            testphoneNumber,
+        };
+
+        const res = await request
+            .post('/twilio/sms/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(400);
     });
 });

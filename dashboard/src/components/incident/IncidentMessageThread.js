@@ -144,7 +144,14 @@ export class IncidentMessageThread extends Component {
                                                             }}
                                                         >
                                                             <img
-                                                                src="/dashboard/assets/img/profile-user.svg"
+                                                                src={
+                                                                    incidentMessage.createdById &&
+                                                                    incidentMessage
+                                                                        .createdById
+                                                                        .name
+                                                                        ? '/dashboard/assets/img/profile-user.svg'
+                                                                        : '/dashboard/assets/img/fyipe.svg'
+                                                                }
                                                                 className="userIcon"
                                                                 alt="usericon"
                                                                 style={{
@@ -160,7 +167,9 @@ export class IncidentMessageThread extends Component {
                                                                     ? incidentMessage
                                                                           .createdById
                                                                           .name
-                                                                    : 'Unknown User'}
+                                                                    : incident.createdByZapier
+                                                                    ? 'Zapier'
+                                                                    : 'Fyipe'}
                                                             </span>
                                                         </div>
 

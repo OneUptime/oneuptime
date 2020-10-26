@@ -326,14 +326,15 @@ describe('Incident Alerts', function () {
       expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
       const alertsSentList = [];
       for (const event of oncallAlertsEndpointReponse.body.data) {
-        const { alertVia, alertStatus, error } = event;
+        const { alertVia, alertStatus, error, errorMessage } = event;
         if (alertVia === 'sms') {
           expect(alertStatus).to.equal('Success');
           expect(error).to.equal(false)
         }
         else if (alertVia === 'call') {
-          expect(alertStatus).to.equal('Alerts Disabled');
-          expect(error).to.equal(true)
+          expect(alertStatus).to.equal(null);
+          expect(error).to.equal(true);
+          expect(errorMessage).to.equal('Alert Disabled on Admin Dashboard');
         }
         alertsSentList.push(alertVia)
       }
@@ -398,7 +399,7 @@ describe('Incident Alerts', function () {
         expect(alertStatus).to.equal(null);
         expect(alertVia).to.equal('sms');
         expect(error).to.equal(true);
-        expect(errorMessage).to.equal('Alert Disabled');
+        expect(errorMessage).to.equal('Alert Disabled on Admin Dashboard');
       }
       expect(eventTypesSent.includes('resolved')).to.equal(true);
       expect(eventTypesSent.includes('identified')).to.equal(true);
@@ -414,14 +415,15 @@ describe('Incident Alerts', function () {
       expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
       const alertsSentList = [];
       for (const event of oncallAlertsEndpointReponse.body.data) {
-        const { alertVia, alertStatus, error } = event;
+        const { alertVia, alertStatus, error,errorMessage } = event;
         if (alertVia === 'call') {
           expect(alertStatus).to.equal('Success');
           expect(error).to.equal(false)
         }
         else if (alertVia === 'sms') {
-          expect(alertStatus).to.equal('Alerts Disabled');
+          expect(alertStatus).to.equal(null);
           expect(error).to.equal(true)
+          expect(errorMessage).to.equal('Alert Disabled on Admin Dashboard')          
         }
         alertsSentList.push(alertVia)
       }
@@ -585,7 +587,7 @@ describe('Incident Alerts', function () {
         expect(alertStatus).to.equal(null);
         expect(alertVia).to.equal('sms');
         expect(error).to.equal(true);
-        expect(errorMessage).to.equal('Alert Disabled');
+        expect(errorMessage).to.equal('Twilio Settings not found on Admin Dashboard');
       }
       expect(eventTypesSent.includes('resolved')).to.equal(true);
       expect(eventTypesSent.includes('identified')).to.equal(true);
@@ -601,10 +603,11 @@ describe('Incident Alerts', function () {
       expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
       const alertsSentList = [];
       for (const event of oncallAlertsEndpointReponse.body.data) {
-        const { alertVia, alertStatus, error } = event;
-        expect(alertStatus).to.equal('Alerts Disabled');
-        expect(error).to.equal(true)
-        alertsSentList.push(alertVia)
+        const { alertVia, alertStatus, error, errorMessage } = event;
+        expect(alertStatus).to.equal(null);
+        expect(error).to.equal(true);
+        expect(errorMessage).to.equal('Twilio Settings not found on Admin Dashboard');
+        alertsSentList.push(alertVia);
       }
       expect(alertsSentList.includes('sms')).to.equal(true);
       expect(alertsSentList.includes('call')).to.equal(true);

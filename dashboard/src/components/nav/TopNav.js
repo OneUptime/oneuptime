@@ -245,7 +245,7 @@ class TopContent extends Component {
                                             !this.props.feedback.feedback
                                                 .error ? (
                                                 <span>
-                                                    Anything we can to help?
+                                                    Anything we can do to help?
                                                 </span>
                                             ) : null}
                                             {this.props.feedback.feedback

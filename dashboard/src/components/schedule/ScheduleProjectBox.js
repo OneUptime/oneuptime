@@ -84,6 +84,8 @@ const ScheduleProjectBox = props => (
                             <OnCallTableHeader text="Monitor" />
 
                             <OnCallTableHeader text="Team Members" />
+
+                            <OnCallTableHeader text="Actions" />
                         </tr>
                     </thead>
                     <tbody className="Table-body">
@@ -91,6 +93,7 @@ const ScheduleProjectBox = props => (
                             schedules={sortByName(props.schedules)}
                             requesting={props.isRequesting}
                             subProjectId={props.subProjectSchedule._id}
+                            bottonTitle="View Schedule"
                         />
                     </tbody>
                 </table>
