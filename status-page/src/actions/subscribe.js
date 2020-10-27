@@ -68,7 +68,7 @@ export const subscribeUser = (
     projectId,
     statusPageId
 ) => {
-    return function(dispatch) {
+    return function (dispatch) {
         const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
             userDetails,
             monitors,
@@ -79,9 +79,6 @@ export const subscribeUser = (
         promise.then(
             () => {
                 dispatch(subscribeSuccess());
-                dispatch(userDataReset());
-                dispatch(selectedMenu(1));
-                dispatch(openSubscribeMenu());
             },
             error => {
                 if (error && error.response && error.response.data)

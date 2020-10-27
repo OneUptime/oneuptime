@@ -44,45 +44,34 @@ describe('Disable Sign up test', function() {
         process.env.DISABLE_SIGNUP = undefined;
     });
 
-    it('should not sign up the user when sign up is disabled', done => {
-        createUser(request, data.user, function(err, res) {
-            expect(res).to.have.status(400);
-            expect(res.body.message).to.be.equal('Sign up is disabled.');
-            done();
-        });
+    it('should not sign up the user when sign up is disabled', async () => {
+        const res = await createUser(request, data.user);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('Sign up is disabled.');
     });
 
-    it('should sign up a new user when user is admin', done => {
+    it('should sign up a new user when user is admin', async () => {
         const authorization = `Basic ${token}`;
-        request
-            .post('/stripe/checkCard')
+        const res = await request.post('/stripe/checkCard').send({
+            tokenId: 'tok_visa',
+            email: data.anotherUser.email,
+            companyName: data.anotherUser.companyName,
+        });
+        const paymentIntent = await stripe.paymentIntents.confirm(res.body.id);
+        expect(paymentIntent).to.have.status('succeeded');
+
+        const res2 = await request
+            .post('/user/signup')
+            .set('Authorization', authorization)
             .send({
-                tokenId: 'tok_visa',
-                email: data.anotherUser.email,
-                companyName: data.anotherUser.companyName,
-            })
-            .end(function(err, res) {
-                stripe.paymentIntents.confirm(res.body.id, function(
-                    err,
-                    paymentIntent
-                ) {
-                    request
-                        .post('/user/signup')
-                        .set('Authorization', authorization)
-                        .send({
-                            paymentIntent: {
-                                id: paymentIntent.id,
-                            },
-                            ...data.anotherUser,
-                        })
-                        .end(function(err, res) {
-                            expect(res).to.have.status(200);
-                            expect(res.body).to.have.property('email');
-                            expect(res.body).to.have.property('role');
-                            expect(res.body.role).to.equal('user');
-                            done();
-                        });
-                });
+                paymentIntent: {
+                    id: paymentIntent.id,
+                },
+                ...data.anotherUser,
             });
+        expect(res2).to.have.status(200);
+        expect(res2.body).to.have.property('email');
+        expect(res2.body).to.have.property('role');
+        expect(res2.body.role).to.equal('user');
     });
 });

@@ -53,87 +53,69 @@ const testServerMonitor = {
 
 describe('Incident API', function() {
     this.timeout(500000);
-    before(function(done) {
+    before(async function() {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, userData.user);
+        projectId = res.body.project._id;
+        userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'New Component',
-                                        projectId,
-                                    }).then(component => {
-                                        componentId = component._id;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({ ...monitor, componentId })
-                                            .end(async function(err, res) {
-                                                monitorId = res.body._id;
-
-                                                await IntegrationService.create(
-                                                    projectId,
-                                                    userId,
-                                                    {
-                                                        monitorId,
-                                                        userId,
-                                                        endpoint:
-                                                            'http://127.0.0.1:3010/api/webhooks/msteams',
-                                                    },
-                                                    'msteams',
-                                                    {
-                                                        incidentCreated: true,
-                                                        incidentResolved: true,
-                                                        incidentAcknowledged: true,
-                                                    }
-                                                );
-
-                                                await IntegrationService.create(
-                                                    projectId,
-                                                    userId,
-                                                    {
-                                                        monitorId,
-                                                        userId,
-                                                        endpoint:
-                                                            'http://127.0.0.1:3010/api/webhooks/slack',
-                                                    },
-                                                    'slack',
-                                                    {
-                                                        incidentCreated: true,
-                                                        incidentResolved: true,
-                                                        incidentAcknowledged: true,
-                                                    }
-                                                );
-                                                expect(res).to.have.status(200);
-                                                expect(
-                                                    res.body.name
-                                                ).to.be.equal(monitor.name);
-                                                done();
-                                            });
-                                    });
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        const res1 = await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+
+        token = res1.body.tokens.jwtAccessToken;
+        const authorization = `Basic ${token}`;
+        const component = await ComponentModel.create({
+            name: 'New Component',
+            projectId,
+        });
+        componentId = component._id;
+        const res2 = await request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({ ...monitor, componentId });
+        monitorId = res2.body._id;
+        await IntegrationService.create(
+            projectId,
+            userId,
+            {
+                monitorId,
+                userId,
+                endpoint: 'http://127.0.0.1:3010/api/webhooks/msteams',
+            },
+            'msteams',
+            {
+                incidentCreated: true,
+                incidentResolved: true,
+                incidentAcknowledged: true,
+            }
+        );
+
+        await IntegrationService.create(
+            projectId,
+            userId,
+            {
+                monitorId,
+                userId,
+                endpoint: 'http://127.0.0.1:3010/api/webhooks/slack',
+            },
+            'slack',
+            {
+                incidentCreated: true,
+                incidentResolved: true,
+                incidentAcknowledged: true,
+            }
+        );
+        expect(res2).to.have.status(200);
+        expect(res2.body.name).to.be.equal(monitor.name);
     });
 
     after(async function() {
@@ -148,20 +130,14 @@ describe('Incident API', function() {
 
     it('should create an incident', async function() {
         const authorization = `Basic ${token}`;
-        try {
-            await chai
-                .request('http://127.0.0.1:3010')
-                .get('/api/webhooks/msteams');
-        } catch (e) {
-            expect(e.response.status).to.eql(404);
-        }
-        try {
-            await chai
-                .request('http://127.0.0.1:3010')
-                .get('/api/webhooks/slack');
-        } catch (e) {
-            expect(e.response.status).to.eql(404);
-        }
+        const test1 = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/msteams');
+        expect(test1).to.have.status(404);
+        const test2 = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/slack');
+        expect(test2).to.have.status(404);
 
         const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
@@ -182,367 +158,284 @@ describe('Incident API', function() {
         expect(slackEndpoint).to.have.status(200);
     });
 
-    it('should create an incident with multi-probes and add to incident timeline', function(done) {
+    it('should create an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
-        testServer
-            .post('/api/settings')
-            .send({
-                responseTime: 0,
-                statusCode: 400,
-                responseType: 'html',
-                body: '<h1>Test Server</h1>',
-            })
-            .end(() => {
-                request
-                    .post(`/monitor/${projectId}`)
-                    .set('Authorization', authorization)
-                    .send({ ...testServerMonitor, componentId })
-                    .end(async function(err, res) {
-                        testServerMonitorId = res.body._id;
-                        await sleep(300000);
-                        request
-                            .post(
-                                `/incident/${projectId}/monitor/${testServerMonitorId}`
-                            )
-                            .set('Authorization', authorization)
-                            .end(function(err, res) {
-                                testServerIncidentId = res.body.data[0]._id;
-                                request
-                                    .get(
-                                        `/incident/${projectId}/timeline/${testServerIncidentId}`
-                                    )
-                                    .set('Authorization', authorization)
-                                    .end(function(err, res) {
-                                        expect(res).to.have.status(200);
-                                        expect(res.body).to.be.an('object');
-                                        expect(res.body).to.have.property(
-                                            'data'
-                                        );
-                                        expect(res.body.data).to.be.an('array');
-                                        expect(
-                                            res.body.data.length
-                                        ).to.be.equal(2);
-                                        expect(
-                                            res.body.data[0].status
-                                        ).to.be.equal('offline');
-                                        expect(
-                                            res.body.data[1].status
-                                        ).to.be.equal('offline');
-                                        done();
-                                    });
-                            });
-                    });
-            });
+        await testServer.post('/api/settings').send({
+            responseTime: 0,
+            statusCode: 400,
+            responseType: 'html',
+            body: '<h1>Test Server</h1>',
+        });
+
+        const res = await request
+            .post(`/monitor/${projectId}`)
+            .set('Authorization', authorization)
+            .send({ ...testServerMonitor, componentId });
+        testServerMonitorId = res.body._id;
+        await sleep(300000);
+        const res1 = await request
+            .post(`/incident/${projectId}/monitor/${testServerMonitorId}`)
+            .set('Authorization', authorization);
+
+        testServerIncidentId = res1.body.data[0]._id;
+        const res2 = await request
+            .get(`/incident/${projectId}/timeline/${testServerIncidentId}`)
+            .set('Authorization', authorization);
+        expect(res2).to.have.status(200);
+        expect(res2.body).to.be.an('object');
+        expect(res2.body).to.have.property('data');
+        expect(res2.body.data).to.be.an('array');
+        expect(res2.body.data.length).to.be.equal(2);
+        expect(res2.body.data[0].status).to.be.equal('offline');
+        expect(res2.body.data[1].status).to.be.equal('offline');
     });
 
-    it('should auto-resolve an incident with multi-probes and add to incident timeline', function(done) {
+    it('should auto-resolve an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
-        testServer
-            .post('/api/settings')
-            .send({
-                responseTime: 0,
-                statusCode: 200,
-                responseType: 'html',
-                body: '<h1>Test Server</h1>',
-            })
-            .end(async () => {
-                await sleep(300000);
-                request
-                    .get(
-                        `/incident/${projectId}/incident/${testServerIncidentId}`
-                    )
-                    .set('Authorization', authorization)
-                    .end(function(err, res) {
-                        expect(res).to.have.status(200);
-                        expect(res.body).to.be.an('object');
-                        expect(res.body._id).to.be.equal(testServerIncidentId);
-                        expect(res.body.acknowledged).to.be.equal(true);
-                        expect(res.body.resolved).to.be.equal(true);
-                        request
-                            .get(
-                                `/incident/${projectId}/timeline/${testServerIncidentId}`
-                            )
-                            .set('Authorization', authorization)
-                            .end(function(err, res) {
-                                expect(res).to.have.status(200);
-                                expect(res.body).to.be.an('object');
-                                expect(res.body).to.have.property('data');
-                                expect(res.body.data).to.be.an('array');
-                                expect(res.body.data.length).to.be.equal(6);
-                                expect(res.body.data[5].status).to.be.equal(
-                                    'offline'
-                                );
-                                expect(res.body.data[4].status).to.be.equal(
-                                    'offline'
-                                );
-                                expect(res.body.data[3].status).to.be.equal(
-                                    'online'
-                                );
-                                expect(res.body.data[2].status).to.be.equal(
-                                    'online'
-                                );
-                                expect(res.body.data[1].status).to.be.equal(
-                                    'acknowledged'
-                                );
-                                expect(res.body.data[0].status).to.be.equal(
-                                    'resolved'
-                                );
-                                done();
-                            });
-                    });
-            });
+        await testServer.post('/api/settings').send({
+            responseTime: 0,
+            statusCode: 200,
+            responseType: 'html',
+            body: '<h1>Test Server</h1>',
+        });
+
+        await sleep(300000);
+        const res = await request
+            .get(`/incident/${projectId}/incident/${testServerIncidentId}`)
+            .set('Authorization', authorization);
+
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body._id).to.be.equal(testServerIncidentId);
+        expect(res.body.acknowledged).to.be.equal(true);
+        expect(res.body.resolved).to.be.equal(true);
+        const res1 = await request
+            .get(`/incident/${projectId}/timeline/${testServerIncidentId}`)
+            .set('Authorization', authorization);
+
+        expect(res1).to.have.status(200);
+        expect(res1.body).to.be.an('object');
+        expect(res1.body).to.have.property('data');
+        expect(res1.body.data).to.be.an('array');
+        expect(res1.body.data.length).to.be.equal(6);
+        expect(res1.body.data[5].status).to.be.equal('offline');
+        expect(res1.body.data[4].status).to.be.equal('offline');
+        expect(res1.body.data[3].status).to.be.equal('online');
+        expect(res1.body.data[2].status).to.be.equal('online');
+        expect(res1.body.data[1].status).to.be.equal('acknowledged');
+        expect(res1.body.data[0].status).to.be.equal('resolved');
     });
 
-    it('should get incidents belonging to a monitor', function(done) {
+    it('should get incidents belonging to a monitor', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/monitor/${monitorId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
     });
 
-    it('should get all incidents in a project', function(done) {
+    it('should get all incidents in a project', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/incident/${projectId}/incident`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
     });
 
-    it('should get an incident by incidentId', function(done) {
+    it('should get an incident by incidentId', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/incident/${projectId}/incident/${incidentId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body._id).to.be.equal(incidentId);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body._id).to.be.equal(incidentId);
     });
 
-    it('should acknowledge an incident', function(done) {
+    it('should acknowledge an incident', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/acknowledge/${incidentId}`)
             .set('Authorization', authorization)
-            .send({})
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.acknowledged).to.be.equal(true);
-                done();
-            });
+            .send({});
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.acknowledged).to.be.equal(true);
     });
 
-    it('should resolve an incident', function(done) {
+    it('should resolve an incident', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/resolve/${incidentId}`)
             .set('Authorization', authorization)
-            .send({})
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.resolved).to.be.equal(true);
-                done();
-            });
+            .send({});
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.resolved).to.be.equal(true);
     });
 
-    it('should update incident details.', function(done) {
+    it('should update incident details.', async function() {
         const authorization = `Basic ${token}`;
         const incidentTitle = 'New incident title';
         const incidentDescription = 'New incident description';
 
-        request
+        const res = await request
             .put(`/incident/${projectId}/incident/${incidentId}/details`)
             .set('Authorization', authorization)
             .send({
                 title: incidentTitle,
                 description: incidentDescription,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.title).to.be.equal(incidentTitle);
-                expect(res.body.description).to.be.equal(incidentDescription);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.title).to.be.equal(incidentTitle);
+        expect(res.body.description).to.be.equal(incidentDescription);
     });
 
-    it('should get incident timeline by incidentId', function(done) {
+    it('should get incident timeline by incidentId', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/incident/${projectId}/timeline/${incidentId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
     });
 
-    it('should require an incident state', function(done) {
+    it('should require an incident state', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'Update the notes',
                 type: 'test',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Incident State is required.'
-                );
-                done();
             });
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('Incident State is required.');
     });
-    it('should require a valid incident message type', function(done) {
+
+    it('should require a valid incident message type', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'Update the notes',
                 type: 'test',
                 incident_state: 'investigation',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Incident Message type is not of required types.'
-                );
-                done();
             });
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal(
+            'Incident Message type is not of required types.'
+        );
     });
-    it('should add an investigation incident message', function(done) {
+
+    it('should add an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'Update the notes',
                 type: 'investigation',
                 incident_state: 'investigation',
-            })
-            .end(function(err, res) {
-                investigationMessageId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body.incidentId._id).to.be.equal(incidentId);
-                expect(res.body.type).to.be.equal('investigation');
-                expect(res.body.incident_state).to.be.equal('investigation');
-                done();
             });
+        investigationMessageId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body.incidentId._id).to.be.equal(incidentId);
+        expect(res.body.type).to.be.equal('investigation');
+        expect(res.body.incident_state).to.be.equal('investigation');
     });
-    it('should add an internal incident message', function(done) {
+
+    it('should add an internal incident message', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'Update the notes',
                 type: 'internal',
                 incident_state: 'just test',
-            })
-            .end(function(err, res) {
-                internalMessageId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body.incidentId._id).to.be.equal(incidentId);
-                expect(res.body.type).to.be.equal('internal');
-                expect(res.body.incident_state).to.be.equal('just test');
-                done();
             });
+        internalMessageId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body.incidentId._id).to.be.equal(incidentId);
+        expect(res.body.type).to.be.equal('internal');
+        expect(res.body.incident_state).to.be.equal('just test');
     });
-    it('should update an investigation incident message', function(done) {
+
+    it('should update an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'real set for the notes',
                 id: investigationMessageId,
                 incident_state: 'automated',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body._id).to.be.equal(investigationMessageId);
-                expect(res.body.type).to.be.equal('investigation');
-                expect(res.body.updated).to.be.equal(true);
-                expect(res.body.content).to.be.equal('real set for the notes');
-                expect(res.body.incident_state).to.be.equal('automated');
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body._id).to.be.equal(investigationMessageId);
+        expect(res.body.type).to.be.equal('investigation');
+        expect(res.body.updated).to.be.equal(true);
+        expect(res.body.content).to.be.equal('real set for the notes');
+        expect(res.body.incident_state).to.be.equal('automated');
     });
-    it('should update an internal incident message', function(done) {
+
+    it('should update an internal incident message', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
                 content: 'update comes',
                 id: internalMessageId,
                 incident_state: 'update',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body._id).to.be.equal(internalMessageId);
-                expect(res.body.type).to.be.equal('internal');
-                expect(res.body.updated).to.be.equal(true);
-                expect(res.body.content).to.be.equal('update comes');
-                expect(res.body.incident_state).to.be.equal('update');
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body._id).to.be.equal(internalMessageId);
+        expect(res.body.type).to.be.equal('internal');
+        expect(res.body.updated).to.be.equal(true);
+        expect(res.body.content).to.be.equal('update comes');
+        expect(res.body.incident_state).to.be.equal('update');
     });
-    it('should fetch list of investigation incident messages', function(done) {
+
+    it('should fetch list of investigation incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'investigation';
-        request
+        const res = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                expect(res.body.count).to.be.equal(3); // messages created when incident is acknowledged and resolved
-                expect(res.body.data[0].type).to.be.equal(type);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
+        expect(res.body.count).to.be.equal(3); // messages created when incident is acknowledged and resolved
+        expect(res.body.data[0].type).to.be.equal(type);
     });
-    it('should fetch list of internal incident messages', function(done) {
+
+    it('should fetch list of internal incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'internal';
-        request
+        const res = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                expect(res.body.count).to.be.equal(1);
-                expect(res.body.data[0].type).to.be.equal(type);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
+        expect(res.body.count).to.be.equal(1);
+        expect(res.body.data[0].type).to.be.equal(type);
     });
 
     it('should not send incident alert when balance is below minimum amount', async function() {
@@ -631,13 +524,15 @@ describe('Incident API', function() {
     });
 
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(0);
-        });
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/alert/${projectId}/alert/charges`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data).to.be.an('array');
+        expect(res.body.data.length).to.be.equal(0);
     });
 
     it('should send incident alert when balance is above minimum amount', async function() {
@@ -667,13 +562,15 @@ describe('Incident API', function() {
         expect(callAlert.alertStatus).to.be.equal('Success');
     });
     it('should create an alert charge when an alert is sent to a user.', async function() {
-        request.get(`alert/${projectId}/alert/charges`, function(err, res) {
-            expect(res).to.have.status(200);
-            expect(res.body).to.be.an('object');
-            expect(res.body).to.have.property('data');
-            expect(res.body.data).to.be.an('array');
-            expect(res.body.data.length).to.be.equal(1);
-        });
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .get(`/alert/${projectId}/alert/charges`)
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body.data).to.be.an('array');
+        expect(res.body.data.length).to.be.equal(2);
     });
 });
 
@@ -682,61 +579,38 @@ let subProjectId, newUserToken, subProjectIncidentId;
 
 describe('Incident API with Sub-Projects', function() {
     this.timeout(60000);
-    before(function(done) {
+    before(async function() {
         this.timeout(60000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        GlobalConfig.initTestConfig().then(function() {
-            request
-                .post(`/project/${projectId}/subProject`)
-                .set('Authorization', authorization)
-                .send({ subProjectName: 'New SubProject' })
-                .end(function(err, res) {
-                    subProjectId = res.body[0]._id;
-                    // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err, res) {
-                        userId = res.body.id;
-                        VerificationTokenModel.findOne({ userId }, function(
-                            err,
-                            verificationToken
-                        ) {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end(function() {
-                                    request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
-                                        .end(function(err, res) {
-                                            newUserToken =
-                                                res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
-                                            // add second user to subproject
-                                            request
-                                                .post(`/team/${subProjectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
-                                                .send({
-                                                    emails:
-                                                        userData.newUser.email,
-                                                    role: 'Member',
-                                                })
-                                                .end(function() {
-                                                    done();
-                                                });
-                                        });
-                                });
-                        });
-                    });
-                });
+        await GlobalConfig.initTestConfig();
+        const res = await request
+            .post(`/project/${projectId}/subProject`)
+            .set('Authorization', authorization)
+            .send({ subProjectName: 'New SubProject' });
+        subProjectId = res.body[0]._id;
+        // sign up second user (subproject user)
+        const res1 = await createUser(request, userData.newUser);
+        userId = res1.body.id;
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        const res2 = await request.post('/user/login').send({
+            email: userData.newUser.email,
+            password: userData.newUser.password,
+        });
+        newUserToken = res2.body.tokens.jwtAccessToken;
+        // add second user to subproject
+        await request
+            .post(`/team/${subProjectId}`)
+            .set('Authorization', authorization)
+            .send({
+                emails: userData.newUser.email,
+                role: 'Member',
+            });
     });
 
     after(async function() {
@@ -756,126 +630,97 @@ describe('Incident API with Sub-Projects', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
-    it('should not create an incident for user not present in project', function(done) {
-        createUser(request, userData.anotherUser, function(err, res) {
-            VerificationTokenModel.findOne({ userId: res.body.id }, function(
-                err,
-                verificationToken
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.anotherUser.email,
-                                password: userData.anotherUser.password,
-                            })
-                            .end(function(err, res) {
-                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
-                                request
-                                    .post(`/incident/${projectId}/${monitorId}`)
-                                    .set('Authorization', authorization)
-                                    .send(incidentData)
-                                    .end(function(err, res) {
-                                        expect(res).to.have.status(400);
-                                        expect(res.body.message).to.be.equal(
-                                            'You are not present in this project.'
-                                        );
-                                        done();
-                                    });
-                            });
-                    });
-            });
+    it('should not create an incident for user not present in project', async function() {
+        const res = await createUser(request, userData.anotherUser);
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId: res.body.id,
         });
-    });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
 
-    it('should create an incident in parent project.', function(done) {
-        const authorization = `Basic ${token}`;
-        request
+        const res1 = await request.post('/user/login').send({
+            email: userData.anotherUser.email,
+            password: userData.anotherUser.password,
+        });
+        const authorization = `Basic ${res1.body.tokens.jwtAccessToken}`;
+        const res2 = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send(incidentData)
-            .end(function(err, res) {
-                incidentId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
+            .send(incidentData);
+        expect(res2).to.have.status(400);
+        expect(res2.body.message).to.be.equal(
+            'You are not present in this project.'
+        );
     });
 
-    it('should create an incident in sub-project.', function(done) {
+    it('should create an incident in parent project.', async function() {
+        const authorization = `Basic ${token}`;
+        const res = await request
+            .post(`/incident/${projectId}/${monitorId}`)
+            .set('Authorization', authorization)
+            .send(incidentData);
+        incidentId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+    });
+
+    it('should create an incident in sub-project.', async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+        const res = await request
             .post(`/incident/${subProjectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .send(incidentData)
-            .end(function(err, res) {
-                subProjectIncidentId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                done();
-            });
+            .send(incidentData);
+        subProjectIncidentId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
     });
 
-    it("should get only sub-project's incidents for valid sub-project user", function(done) {
+    it("should get only sub-project's incidents for valid sub-project user", async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+        const res = await request
             .get(`/incident/${subProjectId}/incident`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('data');
-                expect(res.body).to.have.property('count');
-                expect(res.body.data.length).to.be.equal(1);
-                expect(res.body.data[0]._id).to.be.equal(subProjectIncidentId);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
+        expect(res.body.data.length).to.be.equal(1);
+        expect(res.body.data[0]._id).to.be.equal(subProjectIncidentId);
     });
 
-    it('should get both project and sub-project incidents for valid parent project user.', function(done) {
+    it('should get both project and sub-project incidents for valid parent project user.', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/incident/${projectId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(res.body[0]).to.have.property('incidents');
-                expect(res.body[0]).to.have.property('count');
-                expect(res.body[0]._id).to.be.equal(subProjectId);
-                expect(res.body[1]._id).to.be.equal(projectId);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body[0]).to.have.property('incidents');
+        expect(res.body[0]).to.have.property('count');
+        expect(res.body[0]._id).to.be.equal(subProjectId);
+        expect(res.body[1]._id).to.be.equal(projectId);
     });
 
-    it('should acknowledge subproject incident', function(done) {
+    it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+        const res = await request
             .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
             .set('Authorization', authorization)
-            .send({})
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.acknowledged).to.be.equal(true);
-                done();
-            });
+            .send({});
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.acknowledged).to.be.equal(true);
     });
 
-    it('should resolve subproject incident', function(done) {
+    it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+        const res = await request
             .post(`/incident/${subProjectId}/resolve/${incidentId}`)
             .set('Authorization', authorization)
-            .send({})
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body.resolved).to.be.equal(true);
-                done();
-            });
+            .send({});
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
+        expect(res.body.resolved).to.be.equal(true);
     });
 });
