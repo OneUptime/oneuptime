@@ -193,6 +193,8 @@ module.exports = {
 
             let log = await MonitorLogService.create(data);
 
+            await MonitorService.updateMonitorPingTime(data.monitorId);
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
