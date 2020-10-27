@@ -122,6 +122,7 @@ export class Branding extends Component {
                 this.props.statusPage.status.faviconPath) ||
             this.props.faviconurl
         ) {
+            // eslint-disable-next-line no-unused-vars
             faviconImage = (
                 <img src={faviconUrl} alt="" className="image-small-circle" />
             );
@@ -132,6 +133,7 @@ export class Branding extends Component {
                 this.props.statusPage.status.logoPath) ||
             this.props.faviconurl
         ) {
+            // eslint-disable-next-line no-unused-vars
             logoImage = (
                 <img src={logoUrl} alt="" className="image-small-circle" />
             );
