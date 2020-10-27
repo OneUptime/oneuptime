@@ -55,10 +55,11 @@ const dateId = moment(today)
     .replace(/, | /g, '');
 
 let browser, page, statusPageURL;
+const monitorMessage = 'You are subscribed to this monitor';
 
-describe('Status page monitors check', function() {
+describe('Status page monitors check', function () {
     this.timeout(240000);
-    before(async function() {
+    before(async function () {
         this.enableTimeouts(false);
         await UserService.hardDeleteBy({ email: testData.user.email });
 
@@ -175,7 +176,7 @@ describe('Status page monitors check', function() {
         });
     });
 
-    it('Status page should have one monitor with a category', async function() {
+    it('Status page should have one monitor with a category', async function () {
         const monitorName = await page.$eval(
             '#monitor0 > div.uptime-graph-header  span.uptime-stat-name',
             el => el.textContent
@@ -197,7 +198,7 @@ describe('Status page monitors check', function() {
         expect(noOfLineCharts).to.be.equal(0);
     });
 
-    it('Status page add one more monitor and the monitor count should be 2', async function() {
+    it('Status page add one more monitor and the monitor count should be 2', async function () {
         monitor.name = 'NewMonitorSecond';
         const monitorRequest = await request
             .post(`/monitor/${projectId}`)
@@ -248,7 +249,7 @@ describe('Status page monitors check', function() {
         expect(noOfLineCharts).to.be.equal(1);
     });
 
-    it('should be able to add monitor without monitor category and the count should be 3', async function() {
+    it('should be able to add monitor without monitor category and the count should be 3', async function () {
         monitor.name = 'NewMonitorWithoutMonitorCategory';
         delete monitor.resourceCategory;
         const monitorRequest = await request
@@ -300,7 +301,7 @@ describe('Status page monitors check', function() {
         expect(noOfLineCharts).to.be.equal(2);
     });
 
-    it('should be displayed category wise', async function() {
+    it('should be displayed category wise', async function () {
         await request
             .put(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
@@ -320,7 +321,7 @@ describe('Status page monitors check', function() {
         );
     });
 
-    it('should display monitor category on status page', async function() {
+    it('should display monitor category on status page', async function () {
         await page.goto(statusPageURL, { waitUntil: 'networkidle0' });
         const categoryId = `#monitorCategory_${monitorName}`;
 
@@ -332,7 +333,7 @@ describe('Status page monitors check', function() {
         expect(categoryName).to.be.equal(monitorCategoryName);
     });
 
-    it('should display "UNCATEGORIZED" when the monitor category associated with monitor is deleted', async function() {
+    it('should display "UNCATEGORIZED" when the monitor category associated with monitor is deleted', async function () {
         await request
             .delete(`/resourceCategory/${projectId}/${monitorCategoryId}`)
             .set('Authorization', authorization);
@@ -347,7 +348,7 @@ describe('Status page monitors check', function() {
         expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
-    it('should display scheduled events when enabled on status page', async function() {
+    it('should display scheduled events when enabled on status page', async function () {
         await page.reload({
             waitUntil: 'networkidle0',
         });
@@ -366,7 +367,7 @@ describe('Status page monitors check', function() {
         expect(scheduledEventName).to.be.equal(`${futureScheduledEvent.name}`);
     });
 
-    it('should display ongoing scheduled event on status page', async function() {
+    it('should display ongoing scheduled event on status page', async function () {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.ongoing__schedulebox');
         const ongoingEvents = await page.$$('.ongoing__schedulebox');
@@ -374,7 +375,7 @@ describe('Status page monitors check', function() {
         expect(ongoingEvents.length).to.be.equal(1);
     });
 
-    it('should navigate to scheduled event page on status page', async function() {
+    it('should navigate to scheduled event page on status page', async function () {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('#scheduledEvents');
         await page.waitForSelector('li.scheduledEvent');
@@ -389,7 +390,7 @@ describe('Status page monitors check', function() {
         expect(backnavigation).to.be.equal('Back to status page');
     });
 
-    it('should show scheduled event notes on scheduled event page', async function() {
+    it('should show scheduled event notes on scheduled event page', async function () {
         await request
             .post(`/scheduledEvent/${projectId}/${futureEventId}/notes`)
             .set('Authorization', authorization)
@@ -401,7 +402,7 @@ describe('Status page monitors check', function() {
         expect(notes.length).to.be.equal(1);
     });
 
-    it('should display monitor scheduled events when date is selected', async function() {
+    it('should display monitor scheduled events when date is selected', async function () {
         await page.goto(statusPageURL, {
             waitUntil: 'networkidle0',
         });
@@ -429,7 +430,7 @@ describe('Status page monitors check', function() {
         expect(scheduledEventName).to.be.equal(`${scheduledEvent.name}`);
     });
 
-    it('should not display scheduled events when disabled on status page', async function() {
+    it('should not display scheduled events when disabled on status page', async function () {
         await request
             .put(`/statusPage/${projectId}`)
             .set('Authorization', authorization)
@@ -447,7 +448,7 @@ describe('Status page monitors check', function() {
         expect(scheduledEvents).to.be.equal(null);
     });
 
-    it('should display incident on status page', async function() {
+    it('should display incident on status page', async function () {
         // add an online incident
         const incident = await request
             .post(`/incident/${projectId}/${monitorId}`)
@@ -464,7 +465,7 @@ describe('Status page monitors check', function() {
         expect(incidentTitle).to.be.equal(onlineIncident.title);
     });
 
-    it('should navigate to incident page on status page', async function() {
+    it('should navigate to incident page on status page', async function () {
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.incidentlist');
         const incidents = await page.$$('.incidentlist');
@@ -478,7 +479,7 @@ describe('Status page monitors check', function() {
         expect(backnavigation).to.be.equal('Back to status page');
     });
 
-    it('should show incident notes on incident page', async function() {
+    it('should show incident notes on incident page', async function () {
         await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
@@ -490,7 +491,7 @@ describe('Status page monitors check', function() {
         expect(notes.length).to.be.equal(1);
     });
 
-    it('should display Some services are degraded', async function() {
+    it('should display Some services are degraded', async function () {
         // add a degraded incident
         await request
             .post(`/incident/${projectId}/${monitorId}`)
@@ -511,9 +512,9 @@ describe('Status page monitors check', function() {
 
 let newBrowser, newPage, privateStatusPageURL;
 
-describe('Private status page check', function() {
+describe('Private status page check', function () {
     this.timeout(30000);
-    before(async function() {
+    before(async function () {
         this.enableTimeouts(false);
 
         privateStatusPage.projectId = projectId;
@@ -543,7 +544,83 @@ describe('Private status page check', function() {
         newPage = await newBrowser.newPage();
     });
 
-    after(async function() {
+
+    it('it should successfully subscribe a user via email', async function () {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('input[name=email]');
+        await page.type('input[name=email]', 'testing@gmail.com');
+        await page.waitForSelector('#subscribe-btn-email');
+        await page.click('#subscribe-btn-email');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+        expect(response).to.be.eql(monitorMessage);
+    });
+
+    it('it should successfully subscribe a user via phone sms', async function () {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('#updates-dropdown-sms-btn');
+        await page.click('#updates-dropdown-sms-btn');
+        await page.waitForSelector('input[name=phone_number]');
+        await page.type('input[name=phone_number]', '0812348342');
+        await page.waitForSelector('#subscribe-btn-sms');
+        await page.click('#subscribe-btn-sms');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+        expect(response).to.be.eql(monitorMessage);
+    });
+    it('it should subscribe a user to webhook notification succesfully', async function () {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('#updates-dropdown-webhook-btn');
+        await page.click('#updates-dropdown-webhook-btn');
+        await page.waitForSelector('input[name=endpoint]');
+        await page.type('input[name=endpoint]', 'example.com');
+        await page.waitForSelector('input[name=email]');
+        await page.type('input[name=email]', 'testing@gmail.com');
+        await page.waitForSelector('#subscribe-btn-webhook');
+        await page.click('#subscribe-btn-webhook');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+
+        expect(response).to.be.eql(monitorMessage);
+    });
+
+    after(async function () {
         if (browser) {
             await browser.close();
         }
@@ -554,14 +631,14 @@ describe('Private status page check', function() {
         await UserService.hardDeleteBy({ _id: userId });
     });
 
-    it('should redirect to login for unauthorized user', async function() {
+    it('should redirect to login for unauthorized user', async function () {
         await newPage.goto(privateStatusPageURL, {
             waitUntil: 'networkidle0',
         });
         expect(newPage.url()).to.be.equal(ACCOUNTS_URL + '/login');
     });
 
-    it('should not login user with invalid details', async function() {
+    it('should not login user with invalid details', async function () {
         await page.goto(privateStatusPageURL, {
             waitUntil: 'networkidle0',
         });
@@ -579,7 +656,7 @@ describe('Private status page check', function() {
         expect(page.url()).to.be.equal(ACCOUNTS_URL + '/login');
     });
 
-    it('should redirect and login user with valid details', async function() {
+    it('should redirect and login user with valid details', async function () {
         await page.goto(privateStatusPageURL, {
             waitUntil: 'networkidle0',
         });
@@ -601,7 +678,7 @@ describe('Private status page check', function() {
         expect(monitorName).to.be.equal(monitor.name);
     });
 
-    it('should login and display monitor for user with valid `userId` and `accessToken`', async function() {
+    it('should login and display monitor for user with valid `userId` and `accessToken`', async function () {
         await newPage.goto(
             `${privateStatusPageURL}?userId=${userId}&accessToken=${token}`,
             {

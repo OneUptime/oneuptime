@@ -92,7 +92,9 @@ class Call extends Component {
                 >
                     {this.props.subscribed && this.props.subscribed.success ? (
                         <div style={{ textAlign: 'center', margin: '15px 0' }}>
-                            <span>You are subscribed to this monitor</span>
+                            <span id="monitor-subscribe-success-message">
+                                You are subscribed to this monitor
+                            </span>
                         </div>
                     ) : (
                             <>
