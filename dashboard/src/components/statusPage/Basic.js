@@ -2,6 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
+import { API_URL } from '../../config';
 import { reduxForm, Field } from 'redux-form';
 import {
     createLogoCache,
@@ -99,7 +100,44 @@ export class Branding extends Component {
 
     render() {
         const { handleSubmit } = this.props;
-
+        // eslint-disable-next-line no-unused-vars
+        let faviconImage = <span />;
+        // eslint-disable-next-line no-unused-vars
+        let logoImage = <span />;
+        const logoUrl = this.props.logourl
+            ? this.props.logourl
+            : this.props.statusPage.status &&
+              this.props.statusPage.status.logoPath
+            ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
+            : '';
+        const faviconUrl = this.props.faviconurl
+            ? this.props.faviconurl
+            : this.props.statusPage.status &&
+              this.props.statusPage.status.faviconPath
+            ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}`
+            : '';
+        if (
+            (this.props.statusPage &&
+                this.props.statusPage.status &&
+                this.props.statusPage.status.faviconPath) ||
+            this.props.faviconurl
+        ) {
+            // eslint-disable-next-line no-unused-vars
+            faviconImage = (
+                <img src={faviconUrl} alt="" className="image-small-circle" />
+            );
+        }
+        if (
+            (this.props.statusPage &&
+                this.props.statusPage.status &&
+                this.props.statusPage.status.logoPath) ||
+            this.props.faviconurl
+        ) {
+            // eslint-disable-next-line no-unused-vars
+            logoImage = (
+                <img src={logoUrl} alt="" className="image-small-circle" />
+            );
+        }
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -212,6 +250,14 @@ Branding.propTypes = {
     resetFaviconCache: PropTypes.func.isRequired,
     updateStatusPageName: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
+    logourl: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    faviconurl: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
     reset: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
 };
