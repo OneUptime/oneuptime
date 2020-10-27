@@ -422,7 +422,7 @@ export class IncidentStatus extends Component {
                                             </div>
                                             <div className="bs-right-side">
                                                 {this.props.incident.title && (
-                                                    <div className="bs-content">
+                                                    <div className="bs-content bs-title">
                                                         <label className="">
                                                             Title
                                                         </label>
@@ -528,7 +528,7 @@ export class IncidentStatus extends Component {
                                                                 Priority :
                                                         </label>
                                                             <div className="bs-content-inside">
-                                                                <div className="Flex-flex Flex-alignItems--center">
+                                                                <div className="Flex-flex Flex-alignItems--center bs-justify-cont">
                                                                     <span
                                                                         className="Margin-right--4"
                                                                         style={{
@@ -570,7 +570,7 @@ export class IncidentStatus extends Component {
                                                             </label>
                                                                 <div className="bs-content-inside bs-margin-top-1">
                                                                     <div>
-                                                                        <div className="bs-flex-display">
+                                                                        <div className="bs-flex-display bs-justify-cont">
                                                                             <div className="bs-circle-span-yellow"></div>
                                                                             <div
                                                                                 id={`AcknowledgeText_${this.props.count}`}
@@ -715,7 +715,7 @@ export class IncidentStatus extends Component {
                                                             <div className="bs-content bs-margin-top">
                                                                 <div className="bs-content-inside">
                                                                     <div>
-                                                                        <div className="bs-flex-display">
+                                                                        <div className="bs-flex-display bs-justify-cont">
                                                                             <div className="bs-circle-span-green"></div>
                                                                             <div
                                                                                 id={`ResolveText_${this.props.count}`}
