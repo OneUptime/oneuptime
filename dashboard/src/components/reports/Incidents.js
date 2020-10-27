@@ -66,7 +66,7 @@ class Incidents extends Component {
     render() {
         const { incidents } = this.state;
         const { incidentReports, filter } = this.props;
-        const areaChartData = [
+        const chartData = [
             [
                 filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : '',
                 'Incidents',
@@ -76,10 +76,6 @@ class Incidents extends Component {
                     p: { html: true },
                 },
             ],
-            // ['Copper', 8.94, '#b87333'],
-            // ['Silver', 10.49, 'silver'],
-            // ['Gold', 19.3, 'gold'],
-            // ['Platinum', 21.45, '#e5e4e2'],
         ];
         incidents.map(element => {
             const value = [
@@ -91,7 +87,7 @@ class Incidents extends Component {
                     element.incidents > 1 ? 'Incidents' : 'Incident'
                 } </p></div>`,
             ];
-            areaChartData.push(value);
+            chartData.push(value);
             return element;
         });
 
@@ -102,7 +98,7 @@ class Incidents extends Component {
                     height={'400px'}
                     chartType="Bar"
                     loader={<Loader />}
-                    data={areaChartData}
+                    data={chartData}
                     options={{
                         animation: {
                             startup: true,
@@ -129,7 +125,6 @@ class Incidents extends Component {
                                 color: '#757575',
                             },
                         },
-                        // lineWidth: 25
                         colors: ['#000000'],
                         legend: {
                             position: 'top',

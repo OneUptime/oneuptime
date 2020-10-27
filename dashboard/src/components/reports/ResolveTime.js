@@ -66,7 +66,7 @@ class ResolveTime extends Component {
     render() {
         const { resolveTime } = this.state;
         const { resolveTimeReports, filter } = this.props;
-        const areaChartData = [
+        const chartData = [
             [
                 filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : '',
                 'Average Resolve Time',
@@ -83,7 +83,7 @@ class ResolveTime extends Component {
                 element.averageResolved,
                 `<div class="custom-tooltip"> <h3>${element[filter]} </h3> <p class="label"> Average Resolve Time : ${element.averageResolved} secs </p></div>`,
             ];
-            areaChartData.push(value);
+            chartData.push(value);
             return element;
         });
 
@@ -92,12 +92,15 @@ class ResolveTime extends Component {
                 <Chart
                     width={'100%'}
                     height={'400px'}
-                    chartType="AreaChart"
+                    chartType="Bar"
                     loader={<Loader />}
-                    data={areaChartData}
+                    data={chartData}
                     options={{
                         animation: {
                             startup: true,
+                        },
+                        bar: {
+                            groupWidth: '40%',
                         },
                         hAxis: {
                             textStyle: {
@@ -117,14 +120,7 @@ class ResolveTime extends Component {
                                 color: '#757575',
                             },
                         },
-                        // For the legend to fit, we make the chart area smaller
-                        chartArea: {
-                            width: '70%',
-                            height: '70%',
-                        },
-                        // lineWidth: 25
                         colors: ['#000000'],
-                        lineWidth: '1.5',
                         legend: {
                             position: 'top',
                             alignment: 'center',
