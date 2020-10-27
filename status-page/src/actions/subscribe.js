@@ -68,7 +68,7 @@ export const subscribeUser = (
     projectId,
     statusPageId
 ) => {
-    return function (dispatch) {
+    return function(dispatch) {
         const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
             userDetails,
             monitors,
