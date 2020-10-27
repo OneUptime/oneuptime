@@ -5,8 +5,10 @@ const init = require('./test-init');
 
 require('should');
 
-const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const masterAdmin = {
+    email: 'masteradmin@hackerbay.io',
+    password: '1234567890',
+}
 
 describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
     const operationTimeOut = 1000000;
@@ -27,12 +29,12 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
             throw err;
         });
 
-        await cluster.execute({ email, password }, async ({ page, data }) => {
+        await cluster.execute({ email: masterAdmin.email, password: masterAdmin.password }, async ({ page, data }) => {
             const user = {
                 email: data.email,
                 password: data.password,
             };
-            await init.registerEnterpriseUser(user, page, false);
+            await init.loginUser(user, page, false);
         });
 
         done();
@@ -72,6 +74,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
 
                 await page.waitForSelector('#settings', { visible: true });
                 await page.$eval('#settings a', elem => elem.click());
+                await page.waitFor(3000)
 
                 // if element does not exist it will timeout and throw
                 const licenseOption = await page.waitForSelector('#license', {
