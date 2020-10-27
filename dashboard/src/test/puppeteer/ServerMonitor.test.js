@@ -33,10 +33,10 @@ describe('Server Monitor API', () => {
 
         return await cluster.execute(null, async ({ page }) => {
             const user = {
-                email: 'ibukundairo@hackerbay.io',
-                password: 'TaYo4942++',
+                email,
+                password,
             };
-            // await init.registerUser(user, page);
+            await init.registerUser(user, page);
             await init.loginUser(user, page);
         });
     });
@@ -71,7 +71,7 @@ describe('Server Monitor API', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -209,7 +209,7 @@ describe('Server Monitor API', () => {
 
                 monitor.stop();
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -229,21 +229,20 @@ describe('Server Monitor API', () => {
         'should create offline incident 3 minutes after manually resolving incident and daemon is turned off',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle0',
-                });
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
 
-                await init.navigateToMonitorDetails(
-                    componentName,
-                    monitorName,
-                    page
+                await page.waitForSelector(
+                    `#${monitorName}_EditIncidentDetails_0`
                 );
-
-                await page.waitForSelector('#btnResolve_0');
-                await page.$eval('#btnResolve_0', e => e.click());
-                await page.waitForSelector('#ResolveText_0', {
-                    visible: true,
-                });
+                await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(5000);
+                await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(5000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -257,7 +256,7 @@ describe('Server Monitor API', () => {
                     'No incidents currently active.'
                 );
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
