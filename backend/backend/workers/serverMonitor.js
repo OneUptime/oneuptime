@@ -1,5 +1,7 @@
 const moment = require('moment');
 const MonitorService = require('../services/monitorService'),
+    MonitorLogService = require('../services/monitorLogService'),
+    MonitorStatusService = require('../services/monitorStatusService'),
     ProbeService = require('../services/probeService'),
     ErrorService = require('../services/errorService');
 
@@ -13,8 +15,17 @@ module.exports = {
             if (monitors) {
                 monitors.forEach(async monitor => {
                     const d = new moment(monitor.lastPingTime);
+                    const log = await MonitorLogService.findOneBy({
+                        monitorId: monitor._id,
+                    });
+                    const monitorStatus = await MonitorStatusService.findOneBy({
+                        monitorId: monitor._id,
+                    });
 
-                    if (newDate.diff(d, 'minutes') > 3) {
+                    if (
+                        newDate.diff(d, 'minutes') > 3 &&
+                        (!log || monitorStatus.status !== 'offline')
+                    ) {
                         await job(monitor);
                     }
                 });
