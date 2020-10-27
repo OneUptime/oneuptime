@@ -535,7 +535,6 @@ export function fetchProjectStatusPage(projectId, refresh, skip, limit) {
             function(response) {
                 const data = response.data;
                 // eslint-disable-next-line no-console
-                console.log(response.data);
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
@@ -594,6 +593,7 @@ export function fetchSubProjectStatusPages(projectId, refresh) {
         promise.then(
             function(response) {
                 const data = response.data;
+                console.log('data', data)
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
             function(error) {
