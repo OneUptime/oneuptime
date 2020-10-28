@@ -59,6 +59,7 @@ OnCallTableBody.displayName = 'OnCallTableBody';
 
 OnCallTableBody.propTypes = {
     text: PropTypes.string.isRequired,
+    type: PropTypes.string,
 };
 
 export { OnCallTableBody, OnCallTableHeader };

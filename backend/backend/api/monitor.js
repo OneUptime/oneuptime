@@ -235,34 +235,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        if (data.type === 'server-monitor') {
-            const { stat: validUp, reasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
-                ? ProbeService.conditions(null, null, monitor.criteria.up)
-                : { stat: false, reasons: [] });
-            const { stat: validDown } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
-                ? ProbeService.conditions(null, null, monitor.criteria.down)
-                : { stat: false });
-            if (!validUp || validDown) {
-                const handler = setTimeout(async () => {
-                    const log = await MonitorLogService.findOneBy({
-                        monitorId: monitor._id,
-                    });
-                    if (!log) {
-                        await ProbeService.saveMonitorLog({
-                            monitorId: monitor._id,
-                            status: 'offline',
-                            reason: reasons,
-                        });
-                    }
-                    clearTimeout(handler);
-                }, 3 * 60 * 1000);
-            }
-        }
-
         const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
@@ -546,6 +518,7 @@ router.post(
             }
 
             const log = await ProbeService.saveMonitorLog(data);
+
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error);

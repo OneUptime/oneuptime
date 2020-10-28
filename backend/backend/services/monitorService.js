@@ -539,8 +539,7 @@ module.exports = {
                 {
                     _id: id,
                 },
-                { $set: { lastPingTime: newdate } },
-                { multi: false }
+                { lastPingTime: newdate }
             );
             return monitor;
         } catch (error) {

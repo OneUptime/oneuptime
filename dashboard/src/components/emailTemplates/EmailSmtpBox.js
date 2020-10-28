@@ -100,11 +100,13 @@ export class EmailSmtpBox extends Component {
                 postSmtpConfig(currentProject._id, values);
             }
         } else {
-            this.props.deleteSmtpConfig(
-                this.props.currentProject._id,
-                smtpConfigurations.config._id,
-                values
-            );
+            if (smtpConfigurations.config._id) {
+                this.props.deleteSmtpConfig(
+                    this.props.currentProject._id,
+                    smtpConfigurations.config._id,
+                    values
+                );
+            }
         }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > SETTINGS > SMTP CONFIG CHANGED');
