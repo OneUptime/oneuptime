@@ -30,3 +30,18 @@ docker run -d -p 6379:6379 redis:latest
 ## Running on: on-prem, staging, or production.
 
 -   We run this by using helm charts, please check `README.md` in the `helm-chart` folder.
+
+## Runnng probes
+
+The probes server ping reports to the backend after fetching lists of resources from the backend that should be monitored.
+
+#### To run the probe server
+
+-   cd probe && `npm install`
+-   `npm run dev`
+
+#### To add additional location
+
+-   `PROBE_NAME="UK" PROBE_KEY="test-key" PORT=3021 npm start`
+
+Note: check the `.env` file for the default configuration and always change the PROBE_NAME and PORT on addition of new location.
