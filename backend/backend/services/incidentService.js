@@ -70,6 +70,7 @@ module.exports = {
                 if (data.reason && data.reason.length > 0) {
                     incident.reason = data.reason.join('\n');
                 }
+                incident.response = data.response || null;
                 incident.idNumber =
                     incidentsCountInProject +
                     deletedIncidentsCountInProject +

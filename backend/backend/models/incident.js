@@ -19,6 +19,7 @@ const monitorSchema = new Schema({
     reason: {
         type: Schema.Types.String,
     },
+    response: Object,
     monitorId: { type: String, ref: 'Monitor' }, // which monitor does this incident belongs to.
     notificationId: { type: String, ref: 'Notification' },
     incidentPriority: {
