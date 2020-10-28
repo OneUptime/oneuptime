@@ -99,19 +99,19 @@ class Message extends Component {
                             </span>
                         </div>
                     ) : (
-                            <input
-                                name="email"
-                                onChange={this.handleChange}
-                                type="text"
-                                placeholder="Email Address"
-                                className="input-full"
-                            />
-                        )}
+                        <input
+                            name="email"
+                            onChange={this.handleChange}
+                            type="text"
+                            placeholder="Email Address"
+                            className="input-full"
+                        />
+                    )}
                     <input
                         type="submit"
                         value={
                             this.props.subscribed &&
-                                this.props.subscribed.success
+                            this.props.subscribed.success
                                 ? 'Close'
                                 : 'Subscribe'
                         }

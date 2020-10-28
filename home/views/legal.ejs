@@ -4,8 +4,8 @@
 
 <head>
   <title>Fyipe | Legal Center</title>
-  <meta name="description"
-    content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <meta name="description" content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
   <% include ./head %>
   <link rel="stylesheet" href="/css/common.css">
   <link rel="stylesheet" href="/css/legal.css">
@@ -20,7 +20,20 @@
 
 <body>
   <div id="docs">
-    <div id="sidebar">
+    <div class="fixed-top nav-display">
+      <nav class="navbar navbar-light bg-light">
+        <button class="navbar-toggler toggleMenu" type="button" id="toggleMenu">
+          <span class="navbar-toggler-icon toggleMenu"></span>
+        </button>
+        <nav class="nav">
+          <a class="nav-link" href="/">Home</a>
+          <a class="nav-link" href="/pricing">Pricing</a>
+          <a class="nav-link" href="/enterprise/overview">Enterprise</a>
+          <a class="nav-link" href="/support">Support</a>
+        </nav>
+      </nav>
+    </div>
+    <div id="sidebar" class="navSection mobile">
       <div class="logo">
         <a class="site" href="/" title="fyipe"></a>
       </div>
@@ -77,19 +90,12 @@
           </li>
 
         </ul>
-
-
-
-
-
-
       </nav>
     </div>
     <div id="content-wrapper" tabindex="0">
       <header id="main-header">
         <nav>
           <ul class="external">
-
             <li>
               <a href="/">Home</a>
             </li>
@@ -180,7 +186,31 @@
     </div>
   </div>
 
-</body>
+  <script>
+    $(document).ready(function () {
+      if ($(window).width() >= 768) {
+        $('#sidebar').show(1000, function () {
+          $('.nav-display').css({ zIndex: 1 });
+        });
+      }
+      $(document).click(function (e) {
+        var button = $(e.target).attr('class');
+        if (button) {
+          button = button.split(' ')[1];
+        }
+        if ($(window).width() < 768 && $('#sidebar').css('display') === 'none' && button === 'toggleMenu') {
+          $('#sidebar').show(1000, function () {
+            $('.nav-display').css({ zIndex: 1 });
+          });
+        }
 
+        if ($(window).width() < 768 && $('#sidebar').css('display') === 'block' && button === undefined) {
+          $('#sidebar').hide(1000);
+        }
+      });
+
+    });
+  </script>
+</body>
 
 </html>

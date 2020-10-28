@@ -199,7 +199,6 @@ class FyipeTracker {
             tags,
             fingerprint,
         };
-        console.log(this.#event);
 
         // generate a new event Id
         this._setEventId();

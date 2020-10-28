@@ -1147,6 +1147,7 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
+        // eslint-disable-next-line no-unused-vars
         component
     ) {
         try {
@@ -1695,4 +1696,3 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
-const SlackService = require('../services/slackService');
