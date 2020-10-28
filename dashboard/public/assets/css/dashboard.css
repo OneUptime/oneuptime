@@ -34708,12 +34708,12 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-left-side {
-  width: 50%;
+  width: 55%;
   padding: 15px;
 }
 
 .bs-right-side {
-  width: 50%;
+  width: 45%;
   padding: 15px;
 }
 
@@ -34750,8 +34750,18 @@ span.CodeMirror-selectedtext {
   /* background-color: #fff; */
 }
 
-.Bs-btn-no span {
+.Bs-btn-no span, .bs-content-create {
   color: rgba(0, 0, 0, 0.5)
+}
+
+.bs-content-create {
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.bs-value {
+  font-size: 16px
 }
 
 .bs-circle-span {
@@ -34784,14 +34794,30 @@ span.CodeMirror-selectedtext {
   font-size: 14px !important;
 }
 
-.bs-icon-resolved {
+.bs-icon-resolved, .bs-ticks, .bs-circle {
   height: 15px;
   width: 15px;
   background-position: 0;
   background-size: cover;
   margin-top: 3px;
   margin-right: 5px;
+}
+
+.bs-icon-resolved {
   background-image: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjUxMnB0IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgd2lkdGg9IjUxMnB0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj48bGluZWFyR3JhZGllbnQgaWQ9ImEiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMjU2IiB4Mj0iMjU2IiB5MT0iMCIgeTI9IjUxMiI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMmFmNTk4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDA5ZWZkIi8+PC9saW5lYXJHcmFkaWVudD48cGF0aCBkPSJtMjU4LjI1NzgxMiAzMTAuMzQ3NjU2IDIyMy45NTcwMzItMjQ1LjgyMDMxMiAyOS41NjY0MDYgMjYuOTM3NS0yNTEuNDcyNjU2IDI3Ni4wMTk1MzEtMTM3LjA4OTg0NC0xMzAuMzIwMzEzIDI3LjU2MjUtMjguOTkyMTg3em0yMzcuOTkyMTg4LTE0My4wOTM3NS0zMS4xOTE0MDYgMzQuMzQzNzVjNC41MjczNDQgMTcuMzg2NzE5IDYuOTQxNDA2IDM1LjYxNzE4OCA2Ljk0MTQwNiA1NC40MDIzNDQgMCAxMTkuMTAxNTYyLTk2Ljg5ODQzOCAyMTYtMjE2IDIxNnMtMjE2LTk2Ljg5ODQzOC0yMTYtMjE2IDk2Ljg5ODQzOC0yMTYgMjE2LTIxNmM1NS4xNzU3ODEgMCAxMDUuNTc0MjE5IDIwLjgwNDY4OCAxNDMuNzk2ODc1IDU0Ljk2ODc1bDI2Ljk2NDg0NC0yOS42OTE0MDZjLTQ3LjAwNzgxMy00Mi4xOTE0MDYtMTA3LjEwOTM3NS02NS4yNzczNDQtMTcwLjc2MTcxOS02NS4yNzczNDQtNjguMzc4OTA2IDAtMTMyLjY2Nzk2OSAyNi42Mjg5MDYtMTgxLjAxOTUzMSA3NC45ODA0NjktNDguMzUxNTYzIDQ4LjM1MTU2Mi03NC45ODA0NjkgMTEyLjY0MDYyNS03NC45ODA0NjkgMTgxLjAxOTUzMXMyNi42Mjg5MDYgMTMyLjY2Nzk2OSA3NC45ODA0NjkgMTgxLjAxOTUzMWM0OC4zNTE1NjIgNDguMzUxNTYzIDExMi42NDA2MjUgNzQuOTgwNDY5IDE4MS4wMTk1MzEgNzQuOTgwNDY5czEzMi42Njc5NjktMjYuNjI4OTA2IDE4MS4wMTk1MzEtNzQuOTgwNDY5YzQ4LjM1MTU2My00OC4zNTE1NjIgNzQuOTgwNDY5LTExMi42NDA2MjUgNzQuOTgwNDY5LTE4MS4wMTk1MzEgMC0zMC43NzM0MzgtNS40MTAxNTYtNjAuNzEwOTM4LTE1Ljc1LTg4Ljc0NjA5NHptMCAwIiBmaWxsPSJ1cmwoI2EpIi8+PC9zdmc+");
+}
+
+.bs-ticks {
+  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE2LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgd2lkdGg9IjUxMHB4IiBoZWlnaHQ9IjUxMHB4IiB2aWV3Qm94PSIwIDAgNTEwIDUxMCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEwIDUxMDsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGcgaWQ9ImNoZWNrLWNpcmNsZS1vdXRsaW5lIj4NCgkJPHBhdGggZD0iTTE1MC40NSwyMDYuNTVsLTM1LjcsMzUuN0wyMjkuNSwzNTdsMjU1LTI1NWwtMzUuNy0zNS43TDIyOS41LDI4NS42TDE1MC40NSwyMDYuNTV6IE00NTksMjU1YzAsMTEyLjItOTEuOCwyMDQtMjA0LDIwNA0KCQkJUzUxLDM2Ny4yLDUxLDI1NVMxNDIuOCw1MSwyNTUsNTFjMjAuNCwwLDM4LjI1LDIuNTUsNTYuMSw3LjY1bDQwLjgwMS00MC44QzMyMS4zLDcuNjUsMjg4LjE1LDAsMjU1LDBDMTE0Ljc1LDAsMCwxMTQuNzUsMCwyNTUNCgkJCXMxMTQuNzUsMjU1LDI1NSwyNTVzMjU1LTExNC43NSwyNTUtMjU1SDQ1OXoiLz4NCgk8L2c+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8L3N2Zz4NCg==");
+}
+
+.bs-circle {
+  opacity: 1;
+  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDE2LjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgd2lkdGg9IjQ0NS44NzNweCIgaGVpZ2h0PSI0NDUuODcycHgiIHZpZXdCb3g9IjAgMCA0NDUuODczIDQ0NS44NzIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDQ0NS44NzMgNDQ1Ljg3MjsiDQoJIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGQ9Ik0yMjIuOTM3LDQ0NS44NzJDMTAwLjAwNyw0NDUuODcyLDAsMzQ1Ljg2MiwwLDIyMi45MzZDMCwxMDAuMDA3LDEwMC4wMDcsMCwyMjIuOTM3LDANCgkJCWMxMjIuOTI2LDAsMjIyLjkzNiwxMDAuMDA3LDIyMi45MzYsMjIyLjkzNkM0NDUuODczLDM0NS44NjIsMzQ1Ljg2Myw0NDUuODcyLDIyMi45MzcsNDQ1Ljg3MnogTTIyMi45MzcsMTguMTU3DQoJCQljLTExMi45MTEsMC0yMDQuNzc5LDkxLjg2OC0yMDQuNzc5LDIwNC43NzljMCwxMTIuOTE0LDkxLjg2OCwyMDQuNzc5LDIwNC43NzksMjA0Ljc3OWMxMTIuOTEzLDAsMjA0Ljc3OC05MS44NjUsMjA0Ljc3OC0yMDQuNzc5DQoJCQlDNDI3LjcxNSwxMTAuMDI1LDMzNS44NSwxOC4xNTcsMjIyLjkzNywxOC4xNTd6Ii8+DQoJPC9nPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPGc+DQo8L2c+DQo8Zz4NCjwvZz4NCjxnPg0KPC9nPg0KPC9zdmc+DQo=");
+}
+
+.bs-btn-extra:hover>.bs-circle, .bs-btn-extra:hover>.bs-ticks {
+  opacity: 0.5;
 }
 
 .bs-remove-shadow, .bs-remove-shadow:hover, .bs-remove-shadow:active, .bs-remove-shadow:focus {
@@ -34824,7 +34850,7 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-margin-top {
-  margin-top: -12px;
+  margin-top: -10px;
 }
 
 .bs-margin-right {
@@ -34837,11 +34863,17 @@ span.CodeMirror-selectedtext {
 
 .bs-btn-extra {
   margin-top: 12px;
+  transition: 0.3s;
 }
 
 .Padding-bottom--12 {
   padding-bottom: 4px;
 }
+
+.bs-date-time {
+  margin-top: 5px;
+}
+
 
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
@@ -34863,5 +34895,11 @@ span.CodeMirror-selectedtext {
   }
   .bs-title {
     margin-top: -30px
+  }
+  .bs-display-block {
+    display: block
+  }
+  .bs-m-top {
+    margin-top: 25px
   }
 }
