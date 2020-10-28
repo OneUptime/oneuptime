@@ -1902,3 +1902,84 @@ div.plaid-logo a img{
         page-break-inside:avoid
     }
 }
+
+.nav-display {
+    display: none;
+}
+
+.nav-link {
+    color: #797979;
+    font-size: 15px;
+}
+
+@media (min-width:320px) {
+    #sidebar {
+        display: none;
+    }
+
+    .nav-display {
+        display: block;
+    }
+
+    #content,
+    header#main-header {
+        margin-left: 15px;
+        margin-right: 20px;
+        width: 100%;
+        padding-left: 0;
+        padding-right: 30px;
+        text-align: left;
+    }
+
+    #content-wrapper {
+        min-width: unset;
+        text-align: left;
+    }
+}
+
+@media (min-width:768px) {
+    #sidebar {
+        display: block;
+    }
+
+    .nav-display {
+        display: none;
+    }
+
+    #content,
+    header#main-header {
+        width: 100%;
+        text-align: left;
+    }
+
+    #content-wrapper {
+        width: calc(100% - 252px);
+        position: relative;
+        left: 252px;
+    }
+}
+
+@media (min-width:1024px) {
+    #sidebar {
+        display: block;
+    }
+
+    .nav-display {
+        display: none;
+    }
+
+    #content,
+    header#main-header {
+        width: 100%;
+        text-align: left;
+    }
+
+    #content-wrapper {
+        width: calc(100% - calc(calc(2 * ((100% - 994px) / 2)) + 252px));
+        position: relative;
+        left: calc(calc((100% - 994px) / 2) + 252px);
+        right: calc(calc(100% - 994px) / 2);
+        text-align: left;
+    }
+}
+
