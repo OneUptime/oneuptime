@@ -931,6 +931,20 @@ module.exports = {
             throw error;
         }
     },
+    errorTrackerKeyReset: async errorTracker => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = errorTracker.componentId._id;
+
+            global.io.emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
+        } catch (error) {
+            ErrorService.log('realTimeService.errorTrackerKeyReset', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

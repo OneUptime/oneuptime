@@ -19,6 +19,7 @@ const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ErrorTrackerService = require('../services/errorTrackerService');
+const uuid = require('uuid');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -126,6 +127,42 @@ router.delete(
                     message: 'Error Tracker not found',
                 });
             }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Description: Reset Error Tracker Key by errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/reset-key',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        const errorTrackerId = req.params.errorTrackerId;
+
+        const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            _id: errorTrackerId,
+        });
+        if (!currentErrorTracker) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Error Tracker not found',
+            });
+        }
+
+        // error tracker is valid
+        const data = {
+            key: uuid.v4(), // set new error tracker key
+        };
+
+        try {
+            const errorTracker = await ErrorTrackerService.updateOneBy(
+                { _id: currentErrorTracker._id },
+                data
+            );
+            return sendItemResponse(req, res, errorTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
