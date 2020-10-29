@@ -171,6 +171,41 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data, unsetData = null) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let errorTracker = await ErrorTrackerModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            if (unsetData) {
+                errorTracker = await ErrorTrackerModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
+
+            errorTracker = await this.findOneBy(query);
+
+            await RealTimeService.errorTrackerKeyReset(errorTracker);
+
+            return errorTracker;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.updateOneBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorTrackerModel = require('../models/errorTracker');
