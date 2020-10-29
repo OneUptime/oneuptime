@@ -917,6 +917,20 @@ module.exports = {
             throw error;
         }
     },
+    sendErrorTrackerDelete: async errorTracker => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = errorTracker.componentId._id;
+
+            global.io.emit(`deleteErrorTracker-${componentId}`, errorTracker);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorTrackerDelete', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

@@ -102,4 +102,33 @@ router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Description: Delete an Error Tracker by errorTrackerId and componentId.
+router.delete(
+    '/:projectId/:componentId/:errorTrackerId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        try {
+            const errorTracker = await ErrorTrackerService.deleteBy(
+                {
+                    _id: req.params.errorTrackerId,
+                    componentId: req.params.componentId,
+                },
+                req.user.id
+            );
+            if (errorTracker) {
+                return sendItemResponse(req, res, errorTracker);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 module.exports = router;

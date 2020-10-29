@@ -133,10 +133,50 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const errorTracker = await ErrorTrackerModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
+                },
+                { new: true }
+            ).populate('deletedById', 'name');
+            if (errorTracker) {
+                const component = ComponentService.findOneBy({
+                    _id: errorTracker.componentId._id,
+                });
+                await NotificationService.create(
+                    component.projectId,
+                    `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
+                    errorTracker.deletedById._id,
+                    'errorTrackeraddremove'
+                );
+                await RealTimeService.sendErrorTrackerDelete(errorTracker);
+                return errorTracker;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            ErrorService.log('errorTrackerService.deleteBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorTrackerModel = require('../models/errorTracker');
 const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
 const ResourceCategoryService = require('./resourceCategoryService');
+const RealTimeService = require('./realTimeService');
+const NotificationService = require('./notificationService');
 const uuid = require('uuid');
