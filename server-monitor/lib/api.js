@@ -140,7 +140,7 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                         } else {
                             if (data.data !== null && data.data.length > 0) {
                                 if (data.count === 1) {
-                                    logger.warn(
+                                    logger.info(
                                         'Using default Server Monitor...'
                                     );
                                     resolve(data.data[0]._id);

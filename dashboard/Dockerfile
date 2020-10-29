@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:12.16.1
+FROM node:15
 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 
