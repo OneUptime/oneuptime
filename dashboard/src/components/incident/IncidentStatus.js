@@ -957,12 +957,8 @@ export class IncidentStatus extends Component {
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-bottom--12">
                             <button
-                                className="bs-Button bs-btn-extra"
-                                id={`${monitorName}_EditIncidentDetails_${this.props.count}`}
-                                disabled={
-                                    this.props.incident.acknowledged &&
-                                    this.props.incident.resolved
-                                }
+                                className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-btn-extra bs-Button bs-flex-display bs-remove-shadow" : "bs-btn-extra bs-Button bs-Button--icon bs-Button--settings"}
+                                id={`${monitorName}_EditIncidentDetails`}
                                 type="button"
                                 onClick={this.handleIncident}
                             >
