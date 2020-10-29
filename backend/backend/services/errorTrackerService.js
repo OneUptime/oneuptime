@@ -97,6 +97,42 @@ module.exports = {
             throw error;
         }
     },
+    // get all error trackers by component ID
+    async getApplicationLogsByComponentId(componentId, limit, skip) {
+        // try to get the component by the ID
+        const component = await ComponentService.findOneBy({
+            _id: componentId,
+        });
+        // send an error if the component doesnt exist
+        if (!component) {
+            const error = new Error('Component does not exist.');
+            error.code = 400;
+            ErrorService.log(
+                'errorTrackerService.getApplicationLogsByComponentId',
+                error
+            );
+            throw error;
+        }
+
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            const _this = this;
+
+            const errorTrackers = await _this.findBy(
+                { componentId: componentId },
+                limit,
+                skip
+            );
+            return errorTrackers;
+        } catch (error) {
+            ErrorService.log(
+                'errorTrackerService.getApplicationLogsByComponentId',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 const ErrorTrackerModel = require('../models/errorTracker');

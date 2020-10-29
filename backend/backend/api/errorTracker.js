@@ -78,4 +78,28 @@ router.post(
         }
     }
 );
+
+// Description: Get all Error Trackers by componentId.
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const componentId = req.params.componentId;
+        if (!componentId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Component ID can't be null",
+            });
+        }
+        const errorTrackers = await ErrorTrackerService.getApplicationLogsByComponentId(
+            componentId,
+            req.query.limit || 0,
+            req.query.skip || 0
+        );
+        return sendItemResponse(req, res, errorTrackers);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 module.exports = router;
