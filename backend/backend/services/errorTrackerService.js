@@ -98,7 +98,7 @@ module.exports = {
         }
     },
     // get all error trackers by component ID
-    async getApplicationLogsByComponentId(componentId, limit, skip) {
+    async getErrorTrackersByComponentId(componentId, limit, skip) {
         // try to get the component by the ID
         const component = await ComponentService.findOneBy({
             _id: componentId,
@@ -127,7 +127,7 @@ module.exports = {
             return errorTrackers;
         } catch (error) {
             ErrorService.log(
-                'errorTrackerService.getApplicationLogsByComponentId',
+                'errorTrackerService.getErrorTrackersByComponentId',
                 error
             );
             throw error;

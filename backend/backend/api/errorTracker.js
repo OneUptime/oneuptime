@@ -19,6 +19,7 @@ const ComponentService = require('../services/componentService');
 const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ErrorTrackerService = require('../services/errorTrackerService');
+const ResourceCategoryService = require('../services/resourceCategoryService');
 const uuid = require('uuid');
 // Route
 // Description: Adding a new error tracker to a component.
@@ -93,7 +94,7 @@ router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
                 message: "Component ID can't be null",
             });
         }
-        const errorTrackers = await ErrorTrackerService.getApplicationLogsByComponentId(
+        const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
             componentId,
             req.query.limit || 0,
             req.query.skip || 0
@@ -161,6 +162,95 @@ router.post(
             const errorTracker = await ErrorTrackerService.updateOneBy(
                 { _id: currentErrorTracker._id },
                 data
+            );
+            return sendItemResponse(req, res, errorTracker);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Description: Update Error Tracker by errorTrackerId.
+router.put(
+    '/:projectId/:componentId/:errorTrackerId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function(req, res) {
+        const errorTrackerId = req.params.errorTrackerId;
+
+        const data = req.body;
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "values can't be null",
+            });
+        }
+        data.createdById = req.user ? req.user.id : null;
+        if (!data.name) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'New Error Tracker Name is required.',
+            });
+        }
+
+        const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            _id: errorTrackerId,
+        });
+        if (!currentErrorTracker) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Error Tracker not found',
+            });
+        }
+
+        // try to find in the application log if the name already exist for that component
+        const existingQuery = {
+            name: data.name,
+            componentId: req.params.componentId,
+        };
+        if (data.resourceCategory != '') {
+            existingQuery.resourceCategory = data.resourceCategory;
+        }
+        const existingErrorTracking = await ErrorTrackerService.findBy(
+            existingQuery
+        );
+
+        if (
+            existingErrorTracking &&
+            existingErrorTracking.length > 0 &&
+            data.resourceCategory != ''
+        ) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Error Tracker with that name already exists.',
+            });
+        }
+
+        // Error Tracker is valid
+        const errorTrackerUpdate = {
+            name: data.name,
+        };
+
+        let unsetData;
+        if (!data.resourceCategory || data.resourceCategory === '') {
+            unsetData = { resourceCategory: '' };
+        } else {
+            const resourceCategoryModel = await ResourceCategoryService.findBy({
+                _id: data.resourceCategory,
+            });
+            if (resourceCategoryModel) {
+                errorTrackerUpdate.resourceCategory = data.resourceCategory;
+            } else {
+                unsetData = { resourceCategory: '' };
+            }
+        }
+
+        try {
+            const errorTracker = await ErrorTrackerService.updateOneBy(
+                { _id: currentErrorTracker._id },
+                errorTrackerUpdate,
+                unsetData
             );
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
