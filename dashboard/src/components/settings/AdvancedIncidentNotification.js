@@ -272,7 +272,7 @@ class AdvancedIncidentNotification extends Component {
                                         >
                                             <ShouldRender
                                                 if={
-                                                    !requestingEmailIncident ||
+                                                    !requestingEmailIncident &&
                                                     !requestingSmsIncident
                                                 }
                                             >
