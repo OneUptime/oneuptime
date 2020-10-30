@@ -85,10 +85,13 @@ class Webhook extends Component {
     render() {
         return (
             <div>
-                <div className="directions">
-                    Get webhook notifications when an incident is{' '}
-                    <strong>created</strong>.
-                </div>
+                {this.props.subscribed &&
+                this.props.subscribed.success ? null : (
+                    <div className="directions">
+                        Get webhook notifications when an incident is{' '}
+                        <strong>created</strong>.
+                    </div>
+                )}
                 <form
                     id="subscribe-form-webhook"
                     onSubmit={
@@ -100,46 +103,47 @@ class Webhook extends Component {
                     {this.props.subscribed && this.props.subscribed.success ? (
                         <div style={{ textAlign: 'center', margin: '15px 0' }}>
                             <span id="monitor-subscribe-success-message">
-                                You are subscribed to this monitor
+                                You have subscribed to this status page
+                                successfully
                             </span>
                         </div>
                     ) : (
-                            <>
-                                <input
-                                    type="text"
-                                    name="endpoint"
-                                    onChange={this.handleChange}
-                                    id="endpoint-webhooks"
-                                    placeholder="http://www.yourdomain.com/endpoint/here"
-                                    className="input-full"
-                                />
-                                <p
-                                    className="small"
-                                    style={{ margin: '-5px 0px 5px 4px' }}
-                                >
-                                    The URL we should send the updates to.
+                        <>
+                            <input
+                                type="text"
+                                name="endpoint"
+                                onChange={this.handleChange}
+                                id="endpoint-webhooks"
+                                placeholder="http://www.yourdomain.com/endpoint/here"
+                                className="input-full"
+                            />
+                            <p
+                                className="small"
+                                style={{ margin: '-5px 0px 5px 4px' }}
+                            >
+                                The URL we should send the updates to.
                             </p>
-                                <input
-                                    type="text"
-                                    name="email"
-                                    onChange={this.handleChange}
-                                    id="email-webhooks"
-                                    placeholder="Email Address"
-                                    className="input-full"
-                                />
-                                <p
-                                    className="small"
-                                    style={{ margin: '-5px 0px 10px 4px' }}
-                                >
-                                    We will send you email if your endpoint fails.
+                            <input
+                                type="text"
+                                name="email"
+                                onChange={this.handleChange}
+                                id="email-webhooks"
+                                placeholder="Email Address"
+                                className="input-full"
+                            />
+                            <p
+                                className="small"
+                                style={{ margin: '-5px 0px 10px 4px' }}
+                            >
+                                We will send you email if your endpoint fails.
                             </p>
-                            </>
-                        )}
+                        </>
+                    )}
                     <input
                         type="submit"
                         value={
                             this.props.subscribed &&
-                                this.props.subscribed.success
+                            this.props.subscribed.success
                                 ? 'Close'
                                 : 'Subscribe'
                         }
