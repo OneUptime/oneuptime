@@ -331,7 +331,7 @@ class Incident extends React.Component {
                                     <IncidentTimelineBox
                                         next={this.nextTimeline}
                                         previous={this.previousTimeline}
-                                        incident={this.props.incident}
+                                        incident={this.props.incidentTimeline}
                                     />
                                 </div>
                             </Fade>
