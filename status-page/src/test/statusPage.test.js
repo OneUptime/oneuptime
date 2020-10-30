@@ -55,7 +55,7 @@ const dateId = moment(today)
     .replace(/, | /g, '');
 
 let browser, page, statusPageURL;
-const monitorMessage = 'You are subscribed to this monitor';
+const monitorMessage = 'You have subscribed to this status page successfully';
 
 describe('Status page monitors check', function() {
     this.timeout(240000);
