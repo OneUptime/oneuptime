@@ -102,6 +102,7 @@ export class StatusPageForm extends React.Component {
                                             this.props.statusPage.newStatusPage
                                                 .requesting
                                         }
+                                        autoFocus={true}
                                     />
                                 </div>
                                 <div className="bs-Modal-footer">
@@ -139,7 +140,6 @@ export class StatusPageForm extends React.Component {
                                                 this.props.statusPage
                                                     .newStatusPage.requesting
                                             }
-                                            autoFocus={true}
                                         >
                                             <ShouldRender
                                                 if={
