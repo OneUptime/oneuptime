@@ -51101,3 +51101,6 @@ body[dir='rtl'] .fixedDataTableColumnResizerLineLayout_main {
 .underline{
   text-decoration:underline !important;
 }
+.user-details-fieldset-label{
+  flex: none;
+}
