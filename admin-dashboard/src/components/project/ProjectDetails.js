@@ -56,17 +56,28 @@ export class ProjectDetails extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            <div className="bs-Fieldset-row">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
                                                 <label
                                                     className="bs-Fieldset-label"
                                                     style={{
                                                         width: '10rem',
                                                         textAlign: 'left',
+                                                        flex: 'none',
                                                     }}
                                                 >
                                                     Project Name
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        maxWidth: '270px',
+                                                    }}
+                                                >
                                                     <span
                                                         className="value"
                                                         style={{
@@ -81,17 +92,28 @@ export class ProjectDetails extends Component {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
                                                 <label
                                                     className="bs-Fieldset-label"
                                                     style={{
                                                         width: '10rem',
                                                         textAlign: 'left',
+                                                        flex: 'none',
                                                     }}
                                                 >
                                                     Project ID
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        maxWidth: '270px',
+                                                    }}
+                                                >
                                                     <span
                                                         className="value"
                                                         style={{
@@ -106,17 +128,28 @@ export class ProjectDetails extends Component {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-row">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
                                                 <label
                                                     className="bs-Fieldset-label"
                                                     style={{
                                                         width: '10rem',
                                                         textAlign: 'left',
+                                                        flex: 'none',
                                                     }}
                                                 >
                                                     API Key
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        maxWidth: '270px',
+                                                    }}
+                                                >
                                                     <span
                                                         className="value"
                                                         style={{
