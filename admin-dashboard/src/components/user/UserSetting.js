@@ -107,17 +107,23 @@ export class UserSetting extends Component {
                                         <div
                                             className="bs-Fieldset-row"
                                             style={{
-                                                width: '50%',
-                                                justifyContent: 'space-between',
+                                                justifyContent: 'center',
                                             }}
                                         >
-                                            <label className="bs-Fieldset-label user-details-fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label user-details-fieldset-label"
+                                                style={{
+                                                    width: '10rem',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Full Name
                                             </label>
                                             <div
                                                 className="bs-Fieldset-fields"
                                                 style={{
                                                     alignItems: 'flex-start',
+                                                    maxWidth: '280px',
                                                 }}
                                             >
                                                 <span className="value">
@@ -130,17 +136,23 @@ export class UserSetting extends Component {
                                         <div
                                             className="bs-Fieldset-row"
                                             style={{
-                                                width: '50%',
-                                                justifyContent: 'space-between',
+                                                justifyContent: 'center',
                                             }}
                                         >
-                                            <label className="bs-Fieldset-label user-details-fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label user-details-fieldset-label"
+                                                style={{
+                                                    width: '10rem',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Email
                                             </label>
                                             <div
                                                 className="bs-Fieldset-fields"
                                                 style={{
                                                     alignItems: 'flex-start',
+                                                    maxWidth: '280px',
                                                 }}
                                             >
                                                 <span className="value">
@@ -153,17 +165,23 @@ export class UserSetting extends Component {
                                         <div
                                             className="bs-Fieldset-row"
                                             style={{
-                                                width: '50%',
-                                                justifyContent: 'space-between',
+                                                justifyContent: 'center',
                                             }}
                                         >
-                                            <label className="bs-Fieldset-label user-details-fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label user-details-fieldset-label"
+                                                style={{
+                                                    width: '10rem',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Company
                                             </label>
                                             <div
                                                 className="bs-Fieldset-fields"
                                                 style={{
                                                     alignItems: 'flex-start',
+                                                    maxWidth: '280px',
                                                 }}
                                             >
                                                 <span className="value">
@@ -177,17 +195,23 @@ export class UserSetting extends Component {
                                         <div
                                             className="bs-Fieldset-row"
                                             style={{
-                                                width: '50%',
-                                                justifyContent: 'space-between',
+                                                justifyContent: 'center',
                                             }}
                                         >
-                                            <label className="bs-Fieldset-label user-details-fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label user-details-fieldset-label"
+                                                style={{
+                                                    width: '10rem',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Phone Number
                                             </label>
                                             <div
                                                 className="bs-Fieldset-fields"
                                                 style={{
                                                     alignItems: 'flex-start',
+                                                    maxWidth: '280px',
                                                 }}
                                             >
                                                 <span className="value">
