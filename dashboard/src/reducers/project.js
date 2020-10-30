@@ -63,6 +63,16 @@ const initialState = {
     canUpgrade: true, // Used to check if the user has plans they can upgrade to.
     showDeleteModal: false,
     deletedModal: false,
+    emailIncidentNotification: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    smsIncidentNotification: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function project(state = initialState, action) {
@@ -572,6 +582,69 @@ export default function project(state = initialState, action) {
                     error: action.payload,
                 },
             });
+
+        case types.SET_EMAIL_INCIDENT_NOTIFICATION_REQUEST:
+            return {
+                ...state,
+                emailIncidentNotification: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SET_EMAIL_INCIDENT_NOTIFICATION_SUCCESS:
+            return {
+                ...state,
+                emailIncidentNotification: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                currentProject: action.payload,
+            };
+
+        case types.SET_EMAIL_INCIDENT_NOTIFICATION_FAILURE:
+            return {
+                ...state,
+                emailIncidentNotification: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.SET_SMS_INCIDENT_NOTIFICATION_REQUEST:
+            return {
+                ...state,
+                smsIncidentNotification: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.SET_SMS_INCIDENT_NOTIFICATION_SUCCESS:
+            return {
+                ...state,
+                smsIncidentNotification: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                currentProject: action.payload,
+            };
+
+        case types.SET_SMS_INCIDENT_NOTIFICATION_FAILURE:
+            return {
+                ...state,
+                smsIncidentNotification: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
         default:
             return state;
     }
