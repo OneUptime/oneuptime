@@ -9,6 +9,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const RequestClient = require('twilio/lib/base/RequestClient');
 
 // eslint-disable-next-line no-unused-vars
 let token, userId, projectId, componentId, errorTracker;
@@ -164,4 +165,17 @@ describe('Error Tracker API', function() {
             });
     });
     // delete error tracker
+    it('should delete the error tracker', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .delete(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.deleted).to.be.equal(true);
+                done();
+            });
+    });
 });
