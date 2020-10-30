@@ -316,6 +316,63 @@ describe('Project API', function() {
                 done();
             });
     });
+
+    it('should disable sending incident created email notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/email`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationEmail: false,
+                sendAcknowledgedIncidentNotificationEmail: true,
+                sendResolvedIncidentNotificationEmail: true,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(
+                    res.body.sendCreatedIncidentNotificationEmail
+                ).to.be.false;
+                done();
+            });
+    });
+
+    it('should disable sending incident acknowledged email notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/email`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationEmail: true,
+                sendAcknowledgedIncidentNotificationEmail: false,
+                sendResolvedIncidentNotificationEmail: true,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(
+                    res.body.sendAcknowledgedIncidentNotificationEmail
+                ).to.be.false;
+                done();
+            });
+    });
+
+    it('should disable sending incident resolved email notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/email`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationEmail: true,
+                sendAcknowledgedIncidentNotificationEmail: true,
+                sendResolvedIncidentNotificationEmail: false,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(
+                    res.body.sendResolvedIncidentNotificationEmail
+                ).to.be.false;
+                done();
+            });
+    });
 });
 
 describe('Projects SubProjects API', function() {
