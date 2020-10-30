@@ -9,8 +9,6 @@ const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-const RequestClient = require('twilio/lib/base/RequestClient');
-
 // eslint-disable-next-line no-unused-vars
 let token, userId, projectId, componentId, errorTracker;
 
