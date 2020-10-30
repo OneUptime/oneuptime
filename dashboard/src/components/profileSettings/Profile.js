@@ -655,10 +655,13 @@ export class ProfileSetting extends Component {
                                             <ShouldRender
                                                 if={showPhoneVerifyTools}
                                             >
-                                                {profileSettingState.initPhoneVerificationNumber ||
-                                                (profileSettings.data &&
-                                                    profileSettings.data
-                                                        .tempAlertPhoneNumber) ? (
+                                                {profileSettings.data &&
+                                                profileSettings.data
+                                                    .alertPhoneNumber &&
+                                                (profileSettingState.initPhoneVerificationNumber ||
+                                                    (profileSettings.data &&
+                                                        profileSettings.data
+                                                            .tempAlertPhoneNumber)) ? (
                                                     <div
                                                         className="bs-Fieldset-row"
                                                         style={{
