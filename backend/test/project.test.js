@@ -373,6 +373,61 @@ describe('Project API', function() {
                 done();
             });
     });
+
+    it('should disable sending incident created sms notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/sms`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationSms: false,
+                sendAcknowledgedIncidentNotificationSms: true,
+                sendResolvedIncidentNotificationSms: true,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.sendCreatedIncidentNotificationSms).to.be.false;
+                done();
+            });
+    });
+
+    it('should disable sending incident acknowledged sms notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/sms`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationSms: true,
+                sendAcknowledgedIncidentNotificationSms: false,
+                sendResolvedIncidentNotificationSms: true,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(
+                    res.body.sendAcknowledgedIncidentNotificationSms
+                ).to.be.false;
+                done();
+            });
+    });
+
+    it('should disable sending incident resolved sms notification to external subscribers', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .put(`/project/${projectId}/advancedOptions/sms`)
+            .set('Authorization', authorization)
+            .send({
+                sendCreatedIncidentNotificationSms: true,
+                sendAcknowledgedIncidentNotificationSms: true,
+                sendResolvedIncidentNotificationSms: false,
+            })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(
+                    res.body.sendResolvedIncidentNotificationSms
+                ).to.be.false;
+                done();
+            });
+    });
 });
 
 describe('Projects SubProjects API', function() {
