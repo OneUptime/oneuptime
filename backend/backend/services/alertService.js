@@ -1251,49 +1251,105 @@ module.exports = {
 
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
-                        await MailService.sendIncidentAcknowledgedMailToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            subscriber.contactEmail,
-                            subscriber._id,
-                            subscriber.contactEmail,
-                            incident,
-                            project.name,
-                            emailTemplate,
-                            trackEmailAsViewedUrl,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (
+                                project.sendAcknowledgedIncidentNotificationEmail
+                            ) {
+                                await MailService.sendIncidentAcknowledgedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            await MailService.sendIncidentAcknowledgedMailToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                subscriber.contactEmail,
+                                subscriber._id,
+                                subscriber.contactEmail,
+                                incident,
+                                project.name,
+                                emailTemplate,
+                                trackEmailAsViewedUrl,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
                     ) {
-                        await MailService.sendIncidentResolvedMailToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            subscriber.contactEmail,
-                            subscriber._id,
-                            subscriber.contactEmail,
-                            incident,
-                            project.name,
-                            emailTemplate,
-                            trackEmailAsViewedUrl,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (project.sendResolvedIncidentNotificationEmail) {
+                                await MailService.sendIncidentResolvedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            await MailService.sendIncidentResolvedMailToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                subscriber.contactEmail,
+                                subscriber._id,
+                                subscriber.contactEmail,
+                                incident,
+                                project.name,
+                                emailTemplate,
+                                trackEmailAsViewedUrl,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     } else {
-                        await MailService.sendIncidentCreatedMailToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            subscriber.contactEmail,
-                            subscriber._id,
-                            subscriber.contactEmail,
-                            incident,
-                            project.name,
-                            emailTemplate,
-                            trackEmailAsViewedUrl,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (project.sendCreatedIncidentNotificationEmail) {
+                                await MailService.sendIncidentCreatedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            await MailService.sendIncidentCreatedMailToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                subscriber.contactEmail,
+                                subscriber._id,
+                                subscriber.contactEmail,
+                                incident,
+                                project.name,
+                                emailTemplate,
+                                trackEmailAsViewedUrl,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     }
                     await SubscriberAlertService.updateOneBy(
                         { _id: alertId },
