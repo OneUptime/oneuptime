@@ -1496,43 +1496,93 @@ module.exports = {
                 const alertId = subscriberAlert._id;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
-                        sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            contactPhone,
-                            smsTemplate,
-                            incident,
-                            project.name,
-                            incident.projectId,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (
+                                project.sendAcknowledgedIncidentNotificationSms
+                            ) {
+                                sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    contactPhone,
+                                    smsTemplate,
+                                    incident,
+                                    project.name,
+                                    incident.projectId,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                contactPhone,
+                                smsTemplate,
+                                incident,
+                                project.name,
+                                incident.projectId,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
                     ) {
-                        sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            contactPhone,
-                            smsTemplate,
-                            incident,
-                            project.name,
-                            incident.projectId,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (project.sendResolvedIncidentNotificationSms) {
+                                sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    contactPhone,
+                                    smsTemplate,
+                                    incident,
+                                    project.name,
+                                    incident.projectId,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                contactPhone,
+                                smsTemplate,
+                                incident,
+                                project.name,
+                                incident.projectId,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     } else {
-                        sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                            date,
-                            subscriber.monitorName,
-                            contactPhone,
-                            smsTemplate,
-                            incident,
-                            project.name,
-                            incident.projectId,
-                            component.name,
-                            statusPageUrl
-                        );
+                        if (statusPage) {
+                            if (project.sendCreatedIncidentNotificationSms) {
+                                sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    contactPhone,
+                                    smsTemplate,
+                                    incident,
+                                    project.name,
+                                    incident.projectId,
+                                    component.name,
+                                    statusPageUrl
+                                );
+                            }
+                        } else {
+                            sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                contactPhone,
+                                smsTemplate,
+                                incident,
+                                project.name,
+                                incident.projectId,
+                                component.name,
+                                statusPageUrl
+                            );
+                        }
                     }
                     if (
                         sendResult &&
