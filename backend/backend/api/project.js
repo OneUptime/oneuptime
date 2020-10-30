@@ -1007,4 +1007,64 @@ router.post('/projects/search', getUser, isUserMasterAdmin, async function(
     }
 });
 
+router.put(
+    '/:projectId/advancedOptions/email',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            if (!data.sendCreatedIncidentNotificationEmail) {
+                data.sendCreatedIncidentNotificationEmail = false;
+            }
+            if (!data.sendAcknowledgedIncidentNotificationEmail) {
+                data.sendAcknowledgedIncidentNotificationEmail = false;
+            }
+            if (!data.sendResolvedIncidentNotificationEmail) {
+                data.sendResolvedIncidentNotificationEmail = false;
+            }
+
+            const result = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/advancedOptions/sms',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            if (!data.sendCreatedIncidentNotificationSms) {
+                data.sendCreatedIncidentNotificationSms = false;
+            }
+            if (!data.sendAcknowledgedIncidentNotificationSms) {
+                data.sendAcknowledgedIncidentNotificationSms = false;
+            }
+            if (!data.sendResolvedIncidentNotificationSms) {
+                data.sendResolvedIncidentNotificationSms = false;
+            }
+
+            const result = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
