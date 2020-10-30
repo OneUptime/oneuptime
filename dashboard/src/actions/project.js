@@ -821,3 +821,91 @@ export function checkCard(data) {
         return promise;
     };
 }
+
+export function setEmailIncidentNotificationRequest() {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_REQUEST,
+    };
+}
+
+export function setEmailIncidentNotificationSuccess(payload) {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_SUCCESS,
+        payload,
+    };
+}
+
+export function setEmailIncidentNotificationFailure(error) {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_FAILURE,
+        payload: error,
+    };
+}
+
+export function setEmailIncidentNotification({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setEmailIncidentNotificationRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/email`,
+                data
+            );
+            dispatch(setEmailIncidentNotificationSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setEmailIncidentNotificationFailure(errorMsg));
+        }
+    };
+}
+
+export function setSmsIncidentNotificationRequest() {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_REQUEST,
+    };
+}
+
+export function setSmsIncidentNotificationSuccess(payload) {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_SUCCESS,
+        payload,
+    };
+}
+
+export function setSmsIncidentNotificationFailure(error) {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_FAILURE,
+        payload: error,
+    };
+}
+
+export function setSmsIncidentNotification({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setSmsIncidentNotificationRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/sms`,
+                data
+            );
+            dispatch(setSmsIncidentNotificationSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setSmsIncidentNotificationFailure(errorMsg));
+        }
+    };
+}
