@@ -139,9 +139,29 @@ describe('Error Tracker API', function() {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
                 expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
+                errorTracker.key = res.body.key; // update the new key.
                 done();
             });
     });
     // edit error tracker details
+    it('should update the current error tracker name', function(done) {
+        const authorization = `Basic ${token}`;
+        const appName = 'Python API App';
+        request
+            .put(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
+            )
+            .set('Authorization', authorization)
+            .send({ name: appName })
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                const updatedErrorTracker = res.body;
+                expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
+                expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // same key
+                expect(updatedErrorTracker.name).to.be.equal(appName); // change of name
+                errorTracker = updatedErrorTracker; // update the error track
+                done();
+            });
+    });
     // delete error tracker
 });
