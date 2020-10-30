@@ -13,7 +13,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 // eslint-disable-next-line no-unused-vars
 let token, userId, projectId, componentId, errorTracker;
 
-describe('Application Log API', function() {
+describe('Error Tracker API', function() {
     this.timeout(80000);
 
     // eslint-disable-next-line no-undef
@@ -126,4 +126,22 @@ describe('Application Log API', function() {
                 done();
             });
     });
+    // reset api key
+    it('should reset error tracker key', function(done) {
+        const authorization = `Basic ${token}`;
+        const currentKey = errorTracker.key;
+        request
+            .post(
+                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/reset-key`
+            )
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
+                expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
+                done();
+            });
+    });
+    // edit error tracker details
+    // delete error tracker
 });
