@@ -646,43 +646,49 @@ export class IncidentStatus extends Component {
                                                                 />
                                                                 {this.props
                                                                     .incident
-                                                                    .response && (
-                                                                    <button
-                                                                        title="showMore"
-                                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: this
-                                                                                        .state
-                                                                                        .viewJsonModalId,
-                                                                                    content: DataPathHoC(
-                                                                                        ViewJsonLogs,
-                                                                                        {
-                                                                                            viewJsonModalId: this
-                                                                                                .state
-                                                                                                .viewJsonModalId,
-                                                                                            jsonLog: this
-                                                                                                .props
-                                                                                                .incident
-                                                                                                .response,
-                                                                                            title:
-                                                                                                'API Response',
-                                                                                            rootName:
-                                                                                                'response',
-                                                                                        }
-                                                                                    ),
-                                                                                }
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <span>
-                                                                            Show
-                                                                            More
-                                                                        </span>
-                                                                    </button>
-                                                                )}
+                                                                    .response &&
+                                                                    this.props
+                                                                        .incident
+                                                                        .reason &&
+                                                                    this.props.incident.reason.includes(
+                                                                        'Response `'
+                                                                    ) && (
+                                                                        <button
+                                                                            title="showMore"
+                                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                this.props.openModal(
+                                                                                    {
+                                                                                        id: this
+                                                                                            .state
+                                                                                            .viewJsonModalId,
+                                                                                        content: DataPathHoC(
+                                                                                            ViewJsonLogs,
+                                                                                            {
+                                                                                                viewJsonModalId: this
+                                                                                                    .state
+                                                                                                    .viewJsonModalId,
+                                                                                                jsonLog: this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    .response,
+                                                                                                title:
+                                                                                                    'API Response',
+                                                                                                rootName:
+                                                                                                    'response',
+                                                                                            }
+                                                                                        ),
+                                                                                    }
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span>
+                                                                                Show
+                                                                                More
+                                                                            </span>
+                                                                        </button>
+                                                                    )}
                                                             </div>
                                                         </div>
                                                     )}
