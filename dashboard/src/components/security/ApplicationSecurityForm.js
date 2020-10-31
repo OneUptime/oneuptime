@@ -79,7 +79,7 @@ class ApplicationSecurityForm extends Component {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Name
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -109,7 +109,7 @@ class ApplicationSecurityForm extends Component {
                                                     }
                                                 >
                                                     <div className="bs-Fieldset-row bs-u-justify--center">
-                                                        <label className="bs-Fieldset-label">
+                                                        <label className="bs-Fieldset-label Fieldset-extra">
                                                             Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
@@ -149,7 +149,7 @@ class ApplicationSecurityForm extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Git Repository URL
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
@@ -172,7 +172,7 @@ class ApplicationSecurityForm extends Component {
                                                     </div>
                                                 </div>
                                                 <div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label">
+                                                    <label className="bs-Fieldset-label Fieldset-extra">
                                                         Git Credential
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
