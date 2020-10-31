@@ -15,7 +15,7 @@ module.exports = {
                 return {
                     alertType: 'sms',
                     category: 'us',
-                    price: 1.0,
+                    price: 0.01,
                     minimumBalance: 5,
                 };
             } else if (country === 'non-us') {
