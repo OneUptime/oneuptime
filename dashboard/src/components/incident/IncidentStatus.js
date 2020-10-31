@@ -23,7 +23,7 @@ import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
-import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
+// import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 
 export class IncidentStatus extends Component {
