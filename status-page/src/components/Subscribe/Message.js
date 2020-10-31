@@ -80,10 +80,13 @@ class Message extends Component {
     render() {
         return (
             <div>
-                <div className="directions">
-                    Get email notifications when an incident is{' '}
-                    <strong>created</strong>.
-                </div>
+                {this.props.subscribed &&
+                this.props.subscribed.success ? null : (
+                    <div className="directions">
+                        Get email notifications when an incident is{' '}
+                        <strong>created</strong>.
+                    </div>
+                )}
                 <form
                     id="subscribe-form-email"
                     onSubmit={
@@ -95,7 +98,8 @@ class Message extends Component {
                     {this.props.subscribed && this.props.subscribed.success ? (
                         <div style={{ textAlign: 'center', margin: '15px 0' }}>
                             <span id="monitor-subscribe-success-message">
-                                You are subscribed to this monitor
+                                You have subscribed to this status page
+                                successfully
                             </span>
                         </div>
                     ) : (

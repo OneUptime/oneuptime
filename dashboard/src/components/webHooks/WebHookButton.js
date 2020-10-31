@@ -21,6 +21,7 @@ class WebHookButton extends React.Component {
             case 'N':
             case 'n':
                 if (!modalId) {
+                    event.preventDefault();
                     return document.getElementById('addWebhookButton').click();
                 }
                 return false;
