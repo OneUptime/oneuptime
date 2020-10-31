@@ -132,6 +132,7 @@ class MonitorView extends React.Component {
             : null;
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
+        const monitorType = monitor && monitor.type ? monitor.type : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);
 
@@ -344,7 +345,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'api')
+                                                                                        'api' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'server-monitor')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -360,6 +366,9 @@ class MonitorView extends React.Component {
                                                                                             .props
                                                                                             .monitor
                                                                                             .name
+                                                                                    }
+                                                                                    monitorType={
+                                                                                        monitorType
                                                                                     }
                                                                                 />
                                                                             </div>
