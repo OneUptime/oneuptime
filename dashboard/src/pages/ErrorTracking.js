@@ -9,11 +9,21 @@ import Badge from '../components/common/Badge';
 import moment from 'moment';
 import Select from '../components/basic/react-select-fyipe';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+// import { LoadingState } from '../components/basic/Loader';
+import ShouldRender from '../components/basic/ShouldRender';
+import TutorialBox from '../components/tutorial/TutorialBox';
+import NewErrorTracker from '../components/errorTracker/NewErrorTracker';
+import { fetchErrorTrackers } from '../actions/errorTracker';
+import { bindActionCreators } from 'redux';
 
 class ErrorTracking extends Component {
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
+            this.props.fetchErrorTrackers(
+                this.props.currentProject._id,
+                this.props.componentId
+            );
         }
         const {
             location: { pathname },
@@ -29,6 +39,33 @@ class ErrorTracking extends Component {
                         name={componentName}
                     />
                     <BreadCrumbItem route={pathname} name="Error Tracking" />
+                    <div>
+                        <div>
+                            {/* <ShouldRender
+                                if={this.props.applicationLog.requesting}
+                            >
+                                <LoadingState />
+                            </ShouldRender> */}
+                            <ShouldRender if={true}>
+                                <div className="db-RadarRulesLists-page">
+                                    {/* <ShouldRender
+                                        if={
+                                            this.props.tutorialStat
+                                                .applicationLog.show
+                                        }
+                                    > */}
+                                    <TutorialBox
+                                        type="errorTracking"
+                                        currentProjectId={
+                                            this.props.currentProject?._id
+                                        }
+                                    />
+                                    {/* </ShouldRender> */}
+                                </div>
+                            </ShouldRender>
+                        </div>
+                    </div>
+                    <NewErrorTracker componentId={this.props.componentId} />
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -713,6 +750,14 @@ class ErrorTracking extends Component {
 }
 
 ErrorTracking.displayName = 'ErrorTracking';
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            fetchErrorTrackers,
+        },
+        dispatch
+    );
+};
 const mapStateToProps = (state, ownProps) => {
     const { componentId } = ownProps.match.params;
     const currentProject = state.project.currentProject;
@@ -727,11 +772,14 @@ const mapStateToProps = (state, ownProps) => {
     return {
         currentProject,
         component,
+        componentId,
     };
 };
 ErrorTracking.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,
     location: PropsType.object,
+    componentId: PropsType.string,
+    fetchErrorTrackers: PropsType.func,
 };
-export default connect(mapStateToProps)(ErrorTracking);
+export default connect(mapStateToProps, mapDispatchToProps)(ErrorTracking);
