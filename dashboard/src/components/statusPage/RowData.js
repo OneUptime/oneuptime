@@ -6,10 +6,14 @@ import { connect } from 'react-redux';
 export class RowData extends Component {
     render() {
         const { statusPage, projectId, subProjectId } = this.props;
-        const monitorIds = statusPage.monitorIds;
+        const monitorIds = statusPage.monitorNames;
         const gt = i => monitorIds && monitorIds.length > i;
-        let monitors = gt(0) ? monitorIds[0].name : 'Not Yet Added';
+        let monitors = gt(0) ? monitorIds[0] : 'Not Yet Added';
         monitors += gt(1)
+            ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
+            : '';
+        let monitorDesc = gt(0) ? statusPage.monitors[0].description : 'Not Yet Added';
+        monitorDesc += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
         const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
@@ -36,13 +40,13 @@ export class RowData extends Component {
                                 {statusPage.domains[0].domain}
                             </div>
                         ) : (
-                            <div
-                                id="domainNotSet"
-                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                            >
-                                Domain(s) not set yet
-                            </div>
-                        )}
+                                <div
+                                    id="domainNotSet"
+                                    className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                                >
+                                    Domain(s) not set yet
+                                </div>
+                            )}
                     </div>
                 </td>
                 <td
@@ -53,8 +57,9 @@ export class RowData extends Component {
                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Margin-right--16">
                                 <span>
-                                    {statusPage.description ||
-                                        'No description added'}
+                                    {/* {statusPage.description ||
+                                        'No description added'} */}
+                                        {monitorDesc}
                                 </span>
                             </div>
                         </span>

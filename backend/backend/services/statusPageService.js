@@ -24,6 +24,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId')
                 .populate('domains.domainVerificationToken')
+                .populate('monitors.monitor', 'name')
                 .lean();
             return statusPages;
         } catch (error) {
