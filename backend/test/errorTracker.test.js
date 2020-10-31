@@ -9,13 +9,12 @@ const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
-// eslint-disable-next-line no-unused-vars
+
 let token, userId, projectId, componentId, errorTracker;
 
 describe('Error Tracker API', function() {
     this.timeout(80000);
 
-    // eslint-disable-next-line no-undef
     before(function(done) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
