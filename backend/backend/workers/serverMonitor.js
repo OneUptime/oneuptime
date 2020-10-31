@@ -24,7 +24,9 @@ module.exports = {
 
                     if (
                         newDate.diff(d, 'minutes') > 3 &&
-                        (!log || (monitorStatus && monitorStatus.status !== 'offline'))
+                        (!log ||
+                            (monitorStatus &&
+                                monitorStatus.status !== 'offline'))
                     ) {
                         await job(monitor);
                     }
