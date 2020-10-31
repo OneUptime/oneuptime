@@ -190,7 +190,7 @@ export class IncidentStatus extends Component {
                                         id={`incident_span_${this.props.count}`}
                                     >
                                         {monitorName
-                                            ? `#${this.props.incident.idNumber} ${monitorName}` + "'s Incident Status"
+                                            ? `#${this.props.incident.idNumber} ${monitorName}'s Incident Status`
                                             : 'Incident Status'}
                                     </span>
                                 </span>
@@ -204,12 +204,6 @@ export class IncidentStatus extends Component {
                                 className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16 bs-mob-flex"
                                 style={{ marginTop: '-20px' }}
                             >
-                                {/* <ShouldRender
-                                    if={
-                                        this.props.route &&
-                                        !(this.props.route === incidentRoute)
-                                    }
-                                > */}
                                     <div
                                         className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-flex-display bs-remove-shadow" : "bs-flex-display"}
                                     >
@@ -227,7 +221,6 @@ export class IncidentStatus extends Component {
                                                     : 'The Incident is Resolved'}
                                         </div>
                                     </div>
-                                {/* </ShouldRender> */}
                                 <ShouldRender
                                     if={
                                         !this.props.route ||
@@ -263,20 +256,6 @@ export class IncidentStatus extends Component {
                                         <span>Edit Incident</span>
                                     </button>
                                 </ShouldRender>
-                                {/* <ShouldRender
-                                    if={
-                                        this.props.multiple &&
-                                        this.props.incident &&
-                                        this.props.incident.resolved
-                                    }
-                                >
-                                    <div className="Box-root Margin-left--12">
-                                        <span
-                                            className="incident-close-button"
-                                            onClick={this.closeIncident}
-                                        ></span>
-                                    </div>
-                                </ShouldRender> */}
                             </div>
                         </div>
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -497,23 +476,6 @@ export class IncidentStatus extends Component {
                                                                                         .acknowledgedAt
                                                                                 ).fromNow()
                                                                                 }) on {" "}
-                                                                                {/* {
-                                                                                    moment(
-                                                                                        this
-                                                                                            .props
-                                                                                            .incident
-                                                                                            .acknowledgedAt
-                                                                                    )
-                                                                                        .from(
-                                                                                            this
-                                                                                                .props
-                                                                                                .incident
-                                                                                                .acknowledgedAt
-                                                                                        )
-                                                                                        .split(
-                                                                                            'ago'
-                                                                                        )[0]
-                                                                                }{' '} */}
 
                                                                                 {moment(
                                                                                     this
@@ -613,23 +575,6 @@ export class IncidentStatus extends Component {
                                                                                     .resolvedAt
                                                                             ).fromNow()
                                                                             }) on {" "}
-                                                                             {/* {
-                                                                                moment(
-                                                                                    this
-                                                                                        .props
-                                                                                        .incident
-                                                                                        .resolvedAt
-                                                                                )
-                                                                                    .from(
-                                                                                        this
-                                                                                            .props
-                                                                                            .incident
-                                                                                            .resolvedAt
-                                                                                    )
-                                                                                    .split(
-                                                                                        'ago'
-                                                                                    )[0]
-                                                                            }{' '} */}
 
                                                                             {moment(
                                                                                 this
@@ -853,18 +798,6 @@ export class IncidentStatus extends Component {
                         </div>
 
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-bottom--12">
-                            {/* <ShouldRender
-                                if={
-                                    !this.props.route ||
-                                    (this.props.route &&
-                                        !(
-                                            this.props.route ===
-                                            homeRoute ||
-                                            this.props.route ===
-                                            monitorRoute
-                                        ))
-                                }
-                            > */}
                             <button
                                 className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-btn-extra bs-Button bs-flex-display bs-remove-shadow" : "bs-btn-extra bs-Button bs-flex-display"}
                                 id={`${monitorName}_EditIncidentDetails`}
@@ -943,7 +876,6 @@ export class IncidentStatus extends Component {
                                                 'The Incident is Resolved' : null}
                                 </div>
                             </button>
-                            {/* </ShouldRender> */}
                             <ShouldRender
                                 if={
                                     this.props.route &&
