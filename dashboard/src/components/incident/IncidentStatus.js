@@ -204,8 +204,6 @@ export class IncidentStatus extends Component {
                                                         <span>This incident was created by</span>
                                                         <Link
                                                             style={{
-                                                                textDecoration:
-                                                                    'underline',
                                                                 marginLeft: '4px'
                                                             }}
                                                             to={
