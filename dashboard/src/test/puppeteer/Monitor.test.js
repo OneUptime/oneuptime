@@ -1027,7 +1027,7 @@ describe('API Monitor API', () => {
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
                 // console.log(monitorIncidentReportElement);
-                monitorIncidentReportElement.should.exactly(
+                monitorIncidentReportElement.should.be.exactly(
                     `Response {"status":"not ok"} did not evaluate response.body.status === 'ok'.`
                 );
 
