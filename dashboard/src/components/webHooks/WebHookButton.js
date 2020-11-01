@@ -17,16 +17,18 @@ class WebHookButton extends React.Component {
 
     handleKeyboard = event => {
         const { modalId } = this.props;
-        switch (event.key) {
-            case 'N':
-            case 'n':
-                if (!modalId) {
-                    event.preventDefault();
-                    return document.getElementById('addWebhookButton').click();
-                }
-                return false;
-            default:
-                break;
+        if(event.target.localName === 'body' && event.key) {
+            switch (event.key) {
+                case 'N':
+                case 'n':
+                    if (!modalId) {
+                        event.preventDefault();
+                        return document.getElementById('addWebhookButton').click();
+                    }
+                    return false;
+                default:
+                    break;
+            }
         }
     };
 
