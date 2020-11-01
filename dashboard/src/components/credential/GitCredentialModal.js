@@ -252,7 +252,6 @@ class GitCredentialModal extends Component {
                                                 className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                 type="submit"
                                                 disabled={updatingCredential}
-                                                autoFocus={true}
                                             >
                                                 {!updatingCredential && (
                                                     <>

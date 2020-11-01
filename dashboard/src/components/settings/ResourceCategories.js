@@ -34,20 +34,22 @@ export class ResourceCategories extends Component {
     }
 
     handleKeyboard = e => {
-        const { modalId } = this.props;
+        const { modalId, modalList } = this.props;
         const { CreateResourceCategoryModalId } = this.state;
         const userId = User.getUserId();
 
-        switch (e.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== CreateResourceCategoryModalId) {
-                    e.preventDefault(); // prevent entering the key automatically on the input field
-                    return this.handleCreateResourceCategory(userId);
-                }
-                return true;
-            default:
-                return false;
+        if(e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'N':
+                case 'n':
+                    if (modalList.length === 0 && modalId !== CreateResourceCategoryModalId) {
+                        e.preventDefault(); // prevent entering the key automatically on the input field
+                        return this.handleCreateResourceCategory(userId);
+                    }
+                    return true;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -408,6 +410,7 @@ ResourceCategories.propTypes = {
     error: PropTypes.object,
     currentProject: PropTypes.object,
     modalId: PropTypes.string,
+    modalList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -433,6 +436,7 @@ const mapStateToProps = state => ({
     isRequesting: state.resourceCategories.resourceCategoryList.requesting,
     currentProject: state.project.currentProject,
     modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
+    modalList: state.modal.modals,
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResourceCategories);

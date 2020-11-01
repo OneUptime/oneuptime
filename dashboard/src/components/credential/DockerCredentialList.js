@@ -61,16 +61,18 @@ const DockerCredentialList = ({
     };
 
     const handleKeyboard = e => {
-        switch (e.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== projectId) {
-                    e.preventDefault(); // prevent entering the key in the focused input field
-                    return handleCredentialCreation();
-                }
-                return false;
-            default:
-                return false;
+        if(e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'N':
+                case 'n':
+                    if (modalId !== projectId) {
+                        e.preventDefault(); // prevent entering the key in the focused input field
+                        return handleCredentialCreation();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
