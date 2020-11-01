@@ -148,14 +148,26 @@ export class MonitorViewLogsBox extends Component {
                                     ) : (
                                         <span>
                                             Here&#39;s all of the logs for the
-                                            monitor created by the probes.
+                                            monitor created by the{' '}
+                                            {this.props.monitorType ===
+                                            'server-monitor'
+                                                ? 'daemon'
+                                                : 'probes'}
+                                            .
                                         </span>
                                     )}
                                 </span>
                             </div>
                         </div>
                     </div>
-                    <ShouldRender if={!this.props.incidentId}>
+                    <ShouldRender
+                        if={
+                            !(
+                                this.props.incidentId ||
+                                this.props.monitorType === 'server-monitor'
+                            )
+                        }
+                    >
                         <br />
                         <div className="db-Trends-controls">
                             <div className="db-Trends-timeControls">
@@ -201,6 +213,7 @@ export class MonitorViewLogsBox extends Component {
                     <MonitorLogsList
                         monitorId={this.props.monitorId}
                         monitorName={this.props.monitorName}
+                        monitorType={this.props.monitorType}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                     />
@@ -219,6 +232,7 @@ MonitorViewLogsBox.propTypes = {
     monitorId: PropTypes.string,
     monitorLogs: PropTypes.object,
     monitorName: PropTypes.string,
+    monitorType: PropTypes.string,
     probes: PropTypes.array,
 };
 
