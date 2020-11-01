@@ -12,7 +12,9 @@ export class RowData extends Component {
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        let monitorDesc = gt(0) ? statusPage.monitors[0].description : 'Not Yet Added';
+        let monitorDesc = gt(0)
+            ? statusPage.monitors[0].description
+            : 'Not Yet Added';
         monitorDesc += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
@@ -40,13 +42,13 @@ export class RowData extends Component {
                                 {statusPage.domains[0].domain}
                             </div>
                         ) : (
-                                <div
-                                    id="domainNotSet"
-                                    className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
-                                >
-                                    Domain(s) not set yet
-                                </div>
-                            )}
+                            <div
+                                id="domainNotSet"
+                                className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted"
+                            >
+                                Domain(s) not set yet
+                            </div>
+                        )}
                     </div>
                 </td>
                 <td
@@ -59,7 +61,7 @@ export class RowData extends Component {
                                 <span>
                                     {/* {statusPage.description ||
                                         'No description added'} */}
-                                        {monitorDesc}
+                                    {monitorDesc}
                                 </span>
                             </div>
                         </span>

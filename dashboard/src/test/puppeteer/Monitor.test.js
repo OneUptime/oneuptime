@@ -1018,8 +1018,6 @@ describe('API Monitor API', () => {
                 // Navigate to Component details
                 await init.navigateToComponentDetails(componentName, page);
 
-                await page.waitFor(100000);
-
                 let monitorIncidentReportElement = await page.waitForSelector(
                     `${testMonitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
@@ -1029,8 +1027,8 @@ describe('API Monitor API', () => {
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
                 // console.log(monitorIncidentReportElement);
-                monitorIncidentReportElement.should.match(
-                    'Response {"message":"offline"}'
+                monitorIncidentReportElement.should.exactly(
+                    `Response {"status":"not ok"} did not evaluate response.body.status === 'ok'.`
                 );
 
                 await page.waitForSelector(
