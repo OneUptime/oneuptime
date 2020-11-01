@@ -801,7 +801,7 @@ export class IncidentStatus extends Component {
                                                             </label>
                                                             <div
                                                                 className="bs-content-inside"
-                                                                id={`${monitorName}_IncidentReport`}
+                                                                id={`${monitorName}_IncidentReport_${this.props.count}`}
                                                             >
                                                                 <ReactMarkdown
                                                                     source={`${
@@ -833,6 +833,7 @@ export class IncidentStatus extends Component {
                                                                         'Response `'
                                                                     ) && (
                                                                         <button
+                                                                            id={`${monitorName}_ShowResponse_${this.props.count}`}
                                                                             title="showMore"
                                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                             type="button"
