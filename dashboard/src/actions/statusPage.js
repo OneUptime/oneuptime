@@ -593,7 +593,6 @@ export function fetchSubProjectStatusPages(projectId, refresh) {
         promise.then(
             function(response) {
                 const data = response.data;
-                console.log('data', data)
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
             function(error) {
