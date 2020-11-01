@@ -765,8 +765,29 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS:
+            let statusPages = [];
+            action.payload[0].statusPages.forEach(statuspage => {
+                let monitorNames = [], monitors = []
+                statuspage.monitors.map(monitorData => {
+                    monitorNames.push(monitorData.monitor.name);
+                    return true
+                })
+                statuspage.monitors.map(monitorData => {
+                    monitors.push({
+                        ...monitorData,
+                        monitor: monitorData.monitor._id,
+                    })
+                    return true
+                })
+                statusPages.push({
+                    ...statuspage,
+                    monitorNames,
+                    monitors,
+                })
+            })
+            const newData = [{ count: action.payload[0].count, limit: action.payload[0].limit, skip: action.payload[0].skip, statusPages, _id: action.payload[0]._id }]
             return Object.assign({}, state, {
-                subProjectStatusPages: action.payload,
+                subProjectStatusPages: newData,
                 error: null,
                 requesting: false,
                 success: true,

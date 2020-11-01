@@ -252,6 +252,10 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
+        const monitorType =
+            this.props.monitor && this.props.monitor.type
+                ? this.props.monitor.type
+                : '';
         if (this.props.incident) {
             variable = (
                 <div>
@@ -307,6 +311,7 @@ class Incident extends React.Component {
                                         incidentId={this.props.incident._id}
                                         monitorId={monitorId}
                                         monitorName={monitorName}
+                                        monitorType={monitorType}
                                     />
                                 </div>
                             </Fade>
@@ -438,6 +443,14 @@ class Incident extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
+    const monitorId =
+        state.incident &&
+        state.incident.incident &&
+        state.incident.incident.incident &&
+        state.incident.incident.incident.monitorId &&
+        state.incident.incident.incident.monitorId._id
+            ? state.incident.incident.incident.monitorId._id
+            : null;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -446,8 +459,13 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
-
+    const monitor = state.monitor.monitorsList.monitors
+        .map(monitor =>
+            monitor.monitors.find(monitor => monitor._id === monitorId)
+        )
+        .filter(monitor => monitor)[0];
     return {
+        monitor,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentTimeline: state.incident.incident,
@@ -484,6 +502,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 Incident.propTypes = {
+    monitor: PropTypes.object,
     currentProject: PropTypes.object,
     deleting: PropTypes.bool.isRequired,
     fetchIncidentAlert: PropTypes.func,
