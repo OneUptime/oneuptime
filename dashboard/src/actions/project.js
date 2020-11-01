@@ -52,6 +52,12 @@ export function hideDeleteModal() {
     };
 }
 
+export function hideDeleteModalSaasMode() {
+    return {
+        type: types.HIDE_DELETE_MODAL_SAAS_MODE,
+    };
+}
+
 export function showForm() {
     return {
         type: types.SHOW_PROJECT_FORM,

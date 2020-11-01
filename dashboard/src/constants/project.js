@@ -1,6 +1,8 @@
 export const CHANGE_DELETE_MODAL = 'projects/CHANGE_DELETE_MODAL';
 export const SHOW_DELETE_MODAL = 'projects/SHOW_DELETE_MODAL';
 export const HIDE_DELETE_MODAL = 'projects/HIDE_DELETE_MODAL';
+export const HIDE_DELETE_MODAL_SAAS_MODE =
+    'projects/HIDE_DELETE_MODAL_SAAS_MODE';
 
 export const SHOW_PROJECT_FORM = 'projects/SHOW_PROJECT_FORM';
 export const HIDE_PROJECT_FORM = 'projects/HIDE_PROJECT_FORM';

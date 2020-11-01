@@ -278,6 +278,7 @@ export default function project(state = initialState, action) {
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
+                    deleted: true,
                     success: action.payload.ok === 1,
                     error: null,
                 },
@@ -401,6 +402,14 @@ export default function project(state = initialState, action) {
             return Object.assign({}, state, {
                 showDeleteModal: false,
                 deletedModal: false,
+            });
+        case types.HIDE_DELETE_MODAL_SAAS_MODE:
+            return Object.assign({}, state, {
+                showDeleteModal: false,
+                deleteProject: {
+                    ...state.deleteProject,
+                    deleted: false,
+                },
             });
 
         case types.CHANGE_PLAN_SUCCESS:
