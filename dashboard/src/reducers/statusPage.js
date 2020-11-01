@@ -183,7 +183,7 @@ const INITIAL_STATE = {
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
-    let status, statusPage, isExistingStatusPage;
+    let status, statusPage, statusPages, isExistingStatusPage, newData;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:
@@ -765,9 +765,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS:
-            let statusPages = [];
+            statusPages = [];
             action.payload[0].statusPages.forEach(statuspage => {
-                let monitorNames = [], monitors = []
+                const monitorNames = [], monitors = []
                 statuspage.monitors.map(monitorData => {
                     monitorNames.push(monitorData.monitor.name);
                     return true
@@ -785,7 +785,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     monitors,
                 })
             })
-            const newData = [{ count: action.payload[0].count, limit: action.payload[0].limit, skip: action.payload[0].skip, statusPages, _id: action.payload[0]._id }]
+            newData = [{ count: action.payload[0].count, limit: action.payload[0].limit, skip: action.payload[0].skip, statusPages, _id: action.payload[0]._id }]
             return Object.assign({}, state, {
                 subProjectStatusPages: newData,
                 error: null,
