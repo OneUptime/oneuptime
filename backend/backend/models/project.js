@@ -78,6 +78,12 @@ const projectSchema = new Schema({
             createdAt: { type: Date },
         },
     ],
+    sendCreatedIncidentNotificationSms: { type: Boolean, default: true },
+    sendAcknowledgedIncidentNotificationSms: { type: Boolean, default: true },
+    sendResolvedIncidentNotificationSms: { type: Boolean, default: true },
+    sendCreatedIncidentNotificationEmail: { type: Boolean, default: true },
+    sendAcknowledgedIncidentNotificationEmail: { type: Boolean, default: true },
+    sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model('Project', projectSchema);
