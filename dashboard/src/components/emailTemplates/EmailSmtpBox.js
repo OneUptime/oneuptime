@@ -119,7 +119,7 @@ export class EmailSmtpBox extends Component {
     };
 
     render() {
-        const { handleSubmit } = this.props;
+        const { handleSubmit, change } = this.props;
 
         return (
             <div
@@ -337,6 +337,13 @@ export class EmailSmtpBox extends Component {
                                                                                 .smtpConfigurations
                                                                                 .requesting
                                                                         }
+                                                                        onChange={(event, value) => {
+                                                                            if(value === '465'){
+                                                                                change('secure', true)
+                                                                            } else {
+                                                                                change('secure', false)
+                                                                            }
+                                                                        }}
                                                                     />
                                                                     <p className="bs-Fieldset-explanation">
                                                                         <span>
@@ -616,6 +623,7 @@ EmailSmtpBox.propTypes = {
     showEmailSmtpConfiguration: PropTypes.bool,
     emailSmtpDelete: PropTypes.object,
     deleteSmtpConfigError: PropTypes.func,
+    change: PropTypes.func, // redux-form action for changing value
 };
 
 const EmailSmtpBoxForm = reduxForm({
