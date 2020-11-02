@@ -39,7 +39,7 @@ class DeleteMessaging extends Component {
                                 margin: '10px 0',
                             }}
                         >
-                            <div className="clear_times"></div>
+                            <div className="clear_times" style={{width: '17px'}}></div>
                             <div className="clear_msg_txt">
                                 Your customers, users and team will lose access
                                 to the status page.
