@@ -12,12 +12,6 @@ export class RowData extends Component {
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        let monitorDesc = gt(0)
-            ? statusPage.monitors[0].description
-            : 'Not Yet Added';
-        monitorDesc += gt(1)
-            ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
-            : '';
         const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
         return (
             <tr
@@ -59,9 +53,8 @@ export class RowData extends Component {
                         <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <div className="Box-root Margin-right--16">
                                 <span>
-                                    {/* {statusPage.description ||
-                                        'No description added'} */}
-                                    {monitorDesc}
+                                    {statusPage.description ||
+                                        'No description added'}
                                 </span>
                             </div>
                         </span>

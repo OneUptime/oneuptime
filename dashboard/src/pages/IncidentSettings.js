@@ -31,16 +31,18 @@ class IncidentSettings extends React.Component {
     handleKeyboard = e => {
         const { modalId } = this.props;
 
-        switch (e.key) {
-            case 'N':
-            case 'n':
-                if (!modalId) {
-                    e.preventDefault();
-                    return this.handleCreateNewIncidentPriority();
-                }
-                return false;
-            default:
-                return false;
+        if(e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'N':
+                case 'n':
+                    if (!modalId) {
+                        e.preventDefault();
+                        return this.handleCreateNewIncidentPriority();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 

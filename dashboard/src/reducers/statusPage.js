@@ -183,7 +183,7 @@ const INITIAL_STATE = {
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
-    let status, statusPage, isExistingStatusPage;
+    let status, statusPage, statusPages, isExistingStatusPage, newData;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:
@@ -765,7 +765,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
-            const statusPages = [];
+            statusPages = [];
             action.payload[0].statusPages.forEach(statuspage => {
                 const monitorNames = [],
                     monitors = [];
@@ -786,7 +786,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     monitors,
                 });
             });
-            const newData = [
+            newData = [
                 {
                     count: action.payload[0].count,
                     limit: action.payload[0].limit,

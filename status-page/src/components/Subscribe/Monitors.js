@@ -2,7 +2,12 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { subscribeUser, validationError } from '../../actions/subscribe';
+import {
+    subscribeUser,
+    validationError,
+    openSubscribeMenu,
+    userDataReset,
+} from '../../actions/subscribe';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../ShouldRender';
 
@@ -61,37 +66,63 @@ class Monitors extends Component {
         }
         event.preventDefault();
     };
+
+    handleClose = () => {
+        this.props.userDataReset();
+        this.props.openSubscribeMenu();
+    };
     render() {
         return (
             <div>
-                <div className="directions">
-                    Select the monitors to get updates.
-                </div>
-                <form id="subscribe-form-webhook" onSubmit={this.handleSubmit}>
-                    {this.state &&
-                        Object.keys(this.state).map((monitor, i) => {
-                            return (
-                                <label className="container-checkbox" key={i}>
-                                    <span className="check-label">
-                                        {monitor}
-                                    </span>
-                                    <input
-                                        type="checkbox"
-                                        name={monitor}
-                                        onChange={this.handleChange}
-                                        checked={this.state[monitor]}
-                                    />
-                                    <span className="checkmark"></span>
-                                </label>
-                            );
-                        })}
+                {this.props.subscribed.success ? (
+                    <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                        <span id="monitor-subscribe-success-message">
+                            You have subscribed to this status page successfully
+                        </span>
+                    </div>
+                ) : (
+                    <div className="directions">
+                        Select the monitors to get updates.
+                    </div>
+                )}
+                <form
+                    id="subscribe-form-webhook"
+                    onSubmit={
+                        this.props.subscribed && this.props.subscribed.success
+                            ? this.handleClose
+                            : this.handleSubmit
+                    }
+                >
+                    {this.props.subscribed.success
+                        ? null
+                        : this.state &&
+                          Object.keys(this.state).map((monitor, i) => {
+                              return (
+                                  <label className="container-checkbox" key={i}>
+                                      <span className="check-label">
+                                          {monitor}
+                                      </span>
+                                      <input
+                                          type="checkbox"
+                                          name={monitor}
+                                          onChange={this.handleChange}
+                                          checked={this.state[monitor]}
+                                      />
+                                      <span className="checkmark"></span>
+                                  </label>
+                              );
+                          })}
                     <button
                         type="submit"
                         className="subscribe-btn-full"
                         disabled={this.props.subscribed.requesting}
                     >
                         <ShouldRender if={!this.props.subscribed.requesting}>
-                            <span>Subscribe</span>
+                            <span>
+                                {this.props.subscribed.success
+                                    ? 'Close'
+                                    : 'Subscribe'}
+                            </span>
                         </ShouldRender>
                         <ShouldRender
                             if={
@@ -131,7 +162,10 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ subscribeUser, validationError }, dispatch);
+    bindActionCreators(
+        { subscribeUser, validationError, openSubscribeMenu, userDataReset },
+        dispatch
+    );
 
 Monitors.propTypes = {
     userDetails: PropTypes.object,
@@ -143,6 +177,8 @@ Monitors.propTypes = {
     subscribed: PropTypes.object,
     requesting: PropTypes.bool,
     error: PropTypes.string,
+    openSubscribeMenu: PropTypes.func,
+    userDataReset: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Monitors);

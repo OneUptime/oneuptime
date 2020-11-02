@@ -29,19 +29,21 @@ export class SubProjects extends Component {
     }
 
     handleKeyboard = e => {
-        const { modalId } = this.props;
+        const { modalId, modalList } = this.props;
         const { subProjectModalId } = this.state;
 
-        switch (e.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== subProjectModalId) {
-                    e.preventDefault();
-                    return this.handleAddSubProject();
-                }
-                return false;
-            default:
-                return false;
+        if(e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'N':
+                case 'n':
+                    if (modalList.length === 0 && modalId !== subProjectModalId) {
+                        e.preventDefault();
+                        return this.handleAddSubProject();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -294,6 +296,7 @@ SubProjects.propTypes = {
     skip: PropTypes.number,
     subProjectState: PropTypes.object,
     modalId: PropTypes.string,
+    modalList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -333,6 +336,7 @@ const mapStateToProps = state => {
         limit,
         count,
         modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
+        modalList: state.modal.modals,
     };
 };
 
