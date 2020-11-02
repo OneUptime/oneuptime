@@ -38,6 +38,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     try {
         const data = req.body;
         const projectId = req.params.projectId;
+
         if (!data) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -144,6 +145,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         data.headers,
                         data.bodyType
                     );
+
                     const body = await Api.body(
                         data.text && data.text.length
                             ? data.text
@@ -243,7 +245,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             user._id,
             'monitoraddremove'
         );
+
         await RealTimeService.sendMonitorCreated(monitor);
+
         return sendItemResponse(req, res, monitor);
     } catch (error) {
         return sendErrorResponse(req, res, error);
