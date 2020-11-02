@@ -144,6 +144,24 @@ class AlertDetailsModal extends Component {
                                                 </div>
                                             )}
                                             {this.props.data.alertStatus ===
+                                                'Disabled' && (
+                                                <div>
+                                                    <span
+                                                        id="alertStatus"
+                                                        >
+                                                        {this.props.data
+                                                            .eventType ===
+                                                        'identified'
+                                                            ? 'Create Incident'
+                                                            : this.props.data
+                                                            .eventType ===
+                                                        'acknowledged' ? "Acknowledge Incident" : "Resolved Incident"}{' '}
+                                                        Notification Disabled
+                                                        for Subscriber
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {this.props.data.alertStatus ===
                                                 null && (
                                                 <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                     <span

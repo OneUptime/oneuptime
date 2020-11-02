@@ -1249,6 +1249,7 @@ module.exports = {
                 const alertId = subscriberAlert._id;
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
 
+                let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
                         if (statusPage) {
@@ -1268,6 +1269,10 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+
+                                alertStatus = 'Sent'
+                            } else {
+                                alertStatus = 'Disabled';
                             }
                         } else {
                             await MailService.sendIncidentAcknowledgedMailToSubscriber(
@@ -1283,6 +1288,8 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+
+                            alertStatus = 'Sent'
                         }
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
@@ -1302,6 +1309,9 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+                                alertStatus = 'Sent'
+                            } else {
+                                alertStatus = 'Disabled'
                             }
                         } else {
                             await MailService.sendIncidentResolvedMailToSubscriber(
@@ -1317,6 +1327,7 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+                            alertStatus = 'Sent'
                         }
                     } else {
                         if (statusPage) {
@@ -1334,6 +1345,9 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+                                alertStatus = 'Sent'
+                            } else {
+                                alertStatus = 'Disabled'
                             }
                         } else {
                             await MailService.sendIncidentCreatedMailToSubscriber(
@@ -1349,11 +1363,12 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+                            alertStatus = 'Sent'
                         }
                     }
                     await SubscriberAlertService.updateOneBy(
                         { _id: alertId },
-                        { alertStatus: 'Sent' }
+                        { alertStatus }
                     );
                 } catch (error) {
                     await SubscriberAlertService.updateOneBy(
@@ -1494,6 +1509,8 @@ module.exports = {
                             : 'identified',
                 });
                 const alertId = subscriberAlert._id;
+
+                let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
                         if (statusPage) {
@@ -1511,6 +1528,9 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+                                alertStatus = 'Success';
+                            } else {
+                                alertStatus = 'Disabled';
                             }
                         } else {
                             sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
@@ -1524,6 +1544,7 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+                            alertStatus = 'Success'
                         }
                     } else if (
                         templateType === 'Subscriber Incident Resolved'
@@ -1541,6 +1562,9 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+                                alertStatus = 'Success'
+                            } else {
+                                alertStatus = 'Disabled'
                             }
                         } else {
                             sendResult = await TwilioService.sendIncidentResolvedMessageToSubscriber(
@@ -1554,6 +1578,7 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+                            alertStatus = 'Success'
                         }
                     } else {
                         if (statusPage) {
@@ -1569,6 +1594,9 @@ module.exports = {
                                     component.name,
                                     statusPageUrl
                                 );
+                                alertStatus = 'Success'
+                            } else {
+                                alertStatus = 'Disabled'
                             }
                         } else {
                             sendResult = await TwilioService.sendIncidentCreatedMessageToSubscriber(
@@ -1582,8 +1610,10 @@ module.exports = {
                                 component.name,
                                 statusPageUrl
                             );
+                            alertStatus = 'Success'
                         }
                     }
+
                     if (
                         sendResult &&
                         sendResult.code &&
@@ -1601,7 +1631,7 @@ module.exports = {
                         await SubscriberAlertService.updateBy(
                             { _id: alertId },
                             {
-                                alertStatus: 'Success',
+                                alertStatus,
                             }
                         );
                     }
