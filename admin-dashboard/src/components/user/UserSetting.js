@@ -153,6 +153,7 @@ export class UserSetting extends Component {
                                                 style={{
                                                     alignItems: 'flex-start',
                                                     maxWidth: '280px',
+                                                    flexDirection: 'row'
                                                 }}
                                             >
                                                 <span className="value">
@@ -160,7 +161,21 @@ export class UserSetting extends Component {
                                                         ? this.props.user.email
                                                         : 'LOADING...'}
                                                 </span>
+                                                       {!this.props.user.isVerified ? (
+                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2" style={{marginLeft: '5px'}}>
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Not verified
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2" style={{marginLeft: '5px'}}>
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                                    Verified
+                                                                </span>
+                                                            </div>
+                                                        )}
                                             </div>
+                                            
                                         </div>
                                         <div
                                             className="bs-Fieldset-row"
@@ -311,6 +326,7 @@ UserSetting.propTypes = {
     updateTwoFactorAuthToken: PropTypes.func,
     setTwoFactorAuth: PropTypes.func,
     openModal: PropTypes.func,
+    isVerified: PropTypes.bool,
 };
 
 UserSetting.contextTypes = {
