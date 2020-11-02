@@ -157,7 +157,7 @@ class AlertDetailsModal extends Component {
                                                             .eventType ===
                                                         'acknowledged' ? "Acknowledge Incident" : "Resolved Incident"}{' '}
                                                         Notification Disabled
-                                                        for Subscriber
+                                                        for Subscribers
                                                     </span>
                                                 </div>
                                             )}
