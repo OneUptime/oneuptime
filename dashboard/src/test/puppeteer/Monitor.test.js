@@ -1019,22 +1019,29 @@ describe('API Monitor API', () => {
                 await init.navigateToComponentDetails(componentName, page);
 
                 let monitorIncidentReportElement = await page.waitForSelector(
-                    `${testMonitorName}_IncidentReport_0`,
-                    { visible: true, timeout: operationTimeOut }
+                    `#${testMonitorName}_IncidentReport_0`
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.getProperty(
                     'innerText'
                 );
                 monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
-                // console.log(monitorIncidentReportElement);
-                monitorIncidentReportElement.should.be.exactly(
-                    `Response {"status":"not ok"} did not evaluate response.body.status === 'ok'.`
+                monitorIncidentReportElement.should.match(
+                    /Response {"message":"offline"} did not evaluate response.body.status === 'ok'.$/
                 );
 
                 await page.waitForSelector(
                     `#${testMonitorName}_ShowResponse_0`
                 );
                 await page.click(`#${testMonitorName}_ShowResponse_0`);
+
+                let monitorIncidentModalElement = await page.waitForSelector(
+                    '#API_Response'
+                );
+                monitorIncidentModalElement = await monitorIncidentModalElement.getProperty(
+                    'innerText'
+                );
+                monitorIncidentModalElement = await monitorIncidentModalElement.jsonValue();
+                monitorIncidentModalElement.should.be.exactly('API Response');
             });
         },
         operationTimeOut

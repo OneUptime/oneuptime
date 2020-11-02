@@ -260,10 +260,9 @@ export class IncidentStatus extends Component {
                                     {this.props.incident.acknowledged &&
                                         this.props.incident.resolved &&
                                         this.props.route &&
-                                            !(
-                                                this.props.route ===
-                                                incidentRoute
-                                            ) && (
+                                        !(
+                                            this.props.route === incidentRoute
+                                        ) && (
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 viewBox="0 0 24 24"
@@ -597,9 +596,9 @@ export class IncidentStatus extends Component {
                                                                                     .state
                                                                                     .value ===
                                                                                     1 &&
-                                                                                    this
-                                                                                        .state
-                                                                                        .stats
+                                                                                this
+                                                                                    .state
+                                                                                    .stats
                                                                             }
                                                                         >
                                                                             <Spinner
@@ -622,9 +621,9 @@ export class IncidentStatus extends Component {
                                                                               .state
                                                                               .value !==
                                                                               1 &&
-                                                                              !this
-                                                                                  .state
-                                                                                  .stats ? (
+                                                                          !this
+                                                                              .state
+                                                                              .stats ? (
                                                                             <div className="bs-circle"></div>
                                                                         ) : null}
                                                                         <span>
@@ -1183,53 +1182,52 @@ export class IncidentStatus extends Component {
                                                                               '**.'
                                                                     }`}
                                                                 />
-                                                                {this.props
-                                                                    .incident
-                                                                    .response &&
-                                                                    this.props
-                                                                        .incident
-                                                                        .reason &&
-                                                                    this.props.incident.reason.includes(
-                                                                        'Response `'
-                                                                    ) && (
-                                                                        <button
-                                                                            id={`${monitorName}_ShowResponse_${this.props.count}`}
-                                                                            title="showMore"
-                                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                this.props.openModal(
-                                                                                    {
-                                                                                        id: this
-                                                                                            .state
-                                                                                            .viewJsonModalId,
-                                                                                        content: DataPathHoC(
-                                                                                            ViewJsonLogs,
-                                                                                            {
-                                                                                                viewJsonModalId: this
-                                                                                                    .state
-                                                                                                    .viewJsonModalId,
-                                                                                                jsonLog: this
-                                                                                                    .props
-                                                                                                    .incident
-                                                                                                    .response,
-                                                                                                title:
-                                                                                                    'API Response',
-                                                                                                rootName:
-                                                                                                    'response',
-                                                                                            }
-                                                                                        ),
-                                                                                    }
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            <span>
-                                                                                Show
-                                                                                More
-                                                                            </span>
-                                                                        </button>
-                                                                    )}
                                                             </div>
+                                                            {this.props.incident
+                                                                .response &&
+                                                                this.props
+                                                                    .incident
+                                                                    .reason &&
+                                                                this.props.incident.reason.includes(
+                                                                    'Response `'
+                                                                ) && (
+                                                                    <button
+                                                                        id={`${monitorName}_ShowResponse_${this.props.count}`}
+                                                                        title="showMore"
+                                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: this
+                                                                                        .state
+                                                                                        .viewJsonModalId,
+                                                                                    content: DataPathHoC(
+                                                                                        ViewJsonLogs,
+                                                                                        {
+                                                                                            viewJsonModalId: this
+                                                                                                .state
+                                                                                                .viewJsonModalId,
+                                                                                            jsonLog: this
+                                                                                                .props
+                                                                                                .incident
+                                                                                                .response,
+                                                                                            title:
+                                                                                                'API Response',
+                                                                                            rootName:
+                                                                                                'response',
+                                                                                        }
+                                                                                    ),
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            More
+                                                                        </span>
+                                                                    </button>
+                                                                )}
                                                         </div>
                                                     )}
                                                 {this.props.incident
@@ -1288,7 +1286,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_EditIncidentDetails_${this.props.count}`}
+                                    id={`${monitorName}_EditIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {
@@ -1379,7 +1377,7 @@ export class IncidentStatus extends Component {
                                                         .multipleIncidentRequest
                                                         .resolving)) &&
                                             !this.state.value &&
-                                                !this.state.stats
+                                            !this.state.stats
                                         }
                                     >
                                         <Spinner
