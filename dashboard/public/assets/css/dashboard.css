@@ -34889,15 +34889,20 @@ span.CodeMirror-selectedtext {
 }
 
 .bs-redun {
-  margin-bottom: 5px
+  margin-bottom: 5px;
+  font-weight: normal;
+}
+
+.bs--ma {
+  margin-bottom: 5px;
 }
 
 .bs--header {
-  margin-top: -10px;
+  margin-top: 0px;
 }
 
 .bs-i-title-right {
-  border-left: 1px solid rgba(0,0,0,0.3);
+  border-left: 1px solid rgba(0,0,0,0.2);
   font-weight: 600;
   display: flex;
   justify-content: center;
@@ -34965,6 +34970,22 @@ span.CodeMirror-selectedtext {
 
 .bs-font-small {
   font-size: 14px;
+}
+
+.bs-action-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgb(70, 68, 68);
+  font-size: 14px;
+  margin-bottom: 7px;
+}
+
+.bs-ma-top {
+  margin-top: 10px;
+}
+
+.bs-text-bold {
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
