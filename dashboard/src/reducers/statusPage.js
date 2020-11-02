@@ -764,34 +764,44 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: [],
             });
 
-        case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS:
+        case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
             statusPages = [];
             action.payload[0].statusPages.forEach(statuspage => {
-                const monitorNames = [], monitors = []
+                const monitorNames = [],
+                    monitors = [];
                 statuspage.monitors.map(monitorData => {
                     monitorNames.push(monitorData.monitor.name);
-                    return true
-                })
+                    return true;
+                });
                 statuspage.monitors.map(monitorData => {
                     monitors.push({
                         ...monitorData,
                         monitor: monitorData.monitor._id,
-                    })
-                    return true
-                })
+                    });
+                    return true;
+                });
                 statusPages.push({
                     ...statuspage,
                     monitorNames,
                     monitors,
-                })
-            })
-            newData = [{ count: action.payload[0].count, limit: action.payload[0].limit, skip: action.payload[0].skip, statusPages, _id: action.payload[0]._id }]
+                });
+            });
+            newData = [
+                {
+                    count: action.payload[0].count,
+                    limit: action.payload[0].limit,
+                    skip: action.payload[0].skip,
+                    statusPages,
+                    _id: action.payload[0]._id,
+                },
+            ];
             return Object.assign({}, state, {
                 subProjectStatusPages: newData,
                 error: null,
                 requesting: false,
                 success: true,
             });
+        }
 
         // fetch list of statuspages in a project
         case FETCH_PROJECT_STATUSPAGE_REQUEST:
