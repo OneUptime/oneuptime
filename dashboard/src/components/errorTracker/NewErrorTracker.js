@@ -53,7 +53,7 @@ class NewErrorTracker extends Component {
             handleSubmit,
             requesting,
             edit,
-            // applicationLog,
+            // errorTracker,
             resourceCategoryList,
         } = this.props;
         return (
@@ -80,9 +80,9 @@ class NewErrorTracker extends Component {
                                     </span>
                                     <p>
                                         <span
-                                            id={`application-log-edit-title-${applicationLog?.name}`}
+                                            id={`application-log-edit-title-${errorTracker?.name}`}
                                         >
-                                            {`Edit Log  ${applicationLog?.name}`}
+                                            {`Edit Log  ${errorTracker?.name}`}
                                         </span>
                                     </p>
                                 </ShouldRender> */}
@@ -177,8 +177,8 @@ class NewErrorTracker extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                this.props.applicationLogState
-                                                    .newApplicationLog.error
+                                                this.props.errorTrackerState
+                                                    .newErrorTracker.error
                                             }
                                         >
                                             <div className="Box-root Margin-right--8">
@@ -188,17 +188,17 @@ class NewErrorTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .applicationLogState
-                                                            .newApplicationLog
+                                                            .errorTrackerState
+                                                            .newErrorTracker
                                                             .error
                                                     }
                                                 </span>
                                             </div>
                                         </ShouldRender>
-                                        <ShouldRender
+                                        {/* <ShouldRender
                                             if={
-                                                this.props.applicationLogState
-                                                    .editApplicationLog.error
+                                                this.props.errorTrackerState
+                                                    .editErrorTracker.error
                                             }
                                         >
                                             <div className="Box-root Margin-right--8">
@@ -208,19 +208,19 @@ class NewErrorTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            .applicationLogState
-                                                            .editApplicationLog
+                                                            .errorTrackerState
+                                                            .editErrorTracker
                                                             .error
                                                     }
                                                 </span>
                                             </div>
-                                        </ShouldRender>
+                                        </ShouldRender> */}
                                     </div>
                                 </div>
                                 <ShouldRender if={!edit}>
                                     <div>
                                         <button
-                                            id="addApplicationLogButton"
+                                            id="addErrorTrackerButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
@@ -244,7 +244,7 @@ class NewErrorTracker extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addApplicationLogButton"
+                                            id="addErrorTrackerButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
@@ -289,15 +289,15 @@ const mapStateToProps = (state, ownProps) => {
     const requesting = state.errorTracker.newErrorTracker.requesting;
     const currentProject = state.project.currentProject;
     const initialValues = {
-        name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
-        resourceCategory: ownProps.applicationLog
-            ? ownProps.applicationLog.resourceCategory
-                ? ownProps.applicationLog.resourceCategory._id
+        name: ownProps.errorTracker ? ownProps.errorTracker.name : '',
+        resourceCategory: ownProps.errorTracker
+            ? ownProps.errorTracker.resourceCategory
+                ? ownProps.errorTracker.resourceCategory._id
                 : ''
             : '',
     };
     return {
-        applicationLogState: state.applicationLog,
+        errorTrackerState: state.errorTracker,
         name,
         componentId,
         requesting,
@@ -315,15 +315,15 @@ NewErrorTracker.propTypes = {
     //     PropTypes.number.isRequired,
     // ]),
     createErrorTracker: PropTypes.func.isRequired,
-    applicationLogState: PropTypes.object.isRequired,
-    // applicationLog: PropTypes.object,
+    errorTrackerState: PropTypes.object.isRequired,
+    // errorTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,
-    // editApplicationLogSwitch: PropTypes.func,
-    editApplicationLog: PropTypes.func,
+    // editErrorTrackerSwitch: PropTypes.func,
+    // editErrorTracker: PropTypes.func,
     resourceCategoryList: PropTypes.array,
 };
 
