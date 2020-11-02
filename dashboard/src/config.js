@@ -6,6 +6,7 @@ import FileSaver from 'file-saver';
 import moment from 'moment';
 import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
+const dJSON = require('dirty-json');
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -239,6 +240,18 @@ export const Validate = {
 export const ValidateField = {
     required: value =>
         value && value.length ? undefined : 'This field is required',
+
+    isJson: value => {
+        try {
+            const val = value.replace(/^,{+|},+$/g, '');
+            const r = dJSON.parse(val);
+            const jstring = JSON.stringify(r);
+            JSON.parse(jstring);
+            return undefined;
+        } catch (e) {
+            return 'Please enter a valid JSON';
+        }
+    },
 
     select: value =>
         value

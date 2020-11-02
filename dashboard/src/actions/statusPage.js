@@ -534,7 +534,6 @@ export function fetchProjectStatusPage(projectId, refresh, skip, limit) {
         promise.then(
             function(response) {
                 const data = response.data;
-                // eslint-disable-next-line no-console
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },

@@ -497,7 +497,7 @@ export class IncidentStatus extends Component {
                                                                                     .multipleIncidentRequest &&
                                                                                     this.props
                                                                                         .multipleIncidentRequest
-                                                                                        .resolving)) && 
+                                                                                        .resolving)) &&
                                                                                         (this.state.value === 1 && this.state.stats)
                                                                             }
                                                                         >
@@ -960,7 +960,12 @@ export class IncidentStatus extends Component {
                                 </button>
                             </ShouldRender>
                             <button
-                                className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-btn-extra bs-Button bs-flex-display bs-remove-shadow" : "bs-btn-extra bs-Button bs-flex-display"}
+                                className={
+                                    this.props.incident.acknowledged &&
+                                    this.props.incident.resolved
+                                        ? 'bs-btn-extra bs-Button bs-flex-display bs-remove-shadow'
+                                        : 'bs-btn-extra bs-Button bs-Button--icon bs-Button--settings'
+                                }
                                 id={`${monitorName}_EditIncidentDetails`}
                                 type="button"
                                 onClick={() => this.handleIncident(undefined, false)}
