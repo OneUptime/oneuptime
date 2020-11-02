@@ -168,6 +168,9 @@ class Incident extends React.Component {
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        if(index === 2) {
+            this.fetchAllIncidentData()
+        }
     };
 
     fetchAllIncidentData() {
