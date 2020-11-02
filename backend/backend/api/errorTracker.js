@@ -258,4 +258,6 @@ router.put(
         }
     }
 );
+
+// Descrription: send a tracked log to the server.
 module.exports = router;
