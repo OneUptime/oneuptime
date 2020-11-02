@@ -269,7 +269,7 @@ function TD6({ text }) {
                         ) : text === 'Success' || text === 'Sent' ? (
                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    Sent
+                                    {text === 'Success' ? 'Sent' : text}
                                 </span>
                             </div>
                         ) : (

@@ -106,10 +106,14 @@ class AdvancedIncidentNotification extends Component {
                                                             >
                                                                 <span>
                                                                     Enable
-                                                                    incident
-                                                                    created{' '}
-                                                                    {type}{' '}
-                                                                    notification
+                                                                    Create
+                                                                    Incident{' '}
+                                                                    {type ===
+                                                                    'sms'
+                                                                        ? 'SMS'
+                                                                        : 'Email'}{' '}
+                                                                    for External
+                                                                    Subscribers
                                                                 </span>
                                                             </div>
                                                         </label>
@@ -160,10 +164,14 @@ class AdvancedIncidentNotification extends Component {
                                                             >
                                                                 <span>
                                                                     Enable
-                                                                    incident
-                                                                    acknowledged{' '}
-                                                                    {type}{' '}
-                                                                    notification
+                                                                    Acknowledge
+                                                                    Incident{' '}
+                                                                    {type ===
+                                                                    'sms'
+                                                                        ? 'SMS'
+                                                                        : 'Email'}{' '}
+                                                                    for External
+                                                                    Subscribers
                                                                 </span>
                                                             </div>
                                                         </label>
@@ -214,10 +222,14 @@ class AdvancedIncidentNotification extends Component {
                                                             >
                                                                 <span>
                                                                     Enable
-                                                                    incident
-                                                                    resolved{' '}
-                                                                    {type}{' '}
-                                                                    notification
+                                                                    Resolve
+                                                                    Incident{' '}
+                                                                    {type ===
+                                                                    'sms'
+                                                                        ? 'SMS'
+                                                                        : 'Email'}{' '}
+                                                                    for External
+                                                                    Subscribers
                                                                 </span>
                                                             </div>
                                                         </label>
@@ -301,7 +313,7 @@ class AdvancedIncidentNotification extends Component {
 AdvancedIncidentNotification.displayName = 'AdvancedIncidentNotification';
 
 AdvancedIncidentNotification.propTypes = {
-    type: PropTypes.string,
+    type: PropTypes.string.isRequired,
     setEmailIncidentNotification: PropTypes.func,
     setSmsIncidentNotification: PropTypes.func,
     handleSubmit: PropTypes.func,
