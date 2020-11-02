@@ -225,13 +225,23 @@ export class UserSetting extends Component {
                                         <ShouldRender
                                             if={this.props.user.role === 'user'}
                                         >
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
+                                            <div className="bs-Fieldset-row" style={{justifyContent: 'center'}}>
+                                                <label className="bs-Fieldset-label user-details-fieldset-label"
+                                                 style={{
+                                                    width: '12rem',
+                                                    textAlign: 'left',
+                                                }}
+                                                >
                                                     Two Factor Authentication{' '}
                                                     <br /> by Google
                                                     Authenticator
                                                 </label>
-                                                <div className="bs-Fieldset-fields">
+                                                <div className="bs-Fieldset-fields"
+                                                 style={{
+                                                    alignItems: 'flex-start',
+                                                    maxWidth: '253px',
+                                                }}
+                                                >
                                                     <label
                                                         id="disableUser2fa"
                                                         className="Toggler-wrap"
