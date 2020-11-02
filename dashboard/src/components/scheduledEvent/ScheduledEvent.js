@@ -55,6 +55,7 @@ class ScheduledEventBox extends Component {
             currentProject,
             subProjects,
             subProjectScheduledEvents,
+            modalList,
         } = this.props;
 
         const subProjectEvents =
@@ -94,6 +95,8 @@ class ScheduledEventBox extends Component {
                                 requesting={requesting}
                                 fetchingMonitors={fetchingMonitors}
                                 parentProjectId={subProject.parentProjectId._id}
+                                modalList={modalList}
+                                allScheduleEventLength={subProjectScheduledEvents.length}
                             />
                         ) : null;
                 }
@@ -122,6 +125,8 @@ class ScheduledEventBox extends Component {
                         error={error}
                         requesting={requesting}
                         fetchingMonitors={fetchingMonitors}
+                        modalList={modalList}
+                        allScheduleEventLength={subProjectScheduledEvents.length}
                     />
                 )}
                 {subProjectEvents}
@@ -144,6 +149,7 @@ ScheduledEventBox.propTypes = {
     fetchSubProjectScheduledEvents: PropTypes.func,
     subProjects: PropTypes.array,
     subProjectScheduledEvents: PropTypes.array,
+    modalList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -184,6 +190,7 @@ const mapStateToProps = state => {
         monitors,
         subProjects,
         subProjectScheduledEvents,
+        modalList: state.modal.modals,
     };
 };
 
