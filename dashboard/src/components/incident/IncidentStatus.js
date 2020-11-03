@@ -533,7 +533,6 @@ export class IncidentStatus extends Component {
                                                                             }
                                                                         >
                                                                             <label
-                                                                                id={`btnResolve_${this.props.count}`}
                                                                                 className="Bs-btn-no bs-flex-display bs-margin-left"
                                                                             >
                                                                                 <div className="bs-circle-span"></div>
@@ -554,6 +553,7 @@ export class IncidentStatus extends Component {
                                                                         REQUIRED
                                                                     </div>
                                                                     <button
+                                                                        id={`btnAcknowledge_${this.props.count}`}
                                                                         onClick={() =>
                                                                             this.handleIncident(
                                                                                 1,
@@ -948,7 +948,6 @@ export class IncidentStatus extends Component {
                                                                                     }
                                                                                 >
                                                                                     <label
-                                                                                        id={`btnResolve_${this.props.count}`}
                                                                                         className="Bs-btn-no bs-flex-display bs-margin-left"
                                                                                     >
                                                                                         <div className="bs-circle-span"></div>
@@ -966,6 +965,7 @@ export class IncidentStatus extends Component {
                                                                                 REQUIRED
                                                                             </div>
                                                                             <button
+                                                                                id={`btnResolve_${this.props.count}`}
                                                                                 onClick={() =>
                                                                                     this.handleIncident(
                                                                                         2
