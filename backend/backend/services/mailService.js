@@ -1066,6 +1066,8 @@ const _this = {
                     firstName,
                     userId,
                     projectId,
+                    ack_url : acknowledgeUrl,
+                    resolve_url: resolveUrl,
                     acknowledgeUrl,
                     resolveUrl,
                     incidentType,
