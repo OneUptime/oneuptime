@@ -444,10 +444,11 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
-                await page.waitForSelector('#component0', { visible: true });
 
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
+
+                await page.waitForSelector('#component0', { visible: true });
 
                 const newComponentSelector = `#count_${newComponentName}`;
                 const componentSelector = `#count_${componentName}`;
