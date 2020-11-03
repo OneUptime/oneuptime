@@ -21,6 +21,9 @@ const RealTimeService = require('../services/realTimeService');
 const ErrorTrackerService = require('../services/errorTrackerService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 const uuid = require('uuid');
+const isErrorTrackerValid = require('../middlewares/errorTracker')
+    .isErrorTrackerValid;
+const ErrorEventService = require('../services/errorEventService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -259,5 +262,22 @@ router.put(
     }
 );
 
-// Descrription: send a tracked log to the server.
+// Description: send a tracked log to the server.
+router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
+    req,
+    res
+) {
+    try {
+        const data = req.body;
+        const errorTrackerId = req.params.errorTrackerId;
+
+        data.errorTrackerId = errorTrackerId;
+
+        const errorEvent = await ErrorEventService.create(data);
+        await RealTimeService.sendErrorEventCreated(errorEvent);
+        return sendItemResponse(req, res, errorEvent);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
 module.exports = router;
