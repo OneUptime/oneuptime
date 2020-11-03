@@ -69,36 +69,42 @@ const fields = [
         label: 'Email',
         type: 'text',
         component: RenderField,
+        explanation:'Username for SMTP server.',
     },
     {
         key: 'password',
         label: 'Password',
         type: 'password',
         component: RenderField,
+        explanation: 'Password for SMTP server.',
     },
     {
         key: 'smtp-server',
         label: 'SMTP Server',
         type: 'text',
         component: RenderField,
+        explanation: 'SMTP Server address.',
     },
     {
         key: 'smtp-port',
         label: 'SMTP Port',
         type: 'text',
         component: RenderField,
+        explanation: 'Port SMTP is running on.',
     },
     {
         key: 'from',
         label: 'From Email',
         type: 'text',
         component: RenderField,
+        explanation: 'Email address where emails will be sent from.',
     },
     {
         key: 'from-name',
         label: 'From Name',
         type: 'text',
         component: RenderField,
+        explanation: 'Name that will be used in emails.',
     },
     {
         key: 'smtp-secure',
@@ -117,6 +123,7 @@ const fields = [
                 <span className="TogglerBtn-slider round"></span>
             </label>
         ),
+        explanation: 'Enabled for port 465, disabled for port 587',
     },
 ];
 
@@ -265,6 +272,13 @@ export class Component extends React.Component {
                                                                 settings.requesting
                                                             }
                                                         />
+                                                        {
+                                                            field.explanation && (
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    {field.explanation}
+                                                                </p>
+                                                            )
+                                                        }
                                                     </div>
                                                 </div>
                                             ))}

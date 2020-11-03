@@ -229,6 +229,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             resp && resp.lighthouseData ? resp.lighthouseData : null;
         data.retryCount = retryCount || 0;
         data.reason = reason;
+        data.response = rawResp;
 
         if (data.lighthouseScanStatus) {
             if (data.lighthouseScanStatus === 'scanning') {

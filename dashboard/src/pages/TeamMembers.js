@@ -66,7 +66,7 @@ const LoadingState = () => (
 LoadingState.displayName = 'LoadingState';
 
 const LoadedTeam = props => {
-    const { pages, inviteModalId, team, subProjects, currentProjectId } = props;
+    const { pages, inviteModalId, team, subProjects, currentProjectId, modalList } = props;
     const membersPerPage = 20;
 
     // SubProject TeamMembers List
@@ -116,6 +116,8 @@ const LoadedTeam = props => {
                                     openModal={props.openModal}
                                     pages={pages}
                                     membersPerPage={membersPerPage}
+                                    allTeamLength={team.subProjectTeamMembers.length}
+                                    modalList={modalList}
                                 />
                             </div>
                         </div>
@@ -174,6 +176,8 @@ const LoadedTeam = props => {
                                 pages={pages}
                                 membersPerPage={membersPerPage}
                                 subProjects={subProjects}
+                                allTeamLength={team.subProjectTeamMembers.length}
+                                modalList={modalList}
                             />
                         </div>
                     </div>
@@ -197,6 +201,7 @@ LoadedTeam.propTypes = {
     paginate: PropTypes.func.isRequired,
     inviteModalId: PropTypes.string.isRequired,
     subProjects: PropTypes.array.isRequired,
+    modalList: PropTypes.array,
 };
 
 class TeamApp extends Component {
@@ -292,6 +297,7 @@ class TeamApp extends Component {
                                                         : null
                                                 }
                                                 parent={pathname}
+                                                modalList={this.props.modalList}
                                             />
                                         )}
                                     </div>
@@ -315,6 +321,7 @@ TeamApp.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    modalList: PropTypes.array,
 };
 
 const mapStateToProps = state => {
@@ -333,6 +340,7 @@ const mapStateToProps = state => {
         team: state.team,
         currentProject: state.project.currentProject,
         subProjects,
+        modalList: state.modal.modals,
     };
 };
 

@@ -1,3 +1,4 @@
+/* eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -38,6 +39,7 @@ import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
+const dJSON = require('dirty-json');
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -103,7 +105,6 @@ class NewMonitor extends Component {
 
     submitForm = values => {
         const thisObj = this;
-
         const postObj = { data: {}, criteria: {} };
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
@@ -243,7 +244,16 @@ class NewMonitor extends Component {
                     postObj.bodyType === 'x-www-form-urlencoded'
                 )
             ) {
-                postObj.text = values[`text_${this.props.index}`];
+                let text = values[`text_${this.props.index}`];
+                if (postObj.bodyType === 'application/json') {
+                    try {
+                        const val = text.replace(/^,{+|},+$/g, '');
+                        const r = dJSON.parse(val);
+                        text = JSON.stringify(r);
+                    } catch (e) {
+                    }
+                }
+                postObj.text = text;
             }
         }
 

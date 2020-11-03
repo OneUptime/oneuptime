@@ -141,7 +141,7 @@ class DeleteAccount extends Component {
                                                         margin: '10px 0',
                                                     }}
                                                 >
-                                                    <div className="clear_times"></div>
+                                                    <div className="clear_times"  style={{width: '19px'}}></div>
                                                     <div className="clear_msg_txt">
                                                         Your customers, users
                                                         and team will lose
@@ -201,7 +201,6 @@ class DeleteAccount extends Component {
                                                 <span className="delete-btn__keycode">
                                                     <span className="keycode__icon keycode__icon--enter" />
                                                 </span>
-                                                )
                                             </button>
                                         </div>
                                     </div>

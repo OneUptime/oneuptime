@@ -17,6 +17,7 @@
         "clsx": "^1.0.4",
         "country-telephone-code": "^0.2.0",
         "date-fns": "^2.8.1",
+        "dirty-json": "^0.9.2",
         "express": "^4.16.4",
         "faker": "^4.1.0",
         "file-saver": "^2.0.1",

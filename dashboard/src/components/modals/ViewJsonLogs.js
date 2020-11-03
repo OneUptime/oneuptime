@@ -41,7 +41,16 @@ class ViewJsonLogs extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>{title}</span>
+                                        <span
+                                            id={
+                                                title &&
+                                                typeof title === 'string'
+                                                    ? title.replace(/ /g, '_')
+                                                    : 'json'
+                                            }
+                                        >
+                                            {title}
+                                        </span>
                                     </span>
                                 </div>
                             </div>
