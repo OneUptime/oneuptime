@@ -545,6 +545,12 @@ describe('Components', () => {
                 await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
                 await monitorPage.click(`#incident_${monitorName}_0`);
 
+                // click acknowledge button
+                // acknowledge incident
+                await monitorPage.waitForSelector('#btnAcknowledge_0');
+                await monitorPage.click('#btnAcknowledge_0');
+                await monitorPage.waitForSelector('#btnAcknowledge_0');
+
                 // click resolve button
                 // resolve incident
                 await monitorPage.waitForSelector('#btnResolve_0');
