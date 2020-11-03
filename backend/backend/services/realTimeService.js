@@ -945,6 +945,19 @@ module.exports = {
             throw error;
         }
     },
+    sendErrorEventCreated: async errorEvent => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const errorTrackerId = errorEvent.errorTrackerId._id;
+
+            global.io.emit(`createErrorEvent-${errorTrackerId}`, errorEvent);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorEventCreated', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
