@@ -13,10 +13,7 @@ module.exports = {
             errorEvent.type = data.type;
 
             // generate hash from fingerprint
-            const hash = await bcrypt.hash(
-                data.fingerprint.join(''), // join all fingerprints as a string
-                constants.saltRounds
-            );
+            const hash = sha256(data.fingerprint.join(''));
             errorEvent.fingerprintHash = hash;
             errorEvent.fingerprint = data.fingerprint;
 
@@ -54,5 +51,4 @@ module.exports = {
 
 const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
-const bcrypt = require('bcrypt');
-const constants = require('../config/constants.json');
+const sha256 = require('crypto-js/sha256');
