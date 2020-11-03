@@ -156,7 +156,7 @@ describe('Status Page', () => {
                     return e.innerHTML;
                 });
                 expect(element).toContain(
-                    'You must select at least one bar chart'
+                    'You must select at least one chart type'
                 );
                 await page.click('#btnAddStatusPageMonitors');
                 await page.waitFor(1000);
