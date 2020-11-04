@@ -142,6 +142,7 @@ const TeamMemberProjectBox = props => {
                                         (props.pages[props.teamMembers._id] ||
                                             1) *
                                             props.membersPerPage
+                                            && i.name
                                 ) {
                                     return (
                                         <TeamMember

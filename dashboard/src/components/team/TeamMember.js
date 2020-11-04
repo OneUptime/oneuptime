@@ -138,9 +138,6 @@ export class TeamMember extends Component {
                             ''
                         )}
                     </div>
-                    <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                        {this.props.email}
-                    </div>
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
                     <div
