@@ -445,7 +445,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#component0', { visible: true });
@@ -590,7 +590,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
@@ -639,7 +639,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
