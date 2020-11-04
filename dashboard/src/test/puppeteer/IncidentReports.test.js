@@ -94,16 +94,14 @@ describe('Incident Reports API', () => {
                 await page.waitFor(120000);
 
                 let incidentReportElement = await page.waitForSelector(
-                    `#${monitorName}_IncidentReport`,
+                    `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
                 );
                 incidentReportElement = await incidentReportElement.getProperty(
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement).toMatch(
-                    "This degraded incident was created because the monitor's Response Time was"
-                );
+                expect(incidentReportElement.startsWith("Response Time was")).toEqual(true);
             });
         },
         operationTimeOut
