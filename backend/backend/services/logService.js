@@ -137,7 +137,7 @@ module.exports = {
 
         return { searchedLogs, totalSearchCount };
     },
-    // Introduce this to know the current date range of the query incase it w3asnt given by the user
+    // Introduce this to know the current date range of the query incase it wasnt given by the user
     async getDateRange(query) {
         try {
             if (!query) {

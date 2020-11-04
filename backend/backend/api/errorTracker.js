@@ -262,7 +262,7 @@ router.put(
     }
 );
 
-// Description: send a tracked log to the server.
+// Description: send an error event to the server.
 router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     req,
     res
@@ -280,4 +280,37 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Description: Get all error event by applicationLogId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/error-events',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { skip, limit, startDate, endDate, type, filter } = req.body;
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy(
+                {
+                    _id: errorTrackerId,
+                }
+            );
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            const query = {};
+
+            if (errorTrackerId) query.errorTrackerId = errorTrackerId;
+
+            
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 module.exports = router;

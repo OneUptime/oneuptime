@@ -47,6 +47,37 @@ module.exports = {
             throw error;
         }
     },
+    // get all error events that matches the specified query
+    async findBy(query, limit, skip) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const errorEvents = await ErrorEventModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('errorTrackerId', 'name');
+            return errorEvents;
+        } catch (error) {
+            ErrorService.log('errorEventService.findBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorEventModel = require('../models/errorEvent');
