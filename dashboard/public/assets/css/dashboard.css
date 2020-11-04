@@ -34874,6 +34874,13 @@ span.CodeMirror-selectedtext {
   display: flex;
 }
 
+.bs-size-btn {
+  position: relative;;
+  width: 75px;
+  text-align: center;
+  top: 2px;
+}
+
 .bs-status {
   margin-left: 3px;
   font-size: 16px;
