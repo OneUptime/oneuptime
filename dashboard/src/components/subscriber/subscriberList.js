@@ -550,14 +550,12 @@ const RemoveBtn = props => {
         </>
     );
 };
-
 RemoveBtn.displayName = 'RemoveBtn';
-
 RemoveBtn.propTypes = {
-    openModal: PropTypes.func,
-    deleteSubscriberModalId: PropTypes.string,
-    deleteSubscriber: PropTypes.func,
-    projectId: PropTypes.string,
-    _id: PropTypes.string,
-    index: PropTypes.number,
+    openModal: PropTypes.func.isRequired,
+    deleteSubscriber: PropTypes.func.isRequired,
+    deleteSubscriberModalId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    _id: PropTypes.string.isRequired,
+    index: PropTypes.number.isRequired,
 };

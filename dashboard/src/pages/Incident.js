@@ -284,7 +284,7 @@ class Incident extends React.Component {
                                     Incident Timeline
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
-                                    Incident Notes
+                                    Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
@@ -304,6 +304,9 @@ class Incident extends React.Component {
                                     incident={this.props.incident}
                                     count={0}
                                     route={pathname}
+                                />
+                                <IncidentInternal
+                                    incident={this.props.incident}
                                 />
                             </Fade>
                         </TabPanel>
@@ -347,9 +350,6 @@ class Incident extends React.Component {
                         <TabPanel>
                             <Fade>
                                 <IncidentInvestigation
-                                    incident={this.props.incident}
-                                />
-                                <IncidentInternal
                                     incident={this.props.incident}
                                 />
                             </Fade>

@@ -25,7 +25,10 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-
+const https = require('https');
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false
+  })
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:
@@ -155,6 +158,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     const payload = {
                         method: data.method,
                         url: data.data.url,
+                        httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
                         payload.headers = headers;
@@ -283,6 +287,7 @@ router.put(
                     const payload = {
                         method: data.method,
                         url: data.data.url,
+                        httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
                         payload.headers = headers;
