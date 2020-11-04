@@ -517,8 +517,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _id: statusPageId,
             });
             const refinedIncidents = [];
-            // eslint-disable-next-line no-console
-            console.log('yeaa')
             for (const incident of incidents) {
                 refinedIncidents.push({
                     item: {
