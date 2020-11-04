@@ -145,17 +145,20 @@ class AlertDetailsModal extends Component {
                                             )}
                                             {this.props.data.alertStatus ===
                                                 'Disabled' && (
-                                                <div>
+                                                <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--16 Padding-vertical--4">
                                                     <span
                                                         id="alertStatus"
-                                                        >
+                                                        className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper"
+                                                    >
                                                         {this.props.data
                                                             .eventType ===
                                                         'identified'
                                                             ? 'Create Incident'
                                                             : this.props.data
-                                                            .eventType ===
-                                                        'acknowledged' ? "Acknowledge Incident" : "Resolved Incident"}{' '}
+                                                                  .eventType ===
+                                                              'acknowledged'
+                                                            ? 'Acknowledge Incident'
+                                                            : 'Resolved Incident'}{' '}
                                                         Notification Disabled
                                                         for Subscribers
                                                     </span>

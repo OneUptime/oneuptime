@@ -519,16 +519,16 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             const refinedIncidents = [];
             for (const incident of incidents) {
                 refinedIncidents.push({
-                    Incident: {
-                        IncidentType: incident.incidentType,
-                        IncidentId: incident._id.toString(),
-                        MonitorName: incident.monitorId.name,
-                        MonitorId: incident.monitorId._id.toString(),
-                        ManuallyCreated: incident.manuallyCreated,
-                        InvestigationNote: incident.investigationNote,
+                    item: {
+                        title: incident.title,
+                        description: `<![CDATA[Description: ${incident.description}<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${incident.monitorId.name}
+                        <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${incident.acknowledgedAt}<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote ? `Investigation Note: ${incident.investigationNote}`: ''}]]>`,
+                    
                     },
                 });
             }
+            // eslint-disable-next-line no-console
+            console.log(incidents)
             const xmlOptions = {
                 indent: '  ',
                 header: true,
@@ -538,31 +538,35 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _name: 'rss',
                 _attrs: {
                     version: '2.0',
+                    "xmlns:content": "http://purl.org/rss/1.0/modules/content/",
+                    "xmlns:wfw": "http://wellformedweb.org/CommentAPI/",
                 },
-                _content: [
-                    {
-                        Title: `Incidents for status page ${statusPage.name}`,
-                    },
-                    {
-                        Description:
-                            'RSS feed for all incidents related to monitors attached to status page',
-                    },
-                    {
-                        Link: `${global.apiHost}/statusPage/${statusPageId}/rss`,
-                    },
-                    {
-                        LastBuildDate: () => new Date(),
-                    },
-                    {
-                        Language: 'en',
-                    },
-                    {
-                        Incidents: refinedIncidents,
-                    },
-                ],
+                _content: {
+                    channel: [
+                        {
+                            title: `Incidents for status page ${statusPage.name}`,
+                        },
+                        {
+                            description:
+                                'RSS feed for all incidents related to monitors attached to status page',
+                        },
+                        {
+                            link: `${global.apiHost}/statusPage/${statusPageId}/rss`,
+                        },
+                        {
+                            lastBuildDate: () => new Date().toUTCString(),
+                        },
+                        {
+                            language: 'en',
+                        },
+                            ...refinedIncidents,
+                      
+                    ],
+                },
             };
             const finalFeed = toXML(feedObj, xmlOptions);
-            res.contentType('application/xml');
+            res.contentType('application/rss+xml');
+            // eslint-disable-next-line no-console
             return sendItemResponse(req, res, finalFeed);
         }
     } catch (error) {

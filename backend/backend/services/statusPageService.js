@@ -791,7 +791,7 @@ module.exports = {
             );
             const statuspage = withMonitors[0];
             const monitorIds =
-                statuspage && statuspage.monitors.map(m => m.monitor);
+                statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
                     monitorId: { $in: monitorIds },

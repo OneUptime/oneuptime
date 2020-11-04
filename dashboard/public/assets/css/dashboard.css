@@ -34874,6 +34874,24 @@ span.CodeMirror-selectedtext {
   display: flex;
 }
 
+.bs-size-btn {
+  position: relative;;
+  width: 75px;
+  text-align: center;
+  top: 2px;
+}
+
+.bs-status {
+  margin-left: 3px;
+  font-size: 16px;
+  font-weight: normal;
+}
+
+.bs-h {
+  font-size: 16px;
+  padding-top: 2px;
+}
+
 .bs-incident-title {
   padding: 4px 8px;
 }
@@ -34891,6 +34909,20 @@ span.CodeMirror-selectedtext {
 .bs-redun {
   margin-bottom: 5px;
   font-weight: normal;
+}
+
+.bs-font-normal {
+  font-weight: normal;
+}
+
+.bs-ack-red {
+  fill: red;
+  margin-left: -2px;
+}
+
+.bs-font-transform {
+  text-transform: none;
+  font-size: 16px;
 }
 
 .bs--ma {
