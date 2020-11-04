@@ -180,7 +180,7 @@ describe('Custom SMTP Settings', () => {
     );
 
     test(
-        'should display an error if custom smtp settings is already deleted',
+        'should not display any error message if custom smtp settings is already deleted and user clicks on save',
         async done => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
@@ -193,7 +193,7 @@ describe('Custom SMTP Settings', () => {
                 await page.waitForSelector('#saveSmtp');
                 await page.click('#saveSmtp');
                 const error = await page.waitForSelector('#errorInfo', {
-                    visible: true,
+                    hidden: true,
                 });
                 expect(error).toBeDefined();
             });
