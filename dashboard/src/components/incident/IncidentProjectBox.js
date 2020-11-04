@@ -42,31 +42,31 @@ const IncidentProjectBox = props => {
         }
     };
 
-    const handleKeyboard = event => {
-        const { modalList, allProjectLength } = props;
-
-        if (allProjectLength === 1) {
-            if (event.target.localName === 'body' && event.key) {
-                switch (event.key) {
-                    case 'N':
-                    case 'n':
-                        if (modalList.length === 0) {
-                            event.preventDefault();
-                            return document
-                                .getElementById(
-                                    `btnCreateIncident_${props.subProjectName}`
-                                )
-                                .click();
-                        }
-                        return false;
-                    default:
-                        return false;
+    useEffect(() => {
+        const handleKeyboard = event => {
+            const { modalList, allProjectLength } = props;
+    
+            if (allProjectLength === 1) {
+                if (event.target.localName === 'body' && event.key) {
+                    switch (event.key) {
+                        case 'N':
+                        case 'n':
+                            if (modalList.length === 0) {
+                                event.preventDefault();
+                                return document
+                                    .getElementById(
+                                        `btnCreateIncident_${props.subProjectName}`
+                                    )
+                                    .click();
+                            }
+                            return false;
+                        default:
+                            return false;
+                    }
                 }
             }
-        }
-    };
-
-    useEffect(() => {
+        };
+    
         setIncidents(props.subProjectIncident);
 
         window.addEventListener('keydown', handleKeyboard);

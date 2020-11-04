@@ -476,7 +476,6 @@ SubscriberList.propTypes = {
     prevClicked: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     monitorId: PropTypes.string.isRequired,
-    delete: PropTypes.bool.isRequired,
     deleteSubscriber: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func,
     subProjectId: PropTypes.string,
@@ -543,4 +542,13 @@ const RemoveBtn = (props) => {
             </button>
         </>
     )
+}
+RemoveBtn.displayName = 'RemoveBtn';
+RemoveBtn.propTypes = {
+    openModal: PropTypes.func.isRequired,
+    deleteSubscriber: PropTypes.func.isRequired,
+    deleteSubscriberModalId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    _id: PropTypes.string.isRequired,
+    index: PropTypes.number.isRequired,
 }
