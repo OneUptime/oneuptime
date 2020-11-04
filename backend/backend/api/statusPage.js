@@ -546,7 +546,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _content: {
                     channel: [
                         {
-                            title: `Incidents forstatus page ${statusPage.name}`,
+                            title: `Incidents for status page ${statusPage.name}`,
                         },
                         {
                             description:
