@@ -30,7 +30,7 @@ const TeamMemberSelector = ({
         allowedTeamMembers.map(member => {
             return {
                 value: member.userId,
-                label: member.name,
+                label: member.name ? member.name : member.email,
                 show: member.role !== 'Viewer',
             };
         })
@@ -40,7 +40,7 @@ const TeamMemberSelector = ({
         subProjectTeam.map(member => {
             return {
                 value: member.userId,
-                label: member.name,
+                label: member.name ? member.name : member.email,
                 show: member.role !== 'Viewer',
             };
         })
