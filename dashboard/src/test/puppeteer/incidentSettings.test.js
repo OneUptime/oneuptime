@@ -313,7 +313,7 @@ describe('Incident Settings API', () => {
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
                 const incidentTitleSelector =
-                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(1) > div';
                 const incidentStatusBoxSelector = '#incident_0';
                 await page.waitForSelector(incidentTitleSelector);
                 const incidentStatusBoxContent = await page.$eval(
