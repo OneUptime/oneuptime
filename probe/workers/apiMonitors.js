@@ -3,7 +3,10 @@ const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
-
+const https = require('https');
+const httpsAgent = new https.Agent({
+      rejectUnauthorized: false,
+    });
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
@@ -69,6 +72,7 @@ const pingfetch = async (url, method, body, headers) => {
             const payload = {
                 method: method,
                 timeout: 120000,
+                agent: httpsAgent,
             };
             if (headers && Object.keys(headers).length) {
                 payload.headers = headers;
