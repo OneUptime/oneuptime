@@ -119,17 +119,29 @@ export function resetFetchErrorTrackers() {
 export function fetchErrorTrackerIssues(
     projectId,
     componentId,
-    errorTrackerId
+    errorTrackerId,
+    skip,
+    limit
 ) {
     return function(dispatch) {
-        const promise = getApi(
-            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues`
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues`,
+            { skip, limit }
         );
-        dispatch(fetchErrorTrackerIssuesRequest());
+        dispatch(fetchErrorTrackerIssuesRequest(errorTrackerId));
 
         promise.then(
-            function(errorTrackers) {
-                dispatch(fetchErrorTrackerIssuesSuccess(errorTrackers.data));
+            function(response) {
+                dispatch(
+                    fetchErrorTrackerIssuesSuccess({
+                        errorTrackerId,
+                        errorTrackerIssues:
+                            response.data.data.errorTrackerIssues,
+                        skip,
+                        limit,
+                        count: response.data.count,
+                    })
+                );
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -150,16 +162,17 @@ export function fetchErrorTrackerIssues(
     };
 }
 
-export function fetchErrorTrackerIssuesSuccess(issues) {
+export function fetchErrorTrackerIssuesSuccess(errorTrackersList) {
     return {
         type: types.FETCH_ISSUES_SUCCESS,
-        payload: issues,
+        payload: errorTrackersList,
     };
 }
 
-export function fetchErrorTrackerIssuesRequest() {
+export function fetchErrorTrackerIssuesRequest(errorTrackerId) {
     return {
         type: types.FETCH_ISSUES_REQUEST,
+        payload: errorTrackerId,
     };
 }
 
