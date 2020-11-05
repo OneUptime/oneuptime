@@ -25,7 +25,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
+                    select: '_id name type',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .sort({ createdAt: 'desc' });
