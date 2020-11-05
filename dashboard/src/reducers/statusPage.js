@@ -183,7 +183,7 @@ const INITIAL_STATE = {
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
-    let status, statusPage, statusPages, isExistingStatusPage, newData;
+    let status, statusPage, isExistingStatusPage;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:
@@ -765,38 +765,33 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
-            statusPages = [];
-            action.payload[0].statusPages.forEach(statuspage => {
-                const monitorNames = [],
-                    monitors = [];
-                statuspage.monitors.map(monitorData => {
-                    monitorNames.push(monitorData.monitor.name);
-                    return true;
-                });
-                statuspage.monitors.map(monitorData => {
-                    monitors.push({
-                        ...monitorData,
-                        monitor: monitorData.monitor._id,
+            const subProjectStatusPages = action.payload.map(statusPage => {
+                const statusPages = [];
+                statusPage.statusPages.forEach(statuspage => {
+                    const monitorNames = [],
+                        monitors = [];
+                    statuspage.monitors.forEach(monitorData => {
+                        monitorNames.push(monitorData.monitor.name);
+                        monitors.push({
+                            ...monitorData,
+                            monitor: monitorData.monitor._id,
+                        });
                     });
-                    return true;
+                    statusPages.push({
+                        ...statuspage,
+                        monitorNames,
+                        monitors,
+                    });
                 });
-                statusPages.push({
-                    ...statuspage,
-                    monitorNames,
-                    monitors,
-                });
-            });
-            newData = [
-                {
-                    count: action.payload[0].count,
-                    limit: action.payload[0].limit,
-                    skip: action.payload[0].skip,
+                
+                return {
+                    ...statusPage,
                     statusPages,
-                    _id: action.payload[0]._id,
-                },
-            ];
+                };
+            });
+
             return Object.assign({}, state, {
-                subProjectStatusPages: newData,
+                subProjectStatusPages,
                 error: null,
                 requesting: false,
                 success: true,
