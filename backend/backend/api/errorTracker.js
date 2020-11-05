@@ -24,6 +24,7 @@ const uuid = require('uuid');
 const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
 const ErrorEventService = require('../services/errorEventService');
+const sendListResponse = require('../middlewares/response').sendListResponse;
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -308,13 +309,13 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            const errorEvents = await ErrorEventService.findDistinct(
+            const issues = await ErrorEventService.findDistinct(
                 query,
                 limit || 10,
                 skip || 0
             );
 
-            return sendItemResponse(req, res, errorEvents);
+            return sendListResponse(req, res, { issues });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
