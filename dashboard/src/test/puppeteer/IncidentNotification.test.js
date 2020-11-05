@@ -87,7 +87,7 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should not show incident popup for resolved incidemnts',
+        'Should not show incident popup for resolved incidents',
         async () => {
             const projectName = 'Project1';
             const role = 'Member';
@@ -95,6 +95,8 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('button[id=viewIncident-0]');
                 await page.click('button[id=viewIncident-0]');
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.click('#btnAcknowledge_0');
                 await page.waitForSelector('#btnResolve_0');
                 await page.click('#btnResolve_0');
                 await page.waitForSelector('#ResolveText_0', { visible: true });
