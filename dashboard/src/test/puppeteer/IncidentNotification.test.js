@@ -452,23 +452,23 @@ describe('Incident Created test', () => {
         operationTimeOut
     );
 
-    test(
-        'Should open modal for unresolved incident when close button is clicked',
-        async () => {
-            return await cluster.execute(null, async ({ page }) => {
-                await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#closeIncident_0', {
-                    visible: true,
-                });
-                await page.$eval('#closeIncident_0', elem => elem.click());
-                await page.waitForSelector('#closeIncidentButton_0');
-                await page.click('#closeIncidentButton_0');
-                const elementHandle = await page.$('#modal-ok');
-                expect(elementHandle).not.toBe(null);
-            });
-        },
-        operationTimeOut
-    );
+    // test(
+    //     'Should open modal for unresolved incident when close button is clicked',
+    //     async () => {
+    //         return await cluster.execute(null, async ({ page }) => {
+    //             await page.goto(utils.DASHBOARD_URL);
+    //             await page.waitForSelector('#closeIncident_0', {
+    //                 visible: true,
+    //             });
+    //             await page.$eval('#closeIncident_0', elem => elem.click());
+    //             await page.waitForSelector('#closeIncidentButton_0');
+    //             await page.click('#closeIncidentButton_0');
+    //             const elementHandle = await page.$('#modal-ok');
+    //             expect(elementHandle).not.toBe(null);
+    //         });
+    //     },
+    //     operationTimeOut
+    // );
 
     test(
         'Should close incident notification when an incident is viewed',
