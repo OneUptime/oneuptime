@@ -104,6 +104,11 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = utils.BACKEND_URL.includes('localhost')
             ? user
+            : utils.BACKEND_URL.includes('staging')
+            ? {
+                  email: 'test@qa.team',
+                  password: '1234567890',
+              }
             : {
                   email: 'user@fyipe.com',
                   password: 'mVzkm{LAP)mNC8t23ehqifb2p',
