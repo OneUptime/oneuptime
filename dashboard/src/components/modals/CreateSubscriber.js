@@ -66,6 +66,7 @@ const selector = formValueSelector('CreateSubscriber');
 class CreateSubscriber extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
+        this.props.createSubscriberError('')
     }
 
     componentWillUnmount() {
@@ -274,14 +275,14 @@ class CreateSubscriber extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-footer">
-                                <div className="bs-Modal-footer-actions">
+                                <div className="bs-Modal-footer-actions Flex-flex--1">
                                     <ShouldRender
                                         if={
                                             this.props.newSubscriber &&
                                             this.props.newSubscriber.error
                                         }
                                     >
-                                        <div className="bs-Tail-copy">
+                                        <div className="bs-Tail-copy Flex-flex--1">
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                                 style={{ marginTop: '10px' }}
@@ -385,6 +386,7 @@ CreateSubscriber.propTypes = {
     requesting: PropTypes.bool,
     type: PropTypes.string,
     data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    createSubscriberError : PropTypes.func
 };
 
 export default connect(
