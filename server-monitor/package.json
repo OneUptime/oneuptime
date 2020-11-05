@@ -21,11 +21,12 @@
         "commander": "^2.20.0",
         "cron": "^1.7.2",
         "dotenv": "^8.1.0",
+        "forever-monitor": "^3.0.1",
         "inquirer": "^6.5.2",
         "pino": "^5.13.4",
         "pino-pretty": "^3.2.1",
         "promise": "^8.0.3",
-        "systeminformation": "^4.14.8"
+        "systeminformation": "^4.28.1"
     },
     "optionalDependencies": {
         "osx-temperature-sensor": "^1.0.7"
@@ -40,9 +41,9 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "depcheck": "^0.9.2",
-        "jsdoc": "^3.6.5",
-        "mocha": "^8.1.1",
-        "nodemon": "^2.0.4",
+        "jsdoc": "^3.6.6",
+        "mocha": "^8.2.1",
+        "nodemon": "^2.0.6",
         "npm-audit-ci-wrapper": "^2.5.1"
     },
     "directories": {
