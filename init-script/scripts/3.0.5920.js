@@ -3,7 +3,15 @@ const { find, update } = require('../util/db');
 const projectCollection = 'projects';
 
 async function run() {
-    const projects = await find(projectCollection, { deleted: false });
+    const projects = await find(projectCollection, {
+        deleted: false,
+        sendCreatedIncidentNotificationSms: { $exists: false },
+        sendAcknowledgedIncidentNotificationSms: { $exists: false },
+        sendResolvedIncidentNotificationSms: { $exists: false },
+        sendCreatedIncidentNotificationEmail: { $exists: false },
+        sendAcknowledgedIncidentNotificationEmail: { $exists: false },
+        sendResolvedIncidentNotificationEmail: { $exists: false },
+    });
 
     projects.forEach(async project => {
         const data = {
