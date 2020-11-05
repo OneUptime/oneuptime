@@ -49,7 +49,7 @@ class AdvancedIncidentNotification extends Component {
                                     <p>
                                         <span>
                                             Choose incident notification to send
-                                            external subscribers via {type}
+                                            subscribers via {type}
                                         </span>
                                     </p>
                                 </div>
@@ -112,7 +112,7 @@ class AdvancedIncidentNotification extends Component {
                                                                     'sms'
                                                                         ? 'SMS'
                                                                         : 'Email'}{' '}
-                                                                    for External
+                                                                    for
                                                                     Subscribers
                                                                 </span>
                                                             </div>
@@ -170,7 +170,7 @@ class AdvancedIncidentNotification extends Component {
                                                                     'sms'
                                                                         ? 'SMS'
                                                                         : 'Email'}{' '}
-                                                                    for External
+                                                                    for
                                                                     Subscribers
                                                                 </span>
                                                             </div>
@@ -228,7 +228,7 @@ class AdvancedIncidentNotification extends Component {
                                                                     'sms'
                                                                         ? 'SMS'
                                                                         : 'Email'}{' '}
-                                                                    for External
+                                                                    for
                                                                     Subscribers
                                                                 </span>
                                                             </div>

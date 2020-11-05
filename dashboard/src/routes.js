@@ -1,6 +1,6 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
-import ErrorTracking from './pages/ErrorTracking';
+// import ErrorTracking from './pages/ErrorTracking';
 
 const {
     Home,
@@ -84,18 +84,18 @@ export const groups = [
                 ],
                 index: 2,
             },
-            {
-                title: 'Error Tracking',
-                path:
-                    '/dashboard/project/:projectId/:componentId/error-tracking',
-                icon: 'errorTracking',
-                visible: true,
-                exact: true,
-                component: ErrorTracking,
-                index: 4,
-                shortcut: 'c+l',
-                subRoutes: [],
-            },
+            // {
+            //     title: 'Error Tracking',
+            //     path:
+            //         '/dashboard/project/:projectId/:componentId/error-tracking',
+            //     icon: 'errorTracking',
+            //     visible: true,
+            //     exact: true,
+            //     component: ErrorTracking,
+            //     index: 4,
+            //     shortcut: 'c+l',
+            //     subRoutes: [],
+            // },
             {
                 title: 'Incident Log',
                 path: '/dashboard/project/:projectId/:componentId/incident-log',

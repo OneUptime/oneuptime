@@ -205,7 +205,7 @@ export class IncidentStatus extends Component {
                                                 }
                                             </div>
                                             {
-                                                (incidentReason && incidentReason.length > 1) &&
+                                                ((incidentReason && incidentReason.length > 1) || (this.props.incident.monitorId.type === 'api')) &&
                                                 <div className="bs-redun">
                                                     Acknowledge and Resolve this
                                                     incident.
@@ -250,7 +250,8 @@ export class IncidentStatus extends Component {
                                             {this.props.incident
                                                 .incidentType &&
                                                 this.props.incident
-                                                    .reason && (incidentReason && incidentReason.length < 2) && (
+                                                    .reason && 
+                                                    (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
                                                     <div className="bs-font-normal bs-flex-display">
                                                         <label className="bs-h">
                                                             Cause:
@@ -260,70 +261,13 @@ export class IncidentStatus extends Component {
                                                             id={`${monitorName}_IncidentReport_${this.props.count}`}
                                                         >
                                                             <ReactMarkdown
-                                                                source={`${incidentReason &&
-                                                                    incidentReason.length >
-                                                                    1
-                                                                    ? incidentReason
-                                                                        .map(
-                                                                            a =>
-                                                                                '- **&middot; ' +
-                                                                                a +
-                                                                                '**.'
-                                                                        )
-                                                                        .join(
-                                                                            '\n'
-                                                                        )
-                                                                    : ' ' +
-                                                                    incidentReason.pop() +
+                                                                source={`${' ' +
+                                                                    incidentReason.join() +
                                                                     '.'
                                                                     }`}
                                                             />
                                                         </div>
-                                                        {this.props.incident
-                                                            .response &&
-                                                            this.props
-                                                                .incident
-                                                                .reason &&
-                                                            this.props.incident.reason.includes(
-                                                                'Response `'
-                                                            ) && (
-                                                                <button
-                                                                    id={`${monitorName}_ShowResponse_${this.props.count}`}
-                                                                    title="showMore"
-                                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        this.props.openModal(
-                                                                            {
-                                                                                id: this
-                                                                                    .state
-                                                                                    .viewJsonModalId,
-                                                                                content: DataPathHoC(
-                                                                                    ViewJsonLogs,
-                                                                                    {
-                                                                                        viewJsonModalId: this
-                                                                                            .state
-                                                                                            .viewJsonModalId,
-                                                                                        jsonLog: this
-                                                                                            .props
-                                                                                            .incident
-                                                                                            .response,
-                                                                                        title:
-                                                                                            'API Response',
-                                                                                        rootName:
-                                                                                            'response',
-                                                                                    }
-                                                                                ),
-                                                                            }
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <span>
-                                                                        Show
-                                                                        More
-                                                                        </span>
-                                                                </button>
-                                                            )}
+                                                        
                                                     </div>
                                                 )}
                                         </div>
@@ -1233,7 +1177,7 @@ export class IncidentStatus extends Component {
                                                 {this.props.incident
                                                     .incidentType &&
                                                     this.props.incident
-                                                        .reason && (incidentReason && incidentReason.length > 1) && (
+                                                        .reason && (
                                                         <div className="bs-content">
                                                             <label className="">
                                                                 Cause
@@ -1246,7 +1190,8 @@ export class IncidentStatus extends Component {
                                                                     source={`${incidentReason &&
                                                                         incidentReason.length >
                                                                         1
-                                                                        && incidentReason
+                                                                        ?
+                                                                        incidentReason
                                                                             .map(
                                                                                 a =>
                                                                                     '- **&middot; ' +
@@ -1256,6 +1201,9 @@ export class IncidentStatus extends Component {
                                                                             .join(
                                                                                 '\n'
                                                                             )
+                                                                        : ' **' +
+                                                                        incidentReason.join() +
+                                                                        '**.'
                                                                         }`}
                                                                 />
                                                             </div>
