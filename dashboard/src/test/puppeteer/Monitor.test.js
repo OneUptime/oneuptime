@@ -1012,6 +1012,42 @@ describe('API Monitor API', () => {
     );
 
     test(
+        'should show specific property, button and modal for evaluate response',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to Component details
+                await init.navigateToComponentDetails(componentName, page);
+
+                let monitorIncidentReportElement = await page.waitForSelector(
+                    `#${testMonitorName}_IncidentReport_0`
+                );
+                monitorIncidentReportElement = await monitorIncidentReportElement.getProperty(
+                    'innerText'
+                );
+                monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
+                monitorIncidentReportElement.should.match(
+                    /Response {"message":"offline"} did not evaluate response.body.status === 'ok'.$/
+                );
+
+                await page.waitForSelector(
+                    `#${testMonitorName}_ShowResponse_0`
+                );
+                await page.click(`#${testMonitorName}_ShowResponse_0`);
+
+                let monitorIncidentModalElement = await page.waitForSelector(
+                    '#API_Response'
+                );
+                monitorIncidentModalElement = await monitorIncidentModalElement.getProperty(
+                    'innerText'
+                );
+                monitorIncidentModalElement = await monitorIncidentModalElement.jsonValue();
+                monitorIncidentModalElement.should.be.exactly('API Response');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
         'should delete API monitors',
         async () => {
             expect.assertions(2);

@@ -25,6 +25,14 @@ class EventBox extends Component {
         this.limit = 10;
     }
 
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyboard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyboard);
+    }
+
     handleMonitorList = monitors => {
         if (monitors.length === 0) {
             return 'No monitor in this event';
@@ -52,6 +60,30 @@ class EventBox extends Component {
         );
     };
 
+    handleKeyboard = event => {
+        const { modalList, allScheduleEventLength } = this.props;
+
+        if (allScheduleEventLength === 1) {
+            if (event.target.localName === 'body' && event.key) {
+                switch (event.key) {
+                    case 'N':
+                    case 'n':
+                        if (modalList.length === 0) {
+                            event.preventDefault();
+                            return document
+                                .getElementById(
+                                    'addScheduledEventButton'
+                                )
+                                .click();
+                        }
+                        return false;
+                    default:
+                        return false;
+                }
+            }
+        }
+    };
+
     render() {
         const { createScheduledEventModalId } = this.state;
         const {
@@ -72,6 +104,7 @@ class EventBox extends Component {
             prevClicked,
             nextClicked,
             parentProjectId,
+            allScheduleEventLength,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
@@ -139,11 +172,22 @@ class EventBox extends Component {
                                             <div className="Box-root Margin-right--8">
                                                 <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                             </div>
-                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>
-                                                    Create New Scheduled Event
+                                            {allScheduleEventLength === 1 ? (
+                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                    <span>
+                                                        Create New Scheduled Event
+                                                    </span>
+                                                    <span className="new-btn__keycode">
+                                                        N
+                                                    </span>
                                                 </span>
-                                            </span>
+                                            ) : (
+                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                    <span>
+                                                        Create New Scheduled Event
+                                                    </span>
+                                                </span>
+                                            )}
                                         </div>
                                     </button>
                                 </ShouldRender>
@@ -510,6 +554,8 @@ EventBox.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    modalList: PropTypes.array,
+    allScheduleEventLength: PropTypes.number,
 };
 
 const mapDispatchToProps = dispatch =>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import StatusPageForm from './StatusPageForm';
 import ShouldRender from '../basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
@@ -10,6 +10,38 @@ import sortByName from '../../utils/sortByName';
 
 const StatusPageProjectBox = props => {
     const statusPages = props.statusPages ? sortByName(props.statusPages) : [];
+
+    const handleKeyboard = event => {
+        const { modalList, allStatusPageLength } = props;
+
+        if (allStatusPageLength === 1) {
+            if (event.target.localName === 'body' && event.key) {
+                switch (event.key) {
+                    case 'N':
+                    case 'n':
+                        if (modalList.length === 0) {
+                            event.preventDefault();
+                            return document
+                                .getElementById(
+                                    `btnCreateStatusPage_${props.subProjectName}`
+                                )
+                                .click();
+                        }
+                        return false;
+                    default:
+                        return false;
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyboard);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    });
 
     return (
         <div className="Box-root">
@@ -65,9 +97,18 @@ const StatusPageProjectBox = props => {
                                         <div className="Box-root Margin-right--8">
                                             <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                         </div>
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Create Status Page</span>
-                                        </span>
+                                        {props.allStatusPageLength === 1 ? (
+                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                <span>Create Status Page</span>
+                                                <span className="new-btn__keycode">
+                                                    N
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                <span>Create Status Page</span>
+                                            </span>
+                                        )}
                                     </div>
                                 </button>
                             </RenderIfSubProjectAdmin>
@@ -243,6 +284,8 @@ StatusPageProjectBox.propTypes = {
     statusPageModalId: PropTypes.string.isRequired,
     statusPage: PropTypes.object.isRequired,
     subProjects: PropTypes.array,
+    allStatusPageLength: PropTypes.number,
+    modalList: PropTypes.array,
 };
 
 export default StatusPageProjectBox;

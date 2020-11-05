@@ -25,7 +25,6 @@ const textboxstyle = {
         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 };
 const newSelector = formValueSelector('NewMonitor');
-
 export class ApiAdvance extends Component {
     addValue = () => {
         this.props.pushArray('NewMonitor', `headers_${this.props.index}`, {
@@ -236,7 +235,14 @@ export class ApiAdvance extends Component {
                                                         style={textboxstyle}
                                                         rows={10}
                                                         validate={
-                                                            ValidateField.required
+                                                            bodytype &&
+                                                            bodytype ===
+                                                                'application/json'
+                                                                ? [
+                                                                      ValidateField.required,
+                                                                      ValidateField.isJson,
+                                                                  ]
+                                                                : ValidateField.required
                                                         }
                                                     />
                                                 </div>

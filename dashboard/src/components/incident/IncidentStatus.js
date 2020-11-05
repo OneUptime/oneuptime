@@ -23,6 +23,7 @@ import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
+import ViewJsonLogs from '../modals/ViewJsonLogs';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -30,9 +31,10 @@ export class IncidentStatus extends Component {
         this.state = {
             editIncidentModalId: uuid.v4(),
             messageModalId: uuid.v4(),
+            viewJsonModalId: uuid.v4(),
             resolveLoad: false,
             value: undefined,
-            stats: false
+            stats: false,
         };
     }
     acknowledge = () => {
@@ -45,7 +47,7 @@ export class IncidentStatus extends Component {
                 this.props.multiple
             )
             .then(() => {
-                this.setState({ resolveLoad: false })
+                this.setState({ resolveLoad: false });
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -75,7 +77,7 @@ export class IncidentStatus extends Component {
                 this.props.multiple
             )
             .then(() => {
-                this.setState({ resolveLoad: false, value: '', stats: false })
+                this.setState({ resolveLoad: false, value: '', stats: false });
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -108,13 +110,13 @@ export class IncidentStatus extends Component {
 
     handleIncident = (value, stats) => {
         if (!this.props.incident.acknowledged) {
-            this.setState({ resolveLoad: true, value, stats })
+            this.setState({ resolveLoad: true, value, stats });
             this.acknowledge();
         } else if (
             this.props.incident.acknowledged &&
             !this.props.incident.resolved
         ) {
-            this.setState({ resolveLoad: true, value, stats })
+            this.setState({ resolveLoad: true, value, stats });
             this.resolve();
         }
     };
@@ -179,7 +181,6 @@ export class IncidentStatus extends Component {
             this.props.incident.reason &&
             this.props.incident.reason.split('\n');
 
-
         return (
             <div
                 id={`incident_${this.props.count}`}
@@ -196,70 +197,159 @@ export class IncidentStatus extends Component {
                                     </div>
                                     <div className="bs-incident-title bs-i-title-right">
                                         <div className="bs--header">
-                                            <div className="bs-font-header">{monitorName} is {this.props.incident.incidentType}</div>
-                                            <div className="bs-redun">Acknowledge and Resolve this incident.</div>
+                                            <div className="bs-font-header">
+                                                {monitorName} is{' '}
+                                                {
+                                                    this.props.incident
+                                                        .incidentType
+                                                }
+                                            </div>
                                             {
-                                                this.props.incident
-                                                    .manuallyCreated &&
-                                                <div className="bs-flex-display"><span>Cause:&nbsp; </span>
-                                                    <span className="bs-flex-display">
-                                                        <span>This incident was created by</span>
-                                                        <Link
-                                                            style={{
-                                                                textDecoration:
-                                                                    'underline',
-                                                                marginLeft: '4px'
-                                                            }}
-                                                            to={
-                                                                '/dashboard/profile/'
-                                                                + this.props
-                                                                    .incident
-                                                                    .createdById
-                                                                    ._id
-                                                            }
-                                                        >
-                                                            <div>
-                                                                {
+                                                ((incidentReason && incidentReason.length > 1) || (this.props.incident.monitorId.type === 'api')) &&
+                                                <div className="bs-redun">
+                                                    Acknowledge and Resolve this
+                                                    incident.
+                                            </div>
+                                            }
+                                            {this.props.incident
+                                                .manuallyCreated && (
+                                                    <div className="bs-flex-display">
+                                                        <span className="bs-font-normal">Cause:&nbsp; </span>
+                                                        <span className="bs-flex-display bs-font-normal">
+                                                            <span>
+                                                                This incident was
+                                                                created by
+                                                        </span>
+                                                            <Link
+                                                                style={{
+                                                                    textDecoration:
+                                                                        'underline',
+                                                                    marginLeft:
+                                                                        '4px',
+                                                                }}
+                                                                to={
+                                                                    '/dashboard/profile/' +
                                                                     this.props
                                                                         .incident
                                                                         .createdById
-                                                                        .name
+                                                                        ._id
                                                                 }
-                                                            </div>
-                                                        </Link>
-                                                    </span>
-                                                </div>
-                                            }
+                                                            >
+                                                                <div>
+                                                                    {
+                                                                        this.props
+                                                                            .incident
+                                                                            .createdById
+                                                                            .name
+                                                                    }
+                                                                </div>
+                                                            </Link>
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            {this.props.incident
+                                                .incidentType &&
+                                                this.props.incident
+                                                    .reason && 
+                                                    (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
+                                                    <div className="bs-font-normal bs-flex-display">
+                                                        <label className="bs-h">
+                                                            Cause:
+                                                            </label>
+                                                        <div
+                                                            className="bs-content-inside bs-status"
+                                                            id={`${monitorName}_IncidentReport_${this.props.count}`}
+                                                        >
+                                                            <ReactMarkdown
+                                                                source={`${' ' +
+                                                                    incidentReason.join() +
+                                                                    '.'
+                                                                    }`}
+                                                            />
+                                                        </div>
+                                                        
+                                                    </div>
+                                                )}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div
-                                className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16 bs-mob-flex"
-                            >
+                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16 bs-mob-flex">
                                 <div
-                                    className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-flex-display bs-remove-shadow" : "bs-flex-display"}
+                                    className={
+                                        this.props.incident.acknowledged &&
+                                            this.props.incident.resolved
+                                            ? 'bs-flex-display bs-remove-shadow'
+                                            : 'bs-flex-display'
+                                    }
                                 >
-                                    {this.props.incident.acknowledged && this.props.incident.resolved && (this.props.route &&
-                                        !(this.props.route === incidentRoute)) &&
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ margin: '2px 3px 0px 0px' }} className="bs-g" width="18" height="18"><path fill="none" d="M0 0h24v24H0z" /><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-.997-4L6.76 11.757l1.414-1.414 2.829 2.829 5.656-5.657 1.415 1.414L11.003 16z" /></svg>
-                                    }
-                                    {
-                                        (!this.props.incident.acknowledged || !this.props.incident.resolved) &&
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ margin: '2px 3px 0px 0px' }} className="bs-red-icon" width="18" height="18"><path fill="none" d="M0 0h24v24H0z" /><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z" /></svg>
-                                    }
+                                    {this.props.incident.acknowledged &&
+                                        this.props.incident.resolved &&
+                                        this.props.route &&
+                                        !(
+                                            this.props.route === incidentRoute
+                                        ) && (
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                style={{
+                                                    margin: '2px 3px 0px 0px',
+                                                }}
+                                                className="bs-g"
+                                                width="18"
+                                                height="18"
+                                            >
+                                                <path
+                                                    fill="none"
+                                                    d="M0 0h24v24H0z"
+                                                />
+                                                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-.997-4L6.76 11.757l1.414-1.414 2.829 2.829 5.656-5.657 1.415 1.414L11.003 16z" />
+                                            </svg>
+                                        )}
+                                    {(!this.props.incident.acknowledged ||
+                                        !this.props.incident.resolved) && (
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                style={{
+                                                    margin: '2px 3px 0px 0px',
+                                                }}
+                                                className="bs-red-icon"
+                                                width="18"
+                                                height="18"
+                                            >
+                                                <path
+                                                    fill="none"
+                                                    d="M0 0h24v24H0z"
+                                                />
+                                                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z" />
+                                            </svg>
+                                        )}
                                     <div
-                                        className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-resolved-green" : "bs-exclaim"}
+                                        className={
+                                            this.props.incident.acknowledged &&
+                                                this.props.incident.resolved
+                                                ? 'bs-resolved-green'
+                                                : 'bs-exclaim'
+                                        }
                                     >
-                                        {!this.props.incident.acknowledged
-                                            ? <span className="bs-active-in">This is an Active Incident</span>
-                                            : this.props.incident.acknowledged &&
-                                                !this.props.incident.resolved
-                                                ? <span className="bs-active-in">This s an Active Incident</span>
-                                                :
-                                                (this.props.route &&
-                                                    !(this.props.route === incidentRoute)) ?
-                                                    <span className="">The Incident is Resolved</span> : null}
+                                        {!this.props.incident.acknowledged ? (
+                                            <span className="bs-active-in">
+                                                This is an Active Incident
+                                            </span>
+                                        ) : this.props.incident.acknowledged &&
+                                            !this.props.incident.resolved ? (
+                                                    <span className="bs-active-in">
+                                                        This is an Active Incident
+                                                    </span>
+                                                ) : this.props.route &&
+                                                    !(
+                                                        this.props.route === incidentRoute
+                                                    ) ? (
+                                                        <span className="">
+                                                            The Incident is Resolved
+                                                        </span>
+                                                    ) : null}
                                     </div>
                                 </div>
                                 <ShouldRender
@@ -430,7 +520,9 @@ export class IncidentStatus extends Component {
                                                         <div className="bs-flex-display bs-margin-top-1 bs-justify-cont">
                                                             <div className="bs-circle bs-circle-o"></div>
                                                             <div className="bs-date-ma">
-                                                                <span className="bs-content-create bs-text-bold">Created At</span>
+                                                                <span className="bs-content-create bs-text-bold">
+                                                                    Created At
+                                                                </span>
                                                                 <span className="bs-date-create bs-text-bold">
                                                                     {moment(
                                                                         this
@@ -439,94 +531,161 @@ export class IncidentStatus extends Component {
                                                                             .createdAt
                                                                     ).format(
                                                                         'h:mm:ss a'
-                                                                    )}{" "}
-                                                                                ({moment(
+                                                                    )}{' '}
+                                                                    (
+                                                                    {moment(
                                                                         this
                                                                             .props
                                                                             .incident
                                                                             .createdAt
-                                                                    ).fromNow()
-                                                                    }).
-                                                            </span>
+                                                                    ).fromNow()}
+                                                                    ).
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {
-                                                        (!this.props.incident.acknowledged) &&
-                                                        <div className="bs-content bs-margin-top">
-                                                            <div className="bs-content-inside">
-                                                                <div
-                                                                    className="bs-font-increase"
-                                                                    title="Let your team know you’re working on this incident."
-                                                                >
-                                                                    <div>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                showResolveButton
-                                                                            }
-                                                                        >
-                                                                            <label
-                                                                                id={`btnResolve_${this.props.count}`}
-                                                                                className="Bs-btn-no bs-flex-display bs-margin-left"
+                                                    {!this.props.incident
+                                                        .acknowledged && (
+                                                            <div className="bs-content bs-margin-top">
+                                                                <div className="bs-content-inside">
+                                                                    <div
+                                                                        className="bs-font-increase"
+                                                                        title="Let your team know you’re working on this incident."
+                                                                    >
+                                                                        <div>
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    showResolveButton
+                                                                                }
                                                                             >
-                                                                                <div className="bs-circle-span"></div>
-                                                                                <div className="bs-margin-right">
-                                                                                    this is an active incident
-                                                                            </div>
-                                                                            </label>
-                                                                        </ShouldRender>
+                                                                                <label
+                                                                                    id={`btnResolve_${this.props.count}`}
+                                                                                    className="Bs-btn-no bs-flex-display bs-margin-left"
+                                                                                >
+                                                                                    <svg
+                                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                                        viewBox="0 0 24 24"
+                                                                                        className="bs-ack-red"
+                                                                                        width="18"
+                                                                                        height="18"
+                                                                                    >
+                                                                                        <path
+                                                                                            fill="none"
+                                                                                            d="M0 0h24v24H0z"
+                                                                                        />
+                                                                                        <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
+                                                                                    </svg>
+                                                                                    <div className="bs-margin-right bs-font-transform">
+                                                                                        This
+                                                                                        is
+                                                                                        an
+                                                                                        Active
+                                                                                        Incident
+                                                                                </div>
+                                                                                </label>
+                                                                            </ShouldRender>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bs-ma-top">
+                                                                        <div className="bs-action-label">
+                                                                            ACTION
+                                                                            REQUIRED
+                                                                    </div>
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                this.handleIncident(
+                                                                                    1,
+                                                                                    true
+                                                                                )
+                                                                            }
+                                                                            className="bs-Button bs-flex-display bs--ma"
+                                                                        >
+                                                                            <ShouldRender
+                                                                                if={
+                                                                                    ((this
+                                                                                        .props
+                                                                                        .incidentRequest &&
+                                                                                        this
+                                                                                            .props
+                                                                                            .incidentRequest
+                                                                                            .requesting) ||
+                                                                                        (this
+                                                                                            .props
+                                                                                            .multipleIncidentRequest &&
+                                                                                            this
+                                                                                                .props
+                                                                                                .multipleIncidentRequest
+                                                                                                .requesting) ||
+                                                                                        (this
+                                                                                            .props
+                                                                                            .incidentRequest &&
+                                                                                            this
+                                                                                                .props
+                                                                                                .incidentRequest
+                                                                                                .resolving) ||
+                                                                                        (this
+                                                                                            .props
+                                                                                            .multipleIncidentRequest &&
+                                                                                            this
+                                                                                                .props
+                                                                                                .multipleIncidentRequest
+                                                                                                .resolving)) &&
+                                                                                    this
+                                                                                        .state
+                                                                                        .value ===
+                                                                                    1 &&
+                                                                                    this
+                                                                                        .state
+                                                                                        .stats
+                                                                                }
+                                                                            >
+                                                                                <Spinner
+                                                                                    style={{
+                                                                                        stroke:
+                                                                                            '#000000',
+                                                                                    }}
+                                                                                />
+                                                                            </ShouldRender>
+                                                                            {this
+                                                                                .state
+                                                                                .resolveLoad ? null : !this
+                                                                                    .props
+                                                                                    .incident
+                                                                                    .acknowledged &&
+                                                                                    !this
+                                                                                        .state
+                                                                                        .resolveLoad &&
+                                                                                    this
+                                                                                        .state
+                                                                                        .value !==
+                                                                                    1 &&
+                                                                                    !this
+                                                                                        .state
+                                                                                        .stats ? (
+                                                                                        <div className="bs-circle"></div>
+                                                                                    ) : null}
+                                                                            <span>
+                                                                                Acknowledge
+                                                                                Incident
+                                                                        </span>
+                                                                        </button>
+                                                                        <p className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                Let
+                                                                                your
+                                                                                team
+                                                                                know
+                                                                                you&#39;re
+                                                                                working
+                                                                                on
+                                                                                this
+                                                                                incident.
+                                                                        </span>
+                                                                        </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="bs-ma-top">
-                                                                    <div className="bs-action-label">ACTION REQUIRED</div>
-                                                                    <button onClick={() => this.handleIncident(1, true)} className="bs-Button bs-flex-display bs--ma">
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                ((this.props.incidentRequest &&
-                                                                                    this.props.incidentRequest
-                                                                                        .requesting) ||
-                                                                                (this.props
-                                                                                    .multipleIncidentRequest &&
-                                                                                    this.props
-                                                                                        .multipleIncidentRequest
-                                                                                        .requesting) ||
-                                                                                (this.props.incidentRequest &&
-                                                                                    this.props.incidentRequest
-                                                                                        .resolving) ||
-                                                                                (this.props
-                                                                                    .multipleIncidentRequest &&
-                                                                                    this.props
-                                                                                        .multipleIncidentRequest
-                                                                                        .resolving)) && 
-                                                                                        (this.state.value === 1 && this.state.stats)
-                                                                            }
-                                                                        >
-                                                                            <Spinner
-                                                                                style={{
-                                                                                    stroke: '#000000',
-                                                                                }}
-                                                                            />
-                                                                        </ShouldRender>
-                                                                        {
-                                                                            (this.state.resolveLoad) ? null :
-                                                                                !this.props.incident.acknowledged && (!this.state.resolveLoad) && (this.state.value !== 1 && !this.state.stats) ?
-                                                                                    <div className="bs-circle"></div> : null
-                                                                        }
-                                                                        <span>Acknowledge Incident</span>
-                                                                    </button>
-                                                                    <p className="bs-Fieldset-explanation">
-                                                                        <span>
-                                                                            Let your
-                                                                            team know
-                                                                            you&#39;re working
-                                                                            on this
-                                                                            incident.
-                                                                    </span>
-                                                                    </p>
-                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    }
+                                                        )}
                                                     {this.props.incident
                                                         .acknowledged ? (
                                                             <>
@@ -534,37 +693,72 @@ export class IncidentStatus extends Component {
                                                                     <div className="bs-content-inside bs-margin-top-1">
                                                                         <div>
                                                                             <div className="bs-flex-display bs-justify-cont">
-                                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="bs-ack-yellow" width="18" height="18"><path fill="none" d="M0 0h24v24H0z" /><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" /></svg>
+                                                                                <svg
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                    viewBox="0 0 24 24"
+                                                                                    className="bs-ack-yellow"
+                                                                                    width="18"
+                                                                                    height="18"
+                                                                                >
+                                                                                    <path
+                                                                                        fill="none"
+                                                                                        d="M0 0h24v24H0z"
+                                                                                    />
+                                                                                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
+                                                                                </svg>
                                                                                 <div
                                                                                     id={`AcknowledgeText_${this.props.count}`}
                                                                                     className="bs-margin-right bs-text-bold"
                                                                                 >
                                                                                     Acknowledged
-                                                                            by{' '}
-                                                                                    {
-                                                                                        this.props.incident.acknowledgedBy === null ?
-                                                                                            <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{!this.props.incident.acknowledgedByZapier ? 'Fyipe' : 'Zapier'}</span>
-                                                                                            :
+                                                                                by{' '}
+                                                                                    {this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .acknowledgedBy ===
+                                                                                        null ? (
+                                                                                            <span>
+                                                                                                {!this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    .acknowledgedByZapier
+                                                                                                    ? 'Fyipe'
+                                                                                                    : 'Zapier'}
+                                                                                            </span>
+                                                                                        ) : (
                                                                                             <Link
                                                                                                 style={{
                                                                                                     textDecoration:
                                                                                                         'underline',
                                                                                                 }}
                                                                                                 to={
-                                                                                                    '/dashboard/profile/'
-                                                                                                    + this.props
+                                                                                                    '/dashboard/profile/' +
+                                                                                                    this
+                                                                                                        .props
                                                                                                         .incident
                                                                                                         .acknowledgedBy
                                                                                                         ._id
                                                                                                 }
                                                                                             >
-                                                                                                {this.props.incident.acknowledgedBy.name}{' '}
+                                                                                                {
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .incident
+                                                                                                        .acknowledgedBy
+                                                                                                        .name
+                                                                                                }{' '}
                                                                                             </Link>
-                                                                                    }
+                                                                                        )}
                                                                                 </div>
                                                                             </div>
                                                                             <div className="bs-date-time">
-                                                                                <span>This incident was acknowledged on </span>
+                                                                                <span>
+                                                                                    This
+                                                                                    incident
+                                                                                    was
+                                                                                    acknowledged
+                                                                                on{' '}
+                                                                                </span>
                                                                                 {moment(
                                                                                     this
                                                                                         .props
@@ -572,7 +766,8 @@ export class IncidentStatus extends Component {
                                                                                         .acknowledgedAt
                                                                                 ).format(
                                                                                     'MMMM Do YYYY'
-                                                                                )} at {" "}
+                                                                                )}{' '}
+                                                                            at{' '}
                                                                                 {moment(
                                                                                     this
                                                                                         .props
@@ -580,18 +775,43 @@ export class IncidentStatus extends Component {
                                                                                         .acknowledgedAt
                                                                                 ).format(
                                                                                     'h:mm:ss a'
-                                                                                )}{" "}
-                                                                                ({moment(
+                                                                                )}{' '}
+                                                                            (
+                                                                            {moment(
                                                                                     this
                                                                                         .props
                                                                                         .incident
                                                                                         .acknowledgedAt
-                                                                                ).fromNow()
-                                                                                }) {". "}
-                                                                                <span>It took {" "}
-                                                                                    {moment(this.props.incident.createdAt).fromNow(this.props.incident.ackowledgedAt).split("ago")[0]}{" "}
-                                                                                    to acknowledge this incident.
-                                                                                </span>
+                                                                                ).fromNow()}
+                                                                            ){' '}
+                                                                                {
+                                                                                    '. '
+                                                                                }
+                                                                                <span>
+                                                                                    It
+                                                                                took{' '}
+                                                                                    {
+                                                                                        moment(
+                                                                                            this
+                                                                                                .props
+                                                                                                .incident
+                                                                                                .createdAt
+                                                                                        )
+                                                                                            .fromNow(
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    .ackowledgedAt
+                                                                                            )
+                                                                                            .split(
+                                                                                                'ago'
+                                                                                            )[0]
+                                                                                    }{' '}
+                                                                                to
+                                                                                acknowledge
+                                                                                this
+                                                                                incident.
+                                                                            </span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -601,14 +821,13 @@ export class IncidentStatus extends Component {
                                                             <div></div>
                                                         ) : (
                                                                 <>
-
                                                                     <div className="bs-content-inside">
                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper">
                                                                                 <span>
                                                                                     Not
                                                                                     Acknowledged
-                                                                    </span>
+                                                                        </span>
                                                                             </span>
                                                                         </div>
                                                                     </div>
@@ -617,7 +836,13 @@ export class IncidentStatus extends Component {
                                                     {this.props.incident
                                                         .resolved ? (
                                                             <>
-                                                                <div className="bs-content bs-margin-top" style={{ marginTop: '10px' }}>
+                                                                <div
+                                                                    className="bs-content bs-margin-top"
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '10px',
+                                                                    }}
+                                                                >
                                                                     <div className="bs-content-inside">
                                                                         <div>
                                                                             <div className="bs-flex-display bs-justify-cont bs-m-top">
@@ -627,33 +852,55 @@ export class IncidentStatus extends Component {
                                                                                     className="bs-margin-right bs-text-bold"
                                                                                 >
                                                                                     Resolved
-                                                                            by{' '}
-                                                                                    {
-                                                                                        this.props.incident.resolvedBy === null ?
-                                                                                            <span style={{ textDecoration: 'underline', cursor: 'pointer' }}>{!this.props.incident.resolvedByZapier ? 'Fyipe' : 'Zapier'}</span>
-                                                                                            :
+                                                                                by{' '}
+                                                                                    {this
+                                                                                        .props
+                                                                                        .incident
+                                                                                        .resolvedBy ===
+                                                                                        null ? (
+                                                                                            <span>
+                                                                                                {!this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    .resolvedByZapier
+                                                                                                    ? 'Fyipe'
+                                                                                                    : 'Zapier'}
+                                                                                            </span>
+                                                                                        ) : (
                                                                                             <Link
                                                                                                 style={{
                                                                                                     textDecoration:
                                                                                                         'underline',
                                                                                                 }}
                                                                                                 to={
-                                                                                                    '/dashboard/profile/'
-                                                                                                    + this.props
+                                                                                                    '/dashboard/profile/' +
+                                                                                                    this
+                                                                                                        .props
                                                                                                         .incident
                                                                                                         .resolvedBy
                                                                                                         ._id
                                                                                                 }
                                                                                             >
-                                                                                                {this.props.incident.resolvedBy.name}{' '}
+                                                                                                {
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .incident
+                                                                                                        .resolvedBy
+                                                                                                        .name
+                                                                                                }{' '}
                                                                                             </Link>
-                                                                                    }
+                                                                                        )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                         <div className="bs-date-time">
-                                                                            <span>This incident was resolved on </span>
-
+                                                                            <span>
+                                                                                This
+                                                                                incident
+                                                                                was
+                                                                                resolved
+                                                                            on{' '}
+                                                                            </span>
                                                                             {moment(
                                                                                 this
                                                                                     .props
@@ -661,7 +908,8 @@ export class IncidentStatus extends Component {
                                                                                     .resolvedAt
                                                                             ).format(
                                                                                 'MMMM Do YYYY'
-                                                                            )} at {" "}
+                                                                            )}{' '}
+                                                                        at{' '}
                                                                             {moment(
                                                                                 this
                                                                                     .props
@@ -669,100 +917,169 @@ export class IncidentStatus extends Component {
                                                                                     .resolvedAt
                                                                             ).format(
                                                                                 'h:mm:ss a'
-                                                                            )}{" "}
-                                                                                ({moment(
+                                                                            )}{' '}
+                                                                        (
+                                                                        {moment(
                                                                                 this
                                                                                     .props
                                                                                     .incident
                                                                                     .resolvedAt
-                                                                            ).fromNow()
-                                                                            }){". "}
-                                                                            <span>It took {" "}
-                                                                                {moment(this.props.incident.createdAt).fromNow(this.props.incident.resolvedAt).split("ago")[0]}{" "}
-                                                                                    to resolve this incident.
-                                                                                </span>
+                                                                            ).fromNow()}
+                                                                        ){'. '}
+                                                                            <span>
+                                                                                It
+                                                                            took{' '}
+                                                                                {
+                                                                                    moment(
+                                                                                        this
+                                                                                            .props
+                                                                                            .incident
+                                                                                            .createdAt
+                                                                                    )
+                                                                                        .fromNow(
+                                                                                            this
+                                                                                                .props
+                                                                                                .incident
+                                                                                                .resolvedAt
+                                                                                        )
+                                                                                        .split(
+                                                                                            'ago'
+                                                                                        )[0]
+                                                                                }{' '}
+                                                                            to
+                                                                            resolve
+                                                                            this
+                                                                            incident.
+                                                                        </span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             </>
                                                         ) : isUserInSubProject ? (
                                                             <>
-                                                                {
-                                                                    this.props.incident.acknowledged &&
-                                                                    <div className="bs-content bs-margin-top">
-                                                                        <div className="bs-content-inside">
-                                                                            <div
-                                                                                className="bs-font-increase"
-                                                                                title="Let your team know you've fixed this incident."
-                                                                            >
-                                                                                <div>
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            showResolveButton
-                                                                                        }
-                                                                                    >
-                                                                                        <label
-                                                                                            id={`btnResolve_${this.props.count}`}
-                                                                                            className="Bs-btn-no bs-flex-display bs-margin-left"
+                                                                {this.props.incident
+                                                                    .acknowledged && (
+                                                                        <div className="bs-content bs-margin-top">
+                                                                            <div className="bs-content-inside">
+                                                                                <div
+                                                                                    className="bs-font-increase"
+                                                                                    title="Let your team know you've fixed this incident."
+                                                                                >
+                                                                                    <div>
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                showResolveButton
+                                                                                            }
                                                                                         >
-                                                                                            <div className="bs-circle-span"></div>
-                                                                                            <div className="bs-margin-right">
-                                                                                                Not Resolved
+                                                                                            <label
+                                                                                                id={`btnResolve_${this.props.count}`}
+                                                                                                className="Bs-btn-no bs-flex-display bs-margin-left"
+                                                                                            >
+                                                                                                <div className="bs-circle-span"></div>
+                                                                                                <div className="bs-margin-right">
+                                                                                                    Not
+                                                                                                    Resolved
+                                                                                        </div>
+                                                                                            </label>
+                                                                                        </ShouldRender>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="bs-ma-top">
+                                                                                    <div className="bs-action-label">
+                                                                                        ACTION
+                                                                                        REQUIRED
                                                                             </div>
-                                                                                        </label>
-                                                                                    </ShouldRender>
+                                                                                    <button
+                                                                                        onClick={() =>
+                                                                                            this.handleIncident(
+                                                                                                2
+                                                                                            )
+                                                                                        }
+                                                                                        className="bs-Button bs-flex-display bs--ma"
+                                                                                    >
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                ((this
+                                                                                                    .props
+                                                                                                    .incidentRequest &&
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .incidentRequest
+                                                                                                        .requesting) ||
+                                                                                                    (this
+                                                                                                        .props
+                                                                                                        .multipleIncidentRequest &&
+                                                                                                        this
+                                                                                                            .props
+                                                                                                            .multipleIncidentRequest
+                                                                                                            .requesting) ||
+                                                                                                    (this
+                                                                                                        .props
+                                                                                                        .incidentRequest &&
+                                                                                                        this
+                                                                                                            .props
+                                                                                                            .incidentRequest
+                                                                                                            .resolving) ||
+                                                                                                    (this
+                                                                                                        .props
+                                                                                                        .multipleIncidentRequest &&
+                                                                                                        this
+                                                                                                            .props
+                                                                                                            .multipleIncidentRequest
+                                                                                                            .resolving)) &&
+                                                                                                this
+                                                                                                    .state
+                                                                                                    .value ===
+                                                                                                2
+                                                                                            }
+                                                                                        >
+                                                                                            <Spinner
+                                                                                                style={{
+                                                                                                    stroke:
+                                                                                                        '#000000',
+                                                                                                }}
+                                                                                            />
+                                                                                        </ShouldRender>
+                                                                                        {this
+                                                                                            .state
+                                                                                            .resolveLoad ? null : this
+                                                                                                .props
+                                                                                                .incident
+                                                                                                .acknowledged &&
+                                                                                                !this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    .resolved &&
+                                                                                                !this
+                                                                                                    .state
+                                                                                                    .resolveLoad &&
+                                                                                                this
+                                                                                                    .state
+                                                                                                    .value !==
+                                                                                                2 ? (
+                                                                                                    <div className="bs-ticks"></div>
+                                                                                                ) : null}
+                                                                                        <span>
+                                                                                            Resolve
+                                                                                            Incident
+                                                                                </span>
+                                                                                    </button>
+                                                                                    <p className="bs-Fieldset-explanation">
+                                                                                        <span>
+                                                                                            Let
+                                                                                            your
+                                                                                            team
+                                                                                            know
+                                                                                            you&#39;ve
+                                                                                            fixed
+                                                                                            this
+                                                                                            incident.
+                                                                                </span>
+                                                                                    </p>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="bs-ma-top">
-                                                                                <div className="bs-action-label">ACTION REQUIRED</div>
-                                                                                <button onClick={() => this.handleIncident(2)} className="bs-Button bs-flex-display bs--ma">
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            ((this.props.incidentRequest &&
-                                                                                                this.props.incidentRequest
-                                                                                                    .requesting) ||
-                                                                                            (this.props
-                                                                                                .multipleIncidentRequest &&
-                                                                                                this.props
-                                                                                                    .multipleIncidentRequest
-                                                                                                    .requesting) ||
-                                                                                            (this.props.incidentRequest &&
-                                                                                                this.props.incidentRequest
-                                                                                                    .resolving) ||
-                                                                                            (this.props
-                                                                                                .multipleIncidentRequest &&
-                                                                                                this.props
-                                                                                                    .multipleIncidentRequest
-                                                                                                    .resolving)) && (this.state.value === 2)
-                                                                                        }
-                                                                                    >
-                                                                                        <Spinner
-                                                                                            style={{
-                                                                                                stroke: '#000000',
-                                                                                            }}
-                                                                                        />
-                                                                                    </ShouldRender>
-                                                                                    {
-                                                                                        (this.state.resolveLoad) ? null :
-                                                                                            (this.props.incident.acknowledged && !this.props.incident.resolved) && (!this.state.resolveLoad) && (this.state.value !== 2) ?
-                                                                                                <div className="bs-ticks"></div>
-                                                                                                : null
-                                                                                    }
-                                                                                    <span>Resolve Incident</span>
-                                                                                </button>
-                                                                                <p className="bs-Fieldset-explanation">
-                                                                                    <span>
-                                                                                        Let your
-                                                                                        team know
-                                                                                        you&#39;ve
-                                                                                        fixed this
-                                                                                        incident.
-                                                                                    </span>
-                                                                                </p>
-                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                }
+                                                                    )}
                                                             </>
                                                         ) : (
                                                                 <div className="bs-content bs-margin-top">
@@ -772,7 +1089,7 @@ export class IncidentStatus extends Component {
                                                                                 <span>
                                                                                     Not
                                                                                     Resolved
-                                                                    </span>
+                                                                        </span>
                                                                             </span>
                                                                         </div>
                                                                     </div>
@@ -822,16 +1139,22 @@ export class IncidentStatus extends Component {
                                                         </label>
                                                             <div className="bs-content-inside">
                                                                 <div className="bs-flex-display bs-display-block">
-                                                                    <span>This incident was created by</span>
+                                                                    <span>
+                                                                        This
+                                                                        incident was
+                                                                        created by
+                                                                </span>
                                                                     <Link
                                                                         style={{
                                                                             textDecoration:
                                                                                 'underline',
-                                                                            marginLeft: '4px'
+                                                                            marginLeft:
+                                                                                '4px',
                                                                         }}
                                                                         to={
-                                                                            '/dashboard/profile/'
-                                                                            + this.props
+                                                                            '/dashboard/profile/' +
+                                                                            this
+                                                                                .props
                                                                                 .incident
                                                                                 .createdById
                                                                                 ._id
@@ -839,7 +1162,8 @@ export class IncidentStatus extends Component {
                                                                     >
                                                                         <div>
                                                                             {
-                                                                                this.props
+                                                                                this
+                                                                                    .props
                                                                                     .incident
                                                                                     .createdById
                                                                                     .name
@@ -860,7 +1184,7 @@ export class IncidentStatus extends Component {
                                                             </label>
                                                             <div
                                                                 className="bs-content-inside"
-                                                                id={`${monitorName}_IncidentReport`}
+                                                                id={`${monitorName}_IncidentReport_${this.props.count}`}
                                                             >
                                                                 <ReactMarkdown
                                                                     source={`${incidentReason &&
@@ -878,11 +1202,56 @@ export class IncidentStatus extends Component {
                                                                                 '\n'
                                                                             )
                                                                         : ' **' +
-                                                                        incidentReason.pop() +
+                                                                        incidentReason.join() +
                                                                         '**.'
                                                                         }`}
                                                                 />
                                                             </div>
+                                                            {this.props.incident
+                                                                .response &&
+                                                                this.props
+                                                                    .incident
+                                                                    .reason &&
+                                                                this.props.incident.reason.includes(
+                                                                    'Response `'
+                                                                ) && (
+                                                                    <button
+                                                                        id={`${monitorName}_ShowResponse_${this.props.count}`}
+                                                                        title="showMore"
+                                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: this
+                                                                                        .state
+                                                                                        .viewJsonModalId,
+                                                                                    content: DataPathHoC(
+                                                                                        ViewJsonLogs,
+                                                                                        {
+                                                                                            viewJsonModalId: this
+                                                                                                .state
+                                                                                                .viewJsonModalId,
+                                                                                            jsonLog: this
+                                                                                                .props
+                                                                                                .incident
+                                                                                                .response,
+                                                                                            title:
+                                                                                                'API Response',
+                                                                                            rootName:
+                                                                                                'response',
+                                                                                        }
+                                                                                    ),
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            More
+                                                                        </span>
+                                                                    </button>
+                                                                )}
                                                         </div>
                                                     )}
                                                 {this.props.incident
@@ -941,7 +1310,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_ViewIncidentDetails`}
+                                    id={`${monitorName}_EditIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {
@@ -951,8 +1320,7 @@ export class IncidentStatus extends Component {
                                         }, 100);
                                         this.props.markAsRead(
                                             projectId,
-                                            this.props.incident
-                                                .notificationId
+                                            this.props.incident.notificationId
                                         );
                                     }}
                                 >
@@ -960,56 +1328,80 @@ export class IncidentStatus extends Component {
                                 </button>
                             </ShouldRender>
                             <button
-                                className={this.props.incident.acknowledged && this.props.incident.resolved ? "bs-btn-extra bs-Button bs-flex-display bs-remove-shadow" : "bs-btn-extra bs-Button bs-flex-display"}
-                                id={`${monitorName}_EditIncidentDetails`}
+                                className={
+                                    this.props.incident.acknowledged &&
+                                        this.props.incident.resolved
+                                        ? 'bs-btn-extra bs-Button bs-flex-display bs-remove-shadow'
+                                        : 'bs-btn-extra bs-Button bs-flex-display'
+                                }
+                                id={`${monitorName}_EditIncidentDetails_${this.props.count}`}
                                 type="button"
-                                onClick={() => this.handleIncident(undefined, false)}
+                                onClick={() =>
+                                    this.handleIncident(undefined, false)
+                                }
                             >
-                                {this.props.incident.acknowledged && this.props.incident.resolved &&
-                                    (
-                                        !this.props.route ||
+                                {this.props.incident.acknowledged &&
+                                    this.props.incident.resolved &&
+                                    (!this.props.route ||
                                         (this.props.route &&
                                             !(
                                                 this.props.route ===
                                                 homeRoute ||
                                                 this.props.route ===
                                                 monitorRoute
-                                            ))
-                                    ) &&
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="bs-g" width="18" height="18"><path fill="none" d="M0 0h24v24H0z" /><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-.997-4L6.76 11.757l1.414-1.414 2.829 2.829 5.656-5.657 1.415 1.414L11.003 16z" /></svg>
-                                }
-                                {
-                                    (this.state.resolveLoad) ? null :
-                                        !this.props.incident.acknowledged && (!this.state.resolveLoad) ?
-                                            <div className="bs-circle"></div> : null
-                                }
-                                {
-                                    (this.state.resolveLoad) ? null :
-                                        (this.props.incident.acknowledged && !this.props.incident.resolved) && (!this.state.resolveLoad) ?
-                                            <div className="bs-ticks"></div>
-                                            : null
-                                }
+                                            ))) && (
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            className="bs-g"
+                                            width="18"
+                                            height="18"
+                                        >
+                                            <path
+                                                fill="none"
+                                                d="M0 0h24v24H0z"
+                                            />
+                                            <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-.997-4L6.76 11.757l1.414-1.414 2.829 2.829 5.656-5.657 1.415 1.414L11.003 16z" />
+                                        </svg>
+                                    )}
+                                {this.state.resolveLoad ? null : !this.props
+                                    .incident.acknowledged &&
+                                    !this.state.resolveLoad ? (
+                                        <div className="bs-circle"></div>
+                                    ) : null}
+                                {this.state.resolveLoad ? null : this.props
+                                    .incident.acknowledged &&
+                                    !this.props.incident.resolved &&
+                                    !this.state.resolveLoad ? (
+                                        <div className="bs-ticks"></div>
+                                    ) : null}
                                 <div
-                                    className={this.props.incident.acknowledged && this.props.incident.resolved && "bs-resolved-green"}
+                                    className={
+                                        this.props.incident.acknowledged &&
+                                        this.props.incident.resolved &&
+                                        'bs-resolved-green'
+                                    }
                                 >
                                     <ShouldRender
                                         if={
                                             ((this.props.incidentRequest &&
                                                 this.props.incidentRequest
                                                     .requesting) ||
-                                            (this.props
-                                                .multipleIncidentRequest &&
-                                                this.props
-                                                    .multipleIncidentRequest
-                                                    .requesting) ||
-                                            (this.props.incidentRequest &&
-                                                this.props.incidentRequest
-                                                    .resolving) ||
-                                            (this.props
-                                                .multipleIncidentRequest &&
-                                                this.props
-                                                    .multipleIncidentRequest
-                                                    .resolving)) && (!this.state.value && !this.state.stats)
+                                                (this.props
+                                                    .multipleIncidentRequest &&
+                                                    this.props
+                                                        .multipleIncidentRequest
+                                                        .requesting) ||
+                                                (this.props.incidentRequest &&
+                                                    this.props.incidentRequest
+                                                        .resolving) ||
+                                                (this.props
+                                                    .multipleIncidentRequest &&
+                                                    this.props
+                                                        .multipleIncidentRequest
+                                                        .resolving)) &&
+                                            !this.state.value &&
+                                            !this.state.stats
                                         }
                                     >
                                         <Spinner
@@ -1023,9 +1415,7 @@ export class IncidentStatus extends Component {
                                         : this.props.incident.acknowledged &&
                                             !this.props.incident.resolved
                                             ? 'Resolve Incident'
-                                            :
-                                            (
-                                                !this.props.route ||
+                                            : !this.props.route ||
                                                 (this.props.route &&
                                                     !(
                                                         this.props.route ===
@@ -1033,20 +1423,24 @@ export class IncidentStatus extends Component {
                                                         this.props.route ===
                                                         monitorRoute
                                                     ))
-                                            ) ?
-                                                'The Incident is Resolved' : null}
+                                                ? 'The Incident is Resolved'
+                                                : null}
                                 </div>
                             </button>
                             <ShouldRender
-                                if={this.props.multiple && this.props.incident && this.props.incident.acknowledged && this.props.incident.resolved}
+                                if={
+                                    this.props.multiple &&
+                                    this.props.incident &&
+                                    this.props.incident.acknowledged &&
+                                    this.props.incident.resolved
+                                }
                             >
                                 <button
                                     onClick={() => {
                                         this.props.incident.resolved
                                             ? this.closeIncident()
                                             : this.props.openModal({
-                                                id: this.state
-                                                    .messageModalId,
+                                                id: this.state.messageModalId,
                                                 onClose: () => '',
                                                 content: DataPathHoC(
                                                     MessageBox,
@@ -1073,7 +1467,7 @@ export class IncidentStatus extends Component {
                                     }
                                     type="button"
                                     id={`closeIncidentButton_${this.props.count}`}
-                                    style={{marginLeft: '-16px'}}
+                                    style={{ marginLeft: '-16px' }}
                                 >
                                     <ShouldRender
                                         if={
@@ -1105,7 +1499,6 @@ export class IncidentStatus extends Component {
                                 </button>
                             </ShouldRender>
                         </div>
-
                     </div>
                 </div>
             </div>

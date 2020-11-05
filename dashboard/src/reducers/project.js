@@ -514,6 +514,7 @@ export default function project(state = initialState, action) {
                     ...state.currentProject,
                     alertEnable: action.payload.alertEnable,
                     alertOptions: action.payload.alertOptions,
+                    balance: action.payload.balance,
                 },
             });
 

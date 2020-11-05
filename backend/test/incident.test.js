@@ -307,6 +307,10 @@ describe('Incident API', function() {
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
+        // check if sorted by ascending order of createdAt
+        expect(res.body.data.sort((firstIncidentTimeline, secondIncidentTimeline) => 
+            Date.parse(firstIncidentTimeline.createdAt) > Date.parse(secondIncidentTimeline.createdAt)
+        )).to.equal(res.body.data)
     });
 
     it('should require an incident state', async function() {
