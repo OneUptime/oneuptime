@@ -27,14 +27,10 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
     },
-    errorTrackerIssuesList: {
-        errorTrackerIssues: [],
-        error: null,
-        requesting: false,
-        success: false,
-    },
+    errorTrackerIssues: {},
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
+    let temporaryIssues;
     switch (action.type) {
         case CREATE_ERROR_TRACKER_SUCCESS:
             return Object.assign({}, state, {
@@ -105,38 +101,75 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             });
         case FETCH_ISSUES_SUCCESS:
             return Object.assign({}, state, {
-                errorTrackerIssuesList: {
-                    ...state.errorTrackerIssuesList,
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    errorTrackerIssues: action.payload,
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        errorTrackerIssues: action.payload.errorTrackerIssues,
+                        error: null,
+                        requesting: false,
+                        success: true,
+                        skip: action.payload.skip,
+                        limit: action.payload.limit,
+                        count: action.payload.count,
+                    },
                 },
             });
 
         case FETCH_ISSUES_FAILURE:
+            temporaryIssues = {
+                ...state.errorTrackerIssues,
+                [action.payload.errorTrackerId]: state.errorTrackerIssues[
+                    action.payload.errorTrackerId
+                ]
+                    ? {
+                          ...state.errorTrackerIssues[
+                              action.payload.errorTrackerId
+                          ],
+                          error: action.payload.error,
+                      }
+                    : {
+                          errorTrackerIssues: [],
+                          error: action.payload.error,
+                          requesting: false,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
             return Object.assign({}, state, {
-                errorTrackerIssuesList: {
-                    ...state.errorTrackerIssuesList,
-                    requesting: false,
-                    error: action.payload,
-                    success: false,
-                },
+                errorTrackerIssues: temporaryIssues,
             });
 
         case FETCH_ISSUES_RESET:
             return Object.assign({}, state, {
-                errorTrackerIssuesList: INITIAL_STATE.errorTrackerIssuesList,
+                errorTrackerIssues: INITIAL_STATE.errorTrackerIssues,
             });
 
         case FETCH_ISSUES_REQUEST:
+            temporaryIssues = {
+                ...state.errorTrackerIssues,
+                [action.payload.errorTrackerId]: state.errorTrackerIssues[
+                    action.payload.errorTrackerId
+                ]
+                    ? {
+                          ...state.errorTrackerIssues[
+                              action.payload.errorTrackerId
+                          ],
+                          requesting: true,
+                      }
+                    : {
+                          errorTrackerIssues: [],
+                          error: null,
+                          requesting: true,
+                          success: false,
+                          skip: 0,
+                          limit: 10,
+                          count: null,
+                      },
+            };
             return Object.assign({}, state, {
-                errorTrackerIssuesList: {
-                    ...state.errorTrackerIssuesList,
-                    requesting: true,
-                    error: null,
-                    success: false,
-                },
+                errorTrackerIssues: temporaryIssues,
             });
         default:
             return state;
