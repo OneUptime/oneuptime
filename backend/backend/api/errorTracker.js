@@ -281,7 +281,7 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     }
 });
 
-// Description: Get all error event by errorTrackerId.
+// Description: Get all error event grouped by hash by errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/issues',
     getUser,
@@ -309,6 +309,59 @@ router.post(
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const errorEvents = await ErrorEventService.findDistinct(
+                query,
+                limit || 10,
+                skip || 0
+            );
+
+            return sendItemResponse(req, res, errorEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Get all error event by hash and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/error-events',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const {
+                skip,
+                limit,
+                startDate,
+                endDate,
+                fingerprintHash,
+            } = req.body;
+            if (!fingerprintHash) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Fingerprint Hash is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            const query = {};
+
+            query.fingerprintHash = fingerprintHash;
+
+            if (errorTrackerId) query.errorTrackerId = errorTrackerId;
+
+            if (startDate && endDate)
+                query.createdAt = { $gte: startDate, $lte: endDate };
+
+            const errorEvents = await ErrorEventService.findBy(
                 query,
                 limit || 10,
                 skip || 0
