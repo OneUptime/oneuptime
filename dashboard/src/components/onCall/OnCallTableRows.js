@@ -74,7 +74,7 @@ function parseSchedule(schedule) {
 
     const id = _id;
 
-    let users = ut(0) ? userIds[0].name ? userIds[0].name : userIds[0].email : 'Not Yet Added';
+    let users = ut(0) ? userIds[0].name ?userIds[0].name :userIds[0].email : 'Not Yet Added';
     users += ut(1) ? ` and ${userIds.length - 1} other${ut(2) ? 's' : ''}` : '';
 
     let monitors = gt(0) ? monitorIds[0].name : 'Not Yet Added';

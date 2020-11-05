@@ -527,8 +527,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                     },
                 });
             }
-            // eslint-disable-next-line no-console
-            console.log(incidents)
             const xmlOptions = {
                 indent: '  ',
                 header: true,
@@ -566,7 +564,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             };
             const finalFeed = toXML(feedObj, xmlOptions);
             res.contentType('application/rss+xml');
-            // eslint-disable-next-line no-console
             return sendItemResponse(req, res, finalFeed);
         }
     } catch (error) {
