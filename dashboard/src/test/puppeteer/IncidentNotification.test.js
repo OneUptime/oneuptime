@@ -479,7 +479,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('#incidents');
                 await page.click('#incidents');
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-                await page.click(`#btnCreateIncident_${projectName}`);
+                await page.$eval(`#btnCreateIncident_${projectName}`, e => e.click());
                 await page.waitForSelector('#frmIncident');
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Online', page);
