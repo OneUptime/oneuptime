@@ -7,6 +7,10 @@ import {
     FETCH_ERROR_TRACKERS_REQUEST,
     FETCH_ERROR_TRACKERS_RESET,
     FETCH_ERROR_TRACKERS_SUCCESS,
+    FETCH_ISSUES_FAILURE,
+    FETCH_ISSUES_REQUEST,
+    FETCH_ISSUES_RESET,
+    FETCH_ISSUES_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -19,6 +23,12 @@ const INITIAL_STATE = {
     },
     errorTrackersList: {
         errorTrackers: [],
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    errorTrackerIssuesList: {
+        errorTrackerIssues: [],
         error: null,
         requesting: false,
         success: false,
@@ -88,6 +98,41 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 errorTrackersList: {
                     ...state.errorTrackersList,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case FETCH_ISSUES_SUCCESS:
+            return Object.assign({}, state, {
+                errorTrackerIssuesList: {
+                    ...state.errorTrackerIssuesList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackerIssues: action.payload,
+                },
+            });
+
+        case FETCH_ISSUES_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerIssuesList: {
+                    ...state.errorTrackerIssuesList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case FETCH_ISSUES_RESET:
+            return Object.assign({}, state, {
+                errorTrackerIssuesList: INITIAL_STATE.errorTrackerIssuesList,
+            });
+
+        case FETCH_ISSUES_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerIssuesList: {
+                    ...state.errorTrackerIssuesList,
                     requesting: true,
                     error: null,
                     success: false,

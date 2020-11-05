@@ -115,3 +115,63 @@ export function resetFetchErrorTrackers() {
         type: types.FETCH_ERROR_TRACKERS_RESET,
     };
 }
+
+export function fetchErrorTrackerIssues(
+    projectId,
+    componentId,
+    errorTrackerId
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues`
+        );
+        dispatch(fetchErrorTrackerIssuesRequest());
+
+        promise.then(
+            function(errorTrackers) {
+                dispatch(fetchErrorTrackerIssuesSuccess(errorTrackers.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchErrorTrackerIssuesFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchErrorTrackerIssuesSuccess(issues) {
+    return {
+        type: types.FETCH_ISSUES_SUCCESS,
+        payload: issues,
+    };
+}
+
+export function fetchErrorTrackerIssuesRequest() {
+    return {
+        type: types.FETCH_ISSUES_REQUEST,
+    };
+}
+
+export function fetchErrorTrackerIssuesFailure(error) {
+    return {
+        type: types.FETCH_ISSUES_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchErrorTrackerIssues() {
+    return {
+        type: types.FETCH_ISSUES_RESET,
+    };
+}
