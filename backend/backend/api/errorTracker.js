@@ -309,13 +309,13 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            const issues = await ErrorEventService.findDistinct(
+            const errorTrackerIssues = await ErrorEventService.findDistinct(
                 query,
                 limit || 10,
                 skip || 0
             );
 
-            return sendListResponse(req, res, { issues });
+            return sendListResponse(req, res, { errorTrackerIssues });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
