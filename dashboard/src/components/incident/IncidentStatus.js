@@ -1457,13 +1457,19 @@ export class IncidentStatus extends Component {
                                     }}
                                     className={
                                         this.props.closeincident &&
-                                            this.props.closeincident.requesting
+                                            this.props.closeincident.requesting &&
+                                            this.props.closeincident
+                                                .requesting ===
+                                            this.props.incident._id
                                             ? 'bs-Button bs-Button--blue bs-btn-extra'
                                             : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-btn-extra'
                                     }
                                     disabled={
                                         this.props.closeincident &&
-                                        this.props.closeincident.requesting
+                                        this.props.closeincident.requesting &&
+                                        this.props.closeincident
+                                            .requesting ===
+                                        this.props.incident._id
                                     }
                                     type="button"
                                     id={`closeIncidentButton_${this.props.count}`}
