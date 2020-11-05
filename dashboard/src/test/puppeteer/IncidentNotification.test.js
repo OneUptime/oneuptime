@@ -476,6 +476,9 @@ describe('Incident Created test', () => {
             const projectName = 'Project1';
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
+                // remove existing notification
+                await page.waitForSelector('#closeIncident_0');
+                await page.$eval('#closeIncident_0', e => e.click());
                 await page.waitForSelector('#incidents');
                 await page.click('#incidents');
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
@@ -488,7 +491,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('#createIncident', { hidden: true });
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval(
-                    `button[id=${monitorName2}_ViewIncidentDetails]`,
+                    `#${monitorName2}_ViewIncidentDetails`,
                     elem => elem.click()
                 );
                 const closeButton = await page.waitForSelector(
