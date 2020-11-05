@@ -136,12 +136,12 @@ const StatusPageProjectBox = props => {
 
                             <td
                                 colSpan="6"
-                                style={{ float: 'right', marginRight: '100px' }}
+                                style={{ float: 'right'}}
                                 className="status-page-btn-action-col"
                             >
                                 <div
                                     className="bs-ObjectList-cell table-row-cell"
-                                    style={{ paddingLeft: '124px' }}
+                                    style={{ paddingLeft: '124px',paddingRight: '24px' }}
                                 >
                                     Action
                                 </div>
