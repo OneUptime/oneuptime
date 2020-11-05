@@ -281,21 +281,19 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     }
 });
 
-// Description: Get all error event by applicationLogId.
+// Description: Get all error event by errorTrackerId.
 router.post(
-    '/:projectId/:componentId/:errorTrackerId/error-events',
+    '/:projectId/:componentId/:errorTrackerId/issues',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const { skip, limit, startDate, endDate, type, filter } = req.body;
+            const { skip, limit, startDate, endDate } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy(
-                {
-                    _id: errorTrackerId,
-                }
-            );
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+            });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -307,7 +305,16 @@ router.post(
 
             if (errorTrackerId) query.errorTrackerId = errorTrackerId;
 
-            
+            if (startDate && endDate)
+                query.createdAt = { $gte: startDate, $lte: endDate };
+
+            const errorEvents = await ErrorEventService.findDistinct(
+                query,
+                limit || 10,
+                skip || 0
+            );
+
+            return sendItemResponse(req, res, errorEvents);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
