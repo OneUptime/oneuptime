@@ -13,4 +13,44 @@ const API_URL =
         ? 'http://localhost:3002'
         : 'https://fyipe.com/api');
 
-module.exports = { API_URL };
+const onlineTestData = {
+    cpuLoad: 0,
+    avgCpuLoad: 0,
+    cpuCores: 0,
+    memoryUsed: 0,
+    totalMemory: 0,
+    swapUsed: 0,
+    storageUsed: 0,
+    totalStorage: 0,
+    storageUsage: 0,
+    mainTemp: 0,
+    maxTemp: 0,
+};
+const degradedTestData = {
+    cpuLoad: 0,
+    avgCpuLoad: 0,
+    cpuCores: 0,
+    memoryUsed: 0,
+    totalMemory: 0,
+    swapUsed: 0,
+    storageUsed: 0,
+    totalStorage: 0,
+    storageUsage: 0,
+    mainTemp: 0,
+    maxTemp: 0,
+};
+const offlineTestData = {
+    cpuLoad: 0,
+    avgCpuLoad: 0,
+    cpuCores: 0,
+    memoryUsed: 0,
+    totalMemory: 0,
+    swapUsed: 0,
+    storageUsed: 0,
+    totalStorage: 0,
+    storageUsage: 0,
+    mainTemp: 0,
+    maxTemp: 0,
+};
+
+module.exports = { API_URL, onlineTestData, degradedTestData, offlineTestData };

@@ -16,6 +16,11 @@ const cron = require('cron');
 const si = require('systeminformation');
 const { get, post } = require('./helpers');
 const logger = require('./logger');
+const {
+    onlineTestData,
+    degradedTestData,
+    offlineTestData,
+} = require('../lib/config');
 
 /**
  * Get system information at interval and upload to server.
@@ -26,74 +31,138 @@ const logger = require('./logger');
  * @param {string} interval - The interval of the cron job, must ba a valid cron format.
  * @return {Object} The ping server cron job.
  */
-const ping = (projectId, monitorId, apiUrl, apiKey, interval = '* * * * *') => {
+const ping = (
+    projectId,
+    monitorId,
+    apiUrl,
+    apiKey,
+    interval = '* * * * *',
+    status,
+    testData
+) => {
     return new cron.CronJob(
         interval,
         () => {
-            Promise.all([
-                si.currentLoad(),
-                si.mem(),
-                si.fsSize(),
-                si.cpuTemperature(),
-                si.cpu(),
-            ])
-                .then(data => {
-                    const storage =
-                        data[2] && data[2].length > 0
-                            ? data[2].filter(
-                                  partition =>
-                                      partition.size === data[2][0].size
-                              )
-                            : data[2];
-                    return {
-                        cpuLoad: data[0].currentload,
-                        avgCpuLoad: data[0].avgload * 100,
-                        cpuCores: data[4].physicalCores,
-                        memoryUsed: data[1].active,
-                        totalMemory: data[1].total,
-                        swapUsed: data[1].swapused,
-                        storageUsed:
-                            storage && storage.length > 0
-                                ? storage
-                                      .map(partition => partition.used)
-                                      .reduce(
-                                          (used, partitionUsed) =>
-                                              used + partitionUsed
+            if (typeof testData !== 'object') testData = null;
+
+            switch (status) {
+                case 'online':
+                    try {
+                        post(
+                            apiUrl,
+                            `monitor/${projectId}/log/${monitorId}`,
+                            testData || onlineTestData,
+                            apiKey,
+                            () => {
+                                logger.info(
+                                    `${monitorId} - System Information uploaded`
+                                );
+                            }
+                        );
+                    } catch (error) {
+                        logger.error(error);
+                    }
+                    break;
+                case 'degraded':
+                    try {
+                        post(
+                            apiUrl,
+                            `monitor/${projectId}/log/${monitorId}`,
+                            testData || degradedTestData,
+                            apiKey,
+                            () => {
+                                logger.info(
+                                    `${monitorId} - System Information uploaded`
+                                );
+                            }
+                        );
+                    } catch (error) {
+                        logger.error(error);
+                    }
+                    break;
+                case 'offline':
+                    try {
+                        post(
+                            apiUrl,
+                            `monitor/${projectId}/log/${monitorId}`,
+                            testData || offlineTestData,
+                            apiKey,
+                            () => {
+                                logger.info(
+                                    `${monitorId} - System Information uploaded`
+                                );
+                            }
+                        );
+                    } catch (error) {
+                        logger.error(error);
+                    }
+                    break;
+                default:
+                    Promise.all([
+                        si.currentLoad(),
+                        si.mem(),
+                        si.fsSize(),
+                        si.cpuTemperature(),
+                        si.cpu(),
+                    ])
+                        .then(data => {
+                            const storage =
+                                data[2] && data[2].length > 0
+                                    ? data[2].filter(
+                                          partition =>
+                                              partition.size === data[2][0].size
                                       )
-                                : storage.used,
-                        totalStorage:
-                            storage && storage.length > 0
-                                ? storage[0].size
-                                : storage.size,
-                        storageUsage:
-                            storage && storage.length > 0
-                                ? storage
-                                      .map(partition => partition.use)
-                                      .reduce(
-                                          (use, partitionUse) =>
-                                              use + partitionUse
-                                      )
-                                : storage.use,
-                        mainTemp: data[3].main,
-                        maxTemp: data[3].max,
-                    };
-                })
-                .then(data => {
-                    post(
-                        apiUrl,
-                        `monitor/${projectId}/log/${monitorId}`,
-                        data,
-                        apiKey,
-                        () => {
-                            logger.info(
-                                `${monitorId} - System Information uploaded`
+                                    : data[2];
+                            return {
+                                cpuLoad: data[0].currentload,
+                                avgCpuLoad: data[0].avgload * 100,
+                                cpuCores: data[4].physicalCores,
+                                memoryUsed: data[1].active,
+                                totalMemory: data[1].total,
+                                swapUsed: data[1].swapused,
+                                storageUsed:
+                                    storage && storage.length > 0
+                                        ? storage
+                                              .map(partition => partition.used)
+                                              .reduce(
+                                                  (used, partitionUsed) =>
+                                                      used + partitionUsed
+                                              )
+                                        : storage.used,
+                                totalStorage:
+                                    storage && storage.length > 0
+                                        ? storage[0].size
+                                        : storage.size,
+                                storageUsage:
+                                    storage && storage.length > 0
+                                        ? storage
+                                              .map(partition => partition.use)
+                                              .reduce(
+                                                  (use, partitionUse) =>
+                                                      use + partitionUse
+                                              )
+                                        : storage.use,
+                                mainTemp: data[3].main,
+                                maxTemp: data[3].max,
+                            };
+                        })
+                        .then(data => {
+                            post(
+                                apiUrl,
+                                `monitor/${projectId}/log/${monitorId}`,
+                                data,
+                                apiKey,
+                                () => {
+                                    logger.info(
+                                        `${monitorId} - System Information uploaded`
+                                    );
+                                }
                             );
-                        }
-                    );
-                })
-                .catch(error => {
-                    logger.error(error);
-                });
+                        })
+                        .catch(error => {
+                            logger.error(error);
+                        });
+            }
         },
         null,
         false
@@ -173,7 +242,9 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                             monitorId,
                             apiUrl,
                             apiKey,
-                            config.interval
+                            config.interval,
+                            config.status,
+                            config.testData
                         );
                         pingServer.start();
 
