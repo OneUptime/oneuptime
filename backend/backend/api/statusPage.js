@@ -521,14 +521,14 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 refinedIncidents.push({
                     item: {
                         title: incident.title,
+                        "guid":  `${global.apiHost}/statusPage/${statusPageId}/rss/${incident._id}`,
+                        pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${incident.description}<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${incident.monitorId.name}
                         <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${incident.acknowledgedAt}<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote ? `Investigation Note: ${incident.investigationNote}`: ''}]]>`,
                     
                     },
                 });
             }
-            // eslint-disable-next-line no-console
-            console.log(incidents)
             const xmlOptions = {
                 indent: '  ',
                 header: true,
