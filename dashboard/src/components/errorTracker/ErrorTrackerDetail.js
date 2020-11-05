@@ -5,8 +5,25 @@ import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import Select from '../../components/basic/react-select-fyipe';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import { fetchErrorTrackerIssues } from '../../actions/errorTracker';
+import { bindActionCreators } from 'redux';
 
 class ErrorTrackerDetail extends Component {
+    componentDidMount() {
+        const {
+            fetchErrorTrackerIssues,
+            currentProject,
+            errorTracker,
+            componentId,
+        } = this.props;
+        fetchErrorTrackerIssues(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            0,
+            10
+        );
+    }
     render() {
         const { errorTracker } = this.props;
         return (
@@ -662,6 +679,17 @@ class ErrorTrackerDetail extends Component {
 ErrorTrackerDetail.displayName = 'ErrorTrackerDetail';
 ErrorTrackerDetail.propTypes = {
     errorTracker: PropTypes.object,
+    fetchErrorTrackerIssues: PropTypes.func,
+    currentProject: PropTypes.object,
+    componentId: PropTypes.string,
+};
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            fetchErrorTrackerIssues,
+        },
+        dispatch
+    );
 };
 function mapStateToProps(state, ownProps) {
     const errorTrackerId = ownProps.index;
@@ -669,10 +697,9 @@ function mapStateToProps(state, ownProps) {
     const currentErrorTracker = errorTrackers.filter(
         errorTracker => errorTracker._id === errorTrackerId
     );
-    // eslint-disable-next-line no-console
-    console.log(currentErrorTracker);
     return {
         errorTracker: currentErrorTracker[0],
+        currentProject: state.project.currentProject,
     };
 }
-export default connect(mapStateToProps, null)(ErrorTrackerDetail);
+export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackerDetail);

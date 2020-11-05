@@ -147,9 +147,6 @@ const mapStateToProps = (state, ownProps) => {
         }
     }
 
-    // eslint-disable-next-line no-console
-    console.log(errorTracker);
-
     return {
         currentProject,
         component,
