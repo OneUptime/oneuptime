@@ -117,7 +117,8 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(20000);
+
+        await page.waitForSelector('#home', { visible: true, timeout: 100000 });
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
