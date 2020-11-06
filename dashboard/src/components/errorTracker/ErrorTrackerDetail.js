@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import * as moment from 'moment';
 import Badge from '../common/Badge';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
-import Select from '../../components/basic/react-select-fyipe';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { fetchErrorTrackerIssues } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
+import ErrorTrackerHeader from './ErrorTrackerHeader';
+import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 
 class ErrorTrackerDetail extends Component {
     componentDidMount() {
@@ -25,80 +25,18 @@ class ErrorTrackerDetail extends Component {
         );
     }
     render() {
-        const { errorTracker } = this.props;
+        const { errorTracker, errorTrackerIssue } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
                             <div>
-                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                <span
-                                                    style={{
-                                                        textTransform:
-                                                            'capitalize',
-                                                    }}
-                                                >
-                                                    {errorTracker.name}(2)
-                                                </span>
-                                            </span>
-                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span>
-                                                    A description for what error
-                                                    tracking is. Here&#39;s a
-                                                    list of all errors being
-                                                    tracked for this component.
-                                                </span>
-                                            </span>
-                                        </div>
-                                        <span className="Margin-all--8">
-                                            <Dropdown>
-                                                <Dropdown.Toggle
-                                                    id="filterToggle"
-                                                    className="bs-Button bs-DeprecatedButton"
-                                                    title={'Sort By: Last Seen'}
-                                                />
-                                                <Dropdown.Menu>
-                                                    <MenuItem title="clear">
-                                                        Clear Filters
-                                                    </MenuItem>
-                                                    <MenuItem title="unacknowledged">
-                                                        Unacknowledged
-                                                    </MenuItem>
-                                                    <MenuItem title="unresolved">
-                                                        Unresolved
-                                                    </MenuItem>
-                                                </Dropdown.Menu>
-                                            </Dropdown>
-                                        </span>
-                                        <div
-                                            style={{
-                                                height: '33px',
-                                                margin: '5px 0px',
-                                            }}
-                                        >
-                                            <Select
-                                                name="log_type_selector"
-                                                placeholder="Filter Errors"
-                                                className="db-select-pr"
-                                                id="log_type_selector"
-                                                style={{
-                                                    height: '33px',
-                                                }}
-                                                options={[
-                                                    {
-                                                        value: '',
-                                                        label:
-                                                            'Unresolved Errors',
-                                                    },
-                                                ]}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                <ErrorTrackerHeader
+                                    errorTracker={errorTracker}
+                                    errorTrackerIssue={errorTrackerIssue}
+                                    isDetails={false}
+                                />
                                 <div>
                                     <div
                                         style={{
@@ -682,6 +620,7 @@ ErrorTrackerDetail.propTypes = {
     fetchErrorTrackerIssues: PropTypes.func,
     currentProject: PropTypes.object,
     componentId: PropTypes.string,
+    errorTrackerIssue: PropTypes.object,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -697,9 +636,12 @@ function mapStateToProps(state, ownProps) {
     const currentErrorTracker = errorTrackers.filter(
         errorTracker => errorTracker._id === errorTrackerId
     );
+    const errorTrackerIssue =
+        state.errorTracker.errorTrackerIssues[errorTrackerId];
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
+        errorTrackerIssue,
     };
 }
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackerDetail);
