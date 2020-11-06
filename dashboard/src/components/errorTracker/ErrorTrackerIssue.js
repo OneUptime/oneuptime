@@ -1,8 +1,11 @@
 import React from 'react';
 import * as moment from 'moment';
 import Badge from '../common/Badge';
+import PropTypes from 'prop-types';
 
-function ErrorTrackerIssue() {
+function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
+    // eslint-disable-next-line no-console
+    console.log({ errorTracker, errorTrackerIssue });
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
             <td
@@ -40,10 +43,18 @@ function ErrorTrackerIssue() {
                             }}
                         >
                             <span className="Text-color--gray">
-                                <span className="Text-color--slate Text-fontSize--16 Padding-right--4">
-                                    Type Error
-                                </span>{' '}
-                                service.function (more details)
+                                <p>
+                                    <span className="Text-color--slate Text-fontSize--16 Padding-right--4">
+                                        {errorTrackerIssue.content.type
+                                            ? errorTrackerIssue.content.type
+                                            : errorTrackerIssue.content.message
+                                            ? errorTrackerIssue.content.message
+                                            : 'Unknown Error Event'}
+                                    </span>{' '}
+                                    {errorTrackerIssue.content.type
+                                        ? errorTrackerIssue.content.message
+                                        : ''}
+                                </p>
                             </span>
                         </div>
                     </span>
@@ -87,10 +98,13 @@ function ErrorTrackerIssue() {
                                         }}
                                     />
                                     <span className="Padding-left--8">
-                                        {moment().fromNow()} -{' '}
-                                        {moment().format(
-                                            'MMMM Do YYYY, h:mm:ss a'
-                                        )}
+                                        {moment(
+                                            errorTrackerIssue.earliestOccurennce
+                                        ).fromNow()}{' '}
+                                        -{' '}
+                                        {moment(
+                                            errorTrackerIssue.latestOccurennce
+                                        ).fromNow()}
                                     </span>
                                 </div>
                             </div>
@@ -173,5 +187,9 @@ function ErrorTrackerIssue() {
         </tr>
     );
 }
+ErrorTrackerIssue.propTypes = {
+    errorTracker: PropTypes.object,
+    errorTrackerIssue: PropTypes.object,
+};
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;
