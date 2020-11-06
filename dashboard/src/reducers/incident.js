@@ -294,7 +294,7 @@ export default function incident(state = initialState, action) {
         case types.INCIDENT_SUCCESS: {
                 const str = action.payload.reason;
                 let result;
-                const strArr = str.split("\n")
+                const strArr = str ? str.split("\n") : [];
                 const regex = /did\s{1,}not\s{1,}evaluate/
                 const patt = new RegExp(regex)
                 let success = false
