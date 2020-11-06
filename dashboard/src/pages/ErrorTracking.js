@@ -13,8 +13,17 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
+import { SHOULD_LOG_ANALYTICS } from '../config';
+import { logEvent } from '../analytics';
 
 class ErrorTracking extends Component {
+    componentDidMount() {
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING LIST'
+            );
+        }
+    }
     ready = () => {
         const { componentId } = this.props.match.params;
         const projectId = this.props.currentProject
