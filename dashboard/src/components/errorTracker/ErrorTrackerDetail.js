@@ -36,7 +36,9 @@ class ErrorTrackerDetail extends Component {
                                     isDetails={false}
                                 />
                                 <div>
-                                    <ErrorTrackerDetailView />
+                                    <ErrorTrackerDetailView
+                                        errorTracker={errorTracker}
+                                    />
                                 </div>
                             </div>
                         </div>
