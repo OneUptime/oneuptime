@@ -179,7 +179,32 @@ export class IncidentStatus extends Component {
 
         const incidentReason =
             this.props.incident.reason &&
-            this.props.incident.reason.split('\n');
+            changeFormat(this.props.incident.reason);
+        function changeFormat(data) {
+            let result;
+            const strArr = data.split("\n")
+            const regex = /did\s{1,}not\s{1,}evaluate/
+            const patt = new RegExp(regex)
+            let success = false
+            for (let i = 0; i < strArr.length; i++) {
+                if (patt.test(strArr[i])) {
+                    success = true
+                    strArr[i] = `did not evaluate ${strArr[i].split(regex).splice(1, strArr[i].length - 1)}`
+                }
+            }
+            if (success) {
+                result = strArr.join("\n")
+            } else {
+                result = data
+            }
+            const formatD = result.split("")
+            for(let i=0; i<=formatD.length; i++) {
+                if(formatD[i] == "`"){
+                    formatD[i] = ""
+                }
+            }
+            return formatD.join("").split('\n');
+        }
 
         return (
             <div
@@ -250,8 +275,8 @@ export class IncidentStatus extends Component {
                                             {this.props.incident
                                                 .incidentType &&
                                                 this.props.incident
-                                                    .reason && 
-                                                    (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
+                                                    .reason &&
+                                                (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
                                                     <div className="bs-font-normal bs-flex-display">
                                                         <label className="bs-h">
                                                             Cause:
@@ -267,7 +292,7 @@ export class IncidentStatus extends Component {
                                                                     }`}
                                                             />
                                                         </div>
-                                                        
+
                                                     </div>
                                                 )}
                                         </div>
@@ -1211,13 +1236,10 @@ export class IncidentStatus extends Component {
                                                                 .response &&
                                                                 this.props
                                                                     .incident
-                                                                    .reason &&
-                                                                this.props.incident.reason.includes(
-                                                                    'Response `'
-                                                                ) && (
+                                                                    .reason && (
                                                                     <button
                                                                         id={`${monitorName}_ShowResponse_${this.props.count}`}
-                                                                        title="showMore"
+                                                                        title="Show Response Body"
                                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                         type="button"
                                                                         onClick={() =>
@@ -1247,8 +1269,7 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                     >
                                                                         <span>
-                                                                            Show
-                                                                            More
+                                                                            Show Response Body
                                                                         </span>
                                                                     </button>
                                                                 )}
@@ -1457,13 +1478,19 @@ export class IncidentStatus extends Component {
                                     }}
                                     className={
                                         this.props.closeincident &&
-                                            this.props.closeincident.requesting
+                                            this.props.closeincident.requesting &&
+                                            this.props.closeincident
+                                                .requesting ===
+                                            this.props.incident._id
                                             ? 'bs-Button bs-Button--blue bs-btn-extra'
                                             : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-btn-extra'
                                     }
                                     disabled={
                                         this.props.closeincident &&
-                                        this.props.closeincident.requesting
+                                        this.props.closeincident.requesting &&
+                                        this.props.closeincident
+                                            .requesting ===
+                                        this.props.incident._id
                                     }
                                     type="button"
                                     id={`closeIncidentButton_${this.props.count}`}

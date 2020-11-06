@@ -7,7 +7,7 @@ function OnCallTableHeader({ text }) {
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ width: 'calc(100% / 3)' }}
         >
-            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+            <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{float: text === 'Actions' ? 'right' : null, marginRight: text === 'Actions'? '24px': null}}>
                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                     <span>{text}</span>
                 </span>

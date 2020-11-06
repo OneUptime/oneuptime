@@ -104,6 +104,11 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = utils.BACKEND_URL.includes('localhost')
             ? user
+            : utils.BACKEND_URL.includes('staging')
+            ? {
+                  email: 'test@qa.team',
+                  password: '1234567890',
+              }
             : {
                   email: 'user@fyipe.com',
                   password: 'mVzkm{LAP)mNC8t23ehqifb2p',
@@ -117,7 +122,8 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(20000);
+
+        await page.waitForSelector('#home', { visible: true, timeout: 100000 });
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {

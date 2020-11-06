@@ -151,7 +151,15 @@ class StatusPage extends Component {
                                                                         }
                                                                     >
                                                                         <div className="Box-root Margin-bottom--12">
-                                                                            <Monitors />
+                                                                            <Monitors
+                                                                                subProjectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .match
+                                                                                        .params
+                                                                                        .subProjectId
+                                                                                }
+                                                                            />
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                 </Fade>
