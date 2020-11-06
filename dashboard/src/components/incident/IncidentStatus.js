@@ -250,8 +250,8 @@ export class IncidentStatus extends Component {
                                             {this.props.incident
                                                 .incidentType &&
                                                 this.props.incident
-                                                    .reason && 
-                                                    (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
+                                                    .reason &&
+                                                (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
                                                     <div className="bs-font-normal bs-flex-display">
                                                         <label className="bs-h">
                                                             Cause:
@@ -267,7 +267,7 @@ export class IncidentStatus extends Component {
                                                                     }`}
                                                             />
                                                         </div>
-                                                        
+
                                                     </div>
                                                 )}
                                         </div>
@@ -1211,13 +1211,10 @@ export class IncidentStatus extends Component {
                                                                 .response &&
                                                                 this.props
                                                                     .incident
-                                                                    .reason &&
-                                                                this.props.incident.reason.includes(
-                                                                    'Response `'
-                                                                ) && (
+                                                                    .reason && (
                                                                     <button
                                                                         id={`${monitorName}_ShowResponse_${this.props.count}`}
-                                                                        title="showMore"
+                                                                        title="Show Request Body"
                                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                         type="button"
                                                                         onClick={() =>
@@ -1247,8 +1244,7 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                     >
                                                                         <span>
-                                                                            Show
-                                                                            More
+                                                                            Show Request Body
                                                                         </span>
                                                                     </button>
                                                                 )}
