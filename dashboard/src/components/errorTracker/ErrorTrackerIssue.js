@@ -1,7 +1,9 @@
+/* eslint-disable no-console */
 import React from 'react';
 import * as moment from 'moment';
 import Badge from '../common/Badge';
 import PropTypes from 'prop-types';
+import formatNumber from '../../utils/formatNumber';
 
 function getComponentBadge(componentName) {
     return (
@@ -24,8 +26,6 @@ function getExceptionColor(type) {
 }
 
 function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
-    // eslint-disable-next-line no-console
-    console.log({ errorTracker, errorTrackerIssue });
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
             <td
@@ -155,7 +155,9 @@ function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
                 <div className="db-ListViewItem-link">
                     <div className="db-ListViewItem-cellContent  Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center ">
                         <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            3.4k
+                            {formatNumber(
+                                errorTrackerIssue.totalNumberOfEvents
+                            )}
                         </span>
                     </div>
                 </div>

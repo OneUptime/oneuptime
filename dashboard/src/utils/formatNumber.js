@@ -1,4 +1,7 @@
+import { isNumber } from 'lodash';
+
 export default function format(number) {
+    if (!isNumber(number)) return null;
     let formattedValue = '';
     let index = 0;
     const formats = [
