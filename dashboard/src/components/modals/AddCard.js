@@ -170,11 +170,11 @@ class _CardForm extends React.Component {
                             </div>
                             <div className="bs-Modal-footer">
                                 <div
-                                    className="bs-Modal-footer-actions"
+                                    className="bs-Modal-footer-actions Flex-flex--1"
                                     style={{ width: 280 }}
                                 >
                                     <ShouldRender if={error}>
-                                        <div className="bs-Tail-copy">
+                                        <div className="bs-Tail-copy Flex-flex--1">
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                                 style={{ marginTop: '10px' }}
