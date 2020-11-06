@@ -3,6 +3,26 @@ import * as moment from 'moment';
 import Badge from '../common/Badge';
 import PropTypes from 'prop-types';
 
+function getComponentBadge(componentName) {
+    return (
+        <span className="Margin-right--8">
+            <Badge>{componentName.substr(0, 1).toUpperCase()}</Badge>{' '}
+            <span className="Padding-left--4">{componentName}</span>
+        </span>
+    );
+}
+getComponentBadge.displayName = 'getComponentBadge';
+function getExceptionColor(type) {
+    let indicator = '#ff0000';
+    if (type === 'exception') {
+        indicator = '#ffa500';
+    }
+    if (type === 'message') {
+        indicator = '#b7a718';
+    }
+    return indicator;
+}
+
 function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
     // eslint-disable-next-line no-console
     console.log({ errorTracker, errorTrackerIssue });
@@ -19,7 +39,9 @@ function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
                         style={{
                             height: '20px',
                             width: '10px',
-                            backgroundColor: 'red',
+                            backgroundColor: `${getExceptionColor(
+                                errorTrackerIssue.type
+                            )}`,
                             borderTopRightRadius: '5px',
                             borderBottomRightRadius: '5px',
                         }}
@@ -51,9 +73,6 @@ function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
                                             ? errorTrackerIssue.content.message
                                             : 'Unknown Error Event'}
                                     </span>{' '}
-                                    {errorTrackerIssue.content.type
-                                        ? errorTrackerIssue.content.message
-                                        : ''}
                                 </p>
                             </span>
                         </div>
@@ -66,7 +85,9 @@ function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
                             }}
                         >
                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                Cannot read property name of undefined
+                                {errorTrackerIssue.content.message
+                                    ? errorTrackerIssue.content.message
+                                    : ''}
                             </div>
                         </div>
                     </div>
@@ -78,16 +99,15 @@ function ErrorTrackerIssue({ errorTrackerIssue, errorTracker }) {
                             }}
                         >
                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                <Badge color="yellow">C</Badge>{' '}
-                                <span className=" Padding-left--4">
-                                    Component Title
-                                </span>
                                 <div
-                                    className="Box-root Margin-right--16 Padding-horizontal--12"
+                                    className="Box-root Margin-right--16 Padding-right--12"
                                     style={{
                                         cursor: 'pointer',
                                     }}
                                 >
+                                    {getComponentBadge(
+                                        errorTracker.componentId.name
+                                    )}
                                     <img
                                         src="/dashboard/assets/img/time.svg"
                                         alt=""
