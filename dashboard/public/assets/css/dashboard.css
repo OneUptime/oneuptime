@@ -35053,4 +35053,8 @@ span.CodeMirror-selectedtext {
     justify-content: space-between;
     align-items: center;
   }
+  .incident-priority-table{
+    float: none!important;
+    padding-right: 37px!important;
+  }
 }
