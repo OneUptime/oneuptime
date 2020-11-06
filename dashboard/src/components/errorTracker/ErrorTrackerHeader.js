@@ -5,7 +5,12 @@ import PropTypes from 'prop-types';
 
 class ErrorTrackerHeader extends Component {
     render() {
-        const { errorTracker, isDetails, errorTrackerIssue } = this.props;
+        const {
+            errorTracker,
+            isDetails,
+            errorTrackerIssue,
+            viewMore,
+        } = this.props;
         return (
             <div>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -77,7 +82,7 @@ class ErrorTrackerHeader extends Component {
                                     id={`more-details-${errorTracker.name}`}
                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--more"
                                     type="button"
-                                    // onClick={viewMore}
+                                    onClick={viewMore}
                                 >
                                     <span>More</span>
                                 </button>
@@ -104,5 +109,6 @@ ErrorTrackerHeader.propTypes = {
     errorTracker: PropTypes.object,
     isDetails: PropTypes.bool,
     errorTrackerIssue: PropTypes.object,
+    viewMore: PropTypes.func,
 };
 export default ErrorTrackerHeader;
