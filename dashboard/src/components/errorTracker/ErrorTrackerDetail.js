@@ -5,8 +5,20 @@ import { fetchErrorTrackerIssues } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
+import { history } from '../../store';
 
 class ErrorTrackerDetail extends Component {
+    viewMore = () => {
+        const { currentProject, componentId, errorTracker } = this.props;
+        history.push(
+            '/dashboard/project/' +
+                currentProject._id +
+                '/' +
+                componentId +
+                '/error-tracking/' +
+                errorTracker._id
+        );
+    };
     componentDidMount() {
         const {
             fetchErrorTrackerIssues,
@@ -23,7 +35,7 @@ class ErrorTrackerDetail extends Component {
         );
     }
     render() {
-        const { errorTracker, errorTrackerIssue } = this.props;
+        const { errorTracker, errorTrackerIssue, isDetails } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -33,7 +45,8 @@ class ErrorTrackerDetail extends Component {
                                 <ErrorTrackerHeader
                                     errorTracker={errorTracker}
                                     errorTrackerIssue={errorTrackerIssue}
-                                    isDetails={false}
+                                    isDetails={isDetails}
+                                    viewMore={this.viewMore}
                                 />
                                 <div>
                                     <ErrorTrackerDetailView
@@ -55,6 +68,7 @@ ErrorTrackerDetail.propTypes = {
     currentProject: PropTypes.object,
     componentId: PropTypes.string,
     errorTrackerIssue: PropTypes.object,
+    isDetails: PropTypes.bool,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
