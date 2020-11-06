@@ -17,7 +17,12 @@ class ErrorTrackerHeader extends Component {
                                         textTransform: 'capitalize',
                                     }}
                                 >
-                                    {`${errorTracker.name} (${errorTrackerIssue.errorTrackerIssues.length})`}
+                                    {`${errorTracker.name} (${
+                                        errorTrackerIssue
+                                            ? errorTrackerIssue
+                                                  .errorTrackerIssues.length
+                                            : 0
+                                    })`}
                                 </span>
                             </span>
                         </div>
