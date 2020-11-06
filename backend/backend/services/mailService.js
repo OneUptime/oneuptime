@@ -1129,7 +1129,8 @@ const _this = {
         emailTemplate,
         trackEmailAsViewedUrl,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        replyAddress,
     ) {
         let mailOptions = {};
         try {
@@ -1156,7 +1157,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
@@ -1220,7 +1221,8 @@ const _this = {
         emailTemplate,
         trackEmailAsViewedUrl,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        replyAddress,
     ) {
         let mailOptions = {};
         try {
@@ -1247,7 +1249,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
@@ -1310,7 +1312,8 @@ const _this = {
         emailTemplate,
         trackEmailAsViewedUrl,
         componentName,
-        statusPageUrl
+        statusPageUrl,
+        replyAddress,
     ) {
         let mailOptions = {};
         try {
@@ -1337,7 +1340,7 @@ const _this = {
             );
             const privateMailer = await _this.createMailer(smtpSettings);
             mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
                 to: email,
                 subject: subject,
                 template: 'template',
