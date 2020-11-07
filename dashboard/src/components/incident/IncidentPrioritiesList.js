@@ -24,8 +24,13 @@ class IncidentPrioritiesListClass extends React.Component {
                                     Name
                                 </div>
                                 <div
-                                    className="bs-ObjectList-cell"
-                                    style={{ width: '30%' }}
+                                    className="bs-ObjectList-cell incident-priority-table"
+                                    style={{
+                                        width: '30%',
+                                        float: "right",
+                                        marginRight: '8px',
+                                        textAlign: 'right',
+                                    }}
                                 >
                                     Action
                                 </div>
@@ -64,7 +69,9 @@ class IncidentPrioritiesListClass extends React.Component {
                                             </div>
                                         </div>
                                         <div className="bs-ObjectList-cell bs-u-v-middle">
-                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexEnd" 
+                                            style={{marginRight: '5px'}}
+                                            >
                                                 <div className="Box-root">
                                                     <button
                                                         id={`priorityEdit_${incidentPriority.name}_${index}`}
