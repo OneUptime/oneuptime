@@ -147,7 +147,7 @@ describe('Profile -> Delete Account Component test', () => {
     );
 
     test(
-        'Should delete account without user confirmation',
+        'Should not delete account without confirmation',
         async () => {
             const role = 'Owner';
             const projectName = 'Project1';
@@ -182,8 +182,10 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.$eval('#advanced a', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
+                await page.waitForSelector('#btn_confirm_delete');
+                await page.click('#btn_confirm_delete');
                 const deleteButton = await page.$(
-                    'button[id=btn_confirm_delete]'
+                    '#btn_confirm_delete'
                 );
                 expect(deleteButton).toEqual(null);
             });
