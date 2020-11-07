@@ -788,7 +788,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                         monitors,
                     });
                 });
-                
+
                 return {
                     ...statusPage,
                     statusPages,
@@ -803,10 +803,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
         }
 
-
         // for statuspages pointing to incidents
-        
-        case FETCH_INCIDENT_STATUSPAGE_REQUEST: 
+
+        case FETCH_INCIDENT_STATUSPAGE_REQUEST:
             return {
                 ...state,
                 error: null,
@@ -816,7 +815,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
             };
 
         case FETCH_INCIDENT_STATUSPAGE_FAILURE:
-            return  {
+            return {
                 ...state,
                 status: {},
                 requesting: false,
@@ -831,7 +830,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
             };
 
         case FETCH_INCIDENT_STATUSPAGE_SUCCESS: {
-            statusPages = [];
+            const statusPages = [];
             action.payload.data.forEach(statuspage => {
                 const monitorNames = [],
                     monitors = [];
@@ -843,7 +842,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
                         ...monitorData,
                         monitor: monitorData.monitor._id,
                     });
-                    
                 });
                 statusPages.push({
                     ...statuspage,
@@ -851,15 +849,13 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     monitors,
                 });
             });
-            const incidentStatusPages = 
-                {
-                    count: action.payload.count || 0,
-                    limit: action.payload.limit || 10,
-                    skip: action.payload.skip || 0,
-                    statusPages,
-                    
-                };
-            
+            const incidentStatusPages = {
+                count: action.payload.count || 0,
+                limit: action.payload.limit || 10,
+                skip: action.payload.skip || 0,
+                statusPages,
+            };
+
             return {
                 ...state,
                 incidentStatusPages,
