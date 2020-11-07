@@ -140,7 +140,7 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(newComponentName, page);
 
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                const incidentTitleSelector = await page.$('#incident_0 .bs-font-header');
                 expect(incidentTitleSelector).toBeNull();
                 await init.logout(page);
             });
