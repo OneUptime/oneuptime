@@ -9,8 +9,29 @@ import {
     setEmailIncidentNotification,
     setSmsIncidentNotification,
 } from '../../actions/project';
+import { RenderField } from '../basic/RenderField';
+import { Validate } from '../../config';
+
+const validate = values => {
+    const errors = {};
+    if (values.replyAddress) {
+        if (!Validate.email(values.replyAddress)) {
+            errors.replyAddress = 'Please input valid email.';
+        }
+    }
+    return errors;
+};
 
 class AdvancedIncidentNotification extends Component {
+    state = {
+        showMoreOptions: false,
+    };
+
+    showMoreOptionsToggle = () =>
+        this.setState(prevState => ({
+            showMoreOptions: !prevState.showMoreOptions,
+        }));
+
     submitForm = values => {
         const {
             type,
@@ -32,6 +53,7 @@ class AdvancedIncidentNotification extends Component {
             requestingEmailIncident,
             requestingSmsIncident,
         } = this.props;
+        const { showMoreOptions } = this.state;
 
         return (
             <div
@@ -53,6 +75,37 @@ class AdvancedIncidentNotification extends Component {
                                         </span>
                                     </p>
                                 </div>
+                                <ShouldRender if={type === 'email'}>
+                                    <div
+                                        className="bs-Fieldset-row"
+                                        style={{
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        <label style={{ marginRight: 10 }}>
+                                            {showMoreOptions
+                                                ? 'Hide more advanced options'
+                                                : 'Show more advanced options'}
+                                        </label>
+                                        <div>
+                                            <label className="Toggler-wrap">
+                                                <input
+                                                    className="btn-toggler"
+                                                    type="checkbox"
+                                                    onChange={() =>
+                                                        this.showMoreOptionsToggle()
+                                                    }
+                                                    name="moreAdvancedOptions"
+                                                    id="moreAdvancedOptions"
+                                                    checked={showMoreOptions}
+                                                />
+                                                <span className="TogglerBtn-slider round"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                             </div>
                             <form
                                 onSubmit={this.props.handleSubmit(
@@ -236,6 +289,61 @@ class AdvancedIncidentNotification extends Component {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {showMoreOptions &&
+                                                type === 'email' && (
+                                                    <>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label"></label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        fontWeight: 500,
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        More
+                                                                        Advanced
+                                                                        Options
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Reply Address
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    component={
+                                                                        RenderField
+                                                                    }
+                                                                    type="text"
+                                                                    name="replyAddress"
+                                                                    id="replyAddress"
+                                                                    placeholder="email@mycompany.com"
+                                                                    disabled={
+                                                                        false
+                                                                    }
+                                                                />
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    <span>
+                                                                        Optional
+                                                                        Email
+                                                                        address
+                                                                        where
+                                                                        email
+                                                                        replies
+                                                                        will be
+                                                                        sent to.
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
                                             <div className="bs-Fieldset-row">
                                                 <label
                                                     className="bs-Fieldset-label"
@@ -326,6 +434,7 @@ const IncidentNotificationForm = reduxForm({
     form: 'IncidentNotificationForm',
     enableReinitialize: true,
     destroyOnUnmount: false, // do not destroy the form state
+    validate,
 })(AdvancedIncidentNotification);
 
 const mapStateToProps = (state, ownProps) => {
@@ -360,6 +469,9 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendResolvedIncidentNotificationEmail,
+            replyAddress:
+                state.project.currentProject &&
+                state.project.currentProject.replyAddress,
         };
     }
 
