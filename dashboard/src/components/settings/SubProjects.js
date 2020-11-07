@@ -157,7 +157,7 @@ export class SubProjects extends Component {
                                                 <div className="bs-ObjectList-cell">
                                                     Created
                                                 </div>
-                                                <div className="bs-ObjectList-cell">
+                                                <div className="bs-ObjectList-cell" style={{float: 'right', paddingRight: '12px'}}>
                                                     Actions
                                                 </div>
                                             </header>

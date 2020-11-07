@@ -128,7 +128,7 @@ const TeamMemberProjectBox = props => {
                                 <div className="bs-ObjectList-cell">Role</div>
                                 <div className="bs-ObjectList-cell">Status</div>
                                 <div className="bs-ObjectList-cell"></div>
-                                <div className="bs-ObjectList-cell"></div>
+                                <div className="bs-ObjectList-cell" style={{float: 'right', marginRight: '10px'}}>Action</div>
                             </header>
 
                             {props.teamMembers.teamMembers.map((i, o) => {
