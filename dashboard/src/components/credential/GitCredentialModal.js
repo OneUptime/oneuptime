@@ -156,6 +156,9 @@ class GitCredentialModal extends Component {
                                                                         true
                                                                     }
                                                                 />
+                                                                <p className='bs-Fieldset-fields bs-Fieldset-explanation'>
+                                                                    <span>Username for Git Account</span>
+                                                                </p>
                                                             </div>
                                                         </div>
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
@@ -180,6 +183,9 @@ class GitCredentialModal extends Component {
                                                                         ValidateField.required
                                                                     }
                                                                 />
+                                                                <p className='bs-Fieldset-fields bs-Fieldset-explanation'>
+                                                                    <span>Password for Git Account</span>
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>

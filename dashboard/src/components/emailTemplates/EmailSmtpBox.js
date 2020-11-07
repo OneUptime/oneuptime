@@ -53,7 +53,7 @@ const validate = (values, props) => {
 
         if (values.from) {
             if (!Validate.email(values.from)) {
-                errors.from = 'Please input from in proper format .';
+                errors.from = 'Please input valid email.';
             }
         } else {
             errors.from =

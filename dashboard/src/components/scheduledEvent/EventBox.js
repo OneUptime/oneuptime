@@ -218,7 +218,7 @@ class EventBox extends Component {
                                     <div className="bs-ObjectList-cell">
                                         End Date
                                     </div>
-                                    <div className="bs-ObjectList-cell">
+                                    <div className="bs-ObjectList-cell" style={{float: 'right', marginRight: '10px'}}>
                                         Action
                                     </div>
                                 </header>

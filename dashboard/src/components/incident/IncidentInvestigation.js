@@ -121,7 +121,7 @@ export class IncidentInvestigation extends Component {
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentMessageThread
-                        title="Investigation Notes"
+                        title="Status Page"
                         description="Tell your customer what went wrong. This will be visible to your customers."
                         incidentMessages={incidentMessages}
                         count={count}

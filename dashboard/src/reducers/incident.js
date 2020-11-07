@@ -291,7 +291,7 @@ export default function incident(state = initialState, action) {
                 },
             });
 
-        case types.INCIDENT_SUCCESS:
+        case types.INCIDENT_SUCCESS: {
             return Object.assign({}, state, {
                 incident: {
                     requesting: false,
@@ -300,6 +300,7 @@ export default function incident(state = initialState, action) {
                     incident: action.payload,
                 },
             });
+        }
 
         case types.INCIDENT_REQUEST:
             return Object.assign({}, state, {
@@ -583,7 +584,7 @@ export default function incident(state = initialState, action) {
                 });
             }
 
-        case types.UNRESOLVED_INCIDENTS_SUCCESS:
+        case types.UNRESOLVED_INCIDENTS_SUCCESS: {
             return Object.assign({}, state, {
                 unresolvedincidents: {
                     requesting: false,
@@ -593,6 +594,7 @@ export default function incident(state = initialState, action) {
                     resolving: false,
                 },
             });
+        }
 
         case types.UNRESOLVED_INCIDENTS_REQUEST:
             return Object.assign({}, state, {

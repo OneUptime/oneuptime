@@ -61,6 +61,10 @@ import {
     UPDATE_STATUSPAGE_CUSTOM_HTML_REQUEST,
     UPDATE_STATUSPAGE_CUSTOM_HTML_SUCCESS,
     UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE,
+    FETCH_INCIDENT_STATUSPAGE_REQUEST,
+    FETCH_INCIDENT_STATUSPAGE_FAILURE,
+    FETCH_INCIDENT_STATUSPAGE_SUCCESS,
+    FETCH_INCIDENT_STATUSPAGE_RESET,
 } from '../constants/statusPage';
 
 import {
@@ -174,6 +178,7 @@ const INITIAL_STATE = {
     status: {},
     statusPages: [],
     subProjectStatusPages: [],
+    incidentStatusPages: [],
     count: null,
     limit: null,
     skip: null,
@@ -183,7 +188,7 @@ const INITIAL_STATE = {
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
-    let status, statusPage, statusPages, isExistingStatusPage, newData;
+    let status, statusPage, isExistingStatusPage;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:
@@ -765,20 +770,80 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
+            const subProjectStatusPages = action.payload.map(statusPage => {
+                const statusPages = [];
+                statusPage.statusPages.forEach(statuspage => {
+                    const monitorNames = [],
+                        monitors = [];
+                    statuspage.monitors.forEach(monitorData => {
+                        monitorNames.push(monitorData.monitor.name);
+                        monitors.push({
+                            ...monitorData,
+                            monitor: monitorData.monitor._id,
+                        });
+                    });
+                    statusPages.push({
+                        ...statuspage,
+                        monitorNames,
+                        monitors,
+                    });
+                });
+                
+                return {
+                    ...statusPage,
+                    statusPages,
+                };
+            });
+
+            return Object.assign({}, state, {
+                subProjectStatusPages,
+                error: null,
+                requesting: false,
+                success: true,
+            });
+        }
+
+
+        // for statuspages pointing to incidents
+        
+        case FETCH_INCIDENT_STATUSPAGE_REQUEST: 
+            return {
+                ...state,
+                error: null,
+                requesting: true,
+                success: false,
+                status: {},
+            };
+
+        case FETCH_INCIDENT_STATUSPAGE_FAILURE:
+            return  {
+                ...state,
+                status: {},
+                requesting: false,
+                success: false,
+                error: action.payload,
+            };
+
+        case FETCH_INCIDENT_STATUSPAGE_RESET:
+            return {
+                ...state,
+                incidentStatusPages: [],
+            };
+
+        case FETCH_INCIDENT_STATUSPAGE_SUCCESS: {
             statusPages = [];
-            action.payload[0].statusPages.forEach(statuspage => {
+            action.payload.data.forEach(statuspage => {
                 const monitorNames = [],
                     monitors = [];
-                statuspage.monitors.map(monitorData => {
+                statuspage.monitors.forEach(monitorData => {
                     monitorNames.push(monitorData.monitor.name);
-                    return true;
                 });
-                statuspage.monitors.map(monitorData => {
+                statuspage.monitors.forEach(monitorData => {
                     monitors.push({
                         ...monitorData,
                         monitor: monitorData.monitor._id,
                     });
-                    return true;
+                    
                 });
                 statusPages.push({
                     ...statuspage,
@@ -786,21 +851,22 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     monitors,
                 });
             });
-            newData = [
+            const incidentStatusPages = 
                 {
-                    count: action.payload[0].count,
-                    limit: action.payload[0].limit,
-                    skip: action.payload[0].skip,
+                    count: action.payload.count || 0,
+                    limit: action.payload.limit || 10,
+                    skip: action.payload.skip || 0,
                     statusPages,
-                    _id: action.payload[0]._id,
-                },
-            ];
-            return Object.assign({}, state, {
-                subProjectStatusPages: newData,
+                    
+                };
+            
+            return {
+                ...state,
+                incidentStatusPages,
                 error: null,
                 requesting: false,
                 success: true,
-            });
+            };
         }
 
         // fetch list of statuspages in a project

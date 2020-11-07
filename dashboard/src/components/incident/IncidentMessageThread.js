@@ -36,7 +36,7 @@ export class IncidentMessageThread extends Component {
                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                     <div className="Box-root">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                            <span>{title}</span>
+                            <span>{`${title} Notes`}</span>
                         </span>
                         <p>
                             <span>{description}</span>
@@ -109,7 +109,7 @@ export class IncidentMessageThread extends Component {
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{float: 'right'}}>
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Actions </span>
                                         </span>
@@ -282,9 +282,9 @@ export class IncidentMessageThread extends Component {
                                                             <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
                                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                     <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
+                                                                        <div className="Box-root Flex-flex" style={{justifyContent: 'flex-end'}}>
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2" style={{paddingRight:'0'}}>
                                                                                     <button
                                                                                         className="bs-Button bs-DeprecatedButton"
                                                                                         type="button"

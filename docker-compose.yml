@@ -26,7 +26,7 @@ services:
         depends_on:
             - mongo
             - redis
-            - haraka
+            # - haraka
 
     accounts:
         ports:
@@ -143,9 +143,9 @@ services:
 
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
-    haraka:
-        ports:
-            - '25:25'
-        build: ./haraka
+    # haraka:
+    #     ports:
+    #         - '25:25'
+    #     build: ./haraka
 volumes:
     mongodata:

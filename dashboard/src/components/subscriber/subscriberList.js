@@ -177,7 +177,7 @@ export class SubscriberList extends Component {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
                                     >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8" style={{marginLeft: '43px'}}>
                                             <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                                 Action
                                             </span>
@@ -476,7 +476,6 @@ SubscriberList.propTypes = {
     prevClicked: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     monitorId: PropTypes.string.isRequired,
-    delete: PropTypes.bool.isRequired,
     deleteSubscriber: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func,
     subProjectId: PropTypes.string,
@@ -543,4 +542,13 @@ const RemoveBtn = (props) => {
             </button>
         </>
     )
+}
+RemoveBtn.displayName = 'RemoveBtn';
+RemoveBtn.propTypes = {
+    openModal: PropTypes.func.isRequired,
+    deleteSubscriber: PropTypes.func.isRequired,
+    deleteSubscriberModalId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    _id: PropTypes.string.isRequired,
+    index: PropTypes.number.isRequired,
 }

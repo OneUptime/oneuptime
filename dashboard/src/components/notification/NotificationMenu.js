@@ -81,7 +81,15 @@ class NotificationMenu extends Component {
 
     render() {
         const userId = User.getUserId();
-        return this.props.notificationsVisible ? (
+        const allRead = this.props.notifications &&
+        this.props.notifications.notifications &&
+        this.props.notifications.notifications
+            .length ? (
+            this.props.notifications.notifications
+            .filter(notification => notification &&
+                notification.read && notification.read
+                .indexOf(userId) <= -1)).length : null;
+            return this.props.notificationsVisible ? (
             <div
                 className="notifications ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{
@@ -138,8 +146,7 @@ class NotificationMenu extends Component {
                                         >
                                             NOTIFICATIONS
                                         </span>
-
-                                        <span
+                                        {allRead ? <span
                                             style={{ cursor: 'pointer' }}
                                             onClick={() =>
                                                 this.markAllAsRead(
@@ -148,7 +155,7 @@ class NotificationMenu extends Component {
                                             }
                                         >
                                             Mark All As Read
-                                        </span>
+                                        </span> : ''}
                                     </div>
                                 </div>
                                 <div className="Box-root Padding-vertical--8">

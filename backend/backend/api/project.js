@@ -1025,6 +1025,9 @@ router.put(
             if (!data.sendResolvedIncidentNotificationEmail) {
                 data.sendResolvedIncidentNotificationEmail = false;
             }
+            if((data.replyAddress && !data.replyAddress.trim()) || !data.replyAddress) {
+                data.replyAddress = null;
+            }
 
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },
