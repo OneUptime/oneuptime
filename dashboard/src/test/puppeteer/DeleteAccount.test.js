@@ -208,14 +208,16 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.$eval('#advanced a', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
-                await page.waitForSelector('input[name=deleteMyAccount]');
-                await page.type(
-                    'input[name=deleteMyAccount]',
-                    'DELETE MY ACCOUNT'
-                );
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                await page.waitForSelector('#login-button', { visible: true });
+                await page.waitForSelector('#deleteMyAccount');
+                await page.type('#deleteMyAccount','delete my account');
+                await page.click('#btn_confirm_delete');
+                await page.waitForSelector("button[class='bs-Button btn__modal']");
+                await page.click("button[class='bs-Button btn__modal']");
+                await page.waitForNavigation();
+                const url = await page.url();
+                expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
             });
         },
         operationTimeOut
