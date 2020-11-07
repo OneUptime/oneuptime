@@ -11,6 +11,7 @@ import {
     getIncidentTimeline,
     fetchIncidentMessages,
 } from '../actions/incident';
+import {fetchIncidentStatusPages} from '../actions/statusPage'
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
@@ -31,6 +32,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import IncidentStatusPages from '../components/incident/incidentStatusPages';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -235,6 +237,7 @@ class Incident extends React.Component {
 
     ready = () => {
         this.fetchAllIncidentData();
+        this.props.fetchIncidentStatusPages(this.props.match.params.projectId, this.props.match.params.incidentId)
     };
 
     render() {
@@ -349,6 +352,7 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
+                                <IncidentStatusPages />
                                 <IncidentInvestigation
                                     incident={this.props.incident}
                                 />
@@ -499,6 +503,7 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentMessages,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            fetchIncidentStatusPages
         },
         dispatch
     );
@@ -532,6 +537,7 @@ Incident.propTypes = {
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentStatusPages: PropTypes.func.isRequired,
 };
 
 Incident.displayName = 'Incident';

@@ -427,6 +427,18 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
+    it('should fetch list of status pages for the incident', async function() {
+        const authorization = `Basic ${token}`;
+        const res = await request.get(`/incident/${projectId}/${incidentId}/statuspages`).set('Authorization', authorization);
+
+        expect(res).to.have.status(200);
+        expect(res.body).to.have.property('data')
+        expect(res.body).to.have.property('skip')
+        expect(res.body).to.have.property('limit')
+        expect(res.body).to.have.property('count')
+
+    })
+
     it('should fetch list of internal incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'internal';
