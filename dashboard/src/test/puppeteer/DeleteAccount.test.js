@@ -135,8 +135,10 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.$eval('#advanced a', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
+                await page.waitForSelector('#btn_confirm_delete');
+                await page.click('#btn_confirm_delete');
                 const deleteButton = await page.$(
-                    'button[id=btn_confirm_delete]'
+                    '#deleteMyAccount'
                 );
                 expect(deleteButton).toEqual(null);
             });
