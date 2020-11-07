@@ -1286,7 +1286,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_EditIncidentDetails`}
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {
