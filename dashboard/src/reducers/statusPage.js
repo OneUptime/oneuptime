@@ -831,7 +831,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
             };
 
         case FETCH_INCIDENT_STATUSPAGE_SUCCESS: {
-            statusPages = [];
+            const statusPages = [];
             action.payload.data.forEach(statuspage => {
                 const monitorNames = [],
                     monitors = [];
