@@ -123,7 +123,7 @@ if (
     process.argv.splice(process.argv.indexOf('-d'), 1);
 
     const child = new Monitor(`${__dirname}/server-monitor.js`, {
-        max: 3,
+        uid: 'fsm',
         silent: true,
         args: process.argv,
     });
@@ -151,6 +151,10 @@ if (
     });
 
     child.start();
+
+    process.nextTick(() => {
+        process.exit();
+    });
 } else if (process.argv && process.argv.includes('-d')) {
     logger.error(
         'Please provide your Project ID, API URL, API Key and Monitor ID to run Fyipe Server Monitor as a daemon'
