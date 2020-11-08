@@ -53,7 +53,8 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             testData || onlineTestData,
                             apiKey,
-                            () => {
+                            log => {
+                                logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
                                 );
@@ -70,7 +71,8 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             testData || degradedTestData,
                             apiKey,
-                            () => {
+                            log => {
+                                logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
                                 );
@@ -87,7 +89,8 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             testData || offlineTestData,
                             apiKey,
-                            () => {
+                            log => {
+                                logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
                                 );
@@ -152,7 +155,8 @@ const ping = (
                                 `monitor/${projectId}/log/${monitorId}`,
                                 data,
                                 apiKey,
-                                () => {
+                                log => {
+                                    logger.debug(log.data);
                                     logger.info(
                                         `${monitorId} - System Information uploaded`
                                     );
