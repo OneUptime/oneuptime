@@ -1021,7 +1021,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1046,7 +1046,7 @@ module.exports = {
                             component
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -1067,7 +1067,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1090,7 +1090,7 @@ module.exports = {
                             'Subscriber Incident Acknowldeged'
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -1111,7 +1111,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1134,7 +1134,7 @@ module.exports = {
                             'Subscriber Incident Resolved'
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
