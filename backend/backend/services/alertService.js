@@ -11,16 +11,19 @@ module.exports = {
         userId,
         alertType
     ) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const balance = project.balance;
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+
+        // should charge customer
+        // if balance is low, should automatically top up the balance
+        const project = await PaymentService.chargeAlert(
+            userId,
+            projectId,
+            alertChargeAmount.price
+        );
+        const balance = project.balance;
+
         if (balance > alertChargeAmount.minimumBalance) {
-            await PaymentService.chargeAlert(
-                userId,
-                projectId,
-                alertChargeAmount.price
-            );
             return true;
         } else {
             return false;
@@ -1266,7 +1269,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
 
                                 alertStatus = 'Sent';
@@ -1283,7 +1286,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
 
                                 alertStatus = 'Sent';
@@ -1308,7 +1311,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -1324,7 +1327,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -1346,7 +1349,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -1362,7 +1365,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -1473,6 +1476,7 @@ module.exports = {
                         owner.userId,
                         AlertType.SMS
                     );
+
                     if (!hasEnoughBalance) {
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,
