@@ -199,7 +199,7 @@ export class IncidentStatus extends Component {
             }
             const formatD = result.split("")
             for(let i=0; i<=formatD.length; i++) {
-                if(formatD[i] == "`"){
+                if(formatD[i] === "`"){
                     formatD[i] = ""
                 }
             }
