@@ -94,6 +94,13 @@ export function createMonitor(projectId, values) {
     };
 }
 
+export function toggleEdit(payload) {
+    return {
+        type: types.TOGGLE_EDIT,
+        payload
+    }
+}
+
 export function createMonitorSuccess(newMonitor) {
     return {
         type: types.CREATE_MONITOR_SUCCESS,
