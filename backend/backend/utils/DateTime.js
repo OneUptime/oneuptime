@@ -188,6 +188,10 @@ const _this = {
 
         return _this.lessThan(date, current);
     },
+
+    getCurrentYear: () => {
+        return new Date().getFullYear();
+    }
 };
 
 module.exports = _this;
