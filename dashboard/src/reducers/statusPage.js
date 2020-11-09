@@ -771,7 +771,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
             const subProjectStatusPages = action.payload.map(statusPage => {
-                const statusPages = [];
+                statusPages = [];
                 statusPage.statusPages.forEach(statuspage => {
                     const monitorNames = [],
                         monitors = [];
@@ -831,7 +831,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
             };
 
         case FETCH_INCIDENT_STATUSPAGE_SUCCESS: {
-            const statusPages = [];
+            statusPages = [];
             action.payload.data.forEach(statuspage => {
                 const monitorNames = [],
                     monitors = [];
