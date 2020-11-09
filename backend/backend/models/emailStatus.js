@@ -23,6 +23,7 @@ const schema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    replyTo: String,
 });
 
 module.exports = mongoose.model('EmailSent', schema);
