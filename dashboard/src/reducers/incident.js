@@ -292,33 +292,12 @@ export default function incident(state = initialState, action) {
             });
 
         case types.INCIDENT_SUCCESS: {
-                const str = action.payload.reason;
-                let result;
-                const strArr = str.split("\n")
-                const regex = /did\s{1,}not\s{1,}evaluate/
-                const patt = new RegExp(regex)
-                let success = false
-            
-                for (let i = 0; i < strArr.length; i++) {
-                     if (patt.test(strArr[i])) {
-                          success = true
-                          strArr[i] = `did not evaluate ${strArr[i].split(regex).splice(1,strArr[i].length - 1)}` 
-                     }
-                }
-            
-                if(success){
-                    result = strArr.join("\n")
-                } else {
-                    result = action.payload.reason
-                }
-            
-            const newData = {...action.payload, reason: result} 
             return Object.assign({}, state, {
                 incident: {
                     requesting: false,
                     error: null,
                     success: true,
-                    incident: newData,
+                    incident: action.payload,
                 },
             });
         }
@@ -606,38 +585,12 @@ export default function incident(state = initialState, action) {
             }
 
         case types.UNRESOLVED_INCIDENTS_SUCCESS: {
-            const newData = [];
-            action.payload.forEach(elem => {
-                let data;
-                const str = elem.reason;
-                if(str) {
-                    let result;
-                    const strArr = str.split("\n")
-                    const regex = /did\s{1,}not\s{1,}evaluate/
-                    const patt = new RegExp(regex)
-                    let success = false
-                    for (let i = 0; i < strArr.length; i++) {
-                            if (patt.test(strArr[i])) {
-                                success = true
-                                strArr[i] = `did not evaluate ${strArr[i].split(regex).splice(1,strArr[i].length - 1)}`
-                            }
-                    }
-                    if(success){
-                        result = strArr.join("\n")
-                        data = {...elem, reason: result}
-                    } else {
-                        result = elem.reason
-                        data = {...elem, reason: result}
-                    }
-                    newData.push(data);
-                }
-            })
             return Object.assign({}, state, {
                 unresolvedincidents: {
                     requesting: false,
                     error: null,
                     success: true,
-                    incidents: newData,
+                    incidents: action.payload,
                     resolving: false,
                 },
             });

@@ -22,6 +22,7 @@ import {
     fetchMonitorCriteria,
     fetchMonitorsIncidents,
     fetchMonitorsSubscribers,
+    toggleEdit
 } from '../../actions/monitor';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
@@ -335,6 +336,7 @@ class NewMonitor extends Component {
 
     cancelEdit = () => {
         this.props.editMonitorSwitch(this.props.index);
+        this.props.toggleEdit(false);
     };
 
     openAdvance = () => {
@@ -1387,6 +1389,7 @@ const mapDispatchToProps = dispatch =>
             fetchSchedules,
             scheduleSuccess,
             showUpgradeForm,
+            toggleEdit
         },
         dispatch
     );
@@ -1495,6 +1498,7 @@ NewMonitor.propTypes = {
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
     subProjects: PropTypes.array,
+    toggleEdit: PropTypes.func
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

@@ -250,11 +250,12 @@ describe('Incident Settings API', () => {
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
                 const incidentTitleSelector =
-                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(1) > div';
                 const incidentDescriptionSelector =
-                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(4)>div>p';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(2) > div';
                 const incidentPrioritySelector =
-                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(5) div';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(4) > div';
+
                 await page.waitForSelector(incidentTitleSelector);
                 const title = await page.$eval(
                     incidentTitleSelector,
@@ -312,7 +313,7 @@ describe('Incident Settings API', () => {
                     'tr.incidentListItem:first-of-type > td:nth-of-type(3)'
                 );
                 const incidentTitleSelector =
-                    '.bs-Fieldset-rows>.bs-Fieldset-row:nth-of-type(3)>div>span';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(1) > div';
                 const incidentStatusBoxSelector = '#incident_0';
                 await page.waitForSelector(incidentTitleSelector);
                 const incidentStatusBoxContent = await page.$eval(

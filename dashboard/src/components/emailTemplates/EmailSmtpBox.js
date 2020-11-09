@@ -53,7 +53,7 @@ const validate = (values, props) => {
 
         if (values.from) {
             if (!Validate.email(values.from)) {
-                errors.from = 'Please input from in proper format .';
+                errors.from = 'Please input valid email.';
             }
         } else {
             errors.from =
@@ -163,7 +163,7 @@ export class EmailSmtpBox extends Component {
                                                                         htmlFor="smtpswitch"
                                                                         style={{
                                                                             marginLeft:
-                                                                                '150px',
+                                                                                '341px',
                                                                         }}
                                                                     >
                                                                         <Field
@@ -439,7 +439,7 @@ export class EmailSmtpBox extends Component {
                                                                             htmlFor="secure"
                                                                             style={{
                                                                                 marginLeft:
-                                                                                    '200px',
+                                                                                    '341px',
                                                                             }}
                                                                         >
                                                                             <Field

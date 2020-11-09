@@ -179,7 +179,32 @@ export class IncidentStatus extends Component {
 
         const incidentReason =
             this.props.incident.reason &&
-            this.props.incident.reason.split('\n');
+            changeFormat(this.props.incident.reason);
+        function changeFormat(data) {
+            let result;
+            const strArr = data.split("\n")
+            const regex = /did\s{1,}not\s{1,}evaluate/
+            const patt = new RegExp(regex)
+            let success = false
+            for (let i = 0; i < strArr.length; i++) {
+                if (patt.test(strArr[i])) {
+                    success = true
+                    strArr[i] = `did not evaluate ${strArr[i].split(regex).splice(1, strArr[i].length - 1)}`
+                }
+            }
+            if (success) {
+                result = strArr.join("\n")
+            } else {
+                result = data
+            }
+            const formatD = result.split("")
+            for(let i=0; i<=formatD.length; i++) {
+                if(formatD[i] === "`"){
+                    formatD[i] = ""
+                }
+            }
+            return formatD.join("").split('\n');
+        }
 
         return (
             <div
@@ -1214,7 +1239,7 @@ export class IncidentStatus extends Component {
                                                                     .reason && (
                                                                     <button
                                                                         id={`${monitorName}_ShowResponse_${this.props.count}`}
-                                                                        title="Show Request Body"
+                                                                        title="Show Response Body"
                                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton Flex-flex"
                                                                         type="button"
                                                                         onClick={() =>
@@ -1244,7 +1269,7 @@ export class IncidentStatus extends Component {
                                                                         }
                                                                     >
                                                                         <span>
-                                                                            Show Request Body
+                                                                            Show Response Body
                                                                         </span>
                                                                     </button>
                                                                 )}
@@ -1306,7 +1331,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_EditIncidentDetails`}
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {

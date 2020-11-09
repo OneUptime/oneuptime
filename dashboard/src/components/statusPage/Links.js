@@ -183,7 +183,7 @@ export class Links extends Component {
                                                     createFooterLinkModalId
                                                 }
                                                 submitForm={this.submitForm}
-                                                statusPage={statusPage}
+                                                //statusPage={statusPage}
                                                 removeFooterLink={
                                                     this.handleRemoveFooterLink
                                                 }

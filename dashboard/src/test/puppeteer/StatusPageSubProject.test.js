@@ -199,6 +199,7 @@ describe('StatusPage API With SubProjects', () => {
         await cluster.execute({ email, password, subProjectName }, fn);
         done();
     }, 50000);
+
     test('should get list of status pages in sub-projects and paginate status pages in sub-project', async done => {
         const fn = async ({ page, data }) => {
             const user = {
@@ -235,7 +236,7 @@ describe('StatusPage API With SubProjects', () => {
                 await page.waitFor(5000);
                 statusPageRows = await page.$$('tr.statusPageListItem');
                 countStatusPages = statusPageRows.length;
-                expect(countStatusPages).toEqual(1);
+                expect(countStatusPages).toEqual(2);
 
                 const prevSelector = await page.$('#btnPrev');
 

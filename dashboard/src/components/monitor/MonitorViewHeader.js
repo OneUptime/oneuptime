@@ -11,7 +11,7 @@ import {
     editMonitorSwitch,
     fetchMonitorLogs,
     fetchMonitorStatuses,
-    deleteMonitor,
+    deleteMonitor, toggleEdit
 } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
@@ -94,6 +94,7 @@ export class MonitorViewHeader extends Component {
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
+        this.props.toggleEdit(true);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR CLICKED',
@@ -421,6 +422,7 @@ MonitorViewHeader.propTypes = {
     selectedProbe: PropTypes.func.isRequired,
     probes: PropTypes.array,
     creating: PropTypes.bool,
+    toggleEdit: PropTypes.func
 };
 
 const mapDispatchToProps = dispatch =>
@@ -433,6 +435,7 @@ const mapDispatchToProps = dispatch =>
             selectedProbe,
             openModal,
             closeModal,
+            toggleEdit
         },
         dispatch
     );

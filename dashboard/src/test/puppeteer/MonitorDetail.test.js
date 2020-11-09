@@ -145,7 +145,7 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(selector);
                 await page.click(selector);
                 const incidentTitleSelector =
-                    '#incident_0 .bs-Fieldset-row:nth-of-type(3) span';
+                    '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(1) > div';
                 await page.waitForSelector(incidentTitleSelector, {
                     visible: true,
                 });

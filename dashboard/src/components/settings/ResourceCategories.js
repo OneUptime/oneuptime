@@ -204,7 +204,7 @@ export class ResourceCategories extends Component {
                                             <div className="bs-ObjectList-cell">
                                                 Created
                                             </div>
-                                            <div className="bs-ObjectList-cell">
+                                            <div className="bs-ObjectList-cell" style={{float: 'right', paddingRight: '29px'}}>
                                                 Action
                                             </div>
                                         </header>
@@ -233,7 +233,7 @@ export class ResourceCategories extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{float: 'right', paddingRight: '8px'}}>
                                                             <div className="Box-root">
                                                                 <button
                                                                     onClick={() => {
