@@ -353,7 +353,7 @@ describe('Incident Timeline API', () => {
 
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
 
