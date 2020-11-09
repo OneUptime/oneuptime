@@ -216,8 +216,7 @@ class MonitorView extends React.Component {
                                                                                 if={
                                                                                     !this
                                                                                         .props
-                                                                                        .monitor
-                                                                                        .editMode
+                                                                                        .edit
                                                                                 }
                                                                             >
                                                                                 <MonitorViewHeader
@@ -243,8 +242,7 @@ class MonitorView extends React.Component {
                                                                                 if={
                                                                                     this
                                                                                         .props
-                                                                                        .monitor
-                                                                                        .editMode
+                                                                                        .edit
                                                                                 }
                                                                             >
                                                                                 <NewMonitor
@@ -567,6 +565,7 @@ const mapStateToProps = (state, props) => {
     return {
         componentId,
         monitor,
+        edit: state.monitor.monitorsList.editMode,
         initialValues,
         match: props.match,
         component,
@@ -593,6 +592,7 @@ const mapDispatchToProps = dispatch => {
 MonitorView.propTypes = {
     componentId: PropTypes.string,
     monitor: PropTypes.object,
+    edit: PropTypes.bool,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,
