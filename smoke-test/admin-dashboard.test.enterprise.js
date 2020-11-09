@@ -42,7 +42,6 @@ describe('Enterprise Admin Dashboard API', () => {
             return json;
         });
 
-        await page.waitFor(10000);
         localStorageData.should.have.property('access_token');
         localStorageData.should.have.property(
             'email',

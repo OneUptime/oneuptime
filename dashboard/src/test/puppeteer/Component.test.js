@@ -444,10 +444,11 @@ describe('Components', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
                 await page.click('#components');
-                await page.waitForSelector('#component0', { visible: true });
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
+
+                await page.waitForSelector('#component0', { visible: true });
 
                 const newComponentSelector = `#count_${newComponentName}`;
                 const componentSelector = `#count_${componentName}`;
@@ -544,6 +545,12 @@ describe('Components', () => {
                 await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
                 await monitorPage.click(`#incident_${monitorName}_0`);
 
+                // click acknowledge button
+                // acknowledge incident
+                await monitorPage.waitForSelector('#btnAcknowledge_0');
+                await monitorPage.click('#btnAcknowledge_0');
+                await monitorPage.waitForSelector('#btnAcknowledge_0');
+
                 // click resolve button
                 // resolve incident
                 await monitorPage.waitForSelector('#btnResolve_0');
@@ -583,7 +590,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);
@@ -632,7 +639,7 @@ describe('Components', () => {
                 await page.waitForSelector('#components');
                 await page.click('#components');
 
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector(`#count_${componentName}`);

@@ -68,7 +68,6 @@ const IncidentProjectBox = props => {
         };
     
         setIncidents(props.subProjectIncident);
-
         window.addEventListener('keydown', handleKeyboard);
 
         return () => {
