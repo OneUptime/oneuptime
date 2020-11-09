@@ -37,21 +37,21 @@ const ping = (
     apiUrl,
     apiKey,
     interval = '* * * * *',
-    status,
-    testData
+    simulate,
+    simulateData
 ) => {
     return new cron.CronJob(
         interval,
         () => {
-            if (typeof testData !== 'object') testData = null;
+            if (typeof simulateData !== 'object') simulateData = null;
 
-            switch (status) {
+            switch (simulate) {
                 case 'online':
                     try {
                         post(
                             apiUrl,
                             `monitor/${projectId}/log/${monitorId}`,
-                            testData || onlineTestData,
+                            simulateData || onlineTestData,
                             apiKey,
                             log => {
                                 logger.debug(log.data);
@@ -69,7 +69,7 @@ const ping = (
                         post(
                             apiUrl,
                             `monitor/${projectId}/log/${monitorId}`,
-                            testData || degradedTestData,
+                            simulateData || degradedTestData,
                             apiKey,
                             log => {
                                 logger.debug(log.data);
@@ -87,7 +87,7 @@ const ping = (
                         post(
                             apiUrl,
                             `monitor/${projectId}/log/${monitorId}`,
-                            testData || offlineTestData,
+                            simulateData || offlineTestData,
                             apiKey,
                             log => {
                                 logger.debug(log.data);
@@ -247,8 +247,8 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                             apiUrl,
                             apiKey,
                             config.interval,
-                            config.status,
-                            config.testData
+                            config.simulate,
+                            config.simulateData
                         );
                         pingServer.start();
 
