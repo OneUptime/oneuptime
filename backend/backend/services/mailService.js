@@ -194,7 +194,7 @@ const _this = {
                 to: userEmail,
                 replyTo: accountMail.from,
                 cc: accountMail.from,
-                subject: 'Project Delete Feedback',
+                subject: 'We need your feedback',
                 template: 'delete_project',
                 context: {
                     projectName,
