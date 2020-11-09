@@ -150,7 +150,7 @@ export class IncidentMessageThread extends Component {
                                                                         .createdById
                                                                         .name
                                                                         ? '/dashboard/assets/img/profile-user.svg'
-                                                                        : '/dashboard/assets/img/fyipe.svg'
+                                                                        : '/dashboard/assets/img/Fyipe.svg'
                                                                 }
                                                                 className="userIcon"
                                                                 alt="usericon"

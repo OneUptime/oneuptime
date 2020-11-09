@@ -38,4 +38,10 @@
         ; e.amplitude = n
 })(window, document);
 
-amplitude.getInstance().init("802d95003af23aad17ed068b6cfdeb2b");
+amplitude.getInstance().init("802d95003af23aad17ed068b6cfdeb2b", null, {
+    // include referrer information in amplitude. 
+    saveEvents: true,
+    includeUtm: true,
+    includeReferrer: true,
+    includeGclid: true
+});

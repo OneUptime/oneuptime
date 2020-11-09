@@ -35020,6 +35020,10 @@ span.CodeMirror-selectedtext {
   font-weight: 600;
 }
 
+.bs-content-inside code {
+  color: black;
+}
+
 @media (max-width: 768px) {
   .bs-Fieldset.bs-container, .bs-content-1 {
     width: 100%;

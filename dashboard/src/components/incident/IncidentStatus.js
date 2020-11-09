@@ -197,13 +197,7 @@ export class IncidentStatus extends Component {
             } else {
                 result = data
             }
-            const formatD = result.split("")
-            for(let i=0; i<=formatD.length; i++) {
-                if(formatD[i] == "`"){
-                    formatD[i] = ""
-                }
-            }
-            return formatD.join("").split('\n');
+            return result.replace('did', "Did").split('\n');
         }
 
         return (
@@ -230,7 +224,7 @@ export class IncidentStatus extends Component {
                                                 }
                                             </div>
                                             {
-                                                ((incidentReason && incidentReason.length > 1) || (this.props.incident.monitorId.type === 'api')) &&
+                                                ((incidentReason && incidentReason.length > 1) || (this.props.incident.monitorId.type === 'api') || (incidentReason && incidentReason.length === 1 && incidentReason.join().length > 30)) &&
                                                 <div className="bs-redun">
                                                     Acknowledge and Resolve this
                                                     incident.
@@ -276,7 +270,7 @@ export class IncidentStatus extends Component {
                                                 .incidentType &&
                                                 this.props.incident
                                                     .reason &&
-                                                (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (
+                                                (incidentReason && incidentReason.length === 1) && this.props.incident.monitorId.type !== 'api' && (incidentReason && incidentReason.join().length <= 30) && (
                                                     <div className="bs-font-normal bs-flex-display">
                                                         <label className="bs-h">
                                                             Cause:
@@ -1331,7 +1325,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_EditIncidentDetails`}
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {

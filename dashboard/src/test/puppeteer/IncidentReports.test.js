@@ -94,16 +94,14 @@ describe('Incident Reports API', () => {
                 await page.waitFor(120000);
 
                 let incidentReportElement = await page.waitForSelector(
-                    `#${monitorName}_IncidentReport`,
+                    `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
                 );
                 incidentReportElement = await incidentReportElement.getProperty(
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement).toMatch(
-                    "This degraded incident was created because the monitor's Response Time was"
-                );
+                expect(incidentReportElement.startsWith("Response Time was")).toEqual(true);
             });
         },
         operationTimeOut
@@ -140,7 +138,7 @@ describe('Incident Reports API', () => {
                 await page.waitFor(120000);
 
                 let incidentReportElement = await page.waitForSelector(
-                    `#${monitorName}_IncidentReport`,
+                    `#${monitorName}_IncidentReport_0`,
                     { visible: true, timeout: operationTimeOut }
                 );
                 incidentReportElement = await incidentReportElement.getProperty(
@@ -148,7 +146,7 @@ describe('Incident Reports API', () => {
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
                 expect(incidentReportElement).toMatch(
-                    "This offline incident was created because the monitor's Status Code was 400."
+                    "Status Code was 400."
                 );
             });
         },

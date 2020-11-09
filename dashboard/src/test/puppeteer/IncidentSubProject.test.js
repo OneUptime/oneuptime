@@ -111,17 +111,17 @@ describe('Incident API With SubProjects', () => {
                 });
                 await page.$eval('#closeIncident_0', elem => elem.click());
 
-                await page.waitForSelector('#incident_span_0', {
+                await page.waitForSelector('#incident_0', {
                     visible: true,
                 });
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                const incidentTitleSelector = await page.$('#incident_0  .bs-font-header');
 
                 let textContent = await incidentTitleSelector.getProperty(
                     'innerText'
                 );
                 textContent = await textContent.jsonValue();
                 expect(textContent.toLowerCase()).toEqual(
-                    `${projectMonitorName}'s Incident Status`.toLowerCase()
+                    `${projectMonitorName} is offline`.toLowerCase()
                 );
                 await init.logout(page);
             });
@@ -140,7 +140,7 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(newComponentName, page);
 
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                const incidentTitleSelector = await page.$('#incident_0 .bs-font-header');
                 expect(incidentTitleSelector).toBeNull();
                 await init.logout(page);
             });
@@ -181,15 +181,15 @@ describe('Incident API With SubProjects', () => {
                 });
                 await page.$eval('#closeIncident_0', elem => elem.click());
 
-                await page.waitForSelector('#incident_span_0');
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                await page.waitForSelector('#incident_1');
+                const incidentTitleSelector = await page.$('#incident_0 .bs-font-header');
 
                 let textContent = await incidentTitleSelector.getProperty(
                     'innerText'
                 );
                 textContent = await textContent.jsonValue();
                 expect(textContent.toLowerCase()).toEqual(
-                    `${projectMonitorName1}'s Incident Status`.toLowerCase()
+                    `${projectMonitorName1} is offline`.toLowerCase()
                 );
                 await init.logout(page);
             });

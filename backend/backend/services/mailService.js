@@ -1066,7 +1066,7 @@ const _this = {
                     firstName,
                     userId,
                     projectId,
-                    ack_url : acknowledgeUrl,
+                    ack_url: acknowledgeUrl,
                     resolve_url: resolveUrl,
                     acknowledgeUrl,
                     resolveUrl,
@@ -1130,7 +1130,7 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress,
+        replyAddress
     ) {
         let mailOptions = {};
         try {
@@ -1156,15 +1156,28 @@ const _this = {
                 incident.projectId
             );
             const privateMailer = await _this.createMailer(smtpSettings);
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
-                to: email,
-                subject: subject,
-                template: 'template',
-                context: {
-                    body: template,
-                },
-            };
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            }
 
             if (!privateMailer) {
                 await EmailStatusService.create({
@@ -1173,6 +1186,9 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
                 });
                 return;
             }
@@ -1183,6 +1199,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             return info;
         } catch (error) {
@@ -1196,6 +1213,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             throw error;
         }
@@ -1222,7 +1240,7 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress,
+        replyAddress
     ) {
         let mailOptions = {};
         try {
@@ -1248,15 +1266,28 @@ const _this = {
                 incident.projectId
             );
             const privateMailer = await _this.createMailer(smtpSettings);
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
-                to: email,
-                subject: subject,
-                template: 'template',
-                context: {
-                    body: template,
-                },
-            };
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            }
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1264,6 +1295,9 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
                 });
                 return;
             }
@@ -1274,6 +1308,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             return info;
         } catch (error) {
@@ -1287,6 +1322,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             throw error;
         }
@@ -1313,7 +1349,7 @@ const _this = {
         trackEmailAsViewedUrl,
         componentName,
         statusPageUrl,
-        replyAddress,
+        replyAddress
     ) {
         let mailOptions = {};
         try {
@@ -1339,16 +1375,31 @@ const _this = {
                 incident.projectId
             );
             const privateMailer = await _this.createMailer(smtpSettings);
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${replyAddress || smtpSettings.from}>`,
-                to: email,
-                subject: subject,
-                template: 'template',
-                context: {
-                    homeURL: global.homeHost,
-                    body: template,
-                },
-            };
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        homeURL: global.homeHost,
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        homeURL: global.homeHost,
+                        body: template,
+                    },
+                };
+            }
+
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1356,6 +1407,9 @@ const _this = {
                     subject: mailOptions.subject,
                     template: mailOptions.template,
                     status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
                 });
                 return;
             }
@@ -1366,6 +1420,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Success',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             return info;
         } catch (error) {
@@ -1379,6 +1434,7 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
             });
             throw error;
         }
