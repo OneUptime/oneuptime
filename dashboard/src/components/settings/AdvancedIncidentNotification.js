@@ -85,9 +85,7 @@ class AdvancedIncidentNotification extends Component {
                                         }}
                                     >
                                         <label style={{ marginRight: 10 }}>
-                                            {showMoreOptions
-                                                ? 'Hide more advanced options'
-                                                : 'Show more advanced options'}
+                                            Show more advanced options
                                         </label>
                                         <div>
                                             <label className="Toggler-wrap">
