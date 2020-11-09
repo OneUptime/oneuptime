@@ -7,6 +7,11 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const GlobalConfigService = require('./globalConfigService');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
+const DateTime = require('../utils/DateTime');
+
+const helpers = {
+    year: DateTime.getCurrentYear,
+};
 
 const options = {
     viewEngine: {
@@ -14,6 +19,7 @@ const options = {
         layoutsDir: 'views/email/',
         defaultLayout: 'template',
         partialsDir: 'views/partials/',
+        helpers
     },
     viewPath: 'views/email/',
     extName: '.hbs',
@@ -479,9 +485,8 @@ const _this = {
                     forgotPasswordURL,
                 },
             };
-
             const mailer = await _this.createMailer({});
-
+            
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
