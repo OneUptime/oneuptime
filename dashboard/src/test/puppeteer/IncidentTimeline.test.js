@@ -474,7 +474,7 @@ describe('Incident Timeline API', () => {
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.click('#btnAcknowledge_0');
+                await page.$eval('#btnAcknowledge_0',e=> e.click());
                 await page.waitForSelector('#AcknowledgeText_0', {
                     visible: true,
                 });
