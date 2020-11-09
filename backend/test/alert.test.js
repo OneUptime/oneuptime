@@ -167,17 +167,13 @@ describe('Alert API', function() {
                 });
         });
 
-        it('should not delete alert with invalid projectId', function(done) {
+        it('should not delete alert with non-existing projectId', function(done) {
             let authorization = `Basic ${token}`;
             request
-                .delete('/alert/20')
+                .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
                 .end(function(err, res) {
                     expect(res).to.have.status(400);
-                    expect(res.body).to.have.property('message');
-                    expect(res.body.message).to.be.equal(
-                        'Project ID is not valid.'
-                    );
                     done();
                 });
         });
