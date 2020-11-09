@@ -2,6 +2,7 @@ import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
+import ErrorTrackingIssueView from './pages/ErrorTrackingIssueView';
 
 const {
     Home,
@@ -88,7 +89,7 @@ export const groups = [
             {
                 title: 'Error Tracking',
                 path:
-                    '/dashboard/project/:projectId/:componentId/error-tracking',
+                    '/dashboard/project/:projectId/:componentId/error-tracker',
                 icon: 'errorTracking',
                 visible: true,
                 exact: true,
@@ -97,14 +98,26 @@ export const groups = [
                 shortcut: 'c+l',
                 subRoutes: [
                     {
-                        title: 'Error Tracking Issue View',
+                        title: 'Error Tracking View',
                         path:
-                            '/dashboard/project/:projectId/:componentId/error-tracking/:errorTrackerId',
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
                         icon: 'radar',
                         visible: true,
+                        exact: true,
                         subRoutes: [],
                         component: ErrorTrackingView,
                         index: 1,
+                    },
+                    {
+                        title: 'Error Tracking Detail View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                        icon: 'radar',
+                        visible: true,
+                        exact: true,
+                        subRoutes: [],
+                        component: ErrorTrackingIssueView,
+                        index: 2,
                     },
                 ],
             },
