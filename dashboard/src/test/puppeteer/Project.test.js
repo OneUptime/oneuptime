@@ -117,6 +117,10 @@ describe('Project Settings', () => {
                 });
                 await page.click(`#delete-${newProjectName}`);
                 // confirm the delete modal comes up and the form is available
+                await page.waitForSelector('#btnDeleteProject', {
+                    visible: true,
+                });
+                await page.click('#btnDeleteProject');
                 await page.waitForSelector(`#delete-project-form`, {
                     visible: true,
                 });

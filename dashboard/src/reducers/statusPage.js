@@ -188,7 +188,7 @@ const INITIAL_STATE = {
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
-    let status, statusPage, isExistingStatusPage;
+    let status, statusPage, statusPages, isExistingStatusPage;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:

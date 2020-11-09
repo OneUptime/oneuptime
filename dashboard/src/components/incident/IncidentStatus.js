@@ -199,7 +199,7 @@ export class IncidentStatus extends Component {
             }
             const formatD = result.split("")
             for(let i=0; i<=formatD.length; i++) {
-                if(formatD[i] == "`"){
+                if(formatD[i] === "`"){
                     formatD[i] = ""
                 }
             }
@@ -1331,7 +1331,7 @@ export class IncidentStatus extends Component {
                             >
                                 <button
                                     className="bs-Button bs-Button--more bs-btn-extra"
-                                    id={`${monitorName}_EditIncidentDetails`}
+                                    id={`${monitorName}_ViewIncidentDetails`}
                                     type="button"
                                     onClick={() => {
                                         setTimeout(() => {

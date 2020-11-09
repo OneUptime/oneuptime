@@ -473,8 +473,8 @@ describe('Incident Timeline API', () => {
                 );
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
-                await page.waitForSelector('label[id=btnAcknowledge_0]');
-                await page.click('label[id=btnAcknowledge_0]');
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.click('#btnAcknowledge_0');
                 await page.waitForSelector('#AcknowledgeText_0', {
                     visible: true,
                 });
@@ -516,8 +516,8 @@ describe('Incident Timeline API', () => {
                 );
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
-                await page.waitForSelector('label[id=btnResolve_0]');
-                await page.click('label[id=btnResolve_0]');
+                await page.waitForSelector('#btnResolve_0');
+                await page.click('#btnResolve_0');
                 await page.waitForSelector('#ResolveText_0');
                 await init.gotoTab(
                     utils.incidentTabIndexes.INCIDENT_TIMELINE,

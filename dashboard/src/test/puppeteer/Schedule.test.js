@@ -156,7 +156,7 @@ describe('Schedule', () => {
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
         async () => {
             await cluster.execute(null, async ({ page }) => {
-                const projectName = 'newproject';
+                const projectName = 'newproject1';
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
