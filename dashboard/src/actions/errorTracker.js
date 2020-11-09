@@ -188,3 +188,73 @@ export function resetFetchErrorTrackerIssues() {
         type: types.FETCH_ISSUES_RESET,
     };
 }
+
+export function fetchErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    errorEventId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/error-events/${errorEventId}`
+        );
+        dispatch(fetchErrorEventRequest(errorTrackerId, errorEventId));
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    fetchErrorEventSuccess({
+                        errorTrackerId,
+                        errorEventId,
+                        errorEvent: response.data.errorEvent,
+                        previous: response.data.previous,
+                        next: response.data.next,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchErrorEventSuccess(errorEvent) {
+    return {
+        type: types.FETCH_ERROR_EVENT_SUCCESS,
+        payload: errorEvent,
+    };
+}
+
+export function fetchErrorEventRequest(errorTrackerId, errorEventId) {
+    return {
+        type: types.FETCH_ERROR_EVENT_REQUEST,
+        payload: { errorTrackerId, errorEventId },
+    };
+}
+
+export function fetchErrorEventFailure(error) {
+    return {
+        type: types.FETCH_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetFetchErrorEvent() {
+    return {
+        type: types.FETCH_ERROR_EVENT_RESET,
+    };
+}
