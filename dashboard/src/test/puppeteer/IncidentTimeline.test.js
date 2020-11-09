@@ -162,7 +162,7 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.click(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
 
                 // click on incident notes tab
                 await init.gotoTab(
