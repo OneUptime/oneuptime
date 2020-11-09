@@ -7,7 +7,12 @@ import PropTypes from 'prop-types';
 
 class ErrorTrackerDetailView extends Component {
     render() {
-        const { errorTrackerIssues, errorTracker } = this.props;
+        const {
+            errorTrackerIssues,
+            errorTracker,
+            projectId,
+            componentId,
+        } = this.props;
         return (
             <div>
                 <div
@@ -171,6 +176,8 @@ class ErrorTrackerDetailView extends Component {
                                                 }
                                                 errorTracker={errorTracker}
                                                 key={i}
+                                                projectId={projectId}
+                                                componentId={componentId}
                                             />
                                         );
                                     }
@@ -220,6 +227,8 @@ function mapStateToProps(state, ownProps) {
 ErrorTrackerDetailView.propTypes = {
     errorTrackerIssues: PropTypes.object,
     errorTracker: PropTypes.object,
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

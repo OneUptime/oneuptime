@@ -15,7 +15,7 @@ class ErrorTrackerDetail extends Component {
                 currentProject._id +
                 '/' +
                 componentId +
-                '/error-tracking/' +
+                '/error-trackers/' +
                 errorTracker._id
         );
     };
@@ -35,7 +35,13 @@ class ErrorTrackerDetail extends Component {
         );
     }
     render() {
-        const { errorTracker, errorTrackerIssue, isDetails } = this.props;
+        const {
+            errorTracker,
+            errorTrackerIssue,
+            isDetails,
+            componentId,
+            currentProject,
+        } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -51,6 +57,8 @@ class ErrorTrackerDetail extends Component {
                                 <div>
                                     <ErrorTrackerDetailView
                                         errorTracker={errorTracker}
+                                        componentId={componentId}
+                                        projectId={currentProject._id}
                                     />
                                 </div>
                             </div>
