@@ -577,7 +577,7 @@ module.exports = {
                 incident.probes.forEach(async probe => {
                     await MonitorStatusService.create({
                         monitorId: incident.monitorId._id,
-                        probeId: probe.probeId._id,
+                        probeId: probe.probeId ? probe.probeId._id : null,
                         manuallyCreated: userId ? true : false,
                         status: 'online',
                     });
