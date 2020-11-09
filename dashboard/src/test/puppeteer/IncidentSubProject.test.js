@@ -380,7 +380,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
                 await page.waitFor(2000);
