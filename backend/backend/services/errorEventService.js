@@ -155,6 +155,48 @@ module.exports = {
             throw error;
         }
     },
+    async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
+        try {
+            let previous, next;
+            const previousErrorEvent = await ErrorEventModel.find({
+                _id: { $lt: errorEventId },
+                errorTrackerId: errorTrackerId,
+            })
+                .sort({ _id: -1 })
+                .limit(1);
+            if (previousErrorEvent.length > 0) {
+                previous = {
+                    _id: previousErrorEvent[0]._id,
+                    createdAt: previousErrorEvent[0].createdAt,
+                };
+            }
+            const errorEvent = await ErrorEventModel.findOne({
+                _id: errorEventId,
+                errorTrackerId: errorTrackerId,
+            });
+            const nextErrorEvent = await ErrorEventModel.find({
+                _id: { $gt: errorEventId },
+                errorTrackerId: errorTrackerId,
+            })
+                .sort({ _id: -1 })
+                .limit(1);
+            if (nextErrorEvent.length > 0) {
+                next = {
+                    _id: nextErrorEvent[0]._id,
+                    createdAt: nextErrorEvent[0].createdAt,
+                };
+            }
+
+            return {
+                previous: previous || null,
+                errorEvent,
+                next: next || null,
+            };
+        } catch (error) {
+            ErrorService.log('errorEventService.findOneWithPrevAndNext', error);
+            throw error;
+        }
+    },
     async getUniqueHashes() {
         try {
             const uniqueHashes = await ErrorEventModel.aggregate([

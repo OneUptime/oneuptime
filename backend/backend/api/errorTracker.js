@@ -321,6 +321,44 @@ router.post(
         }
     }
 );
+// Description: Get error event by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const errorEventId = req.params.errorEventId;
+            if (!errorEventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            // find that current error event with the previous and next values
+            const errorEvent = await ErrorEventService.findOneWithPrevAndNext(
+                errorEventId,
+                errorTrackerId
+            );
+
+            return sendItemResponse(req, res, errorEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 // Description: Get all error event by hash and errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/error-events',
