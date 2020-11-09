@@ -521,11 +521,20 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 refinedIncidents.push({
                     item: {
                         title: incident.title,
-                        "guid":  `${global.apiHost}/statusPage/${statusPageId}/rss/${incident._id}`,
+                        guid: `${global.apiHost}/statusPage/${statusPageId}/rss/${incident._id}`,
                         pubDate: new Date(incident.createdAt).toUTCString(),
-                        description: `<![CDATA[Description: ${incident.description}<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${incident.monitorId.name}
-                        <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${incident.acknowledgedAt}<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote ? `Investigation Note: ${incident.investigationNote}`: ''}]]>`,
-                    
+                        description: `<![CDATA[Description: ${
+                            incident.description
+                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${
+                            incident.monitorId.name
+                        }
+                        <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${
+                            incident.acknowledgedAt
+                        }<br>Resolve Time: ${incident.resolvedAt}<br>${
+                            incident.investigationNote
+                                ? `Investigation Note: ${incident.investigationNote}`
+                                : ''
+                        }]]>`,
                     },
                 });
             }
@@ -538,8 +547,8 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _name: 'rss',
                 _attrs: {
                     version: '2.0',
-                    "xmlns:content": "http://purl.org/rss/1.0/modules/content/",
-                    "xmlns:wfw": "http://wellformedweb.org/CommentAPI/",
+                    'xmlns:content': 'http://purl.org/rss/1.0/modules/content/',
+                    'xmlns:wfw': 'http://wellformedweb.org/CommentAPI/',
                 },
                 _content: {
                     channel: [
@@ -559,8 +568,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                         {
                             language: 'en',
                         },
-                            ...refinedIncidents,
-                      
+                        ...refinedIncidents,
                     ],
                 },
             };

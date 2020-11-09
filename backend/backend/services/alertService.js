@@ -1266,7 +1266,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
 
                                 alertStatus = 'Sent';
@@ -1283,7 +1283,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
 
                                 alertStatus = 'Sent';
@@ -1308,7 +1308,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -1324,7 +1324,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             }
@@ -1346,7 +1346,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             } else {
@@ -1362,7 +1362,7 @@ module.exports = {
                                     trackEmailAsViewedUrl,
                                     component.name,
                                     statusPageUrl,
-                                    project.replyAddress,
+                                    project.replyAddress
                                 );
                                 alertStatus = 'Sent';
                             }

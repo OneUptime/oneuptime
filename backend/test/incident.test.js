@@ -308,9 +308,13 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
         // check if sorted by ascending order of createdAt
-        expect(res.body.data.sort((firstIncidentTimeline, secondIncidentTimeline) => 
-            Date.parse(firstIncidentTimeline.createdAt) > Date.parse(secondIncidentTimeline.createdAt)
-        )).to.equal(res.body.data)
+        expect(
+            res.body.data.sort(
+                (firstIncidentTimeline, secondIncidentTimeline) =>
+                    Date.parse(firstIncidentTimeline.createdAt) >
+                    Date.parse(secondIncidentTimeline.createdAt)
+            )
+        ).to.equal(res.body.data);
     });
 
     it('should require an incident state', async function() {
@@ -429,15 +433,16 @@ describe('Incident API', function() {
 
     it('should fetch list of status pages for the incident', async function() {
         const authorization = `Basic ${token}`;
-        const res = await request.get(`/incident/${projectId}/${incidentId}/statuspages`).set('Authorization', authorization);
+        const res = await request
+            .get(`/incident/${projectId}/${incidentId}/statuspages`)
+            .set('Authorization', authorization);
 
         expect(res).to.have.status(200);
-        expect(res.body).to.have.property('data')
-        expect(res.body).to.have.property('skip')
-        expect(res.body).to.have.property('limit')
-        expect(res.body).to.have.property('count')
-
-    })
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('skip');
+        expect(res.body).to.have.property('limit');
+        expect(res.body).to.have.property('count');
+    });
 
     it('should fetch list of internal incident messages', async function() {
         const authorization = `Basic ${token}`;

@@ -11,7 +11,8 @@ import {
     editMonitorSwitch,
     fetchMonitorLogs,
     fetchMonitorStatuses,
-    deleteMonitor, toggleEdit
+    deleteMonitor,
+    toggleEdit,
 } from '../../actions/monitor';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
@@ -422,7 +423,7 @@ MonitorViewHeader.propTypes = {
     selectedProbe: PropTypes.func.isRequired,
     probes: PropTypes.array,
     creating: PropTypes.bool,
-    toggleEdit: PropTypes.func
+    toggleEdit: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -435,7 +436,7 @@ const mapDispatchToProps = dispatch =>
             selectedProbe,
             openModal,
             closeModal,
-            toggleEdit
+            toggleEdit,
         },
         dispatch
     );

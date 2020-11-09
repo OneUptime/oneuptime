@@ -71,9 +71,7 @@ class EventBox extends Component {
                         if (modalList.length === 0) {
                             event.preventDefault();
                             return document
-                                .getElementById(
-                                    'addScheduledEventButton'
-                                )
+                                .getElementById('addScheduledEventButton')
                                 .click();
                         }
                         return false;
@@ -175,7 +173,8 @@ class EventBox extends Component {
                                             {allScheduleEventLength === 1 ? (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                     <span>
-                                                        Create New Scheduled Event
+                                                        Create New Scheduled
+                                                        Event
                                                     </span>
                                                     <span className="new-btn__keycode">
                                                         N
@@ -184,7 +183,8 @@ class EventBox extends Component {
                                             ) : (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                                     <span>
-                                                        Create New Scheduled Event
+                                                        Create New Scheduled
+                                                        Event
                                                     </span>
                                                 </span>
                                             )}
@@ -218,7 +218,13 @@ class EventBox extends Component {
                                     <div className="bs-ObjectList-cell">
                                         End Date
                                     </div>
-                                    <div className="bs-ObjectList-cell" style={{float: 'right', marginRight: '10px'}}>
+                                    <div
+                                        className="bs-ObjectList-cell"
+                                        style={{
+                                            float: 'right',
+                                            marginRight: '10px',
+                                        }}
+                                    >
                                         Action
                                     </div>
                                 </header>

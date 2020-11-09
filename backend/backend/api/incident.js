@@ -507,14 +507,26 @@ router.post(
 
 // fetches status pages for an incident
 // returns a list of status pages pointing to the incident
-router.get('/:projectId/:incidentId/statuspages', getUser, isAuthorized, async function(req, res) {
-    try {
-        const {statusPages, count} = await StatusPageService.getStatusPagesForIncident(req.params.incidentId, parseInt(req.query.skip)|| 0, parseInt(req.query.limit)|| 10)
-        return sendListResponse(req, res, statusPages, count)
-    }catch(error) {
-        return sendErrorResponse(req, res, error)
+router.get(
+    '/:projectId/:incidentId/statuspages',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const {
+                statusPages,
+                count,
+            } = await StatusPageService.getStatusPagesForIncident(
+                req.params.incidentId,
+                parseInt(req.query.skip) || 0,
+                parseInt(req.query.limit) || 10
+            );
+            return sendListResponse(req, res, statusPages, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-})
+);
 
 router.delete(
     '/:projectId/incident/:incidentId/message/:incidentMessageId',

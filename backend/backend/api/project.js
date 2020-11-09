@@ -1025,7 +1025,10 @@ router.put(
             if (!data.sendResolvedIncidentNotificationEmail) {
                 data.sendResolvedIncidentNotificationEmail = false;
             }
-            if((data.replyAddress && !data.replyAddress.trim()) || !data.replyAddress) {
+            if (
+                (data.replyAddress && !data.replyAddress.trim()) ||
+                !data.replyAddress
+            ) {
                 data.replyAddress = null;
             }
 

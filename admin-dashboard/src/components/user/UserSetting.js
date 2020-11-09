@@ -153,7 +153,7 @@ export class UserSetting extends Component {
                                                 style={{
                                                     alignItems: 'flex-start',
                                                     maxWidth: '280px',
-                                                    flexDirection: 'row'
+                                                    flexDirection: 'row',
                                                 }}
                                             >
                                                 <span className="value">
@@ -161,21 +161,30 @@ export class UserSetting extends Component {
                                                         ? this.props.user.email
                                                         : 'LOADING...'}
                                                 </span>
-                                                       {!this.props.user.isVerified ? (
-                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2" style={{marginLeft: '5px'}}>
-                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                    Not verified
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2" style={{marginLeft: '5px'}}>
-                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
-                                                                    Verified
-                                                                </span>
-                                                            </div>
-                                                        )}
+                                                {!this.props.user.isVerified ? (
+                                                    <div
+                                                        className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        style={{
+                                                            marginLeft: '5px',
+                                                        }}
+                                                    >
+                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                            Not verified
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        style={{
+                                                            marginLeft: '5px',
+                                                        }}
+                                                    >
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
+                                                            Verified
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            
                                         </div>
                                         <div
                                             className="bs-Fieldset-row"
@@ -240,22 +249,30 @@ export class UserSetting extends Component {
                                         <ShouldRender
                                             if={this.props.user.role === 'user'}
                                         >
-                                            <div className="bs-Fieldset-row" style={{justifyContent: 'center'}}>
-                                                <label className="bs-Fieldset-label user-details-fieldset-label"
-                                                 style={{
-                                                    width: '12rem',
-                                                    textAlign: 'left',
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{
+                                                    justifyContent: 'center',
                                                 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label user-details-fieldset-label"
+                                                    style={{
+                                                        width: '12rem',
+                                                        textAlign: 'left',
+                                                    }}
                                                 >
                                                     Two Factor Authentication{' '}
                                                     <br /> by Google
                                                     Authenticator
                                                 </label>
-                                                <div className="bs-Fieldset-fields"
-                                                 style={{
-                                                    alignItems: 'flex-start',
-                                                    maxWidth: '253px',
-                                                }}
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        alignItems:
+                                                            'flex-start',
+                                                        maxWidth: '253px',
+                                                    }}
                                                 >
                                                     <label
                                                         id="disableUser2fa"

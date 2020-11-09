@@ -141,7 +141,12 @@ class DeleteAccount extends Component {
                                                         margin: '10px 0',
                                                     }}
                                                 >
-                                                    <div className="clear_times"  style={{width: '19px'}}></div>
+                                                    <div
+                                                        className="clear_times"
+                                                        style={{
+                                                            width: '19px',
+                                                        }}
+                                                    ></div>
                                                     <div className="clear_msg_txt">
                                                         Your customers, users
                                                         and team will lose

@@ -97,8 +97,8 @@ export function createMonitor(projectId, values) {
 export function toggleEdit(payload) {
     return {
         type: types.TOGGLE_EDIT,
-        payload
-    }
+        payload,
+    };
 }
 
 export function createMonitorSuccess(newMonitor) {

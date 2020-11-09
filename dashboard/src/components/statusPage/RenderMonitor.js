@@ -284,7 +284,11 @@ const mapStateToProps = (state, ownProps) => {
     const subProjectId = subProject._id;
 
     const allComponents = state.component.componentList.components
-        .filter(component => String(component._id._id || component._id) === String(subProjectId))
+        .filter(
+            component =>
+                String(component._id._id || component._id) ===
+                String(subProjectId)
+        )
         .map(component => component.components)
         .flat();
     const allMonitors = state.monitor.monitorsList.monitors

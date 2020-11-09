@@ -136,7 +136,9 @@ class StatusPagesTable extends Component {
                                         statusPage={this.props.statusPage}
                                         prevClicked={this.prevClicked}
                                         nextClicked={this.nextClicked}
-                                        allStatusPageLength={subProjectStatusPages.length}
+                                        allStatusPageLength={
+                                            subProjectStatusPages.length
+                                        }
                                         modalList={this.props.modalList}
                                     />
                                 </div>
@@ -202,7 +204,9 @@ class StatusPagesTable extends Component {
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
                                     subProjects={subProjects}
-                                    allStatusPageLength={subProjectStatusPages.length}
+                                    allStatusPageLength={
+                                        subProjectStatusPages.length
+                                    }
                                     modalList={this.props.modalList}
                                 />
                             </div>

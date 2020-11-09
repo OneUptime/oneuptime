@@ -32,11 +32,14 @@ export class SubProjects extends Component {
         const { modalId, modalList } = this.props;
         const { subProjectModalId } = this.state;
 
-        if(e.target.localName === 'body' && e.key) {
+        if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
                 case 'n':
-                    if (modalList.length === 0 && modalId !== subProjectModalId) {
+                    if (
+                        modalList.length === 0 &&
+                        modalId !== subProjectModalId
+                    ) {
                         e.preventDefault();
                         return this.handleAddSubProject();
                     }
@@ -157,7 +160,13 @@ export class SubProjects extends Component {
                                                 <div className="bs-ObjectList-cell">
                                                     Created
                                                 </div>
-                                                <div className="bs-ObjectList-cell" style={{float: 'right', paddingRight: '12px'}}>
+                                                <div
+                                                    className="bs-ObjectList-cell"
+                                                    style={{
+                                                        float: 'right',
+                                                        paddingRight: '12px',
+                                                    }}
+                                                >
                                                     Actions
                                                 </div>
                                             </header>
