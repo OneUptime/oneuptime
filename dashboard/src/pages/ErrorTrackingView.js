@@ -17,7 +17,7 @@ class ErrorTrackingView extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINERS > LOG CONTAINER DETAIL PAGE'
+                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING > ERROR TRACKING DETAIL PAGE'
             );
         }
     }
@@ -45,15 +45,11 @@ class ErrorTrackingView extends Component {
             <Dashboard ready={this.ready}>
                 <Fade>
                     <BreadCrumbItem
-                        route={getParentRoute(
-                            pathname,
-                            null,
-                            'application-log'
-                        )}
+                        route={getParentRoute(pathname, null, 'error-tracker')}
                         name={componentName}
                     />
                     <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'error-tracking')}
+                        route={getParentRoute(pathname, null, 'error-trackers')}
                         name="Error Tracking"
                     />
                     <BreadCrumbItem
@@ -68,8 +64,8 @@ class ErrorTrackingView extends Component {
                     <ShouldRender if={errorTracker && errorTracker[0]}>
                         <div>
                             <ErrorTrackerDetail
-                                componentId={component._id}
-                                index={errorTracker[0]._id}
+                                componentId={component?._id}
+                                index={errorTracker[0]?._id}
                                 isDetails={true}
                             />
                         </div>
