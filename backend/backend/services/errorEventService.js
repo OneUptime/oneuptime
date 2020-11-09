@@ -128,7 +128,9 @@ module.exports = {
                     const errorEvent = {
                         name: latestErrorEvent.name,
                         earliestOccurennce: earliestErrorEvent.createdAt,
+                        earliestId: earliestErrorEvent._id,
                         latestOccurennce: latestErrorEvent.createdAt,
+                        latestId: latestErrorEvent._id,
                         totalNumberOfEvents,
                         content: {
                             type:
