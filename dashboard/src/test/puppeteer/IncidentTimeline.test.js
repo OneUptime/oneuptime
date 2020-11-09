@@ -434,8 +434,8 @@ describe('Incident Timeline API', () => {
             expect(countIncidentTimelines).toEqual(10);
 
             await page.waitForSelector('#btnTimelineNext');
-            await page.click('#btnTimelineNext');
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.$eval('#btnTimelineNext', e=>e.click());
+            await page.waitFor(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
@@ -443,9 +443,8 @@ describe('Incident Timeline API', () => {
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(6);
 
-            const prevSelector = await page.$('#btnTimelinePrev');
-            await prevSelector.click();
-            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.$eval('#btnTimelinePrev',e=>e.click());
+            await page.waitFor(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
                 '#incidentTimeline tr.incidentListItem'
