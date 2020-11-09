@@ -624,6 +624,7 @@ export class IncidentStatus extends Component {
                                                                                 )
                                                                             }
                                                                             className="bs-Button bs-flex-display bs--ma"
+                                                                            id={`btnAcknowledge_${this.props.count}`}
                                                                         >
                                                                             <ShouldRender
                                                                                 if={
@@ -692,7 +693,7 @@ export class IncidentStatus extends Component {
                                                                             <span>
                                                                                 Acknowledge
                                                                                 Incident
-                                                                        </span>
+                                                                            </span>
                                                                         </button>
                                                                         <p className="bs-Fieldset-explanation">
                                                                             <span>
