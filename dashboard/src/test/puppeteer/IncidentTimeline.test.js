@@ -398,7 +398,7 @@ describe('Incident Timeline API', () => {
                 e.click()
             );
             // click on incident notes tab
-            await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
+            await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
             await page.waitFor(1000);
 
             for (let i = 0; i < 10; i++) {
