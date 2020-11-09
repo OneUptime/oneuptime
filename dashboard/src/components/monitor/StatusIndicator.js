@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function StatusIndicator({ status, resourceName }) {
+function StatusIndicator({ status, resourceName, monitorName }) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
 
@@ -36,7 +36,10 @@ function StatusIndicator({ status, resourceName }) {
               </div>
           ))
         : (content = (
-              <div className={`db-Badge Box-background--${statusColor}`}></div>
+              <div
+                  className={`db-Badge Box-background--${statusColor}`}
+                  id={`${monitorName}-${status.toLowerCase()}`}
+              ></div>
           ));
 
     return content;
