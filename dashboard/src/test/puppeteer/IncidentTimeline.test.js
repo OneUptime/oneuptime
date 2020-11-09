@@ -224,15 +224,16 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.click(`#incident_${projectMonitorName}_0`);
+                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
 
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
                 // fill internal message thread form
-                await page.click(`#add-${type}-message`);
+                await page.waitForSelector(`#add-${type}-message`);
+                await page.$eval(`#add-${type}-message`, e=> e.click());
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
