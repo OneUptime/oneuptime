@@ -67,7 +67,7 @@ class ViewJsonLogs extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={() =>
                                             this.props.closeModal({
@@ -76,10 +76,8 @@ class ViewJsonLogs extends Component {
                                         }
                                         autoFocus={true}
                                     >
-                                        <span>OK</span>
-                                        <span className="create-btn__keycode">
-                                            Esc
-                                        </span>
+                                        <span>Close</span>
+                                        <span className="cancel-btn__keycode">Esc</span>
                                     </button>
                                 </div>
                             </div>
