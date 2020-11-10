@@ -386,6 +386,17 @@ router.delete(
                 userId
             );
 
+            if(project){
+                const projectName = project.name;
+                const user = await UserService.findOneBy({ _id: userId });
+
+                await MailService.sendDeleteProjectEmail({ 
+                    name: user.name,
+                    userEmail: user.email,
+                    projectName,
+                });
+            }
+
             const user = await UserService.findOneBy({ _id: userId });
             const record = await AirtableService.logProjectDeletionFeedback({
                 reason: feedback

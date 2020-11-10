@@ -35062,3 +35062,10 @@ span.CodeMirror-selectedtext {
     padding-right: 37px!important;
   }
 }
+.email-smt-row{
+  justify-content: center;
+}
+.email-smt-label{
+  width: 6rem;
+  flex: none
+}

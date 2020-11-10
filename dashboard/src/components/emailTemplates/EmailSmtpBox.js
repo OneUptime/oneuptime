@@ -151,7 +151,7 @@ export class EmailSmtpBox extends Component {
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                 <fieldset className="bs-Fieldset">
                                                     <div className="bs-Fieldset-rows">
-                                                        <div className="bs-Fieldset-row">
+                                                        <div className="bs-Fieldset-row email-smt-row">
                                                             <div className="Box-root Margin-bottom--12">
                                                                 <div
                                                                     data-test="RetrySettings-failedPaymentsRow"
@@ -162,8 +162,7 @@ export class EmailSmtpBox extends Component {
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
-                                                                            marginLeft:
-                                                                                '341px',
+                                                                            width: '18.5rem'
                                                                         }}
                                                                     >
                                                                         <Field
@@ -221,8 +220,8 @@ export class EmailSmtpBox extends Component {
                                                                     .showEmailSmtpConfiguration
                                                             }
                                                         >
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     Email
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -253,8 +252,8 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     Password
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -285,8 +284,8 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     SMTP Host
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -316,8 +315,8 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     SMTP Port
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -368,8 +367,8 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     From Email
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -404,8 +403,8 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label">
+                                                            <div className="bs-Fieldset-row email-smt-row">
+                                                                <label className="bs-Fieldset-label email-smt-label">
                                                                     From Name
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
@@ -439,7 +438,7 @@ export class EmailSmtpBox extends Component {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="bs-Fieldset-row">
+                                                            <div className="bs-Fieldset-row email-smt-row">
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     <div
                                                                         data-test="RetrySettings-failedPaymentsRow"
@@ -451,7 +450,7 @@ export class EmailSmtpBox extends Component {
                                                                             htmlFor="secure"
                                                                             style={{
                                                                                 marginLeft:
-                                                                                    '341px',
+                                                                                    '11px',
                                                                             }}
                                                                         >
                                                                             <Field
