@@ -770,8 +770,8 @@ module.exports = {
         await page.waitForSelector('#user');
     },
     gotoTab: async function(tabId, page) {
-        await page.waitForSelector(`#react-tabs-${tabId}`);
-        await page.click(`#react-tabs-${tabId}`);
+        await page.waitForSelector(`#react-tabs-${tabId}`, {visible: true});
+        await page.$eval(`#react-tabs-${tabId}`, e=> e.click());
         await page.waitFor(2000);
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {
