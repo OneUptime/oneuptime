@@ -28,7 +28,6 @@ deploy_staging_log-php:
         refs:
             - master
             - hotfix-master
-            - log-php-deploy-fix
     environment:
         name: staging
 
