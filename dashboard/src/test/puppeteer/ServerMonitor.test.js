@@ -4,7 +4,13 @@ const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 const axios = require('axios');
 axios.defaults.adapter = require('axios/lib/adapters/http');
-const serverMonitor = require('fyipe-server-monitor');
+let serverMonitor;
+try {
+    // try to use local package (with recent changes)
+    serverMonitor = require('../../../../server-monitor/lib/api');
+} catch (error) {
+    serverMonitor = require('fyipe-server-monitor');
+}
 
 require('should');
 
@@ -128,7 +134,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
-                    status: 'online',
+                    simulate: 'online',
                     projectId,
                     apiUrl,
                     apiKey,
@@ -198,7 +204,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
-                    status: 'degraded',
+                    simulate: 'degraded',
                     projectId,
                     apiUrl,
                     apiKey,
@@ -210,6 +216,10 @@ describe('Server Monitor API', () => {
                 await page.waitFor(120000);
 
                 // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-degraded`
+                );
+                expect(element).toBeDefined();
 
                 monitor.stop();
             });
@@ -258,7 +268,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
-                    status: 'offline',
+                    simulate: 'offline',
                     projectId,
                     apiUrl,
                     apiKey,
@@ -270,6 +280,10 @@ describe('Server Monitor API', () => {
                 await page.waitFor(120000);
 
                 // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-offline`
+                );
+                expect(element).toBeDefined();
 
                 monitor.stop();
             });
@@ -318,7 +332,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
-                    status: 'online',
+                    simulate: 'online',
                     projectId,
                     apiUrl,
                     apiKey,
