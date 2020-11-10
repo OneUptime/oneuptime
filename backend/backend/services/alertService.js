@@ -11,19 +11,17 @@ module.exports = {
         userId,
         alertType
     ) {
+        const project = await ProjectService.findOneBy({ _id: projectId });
+        const balance = project.balance;
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
 
-        // should charge customer
-        // if balance is low, should automatically top up the balance
-        const project = await PaymentService.chargeAlert(
-            userId,
-            projectId,
-            alertChargeAmount.price
-        );
-        const balance = project.balance;
-
         if (balance > alertChargeAmount.minimumBalance) {
+            await PaymentService.chargeAlert(
+                userId,
+                projectId,
+                alertChargeAmount.price
+            );
             return true;
         } else {
             return false;

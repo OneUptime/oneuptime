@@ -219,6 +219,7 @@ module.exports = {
 
                 // confirm payment intent
                 // and update the project balance
+                // if further process is required the user will need to manually top up the account
                 await StripeService.confirmPayment(paymentIntent);
             }
             project = await ProjectService.findOneBy({
