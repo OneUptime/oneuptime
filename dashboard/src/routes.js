@@ -2,7 +2,7 @@ import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
-import ErrorTrackingIssueView from './pages/ErrorTrackingIssueView';
+import ErrorEventView from './pages/ErrorEventView';
 
 const {
     Home,
@@ -116,7 +116,7 @@ export const groups = [
                         visible: true,
                         exact: true,
                         subRoutes: [],
-                        component: ErrorTrackingIssueView,
+                        component: ErrorEventView,
                         index: 2,
                     },
                 ],
