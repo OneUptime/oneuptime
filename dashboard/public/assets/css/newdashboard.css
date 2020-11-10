@@ -11230,7 +11230,7 @@ table {
     padding: 5px 15px;
     border: solid 0.1em #D8D1DE;
     cursor: pointer;
-    box-shadow: 1px 3px 1px #F2F2F2;
+    box-shadow: 0 0 0 1px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
     display: flex;
     align-items: center;
 }
@@ -11251,4 +11251,41 @@ table {
 }
 .Navigator-Disable:hover {
     border: solid 1px #DAD4E0;
+}
+.Tag-Pill {
+    display: flex;
+    margin-right: 10px;
+    margin-top: 10px;
+}
+.Tag-Pill > * {
+    border: solid 1px #D8D1DE;
+    padding: 2px 15px;
+}
+/* .Tag-Pill:not(:first-child) {
+    margin-left: 10px;
+} */
+.Tag-Title {
+    border-right: 0;
+    border-radius: 3px 0px 0px 3px;
+}
+.Tag-Content {
+    border-radius: 0px 3px 3px 0px;
+    color: #295dd2;
+    cursor: pointer;
+}
+.SubHeader {
+    font-size: 16px;
+    font-weight: bold;
+}
+.Stacktrace-Listing {
+    border: solid 1px #D8D2DE;
+    border-radius: 3px;
+    margin-top: 16px;
+}
+.Stacktrace-Listing > * {
+    padding: 8px 16px;
+    border-top: solid 1px #D8D2DE;
+}
+.Stacktrace-Listing:first-child {
+    border-top: none;
 }

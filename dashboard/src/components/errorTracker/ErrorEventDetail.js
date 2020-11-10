@@ -141,24 +141,328 @@ class ErrorEventDetail extends Component {
                                                     src="/dashboard/assets/img/previous.svg"
                                                     alt=""
                                                     style={{
-                                                        marginBottom: '-5px',
-                                                        height: '15px',
-                                                        width: '15px',
+                                                        height: '12px',
+                                                        width: '12px',
                                                     }}
                                                 />
                                             </div>
                                             <div>Older</div>
-                                            <div>Newer</div>
-                                            <div className="Navigator-Newest">
+                                            <div className="Navigator-Disable">
+                                                Newer
+                                            </div>
+                                            <div className="Navigator-Newest Navigator-Disable">
                                                 <img
-                                                    src="/dashboard/assets/img/next.svg"
+                                                    src="/dashboard/assets/img/next-disable.svg"
                                                     alt=""
                                                     style={{
-                                                        marginBottom: '-5px',
-                                                        height: '15px',
-                                                        width: '15px',
+                                                        height: '12px',
+                                                        width: '12px',
                                                     }}
                                                 />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="Flex-flex Flex-justifyContent--spaceBetween Box-divider--border-top-1 Margin-top--16 Padding-vertical--20">
+                                        <div className="Flex-flex">
+                                            <div
+                                                style={{
+                                                    height: '100%',
+                                                    width: '50px',
+                                                    backgroundColor: '#F968BC',
+                                                    borderRadius: '50%',
+                                                    color: 'white',
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '24px',
+                                                }}
+                                            >
+                                                {' '}
+                                                ?{' '}
+                                            </div>
+                                            <div className="Text-fontWeight--bold Margin-left--8">
+                                                <p> 192.168.0.45 </p>
+                                            </div>
+                                        </div>
+                                        <div className="Flex-flex">
+                                            <div
+                                                style={{
+                                                    height: '100%',
+                                                    width: '50px',
+                                                    backgroundColor: '#488CE0',
+                                                    borderRadius: '50%',
+                                                    color: 'white',
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '24px',
+                                                }}
+                                            >
+                                                {' '}
+                                                ?{' '}
+                                            </div>
+                                            <div className="Text-fontWeight--bold Margin-left--8">
+                                                <p> Chrome </p>
+                                                <p>
+                                                    {' '}
+                                                    Version:{' '}
+                                                    <span className="Text-fontWeight--light">
+                                                        {' '}
+                                                        58.0.3
+                                                    </span>{' '}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="Flex-flex">
+                                            <div
+                                                style={{
+                                                    height: '100%',
+                                                    width: '50px',
+                                                    backgroundColor: 'grey',
+                                                    borderRadius: '50%',
+                                                    color: 'white',
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '24px',
+                                                }}
+                                            >
+                                                {' '}
+                                                ?{' '}
+                                            </div>
+                                            <div className="Text-fontWeight--bold Margin-left--8">
+                                                <p> Device </p>
+                                                <p>
+                                                    {' '}
+                                                    Family:{' '}
+                                                    <span className="Text-fontWeight--light">
+                                                        {' '}
+                                                        Android
+                                                    </span>{' '}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="Box-divider--border-top-1 Padding-vertical--20">
+                                        <div>
+                                            <p className="SubHeader">TAGS</p>
+                                        </div>
+                                        <div className="Flex-flex Flex-wrap--wrap">
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    browser
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Chrome Mobile
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    type
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Exception
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    User IP
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    20.98.54.299
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    User Type
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Client
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    test
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Mobile
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    where
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    NG
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    Artist
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    The Weekend
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    User Type
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Client
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    browser
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Chrome Mobile
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    type
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Exception
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    User IP
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    20.98.54.299
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    User Type
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    Client
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="Box-divider--border-top-1 Padding-vertical--20">
+                                        <div>
+                                            <p className="SubHeader">
+                                                Exception
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="Text-fontSize--14 Text-fontWeight--bold">
+                                                TypeError
+                                            </span>
+                                            <span>
+                                                {' '}
+                                                Cant read property text of
+                                                undefined
+                                            </span>
+                                        </div>
+                                        <div className="Flex-flex Flex-wrap--wrap">
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    function
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    getUserDetails
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    handled
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    true
+                                                </div>
+                                            </div>
+                                            <div className="Tag-Pill">
+                                                <div className="Tag-Title">
+                                                    platform
+                                                </div>
+                                                <div className="Tag-Content">
+                                                    JavaScript
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="Stacktrace-Listing">
+                                            <div>
+                                                <span className="Text-fontWeight--bold">
+                                                    /static/js/0.chunk.js
+                                                    {'  '}
+                                                </span>
+                                                <img
+                                                    src="/dashboard/assets/img/external.svg"
+                                                    alt=""
+                                                    style={{
+                                                        height: '12px',
+                                                        width: '12px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {'  '}
+                                                in{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    dispatchDiscreteEvent
+                                                </span>{' '}
+                                                at line{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    27925:7
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="Text-fontWeight--bold">
+                                                    /static/js/0.chunk.js
+                                                    {'  '}
+                                                </span>
+                                                <img
+                                                    src="/dashboard/assets/img/external.svg"
+                                                    alt=""
+                                                    style={{
+                                                        height: '12px',
+                                                        width: '12px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {'  '}
+                                                in{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    dispatchDiscreteEvent
+                                                </span>{' '}
+                                                at line{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    27925:7
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="Text-fontWeight--bold">
+                                                    /static/js/0.chunk.js
+                                                    {'  '}
+                                                </span>
+                                                <img
+                                                    src="/dashboard/assets/img/external.svg"
+                                                    alt=""
+                                                    style={{
+                                                        height: '12px',
+                                                        width: '12px',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                />
+                                                {'  '}
+                                                in{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    dispatchDiscreteEvent
+                                                </span>{' '}
+                                                at line{' '}
+                                                <span className="Text-fontWeight--bold">
+                                                    27925:7
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
