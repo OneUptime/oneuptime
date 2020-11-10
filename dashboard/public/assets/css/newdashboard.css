@@ -11223,3 +11223,32 @@ table {
 .MuiInputBase-input {
     cursor: pointer;
 }
+.Navigator-Btn-Group {
+    display: flex;
+}
+.Navigator-Btn-Group > * {
+    padding: 5px 15px;
+    border: solid 0.1em #D8D1DE;
+    cursor: pointer;
+    box-shadow: 1px 3px 1px #F2F2F2;
+    display: flex;
+    align-items: center;
+}
+.Navigator-Btn-Group > *:hover {
+    border: solid 2px #D8D1DE;
+}
+.Navigator-Oldest {
+    border-radius: 3px 0 0 3px
+}
+.Navigator-Newest {
+    border-radius: 0 3px 3px 0
+}
+.Navigator-Disable {
+    color: #DAD4E0;
+    border: solid 1px #DAD4E0;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+.Navigator-Disable:hover {
+    border: solid 1px #DAD4E0;
+}
