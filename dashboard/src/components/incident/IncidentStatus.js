@@ -297,7 +297,31 @@ export class IncidentStatus extends Component {
                                                         >
                                                             <ReactMarkdown
                                                                 source={`${' ' +
-                                                                    incidentReason.join() +
+                                                                    incidentReason.map(
+                                                                        a => {
+                                                                            if (
+                                                                                a.includes(
+                                                                                    'Response Time'
+                                                                                )
+                                                                            ) {
+                                                                                const milliSeconds = a.match(
+                                                                                    /\d+/
+                                                                                )[0];
+                                                                                const time = formatMonitorResponseTime(
+                                                                                    Number(
+                                                                                        milliSeconds
+                                                                                    )
+                                                                                );
+                                                                                return a.replace(
+                                                                                    milliSeconds +
+                                                                                        ' ms',
+                                                                                    time
+                                                                                );
+                                                                            } else {
+                                                                                return a;
+                                                                            }
+                                                                        }
+                                                                    ) +
                                                                     '.'}`}
                                                             />
                                                         </div>
