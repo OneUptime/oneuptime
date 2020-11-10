@@ -162,7 +162,8 @@ export class EmailSmtpBox extends Component {
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
-                                                                            width: '18.5rem'
+                                                                            width:
+                                                                                '18.5rem',
                                                                         }}
                                                                     >
                                                                         <Field

@@ -386,11 +386,11 @@ router.delete(
                 userId
             );
 
-            if(project){
+            if (project) {
                 const projectName = project.name;
                 const user = await UserService.findOneBy({ _id: userId });
 
-                await MailService.sendDeleteProjectEmail({ 
+                await MailService.sendDeleteProjectEmail({
                     name: user.name,
                     userEmail: user.email,
                     projectName,
