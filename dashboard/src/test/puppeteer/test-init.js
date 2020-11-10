@@ -97,6 +97,7 @@ module.exports = {
             page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
         ]);
+        expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(false);
     },
     logout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
