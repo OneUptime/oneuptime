@@ -44,7 +44,7 @@ module.exports = {
         }
     },
 
-    create: async function(projectId, message, userId, icon, meta) {
+    create: async function(projectId, message, userId, icon, meta, idNumber) {
         try {
             if (!meta) {
                 meta = {};
@@ -55,6 +55,7 @@ module.exports = {
             notification.icon = icon;
             notification.createdBy = userId;
             notification.meta = meta;
+            notification.idNumber = idNumber && idNumber
             notification = await notification.save();
             await RealTimeService.sendNotification(notification);
             return notification;

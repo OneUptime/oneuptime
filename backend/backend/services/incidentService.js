@@ -339,7 +339,8 @@ module.exports = {
                     msg,
                     'fyipe',
                     'warning',
-                    meta
+                    meta,
+                    incident.idNumber
                 );
                 // send slack notification
                 await SlackService.sendNotification(
@@ -371,7 +372,8 @@ module.exports = {
                     msg,
                     incident.createdById.name,
                     'warning',
-                    meta
+                    meta,
+                    incident.idNumber
                 );
                 // send slack notification
                 await SlackService.sendNotification(
