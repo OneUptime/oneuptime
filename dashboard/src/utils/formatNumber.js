@@ -37,9 +37,9 @@ const format = number => {
                 // this is to avoid .50 instead we have .5
                 const intFormattedRemainder = parseInt(formattedRemainder);
                 const tenthRemainder = intFormattedRemainder % 10;
-                tenthRemainder === 0
-                    ? (formattedRemainder = formattedRemainder.substr(0, 1))
-                    : null;
+                if (tenthRemainder === 0) {
+                    formattedRemainder = formattedRemainder.substr(0, 1);
+                }
             }
             // parse value to integer to get whole number
             val = parseInt(number / currentFormat.value);
