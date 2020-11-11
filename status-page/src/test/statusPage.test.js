@@ -348,6 +348,16 @@ describe('Status page monitors check', function() {
         expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
+    it('should show incident card, and show incident if there is any', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        const incidentCard = await page.waitForSelector('#incidentCard', {
+            visible: true,
+        });
+        expect(incidentCard).to.exist;
+    });
+
     it('should display scheduled events when enabled on status page', async function() {
         await page.reload({
             waitUntil: 'networkidle0',

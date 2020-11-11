@@ -242,6 +242,7 @@ class NotesMain extends Component {
                     marginBottom: 40,
                     ...contentBackground,
                 }}
+                id="incidentCard"
             >
                 <div className="messages" style={{ position: 'relative' }}>
                     <div
