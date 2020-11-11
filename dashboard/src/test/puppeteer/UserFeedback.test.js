@@ -50,7 +50,7 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async done => {
-            expect.assertions(1);
+            expect.assertions(3);
 
             const cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_PAGE,
