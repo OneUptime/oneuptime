@@ -90,7 +90,7 @@ class TopContent extends Component {
             className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
                 incidentCounter > 0 ? 'red' : 'green'
             } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
-            style={{paddingBottom:'6px',paddingTop:'6px'}}
+            style={{ paddingBottom: '6px', paddingTop: '6px' }}
             onClick={this.handleActiveIncidentClick}
             id="activeIncidents"
         >
@@ -127,7 +127,7 @@ class TopContent extends Component {
         return count > 0 ? (
             <div
                 className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-left--20"
-                style={{paddingBottom:'6px',paddingTop:'6px'}}
+                style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 onClick={this.handleActiveIncidentClick}
                 id="ongoingEvents"
             >

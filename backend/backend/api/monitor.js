@@ -27,8 +27,8 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const https = require('https');
 const httpsAgent = new https.Agent({
-    rejectUnauthorized: false
-  })
+    rejectUnauthorized: false,
+});
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:

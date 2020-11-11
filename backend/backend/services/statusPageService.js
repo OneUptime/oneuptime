@@ -898,25 +898,38 @@ module.exports = {
         }
     },
     // get status pages for this incident
-    getStatusPagesForIncident : async (incidentId, skip, limit) => {
+    getStatusPagesForIncident: async (incidentId, skip, limit) => {
         try {
             // first get the monitor, then scan status page collection containing the monitor
-            const {monitorId}  = await IncidentModel.findById(incidentId).select('monitorId');
-            let statusPages = []
-            let count  = 0
-            if(monitorId) {
-                 count = await StatusPageModel.find({"monitors.monitor" : monitorId}).countDocuments({"monitors.monitor" : monitorId})
-                if(count) {
-                    statusPages =  await StatusPageModel.find({"monitors.monitor" : monitorId}).populate('projectId').
-                    populate('monitors.monitor').skip(skip).limit(limit).exec();
+            const { monitorId } = await IncidentModel.findById(
+                incidentId
+            ).select('monitorId');
+            let statusPages = [];
+            let count = 0;
+            if (monitorId) {
+                count = await StatusPageModel.find({
+                    'monitors.monitor': monitorId,
+                }).countDocuments({ 'monitors.monitor': monitorId });
+                if (count) {
+                    statusPages = await StatusPageModel.find({
+                        'monitors.monitor': monitorId,
+                    })
+                        .populate('projectId')
+                        .populate('monitors.monitor')
+                        .skip(skip)
+                        .limit(limit)
+                        .exec();
                 }
             }
-            return {statusPages : statusPages || [], count}
-        }catch(error) {
-            ErrorService.log('statusPageService.getStatusPagesForIncident', error);
-            throw error
+            return { statusPages: statusPages || [], count };
+        } catch (error) {
+            ErrorService.log(
+                'statusPageService.getStatusPagesForIncident',
+                error
+            );
+            throw error;
         }
-    }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page

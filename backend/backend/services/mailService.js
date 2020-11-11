@@ -19,7 +19,7 @@ const options = {
         layoutsDir: 'views/email/',
         defaultLayout: 'template',
         partialsDir: 'views/partials/',
-        helpers
+        helpers,
     },
     viewPath: 'views/email/',
     extName: '.hbs',
@@ -189,7 +189,7 @@ const _this = {
         }
     },
     // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function({userEmail, name, projectName}) {
+    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
         const accountMail = await _this.getSmtpSettings();
         accountMail.name = 'Fyipe Support';
         accountMail.from = 'support@fyipe.com';
@@ -543,7 +543,7 @@ const _this = {
                 },
             };
             const mailer = await _this.createMailer({});
-            
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,

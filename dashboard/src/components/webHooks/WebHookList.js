@@ -123,7 +123,10 @@ class WebHookList extends React.Component {
                                     <WebHookTableHeader text="Monitors" />
                                 )}
                                 <WebHookTableHeader text="Type" />
-                                <WebHookTableHeader text="Action" name='webhooklist'/>
+                                <WebHookTableHeader
+                                    text="Action"
+                                    name="webhooklist"
+                                />
                             </tr>
                         </thead>
                         <tbody className="Table-body">

@@ -162,7 +162,8 @@ export class EmailSmtpBox extends Component {
                                                                         className="Checkbox responsive"
                                                                         htmlFor="smtpswitch"
                                                                         style={{
-                                                                            width: '18.5rem'
+                                                                            width:
+                                                                                '18.5rem',
                                                                         }}
                                                                     >
                                                                         <Field
@@ -336,11 +337,23 @@ export class EmailSmtpBox extends Component {
                                                                                 .smtpConfigurations
                                                                                 .requesting
                                                                         }
-                                                                        onChange={(event, value) => {
-                                                                            if(value === '465'){
-                                                                                change('secure', true)
+                                                                        onChange={(
+                                                                            event,
+                                                                            value
+                                                                        ) => {
+                                                                            if (
+                                                                                value ===
+                                                                                '465'
+                                                                            ) {
+                                                                                change(
+                                                                                    'secure',
+                                                                                    true
+                                                                                );
                                                                             } else {
-                                                                                change('secure', false)
+                                                                                change(
+                                                                                    'secure',
+                                                                                    false
+                                                                                );
                                                                             }
                                                                         }}
                                                                     />

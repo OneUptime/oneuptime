@@ -467,8 +467,9 @@ module.exports = {
                         if (incident.probes && incident.probes.length > 0) {
                             incident.probes.some(probe => {
                                 if (
+                                    probe.probeId &&
                                     String(probe.probeId._id) ===
-                                    String(data.probeId)
+                                        String(data.probeId)
                                 ) {
                                     incidentsV1.push(incident);
                                     return true;

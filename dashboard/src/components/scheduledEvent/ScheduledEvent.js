@@ -96,7 +96,9 @@ class ScheduledEventBox extends Component {
                                 fetchingMonitors={fetchingMonitors}
                                 parentProjectId={subProject.parentProjectId._id}
                                 modalList={modalList}
-                                allScheduleEventLength={subProjectScheduledEvents.length}
+                                allScheduleEventLength={
+                                    subProjectScheduledEvents.length
+                                }
                             />
                         ) : null;
                 }
@@ -126,7 +128,9 @@ class ScheduledEventBox extends Component {
                         requesting={requesting}
                         fetchingMonitors={fetchingMonitors}
                         modalList={modalList}
-                        allScheduleEventLength={subProjectScheduledEvents.length}
+                        allScheduleEventLength={
+                            subProjectScheduledEvents.length
+                        }
                     />
                 )}
                 {subProjectEvents}

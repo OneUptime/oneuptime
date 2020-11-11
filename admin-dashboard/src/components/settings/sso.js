@@ -28,7 +28,7 @@ export class Component extends React.Component {
         const { modalId, modalList } = this.props;
         const { ssoModalId } = this.state;
 
-        if(event.target.localName === 'body' && event.key) {
+        if (event.target.localName === 'body' && event.key) {
             switch (event.key) {
                 case 'N':
                 case 'n':

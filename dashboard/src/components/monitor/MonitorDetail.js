@@ -303,7 +303,10 @@ export class MonitorDetail extends Component {
                                         id="monitor-content-header"
                                         className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        <StatusIndicator status={status} />
+                                        <StatusIndicator
+                                            status={status}
+                                            monitorName={monitor.name}
+                                        />
                                         <span
                                             id={`monitor-title-${monitor.name}`}
                                         >

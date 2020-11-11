@@ -101,7 +101,9 @@ describe('Incident Reports API', () => {
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement.startsWith("Response Time was")).toEqual(true);
+                expect(
+                    incidentReportElement.startsWith('Response Time was')
+                ).toEqual(true);
             });
         },
         operationTimeOut
@@ -145,9 +147,7 @@ describe('Incident Reports API', () => {
                     'innerText'
                 );
                 incidentReportElement = await incidentReportElement.jsonValue();
-                expect(incidentReportElement).toMatch(
-                    "Status Code was 400."
-                );
+                expect(incidentReportElement).toMatch('Status Code was 400.');
             });
         },
         operationTimeOut

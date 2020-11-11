@@ -26,9 +26,15 @@ FormLoader.displayName = 'FormLoader';
 
 export const FormLoader2 = () => (
     <div className="ball-beat bs-size-btn">
-        <div style={{ height: '8px', width: '8px', backgroundColor: '#000' }}></div>
-        <div style={{ height: '8px', width: '8px', backgroundColor: '#000' }}></div>
-        <div style={{ height: '8px', width: '8px', backgroundColor: '#000' }}></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#000' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#000' }}
+        ></div>
+        <div
+            style={{ height: '8px', width: '8px', backgroundColor: '#000' }}
+        ></div>
     </div>
 );
 

@@ -45,7 +45,7 @@ const IncidentProjectBox = props => {
     useEffect(() => {
         const handleKeyboard = event => {
             const { modalList, allProjectLength } = props;
-    
+
             if (allProjectLength === 1) {
                 if (event.target.localName === 'body' && event.key) {
                     switch (event.key) {
@@ -66,7 +66,7 @@ const IncidentProjectBox = props => {
                 }
             }
         };
-    
+
         setIncidents(props.subProjectIncident);
         window.addEventListener('keydown', handleKeyboard);
 

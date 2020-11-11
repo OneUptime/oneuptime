@@ -125,7 +125,9 @@ class IncidentLog extends React.Component {
                                         currentProjectId={currentProjectId}
                                         prevClicked={this.prevClicked}
                                         nextClicked={this.nextClicked}
-                                        allProjectLength={subProjectIncidents.length}
+                                        allProjectLength={
+                                            subProjectIncidents.length
+                                        }
                                         modalList={this.props.modalList}
                                     />
                                 </div>
@@ -177,7 +179,9 @@ class IncidentLog extends React.Component {
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
                                     subProjects={subProjects}
-                                    allProjectLength={subProjectIncidents.length}
+                                    allProjectLength={
+                                        subProjectIncidents.length
+                                    }
                                     modalList={this.props.modalList}
                                 />
                             </div>

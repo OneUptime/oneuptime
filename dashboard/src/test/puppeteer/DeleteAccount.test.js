@@ -92,9 +92,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$(
-                    '#deleteMyAccount'
-                );
+                const deleteButton = await page.$('#deleteMyAccount');
                 expect(deleteButton).toEqual(null);
             });
         },
@@ -137,9 +135,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$(
-                    '#deleteMyAccount'
-                );
+                const deleteButton = await page.$('#deleteMyAccount');
                 expect(deleteButton).toEqual(null);
             });
         },
@@ -184,9 +180,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
-                const deleteButton = await page.$(
-                    '#btn_confirm_delete'
-                );
+                const deleteButton = await page.$('#btn_confirm_delete');
                 expect(deleteButton).toEqual(null);
             });
         },
@@ -211,9 +205,11 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#btn_confirm_delete');
                 await page.click('#btn_confirm_delete');
                 await page.waitForSelector('#deleteMyAccount');
-                await page.type('#deleteMyAccount','delete my account');
+                await page.type('#deleteMyAccount', 'delete my account');
                 await page.click('#btn_confirm_delete');
-                await page.waitForSelector("button[class='bs-Button btn__modal']");
+                await page.waitForSelector(
+                    "button[class='bs-Button btn__modal']"
+                );
                 await page.click("button[class='bs-Button btn__modal']");
                 await page.waitForNavigation();
                 const url = await page.url();

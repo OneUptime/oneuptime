@@ -75,7 +75,7 @@ describe('Custom SMTP Settings', () => {
                 await page.type('#from', smtpData.from);
                 await page.click('#name');
                 await page.type('#name', name);
-                await page.$eval('#secure', elem => elem.checked = true);
+                await page.$eval('#secure', elem => (elem.checked = true));
                 await page.click('#saveSmtp');
                 await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });

@@ -77,7 +77,9 @@ class ViewJsonLogs extends Component {
                                         autoFocus={true}
                                     >
                                         <span>Close</span>
-                                        <span className="cancel-btn__keycode">Esc</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                 </div>
                             </div>

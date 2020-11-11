@@ -121,7 +121,9 @@ const StatusPageProjectBox = props => {
                     <thead className="Table-body">
                         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                             <td>
-                                <div className="bs-ObjectList-cell Text-typeface--upper Text-fontWeight--medium">Name</div>
+                                <div className="bs-ObjectList-cell Text-typeface--upper Text-fontWeight--medium">
+                                    Name
+                                </div>
                             </td>
                             <td>
                                 <div className="bs-ObjectList-cell Text-typeface--upper Text-fontWeight--medium">
@@ -136,12 +138,15 @@ const StatusPageProjectBox = props => {
 
                             <td
                                 colSpan="6"
-                                style={{ float: 'right'}}
+                                style={{ float: 'right' }}
                                 className="status-page-btn-action-col"
                             >
                                 <div
                                     className="bs-ObjectList-cell table-row-cell Text-typeface--upper Text-fontWeight--medium"
-                                    style={{ paddingLeft: '124px',paddingRight: '24px' }}
+                                    style={{
+                                        paddingLeft: '124px',
+                                        paddingRight: '24px',
+                                    }}
                                 >
                                     Actions
                                 </div>

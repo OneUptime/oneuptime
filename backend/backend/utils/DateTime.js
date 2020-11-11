@@ -191,7 +191,7 @@ const _this = {
 
     getCurrentYear: () => {
         return new Date().getFullYear();
-    }
+    },
 };
 
 module.exports = _this;

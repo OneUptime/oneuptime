@@ -642,7 +642,9 @@ export function fetchIncidentStatusPagesError(error) {
 // Gets status pages pointing to the incident
 export function fetchIncidentStatusPages(projectId, incidentId, skip, limit) {
     return function(dispatch) {
-        const promise = getApi(`incident/${projectId}/${incidentId}/statuspages?skip=${skip}&limit=${limit}`);
+        const promise = getApi(
+            `incident/${projectId}/${incidentId}/statuspages?skip=${skip}&limit=${limit}`
+        );
 
         promise.then(
             function(response) {
@@ -665,7 +667,6 @@ export function fetchIncidentStatusPages(projectId, incidentId, skip, limit) {
         return promise;
     };
 }
-
 
 //Delete statuspage
 export function deleteStatusPageRequest() {
