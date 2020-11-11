@@ -134,6 +134,13 @@ export class CustomerBalance extends Component {
             }
         });
     };
+    formatBalance = balance => {
+        if (balance - parseInt(balance) !== 0) {
+            return balance.toFixed(2);
+        } else {
+            return balance;
+        }
+    };
     render() {
         const { balance } = this.props;
         return (
@@ -249,7 +256,10 @@ export class CustomerBalance extends Component {
                                                                                 fontWeight:
                                                                                     'bold',
                                                                             }}
-                                                                        >{`${balance}$`}</span>
+                                                                        >{`${balance &&
+                                                                            this.formatBalance(
+                                                                                balance
+                                                                            )}$`}</span>
                                                                     </p>
                                                                 </label>
                                                             </div>
