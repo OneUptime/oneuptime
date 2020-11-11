@@ -783,24 +783,24 @@ export function addBalance(projectId, data) {
 export function updateProjectBalanceRequest() {
     return {
         type: types.UPDATE_PROJECT_BALANCE_REQUEST,
-    }
+    };
 }
 
 export function updateProjectBalanceSuccess(payload) {
     return {
         type: types.UPDATE_PROJECT_BALANCE_SUCCESS,
         payload,
-    }
+    };
 }
 
 export function updateProjectBalanceFailure(error) {
     return {
         type: types.UPDATE_PROJECT_BALANCE_FAILURE,
         payload: error,
-    }
+    };
 }
 
-export function updateProjectBalance({projectId, intentId}){
+export function updateProjectBalance({ projectId, intentId }) {
     return function(dispatch) {
         const promise = getApi(`stripe/${projectId}/updateBalance/${intentId}`);
 
@@ -825,7 +825,7 @@ export function updateProjectBalance({projectId, intentId}){
             }
         );
         return promise;
-    }
+    };
 }
 
 export function checkCardRequest(promise) {
