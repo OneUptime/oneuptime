@@ -1,6 +1,6 @@
 import { isNumber } from 'lodash';
 
-export default function format(number) {
+const format = number => {
     if (!isNumber(number)) return null;
     let formattedValue = '';
     let index = 0;
@@ -54,4 +54,6 @@ export default function format(number) {
         index = index + 1;
     }
     return formattedValue;
-}
+};
+
+export default format;
