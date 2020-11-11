@@ -9,8 +9,8 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
 import { fetchErrorEvent } from '../actions/errorTracker';
 import { bindActionCreators } from 'redux';
-import ShouldRender from '../components/basic/ShouldRender';
-import { LoadingState } from '../components/basic/Loader';
+// import ShouldRender from '../components/basic/ShouldRender';
+// import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
 
 class ErrorEventView extends Component {
@@ -73,14 +73,14 @@ class ErrorEventView extends Component {
                         pageTitle="Error Tracking"
                         containerType="Error Tracker Container"
                     />
-                    <ShouldRender if={!errorTracker[0]}>
+                    {/* <ShouldRender if={!errorTracker[0]}>
                         <LoadingState />
-                    </ShouldRender>
-                    <ShouldRender if={errorTracker && errorTracker[0]}>
-                        <div>
-                            <ErrorEventDetail />
-                        </div>
-                    </ShouldRender>
+                    </ShouldRender> */}
+                    {/* <ShouldRender if={errorTracker && errorTracker[0]}> */}
+                    <div>
+                        <ErrorEventDetail />
+                    </div>
+                    {/* </ShouldRender> */}
                 </Fade>
             </Dashboard>
         );

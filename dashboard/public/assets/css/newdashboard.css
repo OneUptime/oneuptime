@@ -11276,6 +11276,7 @@ table {
 .SubHeader {
     font-size: 16px;
     font-weight: bold;
+    text-transform: uppercase;
 }
 .Stacktrace-Listing {
     border: solid 1px #D8D2DE;
@@ -11288,4 +11289,17 @@ table {
 }
 .Stacktrace-Listing:first-child {
     border-top: none;
+}
+.Timeline-Table {
+    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: scroll;
+    max-height: 200px;
+    border: solid 1px #D8D2DE;
+    border-radius: 3px;
+}
+.Timeline-Table table thead tr td {
+    position: sticky;
+    top: 0;
+    background-color: #f7f7f7;
 }
