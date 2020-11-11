@@ -15,6 +15,7 @@ module.exports = {
         const balance = project.balance;
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
+
         if (balance > alertChargeAmount.minimumBalance) {
             await PaymentService.chargeAlert(
                 userId,
@@ -1018,7 +1019,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1043,7 +1044,7 @@ module.exports = {
                             component
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -1064,7 +1065,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1087,7 +1088,7 @@ module.exports = {
                             'Subscriber Incident Acknowldeged'
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -1108,7 +1109,7 @@ module.exports = {
                 const subscribers = await SubscriberService.findBy({
                     monitorId: monitorId,
                 });
-                subscribers.forEach(async subscriber => {
+                for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
@@ -1131,7 +1132,7 @@ module.exports = {
                             'Subscriber Incident Resolved'
                         );
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log(
@@ -1473,6 +1474,7 @@ module.exports = {
                         owner.userId,
                         AlertType.SMS
                     );
+
                     if (!hasEnoughBalance) {
                         return await SubscriberAlertService.create({
                             projectId: incident.projectId,

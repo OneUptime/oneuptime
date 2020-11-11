@@ -142,4 +142,23 @@ router.post('/checkCard', async function(req, res) {
     }
 });
 
+router.get('/:projectId/updateBalance/:intentId', getUser, isAuthorized, isUserOwner, async function(req, res) {
+    try {
+        const {intentId} = req.params;
+
+        const paymentIntent = await StripeService.retrievePaymentIntent(intentId);
+        const updatedProject = await StripeService.updateBalance(paymentIntent);
+
+        if(!updatedProject){
+            const error = new Error('Project was not updated')
+            error.code = 400;
+            sendErrorResponse(req, res, error);
+        }
+
+        return sendItemResponse(req, res, updatedProject)
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+})
+
 module.exports = router;
