@@ -255,14 +255,19 @@ const Services = {
                             alertOptions,
                         };
                     }
-                    const updatedProject = await ProjectModel.findByIdAndUpdate(
+                    let updatedProject = await ProjectModel.findByIdAndUpdate(
                         projectId,
                         updateObject,
                         { new: true }
                     );
-                    if (updatedProject.balance === newbalance) {
-                        return true;
-                    }
+                    updatedProject = await updatedProject
+                        .populate('userId', 'name')
+                        .populate('parentProjectId', 'name')
+                        .execPopulate();
+                    // if (updatedProject.balance === newbalance) {
+                    //     return true;
+                    // }
+                    return updatedProject;
                 }
             }
             return false;
@@ -381,6 +386,17 @@ const Services = {
             return confirmedPaymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.confirmPayment', error);
+            throw error;
+        }
+    },
+    retrievePaymentIntent: async function(intentId) {
+        try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+                intentId
+            );
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('stripeService.retrievePaymentIntent', error);
             throw error;
         }
     },
