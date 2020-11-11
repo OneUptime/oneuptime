@@ -1,17 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-    switchStatusPage,
-    fetchIncidentStatusPages,
-} from '../../actions/statusPage';
+import { IS_LOCALHOST } from '../../config';
+import { fetchIncidentStatusPages } from '../../actions/statusPage';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 
 const IncidentStatusPages = ({
     statusPages,
-    switchStatusPage,
     fetchIncidentStatusPages,
     requesting,
     projectId,
@@ -20,11 +16,6 @@ const IncidentStatusPages = ({
     count,
     limit,
 }) => {
-    const switchStatusPages = (statusPage, path) => {
-        switchStatusPage(statusPage);
-        history.push(path);
-    };
-
     const nextPage = () => {
         const nextSkip = skip + limit;
         if (nextSkip < count) {
@@ -87,23 +78,14 @@ const IncidentStatusPages = ({
                             <tbody id="statusPagesListContainer">
                                 {statusPages &&
                                     statusPages.map(statusPage => {
-                                        const subProjectId =
-                                            statusPage.projectId._id;
-                                        const projectId =
-                                            statusPage.projectId
-                                                .parentProjectId ||
-                                            subProjectId;
-                                        const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
+                                        const statusPageLink = IS_LOCALHOST
+                                            ? `http://${statusPage._id}.localhost:3006`
+                                            : window.location.origin +
+                                              `/status-page/${statusPage._id}`;
                                         return (
                                             <tr
                                                 key={statusPage._id}
-                                                className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink statusPageListItem"
-                                                onClick={() => {
-                                                    switchStatusPages(
-                                                        statusPage,
-                                                        path
-                                                    );
-                                                }}
+                                                className="Table-row db-ListViewItem bs-ActionsParent statusPageListItem"
                                             >
                                                 <td
                                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized 
@@ -158,11 +140,18 @@ const IncidentStatusPages = ({
                                                                     }}
                                                                     id="viewStatusPage"
                                                                 >
-                                                                    <span className="bs-Button">
+                                                                    <a
+                                                                        className="bs-Button"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        href={
+                                                                            statusPageLink
+                                                                        }
+                                                                    >
                                                                         View
                                                                         Status
                                                                         Page
-                                                                    </span>
+                                                                    </a>
                                                                 </button>
                                                             </div>
                                                         </span>
@@ -253,7 +242,6 @@ IncidentStatusPages.displayName = 'IncidentStatusPage';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            switchStatusPage,
             fetchIncidentStatusPages,
         },
         dispatch
@@ -279,7 +267,6 @@ const mapStateToProps = state => {
 };
 IncidentStatusPages.propTypes = {
     statusPages: PropTypes.object.isRequired,
-    switchStatusPage: PropTypes.func.isRequired,
     requesting: PropTypes.bool.isRequired,
     projectId: PropTypes.string.isRequired,
     incidentId: PropTypes.string.isRequired,
