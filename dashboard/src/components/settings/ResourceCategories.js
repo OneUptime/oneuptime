@@ -38,11 +38,14 @@ export class ResourceCategories extends Component {
         const { CreateResourceCategoryModalId } = this.state;
         const userId = User.getUserId();
 
-        if(e.target.localName === 'body' && e.key) {
+        if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
                 case 'n':
-                    if (modalList.length === 0 && modalId !== CreateResourceCategoryModalId) {
+                    if (
+                        modalList.length === 0 &&
+                        modalId !== CreateResourceCategoryModalId
+                    ) {
                         e.preventDefault(); // prevent entering the key automatically on the input field
                         return this.handleCreateResourceCategory(userId);
                     }
@@ -204,7 +207,13 @@ export class ResourceCategories extends Component {
                                             <div className="bs-ObjectList-cell">
                                                 Created
                                             </div>
-                                            <div className="bs-ObjectList-cell" style={{float: 'right', paddingRight: '29px'}}>
+                                            <div
+                                                className="bs-ObjectList-cell"
+                                                style={{
+                                                    float: 'right',
+                                                    paddingRight: '29px',
+                                                }}
+                                            >
                                                 Action
                                             </div>
                                         </header>
@@ -233,7 +242,14 @@ export class ResourceCategories extends Component {
                                                         </div>
                                                     </div>
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart" style={{float: 'right', paddingRight: '8px'}}>
+                                                        <div
+                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                            style={{
+                                                                float: 'right',
+                                                                paddingRight:
+                                                                    '8px',
+                                                            }}
+                                                        >
                                                             <div className="Box-root">
                                                                 <button
                                                                     onClick={() => {

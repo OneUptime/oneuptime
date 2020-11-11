@@ -11,7 +11,7 @@ import {
     getIncidentTimeline,
     fetchIncidentMessages,
 } from '../actions/incident';
-import {fetchIncidentStatusPages} from '../actions/statusPage'
+import { fetchIncidentStatusPages } from '../actions/statusPage';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
@@ -170,8 +170,8 @@ class Incident extends React.Component {
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
-        if(index === 2) {
-            this.fetchAllIncidentData()
+        if (index === 2) {
+            this.fetchAllIncidentData();
         }
     };
 
@@ -237,7 +237,10 @@ class Incident extends React.Component {
 
     ready = () => {
         this.fetchAllIncidentData();
-        this.props.fetchIncidentStatusPages(this.props.match.params.projectId, this.props.match.params.incidentId)
+        this.props.fetchIncidentStatusPages(
+            this.props.match.params.projectId,
+            this.props.match.params.incidentId
+        );
     };
 
     render() {
@@ -503,7 +506,7 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentMessages,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
-            fetchIncidentStatusPages
+            fetchIncidentStatusPages,
         },
         dispatch
     );

@@ -482,7 +482,9 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('#incidents');
                 await page.click('#incidents');
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-                await page.$eval(`#btnCreateIncident_${projectName}`, e => e.click());
+                await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#frmIncident');
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Online', page);
@@ -490,9 +492,8 @@ describe('Incident Created test', () => {
                 await page.click('#createIncident');
                 await page.waitForSelector('#createIncident', { hidden: true });
                 await page.goto(utils.DASHBOARD_URL);
-                await page.$eval(
-                    `#${monitorName2}_ViewIncidentDetails`,
-                    elem => elem.click()
+                await page.$eval(`#${monitorName2}_ViewIncidentDetails`, elem =>
+                    elem.click()
                 );
                 const closeButton = await page.waitForSelector(
                     '#closeIncident_0',

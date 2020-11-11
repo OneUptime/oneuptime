@@ -7,8 +7,8 @@ const { fork } = require('child_process');
 const moment = require('moment');
 const https = require('https');
 const httpsAgent = new https.Agent({
-      rejectUnauthorized: false,
-    });
+    rejectUnauthorized: false,
+});
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down

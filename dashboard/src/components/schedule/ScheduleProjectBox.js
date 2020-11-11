@@ -101,18 +101,14 @@ const ScheduleProjectBox = props => {
                                             </div>
                                             {props.allScheduleLength === 1 ? (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                    <span>
-                                                        Create Schedule
-                                                    </span>
+                                                    <span>Create Schedule</span>
                                                     <span className="new-btn__keycode">
                                                         N
                                                     </span>
                                                 </span>
                                             ) : (
                                                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                    <span>
-                                                        Create Schedule
-                                                    </span>
+                                                    <span>Create Schedule</span>
                                                 </span>
                                             )}
                                         </div>

@@ -4,7 +4,13 @@ const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 const axios = require('axios');
 axios.defaults.adapter = require('axios/lib/adapters/http');
-const serverMonitor = require('fyipe-server-monitor');
+let serverMonitor;
+try {
+    // try to use local package (with recent changes)
+    serverMonitor = require('../../../../server-monitor/lib/api');
+} catch (error) {
+    serverMonitor = require('fyipe-server-monitor');
+}
 
 require('should');
 
@@ -128,6 +134,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
+                    simulate: 'online',
                     projectId,
                     apiUrl,
                     apiKey,
@@ -137,8 +144,6 @@ describe('Server Monitor API', () => {
                 monitor.start();
 
                 await page.waitFor(120000);
-
-                monitor.stop();
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -151,6 +156,136 @@ describe('Server Monitor API', () => {
                 expect(activeIncidents).toEqual(
                     'No incidents currently active.'
                 );
+
+                monitor.stop();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create degraded incident',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+
+                let projectId = await page.$('#projectId', { visible: true });
+                projectId = await projectId.getProperty('innerText');
+                projectId = await projectId.jsonValue();
+
+                let apiUrl = await page.$('#apiUrl', { visible: true });
+                apiUrl = await apiUrl.getProperty('innerText');
+                apiUrl = await apiUrl.jsonValue();
+
+                await page.click('#apiKey');
+                let apiKey = await page.$('#apiKey', { visible: true });
+                apiKey = await apiKey.getProperty('innerText');
+                apiKey = await apiKey.jsonValue();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const monitor = serverMonitor({
+                    simulate: 'degraded',
+                    projectId,
+                    apiUrl,
+                    apiKey,
+                    monitorId,
+                });
+
+                monitor.start();
+
+                await page.waitFor(120000);
+
+                // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-degraded`
+                );
+                expect(element).toBeDefined();
+
+                monitor.stop();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create offline incident',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+
+                let projectId = await page.$('#projectId', { visible: true });
+                projectId = await projectId.getProperty('innerText');
+                projectId = await projectId.jsonValue();
+
+                let apiUrl = await page.$('#apiUrl', { visible: true });
+                apiUrl = await apiUrl.getProperty('innerText');
+                apiUrl = await apiUrl.jsonValue();
+
+                await page.click('#apiKey');
+                let apiKey = await page.$('#apiKey', { visible: true });
+                apiKey = await apiKey.getProperty('innerText');
+                apiKey = await apiKey.jsonValue();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const monitor = serverMonitor({
+                    simulate: 'offline',
+                    projectId,
+                    apiUrl,
+                    apiKey,
+                    monitorId,
+                });
+
+                monitor.start();
+
+                await page.waitFor(120000);
+
+                // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-offline`
+                );
+                expect(element).toBeDefined();
+
+                monitor.stop();
             });
         },
         operationTimeOut
@@ -197,6 +332,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
+                    simulate: 'online',
                     projectId,
                     apiUrl,
                     apiKey,

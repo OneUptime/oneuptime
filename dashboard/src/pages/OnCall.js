@@ -184,7 +184,9 @@ export class OnCall extends Component {
                                             canPaginateBackward
                                         }
                                         canPaginateForward={canPaginateForward}
-                                        allScheduleLength={subProjectSchedules.length}
+                                        allScheduleLength={
+                                            subProjectSchedules.length
+                                        }
                                         modalList={this.props.modalList}
                                     />
                                 </div>
@@ -252,7 +254,9 @@ export class OnCall extends Component {
                                     canPaginateBackward={canPaginateBackward}
                                     canPaginateForward={canPaginateForward}
                                     subProjects={subProjects}
-                                    allScheduleLength={subProjectSchedules.length}
+                                    allScheduleLength={
+                                        subProjectSchedules.length
+                                    }
                                     modalList={this.props.modalList}
                                 />
                             </div>

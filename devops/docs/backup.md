@@ -1,9 +1,8 @@
-# Backing up a database. 
+# Backing up a database.
 
 Admin mongodb username is: `root`
 
 Run these on source cluster:
-
 
 Syntax:
 
@@ -12,7 +11,6 @@ Syntax:
 Example:
 
 `sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
-
 
 **Step 2**: Copy file from conatiner to local machine.
 
@@ -23,4 +21,3 @@ Syntax:
 Example:
 
 `sudo kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
-

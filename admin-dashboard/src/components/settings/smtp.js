@@ -69,7 +69,7 @@ const fields = [
         label: 'Email',
         type: 'text',
         component: RenderField,
-        explanation:'Username for SMTP server.',
+        explanation: 'Username for SMTP server.',
     },
     {
         key: 'password',
@@ -272,13 +272,13 @@ export class Component extends React.Component {
                                                                 settings.requesting
                                                             }
                                                         />
-                                                        {
-                                                            field.explanation && (
-                                                                <p className="bs-Fieldset-explanation">
-                                                                    {field.explanation}
-                                                                </p>
-                                                            )
-                                                        }
+                                                        {field.explanation && (
+                                                            <p className="bs-Fieldset-explanation">
+                                                                {
+                                                                    field.explanation
+                                                                }
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}

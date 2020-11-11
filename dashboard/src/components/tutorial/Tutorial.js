@@ -35,6 +35,20 @@ class Tutorial extends React.Component {
                         className={`tut-Icon--${note.iconText} Margin-right--20`}
                         height="75"
                         width="75"
+                        style={{
+                            width:
+                                this.props.type === 'gitCredentials'
+                                    ? '6rem'
+                                    : null,
+                            height:
+                                this.props.type === 'gitCredentials'
+                                    ? '8rem'
+                                    : null,
+                            objectFit:
+                                this.props.type === 'gitCredentials'
+                                    ? 'cover'
+                                    : null,
+                        }}
                     />
                     <div>
                         <h3>{note.title}</h3>

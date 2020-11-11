@@ -760,8 +760,8 @@ module.exports = {
         await page.type('#port', port);
         await page.type('#from', from);
         await page.type('#name', 'Admin');
-        await page.$eval('#secure', e =>{
-            e.checked = secure;  
+        await page.$eval('#secure', e => {
+            e.checked = secure;
         });
         await page.click('#saveSmtp');
         await page.waitForSelector('.ball-beat', { visible: true });

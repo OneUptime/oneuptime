@@ -137,7 +137,10 @@ module.exports = {
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
 
-        await page.waitForSelector('#users', { visible: true, timeout: 100000 });
+        await page.waitForSelector('#users', {
+            visible: true,
+            timeout: 100000,
+        });
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
@@ -167,7 +170,10 @@ module.exports = {
             await page.type('input[name=confirmPassword]', '1234567890');
             await page.click('button[type=submit]');
 
-            await page.waitForSelector('#users', { visible: true, timeout: 100000 });
+            await page.waitForSelector('#users', {
+                visible: true,
+                timeout: 100000,
+            });
         } else {
             await this.loginEnterpriseUser(masterAdmin, page);
         }

@@ -904,6 +904,60 @@ module.exports = {
             throw error;
         }
     },
+    sendErrorTrackerCreated: async errorTracker => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const componentId = errorTracker.componentId._id;
+
+            global.io.emit(`createErrorTracker-${componentId}`, errorTracker);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorTrackerCreated', error);
+            throw error;
+        }
+    },
+    sendErrorTrackerDelete: async errorTracker => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = errorTracker.componentId._id;
+
+            global.io.emit(`deleteErrorTracker-${componentId}`, errorTracker);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorTrackerDelete', error);
+            throw error;
+        }
+    },
+    errorTrackerKeyReset: async errorTracker => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const componentId = errorTracker.componentId._id;
+
+            global.io.emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
+        } catch (error) {
+            ErrorService.log('realTimeService.errorTrackerKeyReset', error);
+            throw error;
+        }
+    },
+    sendErrorEventCreated: async errorEvent => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+            const errorTrackerId = errorEvent.errorTrackerId._id;
+
+            global.io.emit(`createErrorEvent-${errorTrackerId}`, errorEvent);
+        } catch (error) {
+            ErrorService.log('realTimeService.sendErrorEventCreated', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

@@ -66,7 +66,7 @@ const selector = formValueSelector('CreateSubscriber');
 class CreateSubscriber extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
-        this.props.createSubscriberError('')
+        this.props.createSubscriberError('');
     }
 
     componentWillUnmount() {
@@ -386,7 +386,7 @@ CreateSubscriber.propTypes = {
     requesting: PropTypes.bool,
     type: PropTypes.string,
     data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-    createSubscriberError : PropTypes.func
+    createSubscriberError: PropTypes.func,
 };
 
 export default connect(

@@ -31,7 +31,7 @@ class IncidentSettings extends React.Component {
     handleKeyboard = e => {
         const { modalId } = this.props;
 
-        if(e.target.localName === 'body' && e.key) {
+        if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
                 case 'n':

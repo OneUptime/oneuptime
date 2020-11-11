@@ -779,6 +779,55 @@ export function addBalance(projectId, data) {
         return promise;
     };
 }
+
+export function updateProjectBalanceRequest() {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_REQUEST,
+    };
+}
+
+export function updateProjectBalanceSuccess(payload) {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_SUCCESS,
+        payload,
+    };
+}
+
+export function updateProjectBalanceFailure(error) {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateProjectBalance({ projectId, intentId }) {
+    return function(dispatch) {
+        const promise = getApi(`stripe/${projectId}/updateBalance/${intentId}`);
+
+        dispatch(updateProjectBalanceRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(updateProjectBalanceSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateProjectBalanceFailure(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 export function checkCardRequest(promise) {
     return {
         type: types.CHECK_CARD_REQUEST,

@@ -7,6 +7,11 @@ const defaultEmailTemplates = require('../config/emailTemplate');
 const GlobalConfigService = require('./globalConfigService');
 const EmailSmtpService = require('./emailSmtpService');
 const EmailStatusService = require('./emailStatusService');
+const DateTime = require('../utils/DateTime');
+
+const helpers = {
+    year: DateTime.getCurrentYear,
+};
 
 const options = {
     viewEngine: {
@@ -14,6 +19,7 @@ const options = {
         layoutsDir: 'views/email/',
         defaultLayout: 'template',
         partialsDir: 'views/partials/',
+        helpers,
     },
     viewPath: 'views/email/',
     extName: '.hbs',
@@ -178,6 +184,63 @@ const _this = {
                 subject: mailOptions.subject,
                 template: mailOptions.template,
                 status: 'Error',
+            });
+            throw error;
+        }
+    },
+    // Automated email sent when a user deletes a project
+    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
+        const accountMail = await _this.getSmtpSettings();
+        accountMail.name = 'Fyipe Support';
+        accountMail.from = 'support@fyipe.com';
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: userEmail,
+                replyTo: accountMail.from,
+                cc: accountMail.from,
+                subject: 'We need your feedback',
+                template: 'delete_project',
+                context: {
+                    projectName,
+                    name: name.split(' ')[0].toString(),
+                    currentYear: new Date().getFullYear(),
+                },
+            };
+
+            const mailer = await _this.createMailer({});
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendDeleteProjectEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
             });
             throw error;
         }
@@ -479,7 +542,6 @@ const _this = {
                     forgotPasswordURL,
                 },
             };
-
             const mailer = await _this.createMailer({});
 
             if (!mailer) {

@@ -49,7 +49,7 @@ import {
     GET_MONITOR_LOGS_SUCCESS,
     GET_MONITOR_LOGS_FAILURE,
     GET_MONITOR_LOGS_RESET,
-    TOGGLE_EDIT
+    TOGGLE_EDIT,
 } from '../constants/monitor';
 import moment from 'moment';
 
@@ -61,7 +61,7 @@ const INITIAL_STATE = {
         success: false,
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
-        editMode: false
+        editMode: false,
     },
     monitorIssue: null,
     monitorLogs: {},
@@ -128,9 +128,9 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
-                    editMode: action.payload
-                }
-            })
+                    editMode: action.payload,
+                },
+            });
 
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {

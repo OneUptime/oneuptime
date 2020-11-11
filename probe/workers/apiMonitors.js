@@ -5,8 +5,8 @@ const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
 const https = require('https');
 const httpsAgent = new https.Agent({
-      rejectUnauthorized: false,
-    });
+    rejectUnauthorized: false,
+});
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up

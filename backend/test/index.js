@@ -11,6 +11,7 @@ try {
     require('./emailAuthorization.test');
     require('./emailSmtp.test');
     require('./emailTemplate.test');
+    require('./errorTracker.test');
     require('./feedback.test');
     require('./gitCredential.test');
     require('./globalConfig.test');
