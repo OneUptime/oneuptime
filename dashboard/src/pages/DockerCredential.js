@@ -10,6 +10,7 @@ import { getDockerCredentials } from '../actions/credential';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import TutorialBox from '../components/tutorial/TutorialBox';
 
 class DockerCredential extends Component {
     constructor(props) {
@@ -49,6 +50,10 @@ class DockerCredential extends Component {
                         name="Docker Credentials"
                     />
                     <div className="Margin-vertical--12">
+                        <TutorialBox
+                            type="dockerCredentials"
+                            currentProjectId={projectId}
+                        />
                         <div>
                             <div
                                 id="dockerCredentialPage"
