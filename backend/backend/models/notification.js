@@ -16,7 +16,6 @@ const notificationSchema = new Schema({
     deletedAt: {
         type: Date,
     },
-    incidentIdNumber: { type: String },
     deletedById: { type: String, ref: 'User' },
 });
 module.exports = mongoose.model('Notification', notificationSchema);

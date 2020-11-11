@@ -21,7 +21,8 @@ module.exports = {
             const notifications = await NotificationModel.find(query)
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .populate({path: 'meta.incidentId', model: 'Incident', select: '_id idNumber'});
             return notifications;
         } catch (error) {
             ErrorService.log('notificationService.findBy', error);
@@ -44,7 +45,7 @@ module.exports = {
         }
     },
 
-    create: async function(projectId, message, userId, icon, meta, idNumber) {
+    create: async function(projectId, message, userId, icon, meta) {
         try {
             if (!meta) {
                 meta = {};
@@ -55,7 +56,6 @@ module.exports = {
             notification.icon = icon;
             notification.createdBy = userId;
             notification.meta = meta;
-            notification.incidentIdNumber = idNumber && idNumber
             notification = await notification.save();
             await RealTimeService.sendNotification(notification);
             return notification;
