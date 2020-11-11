@@ -139,6 +139,7 @@ export class CustomerBalance extends Component {
             }
         });
     };
+
     render() {
         const { balance } = this.props;
         return (
