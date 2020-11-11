@@ -104,6 +104,7 @@ class IncidentCreated extends Component {
                                                       <div className="Notify-fyipe">
                                                           <div className="Notify-fyipe-container-row-primary db-SideNav-icon--danger" />
                                                           <span className="Notify-fyipe-container-row-secondary Text-color--white">
+                                                              <span>#{notification.meta.incidentId.idNumber}</span>{' '}
                                                               {
                                                                   notification.message
                                                               }{' '}
