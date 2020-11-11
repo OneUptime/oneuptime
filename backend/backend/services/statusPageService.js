@@ -396,7 +396,7 @@ module.exports = {
             );
             const statuspage = withMonitors[0];
             const monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor)
+                ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(

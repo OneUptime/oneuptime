@@ -46,6 +46,7 @@ class Events extends Component {
                                 >
                                     <span
                                         className="feed-title"
+                                        id="eventTitle"
                                         style={{
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(76, 76, 76, 0.8)',

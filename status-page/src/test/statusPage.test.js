@@ -348,6 +348,16 @@ describe('Status page monitors check', function() {
         expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
+    it('should show incident card, and show incident if there is any', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        const incidentCard = await page.waitForSelector('#incidentCard', {
+            visible: true,
+        });
+        expect(incidentCard).to.exist;
+    });
+
     it('should display scheduled events when enabled on status page', async function() {
         await page.reload({
             waitUntil: 'networkidle0',
@@ -412,17 +422,14 @@ describe('Status page monitors check', function() {
         const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
         await page.waitForSelector(monitorDaySelector);
-        await page.click(monitorDaySelector);
-        await page.waitFor(5000);
+        await page.$eval(monitorDaySelector, e => e.click());
 
-        await page.waitForSelector('#scheduledEvents');
-
-        await page.waitForSelector('li.scheduledEvent');
+        await page.waitForSelector('li.scheduledEvent', { visible: true });
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent .feed-title',
+            '#eventTitle',
             el => el.textContent
         );
 
