@@ -222,6 +222,10 @@ app.use(
     ['/securityLog', '/api/securityLog'],
     require('./backend/api/containerSecurityLog')
 );
+app.use(
+    ['/error-tracker', '/api/error-tracker'],
+    require('./backend/api/errorTracker')
+);
 
 app.set('port', process.env.PORT || 3002);
 

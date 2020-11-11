@@ -562,6 +562,18 @@ export const tutorials = {
                         docker images and their base images for security
                         vulnerability. We use Docker Credentials to scan your a
                         Docker image in a Docker registry.
+                        </p>
+                ),
+            },
+            {  id: 'errorTracking',
+                title: 'What is Error Tracking?',
+                iconText: 'errorTracking',
+                icon:
+                    'data:image/svg+xml;base64,PHN2ZyBpZD0iQ2FwYV8xIiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCA1MTIgNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHdpZHRoPSI1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGc+PHBhdGggZD0ibTUxMiAzOTcuMTA1YzAgNDEuMjktNTcuNjggODUuMDgtNTcuNjggODUuMDhzLTU3LjY3LTQzLjc5LTU3LjY3LTg1LjA4YzAtMzEuODYgMjUuODItNTcuNjggNTcuNjctNTcuNjggMzEuODYgMCA1Ny42OCAyNS44MiA1Ny42OCA1Ny42OHoiIGZpbGw9IiNmZTRhNGEiLz48cGF0aCBkPSJtNTEyIDM5Ny4xMDVjMCA0MS4yOS01Ny42OCA4NS4wOC01Ny42OCA4NS4wOHYtMTQyLjc2YzMxLjg2IDAgNTcuNjggMjUuODIgNTcuNjggNTcuNjh6IiBmaWxsPSIjZTgwYjZhIi8+PHBhdGggZD0ibTUxMiAxNTIuNTg1YzAgNTUuNzQtNDUuMzQgMTAxLjA4LTEwMS4wNyAxMDEuMDhoLTMwOS44NmMtMzkuMTkgMC03MS4wNyAzMS44OC03MS4wNyA3MS4wN3MzMS44OCA3MS4wNyA3MS4wNyA3MS4wN2gxODcuNTdsLTIzLjA4LTIzLjA4IDIxLjIxLTIxLjIyIDU5LjMgNTkuMy01OS4zIDU5LjI5LTIxLjIxLTIxLjIxIDIzLjA4LTIzLjA4aC0xODcuNTdjLTU1LjczIDAtMTAxLjA3LTQ1LjM0LTEwMS4wNy0xMDEuMDdzNDUuMzQtMTAxLjA3IDEwMS4wNy0xMDEuMDdoMzA5Ljg2YzM5LjE5IDAgNzEuMDctMzEuODkgNzEuMDctNzEuMDggMC0zOS4xOC0zMS44OC03MS4wNy03MS4wNy03MS4wN2gtMzc0LjIydi0zMGgzNzQuMjJjNTUuNzMgMCAxMDEuMDcgNDUuMzQgMTAxLjA3IDEwMS4wN3oiIGZpbGw9IiMyMjQzNzAiLz48cGF0aCBkPSJtNDM5LjMyIDM4My4wNTVoMzB2MzBoLTMweiIgZmlsbD0iI2YzZmRmZiIvPjxwYXRoIGQ9Im00NTQuMzIgMzgzLjA1NWgxNXYzMGgtMTV6IiBmaWxsPSIjZDdmM2Y3Ii8+PHBhdGggZD0ibTczLjQxIDY2LjUxNWMwIDIwLjI4LTE2LjQzIDM2LjcxLTM2LjcgMzYuNzEtMjAuMjggMC0zNi43MS0xNi40My0zNi43MS0zNi43MSAwLTIwLjI3IDE2LjQzLTM2LjcgMzYuNzEtMzYuNyAyMC4yNyAwIDM2LjcgMTYuNDMgMzYuNyAzNi43eiIgZmlsbD0iIzRhYmJlZiIvPjxwYXRoIGQ9Im03My40MSA2Ni41MTVjMCAyMC4yOC0xNi40MyAzNi43MS0zNi43IDM2Ljcxdi03My40MWMyMC4yNyAwIDM2LjcgMTYuNDMgMzYuNyAzNi43eiIgZmlsbD0iIzAwOWJlNSIvPjxwYXRoIGQ9Im0zMjkuMTQgMTY1LjUydjE0Ni4yOGgtMTQ2LjI4di0xNDYuMjhoNTguMTRsMTUgMTQgMTUtMTR6IiBmaWxsPSIjZmZkYTJkIi8+PHBhdGggZD0ibTMyOS4xNCAxNjUuNTJ2MTQ2LjI4aC03My4xNHYtMTMyLjI4bDE1LTE0eiIgZmlsbD0iI2ZjYmUwMCIvPjxwYXRoIGQ9Im0yNDEgMTY1LjUyaDMwdjQ0LjE0aC0zMHoiIGZpbGw9IiNmZmEwMDEiLz48cGF0aCBkPSJtMjU2IDE2NS41MmgxNXY0NC4xNGgtMTV6IiBmaWxsPSIjZjg3ZjAyIi8+PC9nPjwvc3ZnPg==',
+                description: (
+                    <p>
+                        You can track activities happening in your application,
+                        from click events to unhandled error exceptions.
                     </p>
                 ),
             },

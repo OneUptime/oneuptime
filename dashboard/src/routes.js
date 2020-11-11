@@ -1,6 +1,8 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
-// import ErrorTracking from './pages/ErrorTracking';
+import ErrorTracking from './pages/ErrorTracking';
+import ErrorTrackingView from './pages/ErrorTrackingView';
+import ErrorEventView from './pages/ErrorEventView';
 
 const {
     Home,
@@ -87,14 +89,37 @@ export const groups = [
             // {
             //     title: 'Error Tracking',
             //     path:
-            //         '/dashboard/project/:projectId/:componentId/error-tracking',
+            //         '/dashboard/project/:projectId/:componentId/error-tracker',
             //     icon: 'errorTracking',
             //     visible: true,
             //     exact: true,
             //     component: ErrorTracking,
             //     index: 4,
             //     shortcut: 'c+l',
-            //     subRoutes: [],
+            //     subRoutes: [
+            //         {
+            //             title: 'Error Tracking View',
+            //             path:
+            //                 '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
+            //             icon: 'radar',
+            //             visible: true,
+            //             exact: true,
+            //             subRoutes: [],
+            //             component: ErrorTrackingView,
+            //             index: 1,
+            //         },
+            //         {
+            //             title: 'Error Tracking Detail View',
+            //             path:
+            //                 '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+            //             icon: 'radar',
+            //             visible: true,
+            //             exact: true,
+            //             subRoutes: [],
+            //             component: ErrorEventView,
+            //             index: 2,
+            //         },
+            //     ],
             // },
             {
                 title: 'Incident Log',

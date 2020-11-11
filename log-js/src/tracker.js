@@ -1,6 +1,7 @@
 import FyipeListiner from './listener';
 import Util from './util';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -17,7 +18,14 @@ class FyipeTracker {
     #MAX_ITEMS_ALLOWED_IN_STACK = 100;
     #configKeys = ['baseUrl'];
     #event;
-    constructor(options) {
+    #errorTrackerId;
+    #errorTrackerKey;
+    #apiUrl;
+
+    constructor(apiUrl, errorTrackerId, errorTrackerKey, options = {}) {
+        this._setErrorTrackerId(errorTrackerId);
+        this._setApiUrl(apiUrl);
+        this._setErrorTrackerKey(errorTrackerKey);
         // set up option
         this._setUpOptions(options);
         this._setEventId();
@@ -34,6 +42,15 @@ class FyipeTracker {
         } else {
             this._setUpNodeErrorListener();
         }
+    }
+    _setErrorTrackerId(errorTrackerId) {
+        this.#errorTrackerId = errorTrackerId;
+    }
+    _setErrorTrackerKey(errorTrackerKey) {
+        this.#errorTrackerKey = errorTrackerKey;
+    }
+    _setApiUrl(apiUrl) {
+        this.#apiUrl = `${apiUrl}/error-tracker/${this.#errorTrackerId}/track`;
     }
     _setUpOptions(options) {
         for (const [key, value] of Object.entries(options)) {
@@ -60,6 +77,9 @@ class FyipeTracker {
         return this.#eventId;
     }
     setTag(key, value) {
+        if (!(typeof key === 'string') || !(typeof value === 'string')) {
+            return 'Invalid Tags type';
+        }
         // get the index if the key exist already
         const index = this.#tags.findIndex(tag => tag.key === key);
         if (index !== -1) {
@@ -72,6 +92,9 @@ class FyipeTracker {
     }
     // pass an array of tags
     setTags(tags) {
+        if (!Array.isArray(tags)) {
+            return 'Invalid Tags type';
+        }
         tags.forEach(element => {
             if (element.key && element.value) {
                 this.setTag(element.key, element.value);
@@ -93,6 +116,9 @@ class FyipeTracker {
         this.#extras = { ...this.#extras, [key]: extra };
     }
     setFingerprint(keys) {
+        if (!(typeof keys === 'string') && !Array.isArray(keys)) {
+            return 'Invalid Fingerprint Format';
+        }
         this.#fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
     _getFingerprint(errorMessage) {
@@ -128,6 +154,9 @@ class FyipeTracker {
                 // get device location and details
                 // prepare to send to server
                 _this.prepareErrorObject('error', errorObj);
+
+                // send to the server
+                _this.sendErrorEventToServer();
             }
         };
     }
@@ -160,6 +189,9 @@ class FyipeTracker {
         this.#listenerObj.logErrorEvent(content);
         // prepare to send to server
         this.prepareErrorObject('error', errorObj);
+
+        // send to the server
+        return this.sendErrorEventToServer();
     }
     addToTimeline(category, content, type) {
         const timeline = {
@@ -176,11 +208,17 @@ class FyipeTracker {
     }
     captureMessage(message) {
         this.prepareErrorObject('message', { message });
+
+        // send to the server
+        return this.sendErrorEventToServer();
     }
     captureException(error) {
         // construct the error object
         const errorObj = this.#utilObj._getErrorStackTrace(error);
         this.prepareErrorObject('exception', errorObj);
+
+        // send to the server
+        return this.sendErrorEventToServer();
     }
     prepareErrorObject(type, errorStackTrace) {
         // get current timeline
@@ -190,6 +228,7 @@ class FyipeTracker {
         const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
+        // prepare the event so it can be sent to the server
         this.#event = {
             type,
             timeline,
@@ -198,12 +237,33 @@ class FyipeTracker {
             eventId: this.getEventId(),
             tags,
             fingerprint,
+            errorTrackerKey: this.#errorTrackerKey,
         };
-
-        // generate a new event Id
-        this._setEventId();
-        // clear the timeline after a successful call to the server
-        this._clear(this.getEventId());
+    }
+    async sendErrorEventToServer() {
+        let content;
+        await this._makeApiRequest(this.#event)
+            .then(response => {
+                content = response;
+                // generate a new event Id
+                this._setEventId();
+                // clear the timeline after a successful call to the server
+                this._clear(this.getEventId());
+            })
+            .catch(error => (content = error));
+        return content;
+    }
+    _makeApiRequest(data) {
+        return new Promise((resolve, reject) => {
+            axios
+                .post(this.#apiUrl, data)
+                .then(res => {
+                    resolve(res);
+                })
+                .catch(err => {
+                    reject(err);
+                });
+        });
     }
     getCurrentEvent() {
         return this.#event;

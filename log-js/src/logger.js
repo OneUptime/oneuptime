@@ -1,16 +1,13 @@
 import axios from 'axios';
-import FyipeTracker from './tracker';
 class FyipeLogger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
     #tracker;
-    constructor(apiUrl, applicationLogId, applicationLogKey, options = {}) {
+    constructor(apiUrl, applicationLogId, applicationLogKey) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
-        // set up application tracker also
-        this.#tracker = new FyipeTracker(options);
     }
     _setApplicationLogId(applicationLogId) {
         this.#applicationLogId = applicationLogId;
@@ -24,42 +21,6 @@ class FyipeLogger {
         }/log`;
     }
 
-    addTimeline(category, content, type) {
-        this.#tracker.addToTimeline(category, content, type);
-    }
-    getTimeline() {
-        return this.#tracker.getTimeline();
-    }
-    getCurrentEvent() {
-        return this.#tracker.getCurrentEvent();
-    }
-    captureMessage(message) {
-        this.#tracker.captureMessage(message);
-    }
-    captureException(error) {
-        this.#tracker.captureException(error);
-    }
-    setTag(key, value) {
-        if (!(typeof key === 'string') || !(typeof value === 'string')) {
-            return 'Invalid Tags type';
-        }
-        this.#tracker.setTag(key, value);
-    }
-    setTags(tags) {
-        if (!Array.isArray(tags)) {
-            return 'Invalid Tags type';
-        }
-        this.#tracker.setTags(tags);
-    }
-    getTags() {
-        return this.#tracker._getTags();
-    }
-    setFingerprint(fingerprint) {
-        if (!(typeof fingerprint === 'string') && !Array.isArray(fingerprint)) {
-            return 'Invalid Fingerprint Format';
-        }
-        this.#tracker.setFingerprint(fingerprint);
-    }
     async log(data, tags = null) {
         const type = typeof data;
 
