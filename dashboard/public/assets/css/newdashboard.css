@@ -11312,8 +11312,9 @@ table {
     width: 100%;
     display: flex;
     justify-content: space-between;
-    padding: 20px 10px;
+    padding: 10px;
     border-radius: 3px;
+    cursor: pointer;
 }
 .Tag-Container {
     border: solid 1px #D8D2DE;
