@@ -1,8 +1,8 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
-import ErrorTracking from './pages/ErrorTracking';
-import ErrorTrackingView from './pages/ErrorTrackingView';
-import ErrorEventView from './pages/ErrorEventView';
+// import ErrorTracking from './pages/ErrorTracking';
+// import ErrorTrackingView from './pages/ErrorTrackingView';
+// import ErrorEventView from './pages/ErrorEventView';
 
 const {
     Home,

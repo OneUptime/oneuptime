@@ -562,10 +562,11 @@ export const tutorials = {
                         docker images and their base images for security
                         vulnerability. We use Docker Credentials to scan your a
                         Docker image in a Docker registry.
-                        </p>
+                    </p>
                 ),
             },
-            {  id: 'errorTracking',
+            {
+                id: 'errorTracking',
                 title: 'What is Error Tracking?',
                 iconText: 'errorTracking',
                 icon:
