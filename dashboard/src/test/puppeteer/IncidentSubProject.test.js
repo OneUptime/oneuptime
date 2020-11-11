@@ -280,7 +280,7 @@ describe('Incident API With SubProjects', () => {
 
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
 
@@ -305,7 +305,7 @@ describe('Incident API With SubProjects', () => {
                 await page.reload({ waitUntil: 'networkidle0' });
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
 
@@ -320,6 +320,10 @@ describe('Incident API With SubProjects', () => {
                 expect(internalContent).toEqual(internalNote);
 
                 type = 'investigation';
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`);
                 await page.$eval(`#add-${type}-message`, e => e.click());
@@ -382,7 +386,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
                 await page.waitFor(2000);
