@@ -254,7 +254,11 @@ export class CustomerBalance extends Component {
                                                                                 fontWeight:
                                                                                     'bold',
                                                                             }}
-                                                                        >{`${balance}$`}</span>
+                                                                        >{`${Number.parseFloat(
+                                                                            balance
+                                                                        ).toFixed(
+                                                                            2
+                                                                        )}$`}</span>
                                                                     </p>
                                                                 </label>
                                                             </div>
