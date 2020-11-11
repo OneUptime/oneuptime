@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import moment from 'moment';
-import Slide from 'react-reveal/Slide';
 import { PropTypes } from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -8,6 +7,7 @@ import { bindActionCreators } from 'redux';
 import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
+import Fade from 'react-reveal/Fade';
 
 class IncidentCreated extends Component {
     markAsRead = notification => {
@@ -37,7 +37,7 @@ class IncidentCreated extends Component {
         const { notifications } = this.props;
 
         return (
-            <Slide bottom>
+            <Fade>
                 <div
                     style={{
                         position: 'absolute',
@@ -156,7 +156,7 @@ class IncidentCreated extends Component {
                         </div>
                     </div>
                 </div>
-            </Slide>
+            </Fade>
         );
     }
 }
