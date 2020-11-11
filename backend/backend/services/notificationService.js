@@ -55,7 +55,7 @@ module.exports = {
             notification.icon = icon;
             notification.createdBy = userId;
             notification.meta = meta;
-            notification.idNumber = idNumber && idNumber
+            notification.incidentIdNumber = idNumber && idNumber
             notification = await notification.save();
             await RealTimeService.sendNotification(notification);
             return notification;
