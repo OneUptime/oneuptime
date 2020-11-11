@@ -11303,3 +11303,23 @@ table {
     top: 0;
     background-color: #f7f7f7;
 }
+.Tag-Detail {
+    padding: 15px;
+    border-top: solid 1px #D8D2DE;
+}
+.Tag-Detail > div {
+    background-color: #F7F8F9;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 10px;
+    border-radius: 3px;
+}
+.Tag-Container {
+    border: solid 1px #D8D2DE;
+    border-radius: 3px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
