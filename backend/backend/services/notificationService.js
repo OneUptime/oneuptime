@@ -22,7 +22,11 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate({path: 'meta.incidentId', model: 'Incident', select: '_id idNumber'});
+                .populate({
+                    path: 'meta.incidentId',
+                    model: 'Incident',
+                    select: '_id idNumber',
+                });
             return notifications;
         } catch (error) {
             ErrorService.log('notificationService.findBy', error);
