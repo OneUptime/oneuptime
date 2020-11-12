@@ -546,6 +546,7 @@ export const tutorials = {
                             href="https://fyipe.com/product/app-security"
                             target="_blank"
                             rel="noopener noreferrer"
+                            style={{ textDecoration: 'underline' }}
                         >
                             security monitoring
                         </a>{' '}
@@ -568,6 +569,7 @@ export const tutorials = {
                             href="https://fyipe.com/product/app-security"
                             target="_blank"
                             rel="noopener noreferrer"
+                            style={{ textDecoration: 'underline' }}
                         >
                             security monitoring
                         </a>{' '}
