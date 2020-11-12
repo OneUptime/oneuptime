@@ -175,19 +175,39 @@ module.exports = {
                     createdAt: previousErrorEvent[0].createdAt,
                 };
             }
+            const oldestErrorEvent = await ErrorEventModel.find({
+                _id: { $lt: errorEventId },
+                errorTrackerId: errorEvent.errorTrackerId,
+                fingerprintHash: errorEvent.fingerprintHash,
+            })
+                .sort({ _id: 1 })
+                .limit(1);
+            if (oldestErrorEvent.length > 0) {
+                previous.oldest = oldestErrorEvent[0]._id;
+            }
 
             const nextErrorEvent = await ErrorEventModel.find({
                 _id: { $gt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,
                 fingerprintHash: errorEvent.fingerprintHash,
             })
-                .sort({ _id: -1 })
+                .sort({ _id: 1 })
                 .limit(1);
             if (nextErrorEvent.length > 0) {
                 next = {
                     _id: nextErrorEvent[0]._id,
                     createdAt: nextErrorEvent[0].createdAt,
                 };
+            }
+            const latestErrorEvent = await ErrorEventModel.find({
+                _id: { $gt: errorEventId },
+                errorTrackerId: errorEvent.errorTrackerId,
+                fingerprintHash: errorEvent.fingerprintHash,
+            })
+                .sort({ _id: -1 })
+                .limit(1);
+            if (latestErrorEvent.length > 0) {
+                next.latest = latestErrorEvent[0]._id;
             }
 
             const totalEvents = await this.countBy({
