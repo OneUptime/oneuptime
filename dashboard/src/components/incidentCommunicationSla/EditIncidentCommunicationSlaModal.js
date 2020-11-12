@@ -530,14 +530,14 @@ class EditIncidentCommunicationSlaModal extends React.Component {
                                         </span>
                                     </button>
                                     <button
-                                        id="createSlaBtn"
+                                        id="editSlaBtn"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                         disabled={requesting}
                                         type="submit"
                                     >
                                         {!requesting && (
                                             <>
-                                                <span>Create</span>
+                                                <span>Update</span>
                                                 <span className="create-btn__keycode">
                                                     <span className="keycode__icon keycode__icon--enter" />
                                                 </span>
