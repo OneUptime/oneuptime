@@ -52,6 +52,7 @@
         "react-dropzone": "^11.0.1",
         "react-frontload": "^1.0.3",
         "react-ga": "^2.5.3",
+        "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.0",
         "react-json-view": "^1.19.1",
         "react-markdown": "^4.3.1",
