@@ -11,13 +11,7 @@ import PropTypes from 'prop-types';
 
 class ErrorEventDetail extends Component {
     render() {
-        const {
-            errorEvent,
-            componentId,
-            projectId,
-            errorTrackerId,
-            navigationLink,
-        } = this.props;
+        const { errorEvent, navigationLink } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -30,7 +24,9 @@ class ErrorEventDetail extends Component {
                                         navigationLink={navigationLink}
                                     />
                                     <ErrorEventDevice errorEvent={errorEvent} />
-                                    <ErrorEventMiniTag />
+                                    <ErrorEventMiniTag
+                                        errorEvent={errorEvent}
+                                    />
                                     <ErrorEventStackTrace />
                                     <ErrorEventTimeline />
                                     <ErrorEventInfoSection />
@@ -139,9 +135,6 @@ class ErrorEventDetail extends Component {
 }
 ErrorEventDetail.propTypes = {
     errorEvent: PropTypes.object,
-    projectId: PropTypes.string,
-    componentId: PropTypes.string,
-    errorTrackerId: PropTypes.string,
     navigationLink: PropTypes.func,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
