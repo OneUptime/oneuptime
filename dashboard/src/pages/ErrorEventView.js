@@ -16,6 +16,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
+import { history } from '../store';
 class ErrorEventView extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -63,6 +64,16 @@ class ErrorEventView extends Component {
             errorEventId
         );
         setCurrentErrorEvent(errorEventId);
+        history.push(
+            '/dashboard/project/' +
+                currentProject._id +
+                '/' +
+                component._id +
+                '/error-trackers/' +
+                errorTracker[0]._id +
+                '/events/' +
+                errorEventId
+        );
     };
     render() {
         const {
@@ -134,7 +145,7 @@ const mapStateToProps = (state, ownProps) => {
     const { componentId, errorTrackerId, errorEventId } = ownProps.match.params;
     const currentErrorEvent = state.errorTracker.currentErrorEvent;
     const currentErrorEventId =
-        currentErrorEvent === '' ? errorEventId : currentErrorEvent;
+        currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;
     const currentProject = state.project.currentProject;
     let component;
     state.component.componentList.components.forEach(item => {
