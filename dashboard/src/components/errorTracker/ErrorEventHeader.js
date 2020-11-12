@@ -163,6 +163,11 @@ class ErrorEventHeader extends Component {
                                             ? 'Navigator-Oldest'
                                             : 'Navigator-Oldest Navigator-Disable'
                                     }`}
+                                    onClick={() =>
+                                        navigationLink(
+                                            errorEvent.previous.oldest
+                                        )
+                                    }
                                 >
                                     <img
                                         src={`/dashboard/assets/img/previous${
@@ -202,6 +207,9 @@ class ErrorEventHeader extends Component {
                                     Newer
                                 </div>
                                 <div
+                                    onClick={() =>
+                                        navigationLink(errorEvent.next.latest)
+                                    }
                                     className={`${
                                         errorEvent.next
                                             ? 'Navigator-Newest'
