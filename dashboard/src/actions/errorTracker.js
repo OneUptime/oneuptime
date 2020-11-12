@@ -259,3 +259,10 @@ export function resetFetchErrorEvent() {
         type: types.FETCH_ERROR_EVENT_RESET,
     };
 }
+
+export function setCurrentErrorEvent(errorEventId) {
+    return {
+        type: types.SET_CURRENT_ERROR_EVENT,
+        payload: { errorEventId },
+    };
+}

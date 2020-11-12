@@ -15,6 +15,7 @@ import {
     FETCH_ERROR_EVENT_REQUEST,
     FETCH_ERROR_EVENT_RESET,
     FETCH_ERROR_EVENT_SUCCESS,
+    SET_CURRENT_ERROR_EVENT,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -33,6 +34,7 @@ const INITIAL_STATE = {
     },
     errorTrackerIssues: {},
     errorEvents: {},
+    currentErrorEvent: '',
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
     let temporaryIssues, temporaryErrorEvents;
@@ -190,12 +192,12 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           requesting: true,
                       }
                     : {
-                          errorEvent: null,
+                          errorEvent: undefined,
                           error: null,
                           requesting: true,
                           success: false,
-                          previous: null,
-                          next: null,
+                          previous: undefined,
+                          next: undefined,
                           totalEvents: 0,
                       },
             };
@@ -228,12 +230,12 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           error: action.payload.error,
                       }
                     : {
-                          errorEvent: null,
+                          errorEvent: undefined,
                           error: action.payload.error,
                           requesting: false,
                           success: false,
-                          previous: null,
-                          next: null,
+                          previous: undefined,
+                          next: undefined,
                           totalEvents: 0,
                       },
             };
@@ -243,6 +245,10 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ERROR_EVENT_RESET:
             return Object.assign({}, state, {
                 errorEvents: INITIAL_STATE.errorEvents,
+            });
+        case SET_CURRENT_ERROR_EVENT:
+            return Object.assign({}, state, {
+                currentErrorEvent: action.payload.errorEventId,
             });
         default:
             return state;
