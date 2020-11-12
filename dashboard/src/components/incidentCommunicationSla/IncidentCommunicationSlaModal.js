@@ -41,6 +41,7 @@ class IncidentCommunicationSlaModal extends React.Component {
             createIncidentSlaModalId,
             createCommunicationSla,
             fetchCommunicationSlas,
+            monitors,
             data,
             slaError,
         } = this.props;
@@ -53,7 +54,7 @@ class IncidentCommunicationSlaModal extends React.Component {
             );
             postObj.monitors = monitors;
         } else {
-            postObj.monitors = [];
+            postObj.monitors = [...monitors.map(monitor => monitor._id)];
         }
 
         postObj.name = values.name;
