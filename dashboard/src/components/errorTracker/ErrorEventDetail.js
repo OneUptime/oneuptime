@@ -27,7 +27,9 @@ class ErrorEventDetail extends Component {
                                     <ErrorEventMiniTag
                                         errorEvent={errorEvent}
                                     />
-                                    <ErrorEventStackTrace />
+                                    <ErrorEventStackTrace
+                                        errorEvent={errorEvent}
+                                    />
                                     <ErrorEventTimeline />
                                     <ErrorEventInfoSection />
                                     <div className="Box-divider--border-top-1 Padding-vertical--20">
