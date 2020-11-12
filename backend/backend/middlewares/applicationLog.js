@@ -64,7 +64,7 @@ const _this = {
             // everything is fine at this point
             next();
         } catch (error) {
-            ErrorService.log('applicationLog.isKeyMappedToId', error);
+            ErrorService.log('applicationLog.isApplicationLogValid', error);
             throw error;
         }
     },

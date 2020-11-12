@@ -28,6 +28,10 @@ build_n_test_dashboard:
         - sudo docker build -t fyipeproject/dashboard:3.0.$CI_PIPELINE_IID ./dashboard
         - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
         - sudo docker ps
+        - npm i
+        - cd server-monitor
+        - npm ci
+        - cd ..
         - cd dashboard
         - npm ci
         # try building, if there are warnings then this will fail

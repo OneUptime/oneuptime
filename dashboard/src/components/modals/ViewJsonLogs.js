@@ -41,7 +41,16 @@ class ViewJsonLogs extends Component {
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>{title}</span>
+                                        <span
+                                            id={
+                                                title &&
+                                                typeof title === 'string'
+                                                    ? title.replace(/ /g, '_')
+                                                    : 'json'
+                                            }
+                                        >
+                                            {title}
+                                        </span>
                                     </span>
                                 </div>
                             </div>
@@ -58,7 +67,7 @@ class ViewJsonLogs extends Component {
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
                                     <button
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                        className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={() =>
                                             this.props.closeModal({
@@ -67,8 +76,8 @@ class ViewJsonLogs extends Component {
                                         }
                                         autoFocus={true}
                                     >
-                                        <span>OK</span>
-                                        <span className="create-btn__keycode">
+                                        <span>Close</span>
+                                        <span className="cancel-btn__keycode">
                                             Esc
                                         </span>
                                     </button>

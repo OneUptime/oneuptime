@@ -184,6 +184,10 @@ export class OnCall extends Component {
                                             canPaginateBackward
                                         }
                                         canPaginateForward={canPaginateForward}
+                                        allScheduleLength={
+                                            subProjectSchedules.length
+                                        }
+                                        modalList={this.props.modalList}
                                     />
                                 </div>
                             </div>
@@ -250,6 +254,10 @@ export class OnCall extends Component {
                                     canPaginateBackward={canPaginateBackward}
                                     canPaginateForward={canPaginateForward}
                                     subProjects={subProjects}
+                                    allScheduleLength={
+                                        subProjectSchedules.length
+                                    }
+                                    modalList={this.props.modalList}
                                 />
                             </div>
                         </div>
@@ -383,6 +391,7 @@ const mapStateToProps = (state, props) => {
         subProjects,
         currentProject: state.project.currentProject,
         tutorialStat,
+        modalList: state.modal.modals,
     };
 };
 
@@ -406,6 +415,7 @@ OnCall.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    modalList: PropTypes.array,
 };
 
 OnCall.displayName = 'OnCall';

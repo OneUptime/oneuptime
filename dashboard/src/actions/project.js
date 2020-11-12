@@ -52,6 +52,12 @@ export function hideDeleteModal() {
     };
 }
 
+export function hideDeleteModalSaasMode() {
+    return {
+        type: types.HIDE_DELETE_MODAL_SAAS_MODE,
+    };
+}
+
 export function showForm() {
     return {
         type: types.SHOW_PROJECT_FORM,
@@ -773,6 +779,55 @@ export function addBalance(projectId, data) {
         return promise;
     };
 }
+
+export function updateProjectBalanceRequest() {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_REQUEST,
+    };
+}
+
+export function updateProjectBalanceSuccess(payload) {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_SUCCESS,
+        payload,
+    };
+}
+
+export function updateProjectBalanceFailure(error) {
+    return {
+        type: types.UPDATE_PROJECT_BALANCE_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateProjectBalance({ projectId, intentId }) {
+    return function(dispatch) {
+        const promise = getApi(`stripe/${projectId}/updateBalance/${intentId}`);
+
+        dispatch(updateProjectBalanceRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(updateProjectBalanceSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateProjectBalanceFailure(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
 export function checkCardRequest(promise) {
     return {
         type: types.CHECK_CARD_REQUEST,
@@ -819,5 +874,93 @@ export function checkCard(data) {
             }
         );
         return promise;
+    };
+}
+
+export function setEmailIncidentNotificationRequest() {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_REQUEST,
+    };
+}
+
+export function setEmailIncidentNotificationSuccess(payload) {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_SUCCESS,
+        payload,
+    };
+}
+
+export function setEmailIncidentNotificationFailure(error) {
+    return {
+        type: types.SET_EMAIL_INCIDENT_NOTIFICATION_FAILURE,
+        payload: error,
+    };
+}
+
+export function setEmailIncidentNotification({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setEmailIncidentNotificationRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/email`,
+                data
+            );
+            dispatch(setEmailIncidentNotificationSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setEmailIncidentNotificationFailure(errorMsg));
+        }
+    };
+}
+
+export function setSmsIncidentNotificationRequest() {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_REQUEST,
+    };
+}
+
+export function setSmsIncidentNotificationSuccess(payload) {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_SUCCESS,
+        payload,
+    };
+}
+
+export function setSmsIncidentNotificationFailure(error) {
+    return {
+        type: types.SET_SMS_INCIDENT_NOTIFICATION_FAILURE,
+        payload: error,
+    };
+}
+
+export function setSmsIncidentNotification({ projectId, data }) {
+    return async function(dispatch) {
+        dispatch(setSmsIncidentNotificationRequest());
+
+        try {
+            const response = await putApi(
+                `project/${projectId}/advancedOptions/sms`,
+                data
+            );
+            dispatch(setSmsIncidentNotificationSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(setSmsIncidentNotificationFailure(errorMsg));
+        }
     };
 }

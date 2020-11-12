@@ -25,36 +25,25 @@ let token, userId, projectId, anotherUser;
 describe('Team API', function() {
     this.timeout(20000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, userData.user);
+        const project = res.body.project;
+        projectId = project._id;
+        userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+        await request.post('/user/login').send({
+            email: userData.user.email,
+            password: userData.user.password,
+        });
+        token = res.body.tokens.jwtAccessToken;
     });
 
     after(async function() {
@@ -64,142 +53,110 @@ describe('Team API', function() {
     });
 
     // 'post /monitor/:projectId/monitor'
-    it('should reject the request of an unauthenticated user', function(done) {
-        request
-            .get(`/team/${projectId}`)
-            .send({
-                name: 'New Schedule',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(401);
-                done();
-            });
+    it('should reject the request of an unauthenticated user', async function() {
+        const res = await request.get(`/team/${projectId}`).send({
+            name: 'New Schedule',
+        });
+        expect(res).to.have.status(401);
     });
 
-    it('should get an array of users', function(done) {
+    it('should get an array of users', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/team/${projectId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
     });
 
-    it('should not add new users when the `emails` field is invalid', function(done) {
+    it('should not add new users when the `emails` field is invalid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: null,
                 role: 'Member',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should not add new users when the `role` field is invalid', function(done) {
+    it('should not add new users when the `role` field is invalid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: 'noreply@fyipe.com',
                 role: null,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should add new users when the `role` and `emails` field are valid', function(done) {
+    it('should add new users when the `role` and `emails` field are valid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: 'noreply1@fyipe.com',
                 role: 'Member',
-            })
-            .end(function(err, res) {
-                anotherUser = res.body[0].team[0].userId;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
             });
+        anotherUser = res.body[0].team[0].userId;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
     });
 
-    it('should not change user roles when the `role` field is invalid', function(done) {
+    it('should not change user roles when the `role` field is invalid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/team/${projectId}/${anotherUser}/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: null,
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should not change user roles when the `teamMemberId` field is invalid', function(done) {
+    it('should not change user roles when the `teamMemberId` field is invalid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/team/${projectId}/team/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: 'Administrator',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should change user roles', function(done) {
+    it('should change user roles', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/team/${projectId}/${anotherUser}/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: 'Administrator',
-            })
-            .end(function(err, res) {
-                expect(res.body[0].team[0].userId).to.be.equal(anotherUser);
-                expect(res.body[0].team[0].role).to.be.equal('Administrator');
-                expect(res).to.have.status(200);
-                done();
             });
+        expect(res.body[0].team[0].userId).to.be.equal(anotherUser);
+        expect(res.body[0].team[0].role).to.be.equal('Administrator');
+        expect(res).to.have.status(200);
     });
 
-    it('should not delete users when the `teamId` is not valid', function(done) {
+    it('should not delete users when the `teamId` is not valid', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .delete(`/team/${projectId}/xxx`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(400);
     });
 
-    it('should delete users', function(done) {
+    it('should delete users', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .delete(`/team/${projectId}/${anotherUser}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
     });
 });
 
@@ -245,16 +202,14 @@ describe('Team API with Sub-Projects', async function() {
         const verificationToken = await VerificationTokenModel.findOne({
             userId: subProjectUserId,
         });
-        request
+        await request
             .get(`/user/confirmation/${verificationToken.token}`)
-            .redirects(0)
-            .end(async function() {
-                const res3 = await request.post('/user/login').send({
-                    email: userData.newUser.email,
-                    password: userData.newUser.password,
-                });
-                newUserToken = res3.body.tokens.jwtAccessToken;
-            });
+            .redirects(0);
+        const res3 = await request.post('/user/login').send({
+            email: userData.newUser.email,
+            password: userData.newUser.password,
+        });
+        newUserToken = res3.body.tokens.jwtAccessToken;
     });
 
     after(async function() {
@@ -323,71 +278,60 @@ describe('Team API with Sub-Projects', async function() {
         expect(parseInt(project.seats)).to.be.equal(4);
     });
 
-    it('should update existing user role in sub-project (old role -> member, new role -> administrator)', function(done) {
+    it('should update existing user role in sub-project (old role -> member, new role -> administrator)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/team/${subProjectId}/${subProjectTeamMemberId}/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: 'Administrator',
-            })
-            .end(function(err, res) {
-                const subProjectTeamMembers = res.body.find(
-                    teamMembers => teamMembers.projectId === subProjectId
-                ).team;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(subProjectTeamMembers[1].role).to.equal('Administrator');
-                done();
             });
+
+        const subProjectTeamMembers = res.body.find(
+            teamMembers => teamMembers.projectId === subProjectId
+        ).team;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(subProjectTeamMembers[1].role).to.equal('Administrator');
     });
 
-    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', function(done) {
+    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .put(`/team/${projectId}/${projectTeamMemberId}/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: 'Member',
-            })
-            .end(function(err, res) {
-                const projectTeamMembers = res.body.find(
-                    teamMembers => teamMembers.projectId === projectId
-                ).team;
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(projectTeamMembers[0].role).to.equal('Member');
-                done();
             });
+        const projectTeamMembers = res.body.find(
+            teamMembers => teamMembers.projectId === projectId
+        ).team;
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(projectTeamMembers[0].role).to.equal('Member');
     });
 
-    it("should get only sub-project's team members for valid sub-project user", function(done) {
+    it("should get only sub-project's team members for valid sub-project user", async function() {
         const authorization = `Basic ${newUserToken}`;
-        request
+        const res = await request
             .get(`/team/${subProjectId}`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(res.body.length).to.be.equal(3);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body.length).to.be.equal(3);
     });
 
-    it('should get both project and sub-project Team Members.', function(done) {
+    it('should get both project and sub-project Team Members.', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .get(`/team/${projectId}/teamMembers`)
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                expect(res.body[0]).to.have.property('count');
-                expect(res.body.length).to.be.equal(2);
-                expect(res.body[0]._id).to.be.equal(subProjectId);
-                expect(res.body[1]._id).to.be.equal(projectId);
-                done();
-            });
+            .set('Authorization', authorization);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('array');
+        expect(res.body[0]).to.have.property('count');
+        expect(res.body.length).to.be.equal(2);
+        expect(res.body[0]._id).to.be.equal(subProjectId);
+        expect(res.body[1]._id).to.be.equal(projectId);
     });
 
     it('should remove user from sub-project Team Members (project team members count -> 2, project seat -> 3)', async () => {
@@ -418,81 +362,66 @@ describe('Team API with Sub-Projects', async function() {
         expect(parseInt(project.seats)).to.be.equal(2);
     });
 
-    it('should not add members that are more than 100 on a project (role -> `Member`)', function(done) {
+    it('should not add members that are more than 100 on a project (role -> `Member`)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: userData.bulkUsers.emails,
                 role: 'Member',
-            })
-            .end(function(_err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', function(done) {
+    it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: userData.otherBulkUsers.emails,
                 role: 'Member',
-            })
-            .end(function(_err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should not add members without business emails (role -> `Member`)', function(done) {
+    it('should not add members without business emails (role -> `Member`)', async function() {
         const authorization = `Basic ${token}`;
         const emails = 'sample.yahoo.com,sample@gmail.com';
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: emails,
                 role: 'Member',
-            })
-            .end(function(_err, res) {
-                expect(res).to.have.status(400);
-                done();
             });
+        expect(res).to.have.status(400);
     });
 
-    it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', function(done) {
+    it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: userData.moreBulkUsers.emails,
                 role: 'Member',
-            })
-            .end(function(_err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body[0].team.length).to.be.equal(100);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body[0].team.length).to.be.equal(100);
     });
 
-    it('should add unlimited members for the Viewer role (role -> `Viewer`)', function(done) {
+    it('should add unlimited members for the Viewer role (role -> `Viewer`)', async function() {
         const authorization = `Basic ${token}`;
-        request
+        const res = await request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 emails: userData.bulkUsers.emails,
                 role: 'Viewer',
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body[0].team.length).to.be.equal(221);
-                done();
             });
+        expect(res).to.have.status(200);
+        expect(res.body[0].team.length).to.be.equal(221);
     });
 });

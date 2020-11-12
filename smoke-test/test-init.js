@@ -104,6 +104,11 @@ module.exports = {
     loginUser: async function(user, page) {
         const { email, password } = utils.BACKEND_URL.includes('localhost')
             ? user
+            : utils.BACKEND_URL.includes('staging')
+            ? {
+                  email: 'test@qa.team',
+                  password: '1234567890',
+              }
             : {
                   email: 'user@fyipe.com',
                   password: 'mVzkm{LAP)mNC8t23ehqifb2p',
@@ -117,7 +122,25 @@ module.exports = {
         await page.click('input[name=password]');
         await page.type('input[name=password]', password);
         await page.click('button[type=submit]');
-        await page.waitFor(20000);
+
+        await page.waitForSelector('#home', { visible: true, timeout: 100000 });
+    },
+    loginEnterpriseUser: async function(user, page) {
+        const { email, password } = user;
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await page.waitForSelector('#login-button');
+        await page.click('input[name=email]');
+        await page.type('input[name=email]', email);
+        await page.click('input[name=password]');
+        await page.type('input[name=password]', password);
+        await page.click('button[type=submit]');
+
+        await page.waitForSelector('#users', {
+            visible: true,
+            timeout: 100000,
+        });
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
@@ -146,10 +169,14 @@ module.exports = {
             await page.click('input[name=confirmPassword]');
             await page.type('input[name=confirmPassword]', '1234567890');
             await page.click('button[type=submit]');
+
+            await page.waitForSelector('#users', {
+                visible: true,
+                timeout: 100000,
+            });
         } else {
-            await this.loginUser(masterAdmin, page);
+            await this.loginEnterpriseUser(masterAdmin, page);
         }
-        await page.waitFor(20000);
         // create the user from admin dashboard
         const { email } = user;
         await page.waitForSelector('#add_user');

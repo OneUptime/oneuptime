@@ -4,7 +4,11 @@ function getParentRoute(childRoute, projectId = null, type) {
     if (lastNode === 'alert-log') {
         return urlParts.join('/').concat('/on-call');
     }
-    if (lastNode === 'incident-log' || lastNode === 'application-log') {
+    if (
+        lastNode === 'incident-log' ||
+        lastNode === 'application-log' ||
+        lastNode === 'error-tracker'
+    ) {
         return urlParts.join('/').concat('/monitoring');
     }
     if (type === 'incidents') {
@@ -43,6 +47,24 @@ function getParentRoute(childRoute, projectId = null, type) {
         );
         return urlParts.join('/');
     }
+    if (type === 'error-tracker') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('error-trackers'),
+            urlParts.length,
+            'monitoring'
+        );
+        return urlParts.join('/');
+    }
+    if (type === 'error-trackers') {
+        const urlParts = childRoute.split('/');
+        urlParts.splice(
+            urlParts.indexOf('error-trackers'),
+            urlParts.length,
+            'error-tracker'
+        );
+        return urlParts.join('/');
+    }
     if (childRoute.includes('sub-project') && childRoute.includes('schedule')) {
         const urlParts = childRoute.split('/').slice(0, 4);
         return urlParts.join('/').concat('/on-call');
@@ -75,6 +97,16 @@ function getParentRoute(childRoute, projectId = null, type) {
         urlParts.pop();
         urlParts.pop();
         return urlParts.join('/').concat('/application-log');
+    }
+    if (childRoute.includes('error-trackers')) {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        urlParts.pop();
+        let url = '';
+        childRoute.includes('events')
+            ? (url = urlParts.join('/'))
+            : (url = urlParts.join('/').concat('/error-tracker'));
+        return url;
     }
     if (type === 'component') {
         const urlParts = childRoute.split('/');

@@ -127,7 +127,14 @@ function ScheduledEventDescription({
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                            <label className="bs-Fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{
+                                                    width: '11rem',
+                                                    flex: 'none',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Event Name
                                             </label>
                                             <div className="bs-Fieldset-fields">
@@ -145,7 +152,14 @@ function ScheduledEventDescription({
                                             if={scheduledEvent.description}
                                         >
                                             <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                                <label className="bs-Fieldset-label">
+                                                <label
+                                                    className="bs-Fieldset-label"
+                                                    style={{
+                                                        width: '11rem',
+                                                        flex: 'none',
+                                                        textAlign: 'left',
+                                                    }}
+                                                >
                                                     Event Description
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -163,7 +177,14 @@ function ScheduledEventDescription({
                                             </div>
                                         </ShouldRender>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                            <label className="bs-Fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{
+                                                    width: '11rem',
+                                                    flex: 'none',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Affected Resources
                                             </label>
                                             <div className="bs-Fieldset-fields">
@@ -179,7 +200,14 @@ function ScheduledEventDescription({
                                             </div>
                                         </div>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                            <label className="bs-Fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{
+                                                    width: '11rem',
+                                                    flex: 'none',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Start Date
                                             </label>
                                             <div className="bs-Fieldset-fields">
@@ -196,7 +224,14 @@ function ScheduledEventDescription({
                                             </div>
                                         </div>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                            <label className="bs-Fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{
+                                                    width: '11rem',
+                                                    flex: 'none',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 End Date
                                             </label>
                                             <div className="bs-Fieldset-fields">
@@ -213,7 +248,14 @@ function ScheduledEventDescription({
                                             </div>
                                         </div>
                                         <div className="bs-Fieldset-row Flex-alignItems--center Flex-justifyContent--center">
-                                            <label className="bs-Fieldset-label">
+                                            <label
+                                                className="bs-Fieldset-label"
+                                                style={{
+                                                    width: '11rem',
+                                                    flex: 'none',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
                                                 Mark event as resolved
                                             </label>
                                             <div className="bs-Fieldset-fields">

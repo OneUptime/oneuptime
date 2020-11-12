@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -6,7 +6,7 @@ import countryTelephoneCode from 'country-telephone-code';
 import uuid from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
+import { FormLoader2 } from '../basic/Loader';
 import { deleteSubscriber } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
@@ -15,9 +15,12 @@ import DataPathHoC from '../DataPathHoC';
 import DeleteSubscriber from '../modals/DeleteSubscriber';
 
 export class SubscriberList extends Component {
-    state = {
-        deleteSubscriberModalId: uuid.v4(),
-    };
+    constructor(props) {
+        super(props);
+        this.state = {
+            deleteSubscriberModalId: uuid.v4(),
+        };
+    }
 
     componentDidMount() {
         const {
@@ -27,6 +30,13 @@ export class SubscriberList extends Component {
         } = this.props;
         fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
     }
+
+    deleteSubscriber = async (projectId, _id, setLoading) => {
+        const result = await this.props.deleteSubscriber(projectId, _id);
+        if (result.status === 200) {
+            setLoading(false);
+        }
+    };
 
     render() {
         const monitor = this.props.monitorState.monitorsList.monitors
@@ -70,8 +80,6 @@ export class SubscriberList extends Component {
             canNext = false;
             canPrev = false;
         }
-
-        const deleting = this.props.delete ? this.props.delete : false;
 
         return (
             <div className="div">
@@ -166,7 +174,10 @@ export class SubscriberList extends Component {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
                                     >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <div
+                                            className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                            style={{ marginLeft: '43px' }}
+                                        >
                                             <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                                 Action
                                             </span>
@@ -332,59 +343,36 @@ export class SubscriberList extends Component {
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                             <div className="Box-root">
                                                                 <span>
-                                                                    <button
-                                                                        className={
-                                                                            deleting
-                                                                                ? 'bs-Button bs-Button--blue'
-                                                                                : 'bs-Button bs-ButtonLegacy ActionIconParent'
+                                                                    <RemoveBtn
+                                                                        openModal={
+                                                                            this
+                                                                                .props
+                                                                                .openModal
                                                                         }
-                                                                        type="button"
-                                                                        disabled={
-                                                                            deleting
+                                                                        deleteSubscriberModalId={
+                                                                            this
+                                                                                .state
+                                                                                .deleteSubscriberModalId
                                                                         }
-                                                                        onClick={() =>
-                                                                            this.props.openModal(
-                                                                                {
-                                                                                    id: this
-                                                                                        .state
-                                                                                        .deleteSubscriberModalId,
-                                                                                    onClose: () =>
-                                                                                        '',
-                                                                                    onConfirm: () =>
-                                                                                        this.props.deleteSubscriber(
-                                                                                            subscriber.projectId,
-                                                                                            subscriber._id
-                                                                                        ),
-                                                                                    content: DataPathHoC(
-                                                                                        DeleteSubscriber,
-                                                                                        {
-                                                                                            deleting,
-                                                                                        }
-                                                                                    ),
-                                                                                }
-                                                                            )
+                                                                        deleteSubscriber={
+                                                                            this
+                                                                                .deleteSubscriber
                                                                         }
-                                                                        id={`deleteSubscriber_${index}`}
-                                                                    >
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                !deleting
-                                                                            }
-                                                                        >
-                                                                            <span className="bs-Button--icon bs-Button--trash">
-                                                                                <span>
-                                                                                    Remove
-                                                                                </span>
-                                                                            </span>
-                                                                        </ShouldRender>
-                                                                        <ShouldRender
-                                                                            if={
-                                                                                deleting
-                                                                            }
-                                                                        >
-                                                                            <FormLoader />
-                                                                        </ShouldRender>
-                                                                    </button>
+                                                                        projectId={
+                                                                            subscriber.projectId
+                                                                        }
+                                                                        _id={
+                                                                            subscriber._id
+                                                                        }
+                                                                        loading={
+                                                                            this
+                                                                                .state
+                                                                                .loading
+                                                                        }
+                                                                        index={
+                                                                            index
+                                                                        }
+                                                                    />
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -513,7 +501,6 @@ SubscriberList.propTypes = {
     prevClicked: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,
     monitorId: PropTypes.string.isRequired,
-    delete: PropTypes.bool.isRequired,
     deleteSubscriber: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func,
     subProjectId: PropTypes.string,
@@ -521,3 +508,57 @@ SubscriberList.propTypes = {
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscriberList);
+
+const RemoveBtn = props => {
+    const [loading, setLoading] = useState(false);
+    return (
+        <>
+            <button
+                className={
+                    loading
+                        ? 'bs-Button'
+                        : 'bs-Button bs-ButtonLegacy ActionIconParent'
+                }
+                type="button"
+                disabled={loading}
+                onClick={() =>
+                    props.openModal({
+                        id: props.deleteSubscriberModalId,
+                        onClose: () => '',
+                        onConfirm: () => {
+                            setLoading(true);
+                            props.deleteSubscriber(
+                                props.projectId,
+                                props._id,
+                                setLoading
+                            );
+                            return Promise.resolve();
+                        },
+                        content: DataPathHoC(DeleteSubscriber, {
+                            deleting: loading,
+                        }),
+                    })
+                }
+                id={`deleteSubscriber_${props.index}`}
+            >
+                <ShouldRender if={!loading}>
+                    <span className="bs-Button--icon bs-Button--trash">
+                        <span>Remove</span>
+                    </span>
+                </ShouldRender>
+                <ShouldRender if={loading}>
+                    <FormLoader2 />
+                </ShouldRender>
+            </button>
+        </>
+    );
+};
+RemoveBtn.displayName = 'RemoveBtn';
+RemoveBtn.propTypes = {
+    openModal: PropTypes.func.isRequired,
+    deleteSubscriber: PropTypes.func.isRequired,
+    deleteSubscriberModalId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    _id: PropTypes.string.isRequired,
+    index: PropTypes.number.isRequired,
+};

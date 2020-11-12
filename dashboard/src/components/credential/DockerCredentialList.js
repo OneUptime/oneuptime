@@ -61,16 +61,18 @@ const DockerCredentialList = ({
     };
 
     const handleKeyboard = e => {
-        switch (e.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== projectId) {
-                    e.preventDefault(); // prevent entering the key in the focused input field
-                    return handleCredentialCreation();
-                }
-                return false;
-            default:
-                return false;
+        if (e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'N':
+                case 'n':
+                    if (modalId !== projectId) {
+                        e.preventDefault(); // prevent entering the key in the focused input field
+                        return handleCredentialCreation();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -159,9 +161,15 @@ const DockerCredentialList = ({
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
                                 >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                    <div
+                                        className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                        style={{
+                                            float: 'right',
+                                            paddingRight: '29px',
+                                        }}
+                                    >
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span></span>
+                                            <span>Action</span>
                                         </span>
                                     </div>
                                 </td>
@@ -221,7 +229,12 @@ const DockerCredentialList = ({
                                             }}
                                         >
                                             <div className="db-ListViewItem-link">
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                <div
+                                                    className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                    style={{
+                                                        paddingRight: '29px',
+                                                    }}
+                                                >
                                                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root">
                                                             <button

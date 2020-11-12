@@ -11,6 +11,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
 class EmailTemplates extends Component {
     constructor(props) {
@@ -46,6 +47,7 @@ class EmailTemplates extends Component {
                     <BreadCrumbItem route={pathname} name="Email" />
                     <EmailTemplatesBox />
                     <EmailSmtpBox />
+                    <AdvancedIncidentNotification type="email" />
                 </Fade>
             </Dashboard>
         );

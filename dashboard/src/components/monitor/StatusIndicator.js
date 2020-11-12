@@ -1,12 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function StatusIndicator({ status, resourceName }) {
+function StatusIndicator({ status, resourceName, monitorName }) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
 
     switch (status.toLowerCase()) {
-
         case 'online':
             statusColor = 'green';
             break;
@@ -22,23 +21,26 @@ function StatusIndicator({ status, resourceName }) {
 
     resourceName
         ? (content = (
-            <div className="Flex-flex">
-                <div
-                    className={`db-Badge Box-background--${statusColor}`}
-                ></div>
+              <div className="Flex-flex">
+                  <div
+                      className={`db-Badge Box-background--${statusColor}`}
+                  ></div>
 
-                <span
-                    id={`resource_status_${resourceName}`}
-                    className={`Text-color--${statusColor}`}
-                >
-                    {' '}
-                    {` ${status}`}{' '}
-                </span>
-            </div>
-        ))
+                  <span
+                      id={`resource_status_${resourceName}`}
+                      className={`Text-color--${statusColor}`}
+                  >
+                      {' '}
+                      {` ${status}`}{' '}
+                  </span>
+              </div>
+          ))
         : (content = (
-            <div className={`db-Badge Box-background--${statusColor}`}></div>
-        ));
+              <div
+                  className={`db-Badge Box-background--${statusColor}`}
+                  id={`${monitorName}-${status.toLowerCase()}`}
+              ></div>
+          ));
 
     return content;
 }

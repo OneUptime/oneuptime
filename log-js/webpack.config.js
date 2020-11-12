@@ -2,7 +2,7 @@ const path = require('path');
 
 const serverBuild = {
     mode: 'production',
-    entry: './src/logger.js',
+    entry: './src/index.js',
     target: 'node',
     output: {
         path: path.resolve('dist'),

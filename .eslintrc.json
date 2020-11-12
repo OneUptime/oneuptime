@@ -19,7 +19,9 @@
     "extends": [
         "eslint:recommended",
         "plugin:react/recommended",
-        "plugin:prettier/recommended"
+        "plugin:prettier/recommended",
+        "prettier",
+        "prettier/react"
     ],
     "parser": "babel-eslint",
     "rules": {
@@ -46,6 +48,7 @@
         "no-case-declarations": "error",
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
+        "prettier/prettier": "warn",
         "react/jsx-no-undef": "error",
         "react/jsx-no-bind": [
             "error",

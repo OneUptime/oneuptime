@@ -89,7 +89,8 @@ class TopContent extends Component {
         <div
             className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
                 incidentCounter > 0 ? 'red' : 'green'
-            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer`}
+            } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
+            style={{ paddingBottom: '6px', paddingTop: '6px' }}
             onClick={this.handleActiveIncidentClick}
             id="activeIncidents"
         >
@@ -125,7 +126,8 @@ class TopContent extends Component {
         });
         return count > 0 ? (
             <div
-                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 Padding-top--4 Padding-bottom--4 pointer Margin-left--20"
+                className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-left--20"
+                style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 onClick={this.handleActiveIncidentClick}
                 id="ongoingEvents"
             >
@@ -245,7 +247,7 @@ class TopContent extends Component {
                                             !this.props.feedback.feedback
                                                 .error ? (
                                                 <span>
-                                                    Anything we can to help?
+                                                    Anything we can do to help?
                                                 </span>
                                             ) : null}
                                             {this.props.feedback.feedback

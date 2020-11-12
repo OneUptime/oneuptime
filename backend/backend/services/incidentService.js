@@ -25,7 +25,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitorId',
-                    select: '_id name',
+                    select: '_id name type',
                     populate: { path: 'componentId', select: '_id name' },
                 })
                 .sort({ createdAt: 'desc' });
@@ -70,6 +70,7 @@ module.exports = {
                 if (data.reason && data.reason.length > 0) {
                     incident.reason = data.reason.join('\n');
                 }
+                incident.response = data.response || null;
                 incident.idNumber =
                     incidentsCountInProject +
                     deletedIncidentsCountInProject +
@@ -305,7 +306,6 @@ module.exports = {
     async _sendIncidentCreatedAlert(incident) {
         try {
             await AlertService.sendCreatedIncident(incident);
-            await AlertService.sendCreatedIncidentToSubscribers(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
@@ -318,6 +318,9 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
+
+            // handle this asynchronous operation in the background
+            AlertService.sendCreatedIncidentToSubscribers(incident, component);
             const meta = {
                 type: 'Incident',
                 componentId:
@@ -346,12 +349,12 @@ module.exports = {
                     component
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created'
-                );
+                // await WebHookService.sendNotification(
+                //     incident.projectId,
+                //     incident,
+                //     incident.monitorId,
+                //     'created'
+                // );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
                     incident.projectId,
@@ -378,12 +381,12 @@ module.exports = {
                     component
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created'
-                );
+                // await WebHookService.sendNotification(
+                //     incident.projectId,
+                //     incident,
+                //     incident.monitorId,
+                //     'created'
+                // );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
                     incident.projectId,
@@ -483,15 +486,15 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                await AlertService.sendAcknowledgedIncidentToSubscribers(
-                    incident
-                );
+                AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
                 await WebHookService.sendNotification(
                     incident.projectId,
                     incident,
                     monitor,
-                    'acknowledged'
+                    'acknowledged',
+                    component,
+                    downtimestring
                 );
 
                 await SlackService.sendNotification(
@@ -571,7 +574,7 @@ module.exports = {
                 incident.probes.forEach(async probe => {
                     await MonitorStatusService.create({
                         monitorId: incident.monitorId._id,
-                        probeId: probe.probeId._id,
+                        probeId: probe.probeId ? probe.probeId._id : null,
                         manuallyCreated: userId ? true : false,
                         status: 'online',
                     });
@@ -602,7 +605,7 @@ module.exports = {
                 status: 'resolved',
             });
 
-            await _this.sendIncidentResolvedNotification(incident, name);
+            _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
 
@@ -729,7 +732,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
-                    'resolved'
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
@@ -741,7 +746,8 @@ module.exports = {
                     downtimestring
                 );
 
-                await AlertService.sendResolvedIncidentToSubscribers(incident);
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
             } else {
                 msg = `${
                     resolvedincident.monitorId.name
@@ -768,7 +774,9 @@ module.exports = {
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
-                    'resolved'
+                    'resolved',
+                    component,
+                    downtimestring
                 );
                 // Ms Teams
                 await MsTeamsService.sendNotification(
@@ -779,7 +787,9 @@ module.exports = {
                     component,
                     downtimestring
                 );
-                await AlertService.sendResolvedIncidentToSubscribers(incident);
+
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
             }
         } catch (error) {
             ErrorService.log(

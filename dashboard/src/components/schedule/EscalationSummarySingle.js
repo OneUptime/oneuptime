@@ -102,7 +102,11 @@ const EscalationSummarySingle = ({
                                         className="userIcon"
                                         alt=""
                                     />
-                                    <span>{membersFromList.name}</span>
+                                    <span>
+                                        {membersFromList.name
+                                            ? membersFromList.name
+                                            : membersFromList.email}
+                                    </span>
                                 </div>
                             );
                         })}

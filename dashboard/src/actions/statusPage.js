@@ -534,8 +534,6 @@ export function fetchProjectStatusPage(projectId, refresh, skip, limit) {
         promise.then(
             function(response) {
                 const data = response.data;
-                // eslint-disable-next-line no-console
-                console.log(response.data);
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
@@ -608,6 +606,62 @@ export function fetchSubProjectStatusPages(projectId, refresh) {
                     error = 'Network Error';
                 }
                 dispatch(fetchSubProjectStatusPagesError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+
+//for incident statuspages
+export function fetchIncidentStatusPagesRequest() {
+    return {
+        type: types.FETCH_INCIDENT_STATUSPAGE_REQUEST,
+    };
+}
+
+export function resetIncidentFetchStatusPages() {
+    return {
+        type: types.FETCH_INCIDENT_STATUSPAGE_RESET,
+    };
+}
+
+export function fetchIncidentStatusPagesSuccess(incidentStatusPages) {
+    return {
+        type: types.FETCH_INCIDENT_STATUSPAGE_SUCCESS,
+        payload: incidentStatusPages,
+    };
+}
+
+export function fetchIncidentStatusPagesError(error) {
+    return {
+        type: types.FETCH_INCIDENT_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+// Gets status pages pointing to the incident
+export function fetchIncidentStatusPages(projectId, incidentId, skip, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `incident/${projectId}/${incidentId}/statuspages?skip=${skip}&limit=${limit}`
+        );
+
+        promise.then(
+            function(response) {
+                dispatch(fetchIncidentStatusPagesSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchIncidentStatusPagesError(errors(error)));
             }
         );
         return promise;

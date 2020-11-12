@@ -132,6 +132,7 @@ class UploadFile extends Component {
                         this.props.downloadCsvTemplate();
                     }}
                     disabled={this.props.csvDownload.requesting}
+                    autoFocus={true}
                 >
                     <span>Download Template</span>
                 </button>
@@ -143,7 +144,6 @@ class UploadFile extends Component {
                         this.props.createSubscriber.requesting ||
                         !this.state.isFileLoaded
                     }
-                    autoFocus={true}
                 >
                     <ShouldRender if={this.props.createSubscriber.requesting}>
                         <Spinner />

@@ -56,7 +56,7 @@ describe('Enterprise Dashboard API', () => {
             await page.click(`#delete_${monitorName}`);
             await page.waitForSelector('#deleteMonitor');
             await page.click('#deleteMonitor');
-            await page.waitFor(2000);
+            await page.waitForSelector('#deleteMonitor', { hidden: true });
 
             // delete component
             await page.goto(utils.DASHBOARD_URL, {
@@ -102,7 +102,6 @@ describe('Enterprise Dashboard API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
-                await page.waitFor(5000);
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });

@@ -386,6 +386,17 @@ router.delete(
                 userId
             );
 
+            if (project) {
+                const projectName = project.name;
+                const user = await UserService.findOneBy({ _id: userId });
+
+                await MailService.sendDeleteProjectEmail({
+                    name: user.name,
+                    userEmail: user.email,
+                    projectName,
+                });
+            }
+
             const user = await UserService.findOneBy({ _id: userId });
             const record = await AirtableService.logProjectDeletionFeedback({
                 reason: feedback
@@ -1006,5 +1017,71 @@ router.post('/projects/search', getUser, isUserMasterAdmin, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.put(
+    '/:projectId/advancedOptions/email',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            if (!data.sendCreatedIncidentNotificationEmail) {
+                data.sendCreatedIncidentNotificationEmail = false;
+            }
+            if (!data.sendAcknowledgedIncidentNotificationEmail) {
+                data.sendAcknowledgedIncidentNotificationEmail = false;
+            }
+            if (!data.sendResolvedIncidentNotificationEmail) {
+                data.sendResolvedIncidentNotificationEmail = false;
+            }
+            if (
+                (data.replyAddress && !data.replyAddress.trim()) ||
+                !data.replyAddress
+            ) {
+                data.replyAddress = null;
+            }
+
+            const result = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/advancedOptions/sms',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const data = req.body;
+
+            if (!data.sendCreatedIncidentNotificationSms) {
+                data.sendCreatedIncidentNotificationSms = false;
+            }
+            if (!data.sendAcknowledgedIncidentNotificationSms) {
+                data.sendAcknowledgedIncidentNotificationSms = false;
+            }
+            if (!data.sendResolvedIncidentNotificationSms) {
+                data.sendResolvedIncidentNotificationSms = false;
+            }
+
+            const result = await ProjectService.updateOneBy(
+                { _id: projectId },
+                data
+            );
+            return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;

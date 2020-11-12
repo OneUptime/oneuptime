@@ -193,6 +193,8 @@ module.exports = {
 
             let log = await MonitorLogService.create(data);
 
+            await MonitorService.updateMonitorPingTime(data.monitorId);
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -338,6 +340,7 @@ module.exports = {
                             incidentType: 'online',
                             probeId: data.probeId,
                             reason: data.reason,
+                            response: data.response,
                         }),
                     ];
                 }
@@ -383,6 +386,7 @@ module.exports = {
                             incidentType: 'degraded',
                             probeId: data.probeId,
                             reason: data.reason,
+                            response: data.response,
                         }),
                     ];
                 }
@@ -428,6 +432,7 @@ module.exports = {
                             incidentType: 'offline',
                             probeId: data.probeId,
                             reason: data.reason,
+                            response: data.response,
                         }),
                     ];
                 }
@@ -462,8 +467,9 @@ module.exports = {
                         if (incident.probes && incident.probes.length > 0) {
                             incident.probes.some(probe => {
                                 if (
+                                    probe.probeId &&
                                     String(probe.probeId._id) ===
-                                    String(data.probeId)
+                                        String(data.probeId)
                                 ) {
                                     incidentsV1.push(incident);
                                     return true;
@@ -1907,9 +1913,7 @@ const checkAnd = async (
                 if (!(con[i] && con[i].field1 && body && body[con[i].field1])) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} \`${JSON.stringify(
-                            body
-                        )}\` did not contain ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1922,9 +1926,7 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} \`${JSON.stringify(
-                            body
-                        )}\` contains ${con[i].field1}`
+                        `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
                     );
                 }
             } else if (
@@ -1942,20 +1944,14 @@ const checkAnd = async (
                 ) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} \`${JSON.stringify(
-                            body
-                        )}\` did not have Javascript expression \`${
-                            con[i].field1
-                        }\``
+                        `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
                     );
                 }
             } else if (con[i] && con[i].filter && con[i].filter === 'empty') {
                 if (!(con[i] && con[i].filter && body && _.isEmpty(body))) {
                     validity = false;
                     reasons.push(
-                        `${criteriaStrings.responseBody} \`${JSON.stringify(
-                            body
-                        )}\` was not empty`
+                        `${criteriaStrings.responseBody} \`${body}\` was not empty`
                     );
                 }
             } else if (
@@ -1972,6 +1968,16 @@ const checkAnd = async (
                 con[i].filter &&
                 con[i].filter === 'evaluateResponse'
             ) {
+                const responseDisplay = con[i].field1
+                    ? con[i].field1.includes('response.body') &&
+                      con[i].field1.includes('response.headers')
+                        ? { headers: response.headers, body: response.body }
+                        : con[i].field1.includes('response.headers')
+                        ? response.headers
+                        : con[i].field1.includes('response.body')
+                        ? response.body
+                        : response
+                    : response;
                 try {
                     if (
                         !(
@@ -1990,7 +1996,7 @@ const checkAnd = async (
                         validity = false;
                         reasons.push(
                             `${criteriaStrings.response} \`${JSON.stringify(
-                                response
+                                responseDisplay
                             )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }
@@ -1998,7 +2004,7 @@ const checkAnd = async (
                     validity = false;
                     reasons.push(
                         `${criteriaStrings.response} \`${JSON.stringify(
-                            response
+                            responseDisplay
                         )}\` did not evaluate \`${con[i].field1}\``
                     );
                 }
@@ -2916,9 +2922,7 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} \`${JSON.stringify(
-                                body
-                            )}\` did not contain ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${body}\` did not contain ${con[i].field1}`
                         );
                     }
                 }
@@ -2932,9 +2936,7 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} \`${JSON.stringify(
-                                body
-                            )}\` contains ${con[i].field1}`
+                            `${criteriaStrings.responseBody} \`${body}\` contains ${con[i].field1}`
                         );
                     }
                 }
@@ -2953,11 +2955,7 @@ const checkOr = async (
                 } else {
                     if (con[i].field1) {
                         reasons.push(
-                            `${criteriaStrings.responseBody} \`${JSON.stringify(
-                                body
-                            )}\` did not have Javascript expression \`${
-                                con[i].field1
-                            }\``
+                            `${criteriaStrings.responseBody} \`${body}\` did not have Javascript expression \`${con[i].field1}\``
                         );
                     }
                 }
@@ -2966,9 +2964,7 @@ const checkOr = async (
                     validity = true;
                 } else {
                     reasons.push(
-                        `${criteriaStrings.responseBody} \`${JSON.stringify(
-                            body
-                        )}\` was not empty`
+                        `${criteriaStrings.responseBody} \`${body}\` was not empty`
                     );
                 }
             } else if (
@@ -2986,6 +2982,16 @@ const checkOr = async (
                 con[i].filter &&
                 con[i].filter === 'evaluateResponse'
             ) {
+                const responseDisplay = con[i].field1
+                    ? con[i].field1.includes('response.body') &&
+                      con[i].field1.includes('response.headers')
+                        ? { headers: response.headers, body: response.body }
+                        : con[i].field1.includes('response.headers')
+                        ? response.headers
+                        : con[i].field1.includes('response.body')
+                        ? response.body
+                        : response
+                    : response;
                 try {
                     if (
                         con[i] &&
@@ -3004,7 +3010,7 @@ const checkOr = async (
                         if (con[i].field1) {
                             reasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
-                                    response
+                                    responseDisplay
                                 )}\` did not evaluate \`${con[i].field1}\``
                             );
                         }
@@ -3014,7 +3020,7 @@ const checkOr = async (
                     if (con[i].field1) {
                         reasons.push(
                             `${criteriaStrings.response} \`${JSON.stringify(
-                                response
+                                responseDisplay
                             )}\` did not evaluate \`${con[i].field1}\``
                         );
                     }

@@ -74,8 +74,8 @@ export class ProbeList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
+                                    style={{ height: '1px', minWidth: '270px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -85,7 +85,7 @@ export class ProbeList extends Component {
                                 </td>
                                 <td
                                     id="placeholder-left"
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
                                     style={{
                                         height: '1px',
                                         maxWidth: '48px',
@@ -98,8 +98,8 @@ export class ProbeList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
+                                    style={{ height: '1px', minWidth: '270px' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -114,7 +114,7 @@ export class ProbeList extends Component {
                                         height: '1px',
                                         maxWidth: '48px',
                                         minWidth: '48px',
-                                        width: '48px',
+                                        width: '68px',
                                     }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -122,23 +122,16 @@ export class ProbeList extends Component {
                                     </div>
                                 </td>
                                 <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell admin-probe-list-table-header"
+                                    style={{ height: '1px', minWidth: '275px' }}
                                 >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                    <div
+                                        className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                        style={{ float: 'right' }}
+                                    >
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Action</span>
                                         </span>
-                                    </div>
-                                </td>
-                                <td
-                                    id="overflow"
-                                    type="action"
-                                    className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
                                     </div>
                                 </td>
                             </tr>
@@ -274,7 +267,16 @@ export class ProbeList extends Component {
                                                 style={{ height: '1px' }}
                                             >
                                                 <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <div
+                                                        className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                        style={{
+                                                            paddingRight:
+                                                                '19px',
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'flex-end',
+                                                        }}
+                                                    >
                                                         <button
                                                             id="delete_probe"
                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"

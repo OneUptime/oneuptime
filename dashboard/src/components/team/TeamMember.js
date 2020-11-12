@@ -137,9 +137,21 @@ export class TeamMember extends Component {
                         ) : (
                             ''
                         )}
-                    </div>
-                    <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                        {this.props.email}
+                        {!this.props.name && this.props.email ? (
+                            <span>
+                                <img
+                                    src="/dashboard/assets/img/profile-user.svg"
+                                    className="userIcon"
+                                    style={{ marginRight: '5px' }}
+                                    alt=""
+                                />
+                                <span>
+                                    {this.props.email ? this.props.email : ''}
+                                </span>
+                            </span>
+                        ) : (
+                            ''
+                        )}
                     </div>
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">

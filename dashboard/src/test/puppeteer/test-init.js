@@ -97,6 +97,7 @@ module.exports = {
             page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
         ]);
+        expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(false);
     },
     logout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
@@ -309,10 +310,8 @@ module.exports = {
         await page.click(selector);
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
-        // eslint-disable-next-line no-empty
-        if (noOption) {
-        } else {
-            await page.keyboard.press('Enter');
+        if (!noOption) {
+            await page.keyboard.press('Tab');
         }
         await page.waitFor(1000);
     },
@@ -761,7 +760,9 @@ module.exports = {
         await page.type('#port', port);
         await page.type('#from', from);
         await page.type('#name', 'Admin');
-        if (secure) await page.$eval('#secure', e => e.click());
+        await page.$eval('#secure', e => {
+            e.checked = secure;
+        });
         await page.click('#saveSmtp');
         await page.waitForSelector('.ball-beat', { visible: true });
         await page.waitForSelector('.ball-beat', { hidden: true });
@@ -769,8 +770,8 @@ module.exports = {
         await page.waitForSelector('#user');
     },
     gotoTab: async function(tabId, page) {
-        await page.waitForSelector(`#react-tabs-${tabId}`);
-        await page.click(`#react-tabs-${tabId}`);
+        await page.waitForSelector(`#react-tabs-${tabId}`, {visible: true});
+        await page.$eval(`#react-tabs-${tabId}`, e=> e.click());
         await page.waitFor(2000);
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {

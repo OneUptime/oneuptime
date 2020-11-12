@@ -25,7 +25,7 @@ module.exports = {
                     select: 'teams',
                     populate: {
                         path: 'teams.teamMembers.userId',
-                        select: 'name',
+                        select: ['name', 'email'],
                     },
                 });
             return schedules;

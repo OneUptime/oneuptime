@@ -24,6 +24,7 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId')
                 .populate('domains.domainVerificationToken')
+                .populate('monitors.monitor', 'name')
                 .lean();
             return statusPages;
         } catch (error) {
@@ -395,7 +396,7 @@ module.exports = {
             );
             const statuspage = withMonitors[0];
             const monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor)
+                ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
@@ -790,7 +791,7 @@ module.exports = {
             );
             const statuspage = withMonitors[0];
             const monitorIds =
-                statuspage && statuspage.monitors.map(m => m.monitor);
+                statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
                     monitorId: { $in: monitorIds },
@@ -896,6 +897,39 @@ module.exports = {
             return statusPages;
         }
     },
+    // get status pages for this incident
+    getStatusPagesForIncident: async (incidentId, skip, limit) => {
+        try {
+            // first get the monitor, then scan status page collection containing the monitor
+            const { monitorId } = await IncidentModel.findById(
+                incidentId
+            ).select('monitorId');
+            let statusPages = [];
+            let count = 0;
+            if (monitorId) {
+                count = await StatusPageModel.find({
+                    'monitors.monitor': monitorId,
+                }).countDocuments({ 'monitors.monitor': monitorId });
+                if (count) {
+                    statusPages = await StatusPageModel.find({
+                        'monitors.monitor': monitorId,
+                    })
+                        .populate('projectId')
+                        .populate('monitors.monitor')
+                        .skip(skip)
+                        .limit(limit)
+                        .exec();
+                }
+            }
+            return { statusPages: statusPages || [], count };
+        } catch (error) {
+            ErrorService.log(
+                'statusPageService.getStatusPagesForIncident',
+                error
+            );
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -907,6 +941,7 @@ function limitEvents(events, limit, skip) {
     return events.slice(skip, limit);
 }
 
+const IncidentModel = require('../models/incident');
 const StatusPageModel = require('../models/statusPage');
 const IncidentService = require('./incidentService');
 const ScheduledEventsService = require('./scheduledEventService');

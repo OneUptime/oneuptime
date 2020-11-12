@@ -136,6 +136,10 @@ class StatusPagesTable extends Component {
                                         statusPage={this.props.statusPage}
                                         prevClicked={this.prevClicked}
                                         nextClicked={this.nextClicked}
+                                        allStatusPageLength={
+                                            subProjectStatusPages.length
+                                        }
+                                        modalList={this.props.modalList}
                                     />
                                 </div>
                             </div>
@@ -200,6 +204,10 @@ class StatusPagesTable extends Component {
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
                                     subProjects={subProjects}
+                                    allStatusPageLength={
+                                        subProjectStatusPages.length
+                                    }
+                                    modalList={this.props.modalList}
                                 />
                             </div>
                         </div>
@@ -281,6 +289,7 @@ function mapStateToProps(state) {
         statusPage: state.statusPage,
         isRequesting: state.statusPage.requesting,
         subProjects,
+        modalList: state.modal.modals,
     };
 }
 
@@ -299,6 +308,7 @@ StatusPagesTable.propTypes = {
     ]),
     openModal: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
+    modalList: PropTypes.array,
 };
 
 StatusPagesTable.displayName = 'StatusPagesTable';

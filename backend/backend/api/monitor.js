@@ -25,7 +25,10 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-
+const https = require('https');
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+});
 // Route
 // Description: Adding / Updating a new monitor to the project.
 // Params:
@@ -38,6 +41,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     try {
         const data = req.body;
         const projectId = req.params.projectId;
+
         if (!data) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -144,6 +148,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         data.headers,
                         data.bodyType
                     );
+
                     const body = await Api.body(
                         data.text && data.text.length
                             ? data.text
@@ -153,6 +158,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     const payload = {
                         method: data.method,
                         url: data.data.url,
+                        httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
                         payload.headers = headers;
@@ -235,34 +241,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        if (data.type === 'server-monitor') {
-            const { stat: validUp, reasons } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.up
-                ? ProbeService.conditions(null, null, monitor.criteria.up)
-                : { stat: false, reasons: [] });
-            const { stat: validDown } = await (monitor &&
-            monitor.criteria &&
-            monitor.criteria.down
-                ? ProbeService.conditions(null, null, monitor.criteria.down)
-                : { stat: false });
-            if (!validUp || validDown) {
-                const handler = setTimeout(async () => {
-                    const log = await MonitorLogService.findOneBy({
-                        monitorId: monitor._id,
-                    });
-                    if (!log) {
-                        await ProbeService.saveMonitorLog({
-                            monitorId: monitor._id,
-                            status: 'offline',
-                            reason: reasons,
-                        });
-                    }
-                    clearTimeout(handler);
-                }, 3 * 60 * 1000);
-            }
-        }
-
         const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
@@ -271,7 +249,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             user._id,
             'monitoraddremove'
         );
+
         await RealTimeService.sendMonitorCreated(monitor);
+
         return sendItemResponse(req, res, monitor);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -307,6 +287,7 @@ router.put(
                     const payload = {
                         method: data.method,
                         url: data.data.url,
+                        httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
                         payload.headers = headers;
@@ -546,6 +527,7 @@ router.post(
             }
 
             const log = await ProbeService.saveMonitorLog(data);
+
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error);

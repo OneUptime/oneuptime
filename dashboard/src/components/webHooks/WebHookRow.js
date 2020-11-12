@@ -1,13 +1,29 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function WebHookTableHeader({ text, style }) {
+function WebHookTableHeader({ text, style, name }) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={Object.assign({ width: 'calc(100% / 3)' }, style)}
         >
-            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+            <div
+                className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                style={{
+                    float:
+                        text === 'Action' && name === 'webhooklist'
+                            ? 'right'
+                            : null,
+                    paddingRight:
+                        text === 'Action' && name === 'webhooklist'
+                            ? '23px'
+                            : null,
+                    paddingLeft:
+                        text === 'Action' && name !== 'webhooklist'
+                            ? '68px'
+                            : null,
+                }}
+            >
                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                     <span>{text}</span>
                 </span>
@@ -21,6 +37,7 @@ WebHookTableHeader.displayName = 'WebHookTableHeader';
 WebHookTableHeader.propTypes = {
     text: PropTypes.string,
     style: PropTypes.object,
+    name: PropTypes.string,
 };
 
 function WebHookTableBody({ text }) {

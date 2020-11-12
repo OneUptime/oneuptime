@@ -835,35 +835,69 @@ div#footer { /*background: rgba(0,0,0,0.05);*/ margin: 0 0 0; padding: 40px 0 60
 */
 .icon-container .icon-message{
   background-image: url(/status-page/images/email.svg);
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-message{
   background-image: url(/status-page/images/email.svg);
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 
 .icon-container .icon-call{
   background-image: url(/status-page/images/phone.svg);
+  background-size: 18px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-call{
   background-image: url(/status-page/images/phone.svg);
+  background-size: 18px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-webhook{
   background-image: url(/status-page/images/code.svg);
+  background-size: 18px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-webhook{
   background-image: url(/status-page/images/code.svg);
+  background-size: 18px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-rss{
   background-image: url(/status-page/images/rss.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+  background-position: center;
 }
 
 .icon-container.selected .icon-rss{
   background-image: url(/status-page/images/rss.svg);
+  background-size: 16px;
+  background-repeat: no-repeat;
+  filter: invert(0%) sepia(100%) saturate(7459%) hue-rotate(48deg) brightness(101%) contrast(110%);
+  background-position: center;
 }
 .icon-container .icon-close{
   background-image: url(/status-page/images/close.svg);
+  filter: invert(66%) sepia(18%) saturate(288%) hue-rotate(175deg) brightness(93%) contrast(87%);
+    background-size: 63%;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .icon-container.selected .icon-close{

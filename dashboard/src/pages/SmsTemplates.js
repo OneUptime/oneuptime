@@ -11,6 +11,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
 class SmsTemplates extends Component {
     constructor(props) {
@@ -46,6 +47,7 @@ class SmsTemplates extends Component {
                     <BreadCrumbItem route={pathname} name="SMS &#38; Calls" />
                     <SmsTemplatesBox />
                     <SmsSmtpBox />
+                    <AdvancedIncidentNotification type="sms" />
                 </Fade>
             </Dashboard>
         );

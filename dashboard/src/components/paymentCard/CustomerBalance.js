@@ -5,7 +5,11 @@ import { reduxForm, Field, reset } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import { Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
-import { addBalance, getProjects } from '../../actions/project';
+import {
+    addBalance,
+    getProjects,
+    updateProjectBalance,
+} from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
@@ -38,6 +42,11 @@ export class CustomerBalance extends Component {
         MessageBoxId: uuid.v4(),
         createTopUpModalId: uuid.v4(),
     };
+
+    componentDidMount() {
+        // fetch the project
+        getProjects();
+    }
 
     submitForm = values => {
         const { projectId, openModal, currentProject } = this.props;
@@ -89,7 +98,14 @@ export class CustomerBalance extends Component {
             });
     };
     handlePaymentIntent = paymentIntentClientSecret => {
-        const { stripe, openModal, getProjects, balance } = this.props;
+        const {
+            stripe,
+            openModal,
+            getProjects,
+            balance,
+            updateProjectBalance,
+            projectId,
+        } = this.props;
         const { MessageBoxId } = this.state;
         stripe.handleCardPayment(paymentIntentClientSecret).then(result => {
             if (
@@ -97,14 +113,21 @@ export class CustomerBalance extends Component {
                 result.paymentIntent.status === 'succeeded'
             ) {
                 const creditedBalance = result.paymentIntent.amount / 100;
-                openModal({
-                    id: MessageBoxId,
-                    content: MessageBox,
-                    title: 'Message',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
+
+                // update the project balance at this point
+                updateProjectBalance({
+                    projectId,
+                    intentId: result.paymentIntent.id,
+                }).then(function() {
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: `Transaction successful, your balance is now ${balance +
+                            creditedBalance}$`,
+                    });
+                    getProjects();
                 });
-                getProjects();
             } else {
                 openModal({
                     id: MessageBoxId,
@@ -116,6 +139,7 @@ export class CustomerBalance extends Component {
             }
         });
     };
+
     render() {
         const { balance } = this.props;
         return (
@@ -231,7 +255,11 @@ export class CustomerBalance extends Component {
                                                                                 fontWeight:
                                                                                     'bold',
                                                                             }}
-                                                                        >{`${balance}$`}</span>
+                                                                        >{`${Number.parseFloat(
+                                                                            balance
+                                                                        ).toFixed(
+                                                                            2
+                                                                        )}$`}</span>
                                                                     </p>
                                                                 </label>
                                                             </div>
@@ -312,6 +340,7 @@ CustomerBalance.propTypes = {
     stripe: PropTypes.object,
     getProjects: PropTypes.func,
     currentProject: PropTypes.object,
+    updateProjectBalance: PropTypes.func,
 };
 
 const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
@@ -326,7 +355,10 @@ const CustomerBalanceForm = new reduxForm({
 })(CustomerBalance);
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ addBalance, getProjects, openModal }, dispatch);
+    bindActionCreators(
+        { addBalance, getProjects, openModal, updateProjectBalance },
+        dispatch
+    );
 
 const mapStateToProps = state => ({
     project:

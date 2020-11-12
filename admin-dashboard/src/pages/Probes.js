@@ -27,19 +27,21 @@ class Probes extends React.Component {
     }
 
     handleKeyboard = event => {
-        const { modalId } = this.props;
+        const { modalId, modalList } = this.props;
         const { addModalId } = this.state;
 
-        switch (event.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== addModalId) {
-                    event.preventDefault();
-                    return this.handleClick();
-                }
-                return false;
-            default:
-                return false;
+        if (event.target.localName === 'body' && event.key) {
+            switch (event.key) {
+                case 'N':
+                case 'n':
+                    if (modalList.length === 0 && modalId !== addModalId) {
+                        event.preventDefault();
+                        return this.handleClick();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -189,6 +191,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     return {
         modalId: state.modal.modals[0] && state.modal.modals[0].id,
+        modalList: state.modal.modals,
     };
 };
 
@@ -196,6 +199,7 @@ Probes.propTypes = {
     getProbes: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     modalId: PropTypes.string,
+    modalList: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Probes);

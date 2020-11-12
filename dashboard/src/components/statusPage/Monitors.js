@@ -136,6 +136,7 @@ export class Monitors extends Component {
                       subProject._id === status.projectId._id ||
                       subProject._id === status.projectId
               )[0];
+
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -337,10 +338,12 @@ const mapDispatchToProps = dispatch =>
 
 const selector = formValueSelector('StatuspageMonitors');
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const { subProjectId } = ownProps;
     const { currentProject } = state.project;
 
     const monitors = state.monitor.monitorsList.monitors
+        .filter(monitor => String(monitor._id) === String(subProjectId))
         .map(monitor => monitor.monitors)
         .flat();
     const {

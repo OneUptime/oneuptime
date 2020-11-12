@@ -10,6 +10,7 @@ import { getGitCredentials } from '../actions/credential';
 import GitCredentialList from '../components/credential/GitCredentialList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import TutorialBox from '../components/tutorial/TutorialBox';
 
 class GitCredential extends Component {
     constructor(props) {
@@ -47,6 +48,10 @@ class GitCredential extends Component {
                     <BreadCrumbItem route={pathname} name="Git Credentials" />
                     <div className="Margin-vertical--12">
                         <div>
+                            <TutorialBox
+                                type="gitCredentials"
+                                currentProjectId={projectId}
+                            />
                             <div
                                 id="gitCredentialPage"
                                 className="db-BackboneViewContainer"

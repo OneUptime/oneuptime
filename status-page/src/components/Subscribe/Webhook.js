@@ -6,6 +6,8 @@ import {
     userData,
     validationError,
     subscribeUser,
+    openSubscribeMenu,
+    userDataReset,
 } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
@@ -76,42 +78,75 @@ class Webhook extends Component {
             return false;
         }
     };
+    handleClose = () => {
+        this.props.userDataReset();
+        this.props.openSubscribeMenu();
+    };
     render() {
         return (
             <div>
-                <div className="directions">
-                    Get webhook notifications when an incident is{' '}
-                    <strong>created</strong>.
-                </div>
-                <form id="subscribe-form-webhook" onSubmit={this.handleSubmit}>
-                    <input
-                        type="text"
-                        name="endpoint"
-                        onChange={this.handleChange}
-                        id="endpoint-webhooks"
-                        placeholder="http://www.yourdomain.com/endpoint/here"
-                        className="input-full"
-                    />
-                    <p className="small" style={{ margin: '-5px 0px 5px 4px' }}>
-                        The URL we should send the updates to.
-                    </p>
-                    <input
-                        type="text"
-                        name="email"
-                        onChange={this.handleChange}
-                        id="email-webhooks"
-                        placeholder="Email Address"
-                        className="input-full"
-                    />
-                    <p
-                        className="small"
-                        style={{ margin: '-5px 0px 10px 4px' }}
-                    >
-                        We will send you email if your endpoint fails.
-                    </p>
+                {this.props.subscribed &&
+                this.props.subscribed.success ? null : (
+                    <div className="directions">
+                        Get webhook notifications when an incident is{' '}
+                        <strong>created</strong>.
+                    </div>
+                )}
+                <form
+                    id="subscribe-form-webhook"
+                    onSubmit={
+                        this.props.subscribed && this.props.subscribed.success
+                            ? this.handleClose
+                            : this.handleSubmit
+                    }
+                >
+                    {this.props.subscribed && this.props.subscribed.success ? (
+                        <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                            <span id="monitor-subscribe-success-message">
+                                You have subscribed to this status page
+                                successfully
+                            </span>
+                        </div>
+                    ) : (
+                        <>
+                            <input
+                                type="text"
+                                name="endpoint"
+                                onChange={this.handleChange}
+                                id="endpoint-webhooks"
+                                placeholder="http://www.yourdomain.com/endpoint/here"
+                                className="input-full"
+                            />
+                            <p
+                                className="small"
+                                style={{ margin: '-5px 0px 5px 4px' }}
+                            >
+                                The URL we should send the updates to.
+                            </p>
+                            <input
+                                type="text"
+                                name="email"
+                                onChange={this.handleChange}
+                                id="email-webhooks"
+                                placeholder="Email Address"
+                                className="input-full"
+                            />
+                            <p
+                                className="small"
+                                style={{ margin: '-5px 0px 10px 4px' }}
+                            >
+                                We will send you email if your endpoint fails.
+                            </p>
+                        </>
+                    )}
                     <input
                         type="submit"
-                        value="Subscribe"
+                        value={
+                            this.props.subscribed &&
+                            this.props.subscribed.success
+                                ? 'Close'
+                                : 'Subscribe'
+                        }
                         className="subscribe-btn-full"
                         id="subscribe-btn-webhook"
                     />
@@ -146,6 +181,8 @@ const mapDispatchToProps = dispatch =>
             userData,
             validationError,
             subscribeUser,
+            openSubscribeMenu,
+            userDataReset,
         },
         dispatch
     );
@@ -157,6 +194,8 @@ Webhook.propTypes = {
     error: PropTypes.string,
     statuspage: PropTypes.object,
     subscribeUser: PropTypes.func,
+    openSubscribeMenu: PropTypes.func,
+    userDataReset: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Webhook);

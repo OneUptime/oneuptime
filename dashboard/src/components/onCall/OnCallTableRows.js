@@ -8,7 +8,6 @@ function Row(props) {
     const { projectId } = props.match.params;
     const { subProjectId } = props;
     const path = `/dashboard/project/${projectId}/sub-project/${subProjectId}/schedule/${props.id}`;
-
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"
@@ -32,6 +31,8 @@ function Row(props) {
             <OnCallTableBody text={props.monitors} />
 
             <OnCallTableBody text={props.users} />
+
+            <OnCallTableBody text={props.bottonTitle} type="button" />
         </tr>
     );
 }
@@ -45,6 +46,7 @@ Row.propTypes = {
     id: PropTypes.string.isRequired,
     monitors: PropTypes.string,
     subProjectId: PropTypes.string,
+    bottonTitle: PropTypes.string,
 };
 
 function parseSchedule(schedule) {
@@ -72,7 +74,11 @@ function parseSchedule(schedule) {
 
     const id = _id;
 
-    let users = ut(0) ? userIds[0].name : 'Not Yet Added';
+    let users = ut(0)
+        ? userIds[0].name
+            ? userIds[0].name
+            : userIds[0].email
+        : 'Not Yet Added';
     users += ut(1) ? ` and ${userIds.length - 1} other${ut(2) ? 's' : ''}` : '';
 
     let monitors = gt(0) ? monitorIds[0].name : 'Not Yet Added';
@@ -83,7 +89,13 @@ function parseSchedule(schedule) {
     return { name, users, monitors, id };
 }
 
-function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
+function OnCallTableRows({
+    schedules,
+    isRequesting,
+    match,
+    subProjectId,
+    bottonTitle,
+}) {
     return schedules.length > 0
         ? schedules.map((schedule, index) => {
               if (Array.isArray(schedule)) return null;
@@ -98,6 +110,7 @@ function OnCallTableRows({ schedules, isRequesting, match, subProjectId }) {
                       key={`oncall ${index}`}
                       match={match}
                       subProjectId={subProjectId}
+                      bottonTitle={bottonTitle}
                   />
               );
           })

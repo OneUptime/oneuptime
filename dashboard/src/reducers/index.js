@@ -37,7 +37,7 @@ import msTeams from './msteams';
 import slackWebhooks from './slackWebhooks';
 import incidentPriorities from './incidentPriorities';
 import incidentBasicSettings from './incidentBasicSettings';
-
+import errorTracker from './errorTracker';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -77,6 +77,7 @@ const appReducer = combineReducers({
     msTeams,
     incidentPriorities,
     incidentBasicSettings,
+    errorTracker,
 });
 
 export default (state, action) => {

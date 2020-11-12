@@ -132,6 +132,7 @@ class MonitorView extends React.Component {
             : null;
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
+        const monitorType = monitor && monitor.type ? monitor.type : '';
 
         const componentMonitorsRoute = getParentRoute(pathname);
 
@@ -215,8 +216,7 @@ class MonitorView extends React.Component {
                                                                                 if={
                                                                                     !this
                                                                                         .props
-                                                                                        .monitor
-                                                                                        .editMode
+                                                                                        .edit
                                                                                 }
                                                                             >
                                                                                 <MonitorViewHeader
@@ -242,8 +242,7 @@ class MonitorView extends React.Component {
                                                                                 if={
                                                                                     this
                                                                                         .props
-                                                                                        .monitor
-                                                                                        .editMode
+                                                                                        .edit
                                                                                 }
                                                                             >
                                                                                 <NewMonitor
@@ -344,7 +343,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'api')
+                                                                                        'api' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'server-monitor')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -360,6 +364,9 @@ class MonitorView extends React.Component {
                                                                                             .props
                                                                                             .monitor
                                                                                             .name
+                                                                                    }
+                                                                                    monitorType={
+                                                                                        monitorType
                                                                                     }
                                                                                 />
                                                                             </div>
@@ -558,6 +565,7 @@ const mapStateToProps = (state, props) => {
     return {
         componentId,
         monitor,
+        edit: state.monitor.monitorsList.editMode,
         initialValues,
         match: props.match,
         component,
@@ -584,6 +592,7 @@ const mapDispatchToProps = dispatch => {
 MonitorView.propTypes = {
     componentId: PropTypes.string,
     monitor: PropTypes.object,
+    edit: PropTypes.bool,
     fetchMonitorsIncidents: PropTypes.func.isRequired,
     fetchMonitorsSubscribers: PropTypes.func.isRequired,
     initialValues: PropTypes.object.isRequired,

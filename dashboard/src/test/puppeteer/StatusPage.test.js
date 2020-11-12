@@ -15,7 +15,7 @@ const monitorName1 = 'testFyipe';
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
     await page.waitForSelector('#statusPages > a');
-    await page.click('#statusPages > a');
+    await page.$eval('#statusPages > a', e=> e.click());
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }
@@ -156,7 +156,7 @@ describe('Status Page', () => {
                     return e.innerHTML;
                 });
                 expect(element).toContain(
-                    'You must select at least one bar chart'
+                    'You must select at least one chart type'
                 );
                 await page.click('#btnAddStatusPageMonitors');
                 await page.waitFor(1000);
@@ -228,7 +228,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.reload({ waitUntil: 'networkidle0' });
@@ -249,7 +249,7 @@ describe('Status Page', () => {
                 await page.waitForSelector('#monitor-0');
                 await page.click('#delete-monitor-0');
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 const elem = await page.waitForSelector('#app-loading', {
@@ -288,7 +288,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 const firstMonitorContainer = await page.waitForSelector(
@@ -345,7 +345,7 @@ describe('Status Page', () => {
                     page
                 );
                 await page.click('#btnAddStatusPageMonitors');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 // We check if the monitors are added
@@ -459,7 +459,7 @@ describe('Status Page', () => {
                 await input.type(finalValue);
 
                 await page.click('#btnAddDomain');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
 
@@ -522,7 +522,7 @@ describe('Status Page', () => {
                 await page.waitForSelector('#domain_1', { visible: true });
                 await page.type('#domain_1', 'app.fyipeapp.com');
                 await page.click('#btnAddDomain');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#react-tabs-2');
@@ -573,7 +573,7 @@ describe('Status Page', () => {
                 await page.waitForSelector('#domain_1', { visible: true });
                 await page.type('#domain_1', 'server.fyipeapp.com');
                 await page.click('#btnAddDomain');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.waitForSelector('#react-tabs-2');
@@ -609,7 +609,7 @@ describe('Status Page', () => {
                 await page.click('#react-tabs-4');
                 await page.type('#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
                 await page.click('#btnAddCustomStyles');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#react-tabs-2');
@@ -647,7 +647,7 @@ describe('Status Page', () => {
                     `<script id='js'>${javascript}`
                 );
                 await page.click('#btnAddCustomStyles');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#react-tabs-2');
@@ -691,7 +691,7 @@ describe('Status Page', () => {
                     elem.click()
                 );
                 await page.click('#saveAdvancedOptions');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
 
                 await page.waitForSelector('#statuspage_moveIncidentToTheTop', {
@@ -769,7 +769,7 @@ describe('Status Page', () => {
                 await page.type('#domain_2', 'api.fyipeapp.com');
                 await page.waitForSelector('#btnAddDomain');
                 await page.click('#btnAddDomain');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const domains = await page.$$eval(
                     'fieldset[name="added-domain"]',
@@ -799,7 +799,7 @@ describe('Status Page', () => {
                 await page.type('#domain_1', 'fyipe.fyipeapp.com');
                 await page.waitForSelector('#btnAddDomain');
                 await page.click('#btnAddDomain');
-                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitFor(2000);
                 await page.waitForSelector('.ball-beat', { hidden: true });
                 const domains = await page.$$eval(
                     'fieldset[name="added-domain"]',

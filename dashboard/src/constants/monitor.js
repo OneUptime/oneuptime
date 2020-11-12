@@ -82,3 +82,6 @@ export const ADD_SEAT_REQUEST = 'ADD_SEAT_REQUEST';
 export const ADD_SEAT_RESET = 'ADD_SEAT_RESET';
 
 export const SELECT_PROBE = 'monitor/SELECT_PROBE';
+
+// toggle
+export const TOGGLE_EDIT = 'TOGGLE_EDIT';

@@ -21,7 +21,8 @@ module.exports = {
             const notifications = await NotificationModel.find(query)
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .populate({path: 'meta.incidentId', model: 'Incident', select: '_id idNumber'});
             return notifications;
         } catch (error) {
             ErrorService.log('notificationService.findBy', error);

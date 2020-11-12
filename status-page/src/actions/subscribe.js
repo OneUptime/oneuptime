@@ -79,9 +79,6 @@ export const subscribeUser = (
         promise.then(
             () => {
                 dispatch(subscribeSuccess());
-                dispatch(userDataReset());
-                dispatch(selectedMenu(1));
-                dispatch(openSubscribeMenu());
             },
             error => {
                 if (error && error.response && error.response.data)

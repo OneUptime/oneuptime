@@ -11,6 +11,7 @@ import {
     getIncidentTimeline,
     fetchIncidentMessages,
 } from '../actions/incident';
+import { fetchIncidentStatusPages } from '../actions/statusPage';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
 import Dashboard from '../components/Dashboard';
@@ -31,6 +32,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import IncidentStatusPages from '../components/incident/incidentStatusPages';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -168,6 +170,9 @@ class Incident extends React.Component {
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        if (index === 2) {
+            this.fetchAllIncidentData();
+        }
     };
 
     fetchAllIncidentData() {
@@ -232,6 +237,10 @@ class Incident extends React.Component {
 
     ready = () => {
         this.fetchAllIncidentData();
+        this.props.fetchIncidentStatusPages(
+            this.props.match.params.projectId,
+            this.props.match.params.incidentId
+        );
     };
 
     render() {
@@ -252,6 +261,10 @@ class Incident extends React.Component {
             this.props.incident.monitorId.name
                 ? this.props.incident.monitorId.name
                 : null;
+        const monitorType =
+            this.props.monitor && this.props.monitor.type
+                ? this.props.monitor.type
+                : '';
         if (this.props.incident) {
             variable = (
                 <div>
@@ -277,7 +290,7 @@ class Incident extends React.Component {
                                     Incident Timeline
                                 </Tab>
                                 <Tab className={'custom-tab custom-tab-6'}>
-                                    Incident Notes
+                                    Status Page Notes
                                 </Tab>
                                 <Tab
                                     id="tab-advance"
@@ -298,6 +311,9 @@ class Incident extends React.Component {
                                     count={0}
                                     route={pathname}
                                 />
+                                <IncidentInternal
+                                    incident={this.props.incident}
+                                />
                             </Fade>
                         </TabPanel>
                         <TabPanel>
@@ -307,6 +323,7 @@ class Incident extends React.Component {
                                         incidentId={this.props.incident._id}
                                         monitorId={monitorId}
                                         monitorName={monitorName}
+                                        monitorType={monitorType}
                                     />
                                 </div>
                             </Fade>
@@ -331,17 +348,15 @@ class Incident extends React.Component {
                                     <IncidentTimelineBox
                                         next={this.nextTimeline}
                                         previous={this.previousTimeline}
-                                        incident={this.props.incident}
+                                        incident={this.props.incidentTimeline}
                                     />
                                 </div>
                             </Fade>
                         </TabPanel>
                         <TabPanel>
                             <Fade>
+                                <IncidentStatusPages />
                                 <IncidentInvestigation
-                                    incident={this.props.incident}
-                                />
-                                <IncidentInternal
                                     incident={this.props.incident}
                                 />
                             </Fade>
@@ -438,6 +453,14 @@ class Incident extends React.Component {
 
 const mapStateToProps = (state, props) => {
     const { componentId } = props.match.params;
+    const monitorId =
+        state.incident &&
+        state.incident.incident &&
+        state.incident.incident.incident &&
+        state.incident.incident.incident.monitorId &&
+        state.incident.incident.incident.monitorId._id
+            ? state.incident.incident.incident.monitorId._id
+            : null;
     let component;
     state.component.componentList.components.forEach(item => {
         item.components.forEach(c => {
@@ -446,8 +469,13 @@ const mapStateToProps = (state, props) => {
             }
         });
     });
-
+    const monitor = state.monitor.monitorsList.monitors
+        .map(monitor =>
+            monitor.monitors.find(monitor => monitor._id === monitorId)
+        )
+        .filter(monitor => monitor)[0];
     return {
+        monitor,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentTimeline: state.incident.incident,
@@ -478,12 +506,14 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentMessages,
             fetchIncidentPriorities,
             fetchBasicIncidentSettings,
+            fetchIncidentStatusPages,
         },
         dispatch
     );
 };
 
 Incident.propTypes = {
+    monitor: PropTypes.object,
     currentProject: PropTypes.object,
     deleting: PropTypes.bool.isRequired,
     fetchIncidentAlert: PropTypes.func,
@@ -510,6 +540,7 @@ Incident.propTypes = {
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentStatusPages: PropTypes.func.isRequired,
 };
 
 Incident.displayName = 'Incident';

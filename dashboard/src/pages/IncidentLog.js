@@ -125,6 +125,10 @@ class IncidentLog extends React.Component {
                                         currentProjectId={currentProjectId}
                                         prevClicked={this.prevClicked}
                                         nextClicked={this.nextClicked}
+                                        allProjectLength={
+                                            subProjectIncidents.length
+                                        }
+                                        modalList={this.props.modalList}
                                     />
                                 </div>
                             </div>
@@ -175,6 +179,10 @@ class IncidentLog extends React.Component {
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
                                     subProjects={subProjects}
+                                    allProjectLength={
+                                        subProjectIncidents.length
+                                    }
+                                    modalList={this.props.modalList}
                                 />
                             </div>
                         </div>
@@ -270,6 +278,7 @@ const mapStateToProps = (state, props) => {
         subProjectIncidents: state.incident.incidents.incidents,
         tutorialStat,
         component,
+        modalList: state.modal.modals,
     };
 };
 
@@ -315,6 +324,7 @@ IncidentLog.propTypes = {
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    modalList: PropTypes.array,
 };
 
 IncidentLog.displayName = 'IncidentLog';

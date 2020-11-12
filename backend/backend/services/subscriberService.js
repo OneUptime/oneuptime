@@ -136,6 +136,48 @@ module.exports = {
         }
     },
 
+    subscribersForAlert: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const subscribers = await SubscriberModel.find(query)
+                .sort([['createdAt', -1]])
+                .populate('projectId')
+                .populate('monitorId')
+                .populate('statusPageId');
+
+            const subscribersArr = [];
+            for (const result of subscribers) {
+                const temp = {};
+                temp._id = result._id;
+                temp.projectId = result.projectId._id;
+                temp.projectName = result.projectId.name;
+                temp.monitorId = result.monitorId._id;
+                temp.monitorName = result.monitorId.name;
+                temp.statusPageId = result.statusPageId
+                    ? result.statusPageId._id
+                    : null;
+                temp.statusPageName = result.statusPageId
+                    ? result.statusPageId.name
+                    : null;
+                temp.createdAt = result.createdAt;
+                temp.alertVia = result.alertVia;
+                temp.contactEmail = result.contactEmail;
+                temp.contactPhone = result.contactPhone;
+                temp.countryCode = result.countryCode;
+                temp.contactWebhook = result.contactWebhook;
+                subscribersArr.push(temp);
+            }
+            return subscribersArr;
+        } catch (error) {
+            ErrorService.log('subscriberService.subscribersForAlert', error);
+            throw error;
+        }
+    },
+
     subscribe: async function(data, monitors) {
         try {
             const _this = this;

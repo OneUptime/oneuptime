@@ -40,7 +40,7 @@ describe('Monitor API', () => {
         await cluster.execute(null, async ({ page }) => {
             // delete monitor
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle2',
+                waitUntil: 'domcontentloaded',
             });
             await page.waitForSelector('#components');
             await page.click('#components');
@@ -52,11 +52,13 @@ describe('Monitor API', () => {
             await page.click(`#delete_${monitorName}`);
             await page.waitForSelector('#deleteMonitor');
             await page.click('#deleteMonitor');
-            await page.waitFor(2000);
+
+            await page.waitForSelector('.ball-beat', { visible: true });
+            await page.waitForSelector('.ball-beat', { hidden: true });
 
             // delete component
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle2',
+                waitUntil: 'domcontentloaded',
             });
             await page.waitForSelector('#components');
             await page.click('#components');
@@ -78,7 +80,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'domcontentloaded',
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
@@ -87,8 +89,13 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-component');
                 await page.click('input[id=name]');
                 await page.type('input[id=name]', componentName);
-                await page.click('button[type=submit]');
-                await page.goto(utils.DASHBOARD_URL);
+                await page.click('#addComponentButton');
+
+                await page.waitForSelector('#monitors', { visible: true });
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'domcontentloaded',
+                });
+
                 await page.waitForSelector('#components', { visible: true });
                 await page.click('#components');
 
@@ -110,7 +117,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'domcontentloaded',
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');
@@ -121,7 +128,6 @@ describe('Monitor API', () => {
                 await page.waitForSelector('#form-new-monitor', {
                     visible: true,
                 });
-                await page.waitFor(5000);
 
                 // Fill and submit New Monitor form
                 await page.click('input[id=name]', { visible: true });
@@ -134,7 +140,8 @@ describe('Monitor API', () => {
 
                 let spanElement;
                 spanElement = await page.waitForSelector(
-                    `#monitor-title-${monitorName}`
+                    `#monitor-title-${monitorName}`,
+                    { visible: true }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
@@ -150,7 +157,7 @@ describe('Monitor API', () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
-                    waitUntil: 'networkidle2',
+                    waitUntil: 'domcontentloaded',
                 });
                 await page.waitForSelector('#components');
                 await page.click('#components');

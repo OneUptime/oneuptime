@@ -13,10 +13,6 @@ const IncidentProjectBox = props => {
     const [filterOption, setFilterOption] = useState('Filter By');
     const [isFiltered, setIsFiltered] = useState(false);
 
-    useEffect(() => {
-        setIncidents(props.subProjectIncident);
-    }, [props]);
-
     const filterIncidentLogs = status => {
         const unFilteredIncidents = props.subProjectIncident;
         const filtered = [];
@@ -45,6 +41,39 @@ const IncidentProjectBox = props => {
                 break;
         }
     };
+
+    useEffect(() => {
+        const handleKeyboard = event => {
+            const { modalList, allProjectLength } = props;
+
+            if (allProjectLength === 1) {
+                if (event.target.localName === 'body' && event.key) {
+                    switch (event.key) {
+                        case 'N':
+                        case 'n':
+                            if (modalList.length === 0) {
+                                event.preventDefault();
+                                return document
+                                    .getElementById(
+                                        `btnCreateIncident_${props.subProjectName}`
+                                    )
+                                    .click();
+                            }
+                            return false;
+                        default:
+                            return false;
+                    }
+                }
+            }
+        };
+
+        setIncidents(props.subProjectIncident);
+        window.addEventListener('keydown', handleKeyboard);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    }, [props]);
 
     return (
         <div className="Box-root">
@@ -146,9 +175,18 @@ const IncidentProjectBox = props => {
                                 }
                             >
                                 <ShouldRender if={!props.creating}>
-                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                        <span>Create New Incident</span>
-                                    </span>
+                                    {props.allProjectLength === 1 ? (
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                            <span>Create New Incident</span>
+                                            <span className="new-btn__keycode">
+                                                N
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>Create New Incident</span>
+                                        </span>
+                                    )}
                                 </ShouldRender>
                                 <ShouldRender if={props.creating}>
                                     <FormLoader />
@@ -183,6 +221,8 @@ IncidentProjectBox.propTypes = {
     creating: PropTypes.bool.isRequired,
     createIncidentModalId: PropTypes.string.isRequired,
     subProjects: PropTypes.array,
+    allProjectLength: PropTypes.number,
+    modalList: PropTypes.array,
 };
 
 export default IncidentProjectBox;

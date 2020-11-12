@@ -4,11 +4,13 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import DeleteCaution from './DeleteCaution';
+import { IS_SAAS_SERVICE } from '../../config';
 import DeleteMessaging from './DeleteMessaging';
 import {
     hideDeleteModal,
     deleteProject,
     switchProject,
+    hideDeleteModalSaasMode,
 } from '../../actions/project';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
@@ -29,6 +31,7 @@ export class DeleteProjectModal extends Component {
         const { projectId, deleteProject } = this.props;
 
         deleteProject(projectId, values.feedback).then(() => {
+            this.setState({ deleted: true });
             this.closeNotice();
         });
         if (SHOULD_LOG_ANALYTICS) {
@@ -38,14 +41,16 @@ export class DeleteProjectModal extends Component {
 
     closeNotice() {
         const { switchProject, nextProject } = this.props;
-        this.props.hideDeleteModal();
+        if (!IS_SAAS_SERVICE) {
+            this.props.hideDeleteModal();
+        }
         if (nextProject) switchProject(nextProject);
         else history.push('/');
     }
 
     render() {
         const { deleted } = this.state;
-        const { deletedModal } = this.props;
+        const { deletedModal, deletedProjectSuccess } = this.props;
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -63,6 +68,10 @@ export class DeleteProjectModal extends Component {
                                 hide={this.props.hideDeleteModal}
                                 deleteProject={this.deleteProject}
                                 requesting={this.props.isRequesting}
+                                deleteSuccess={deletedProjectSuccess}
+                                hideOnDelete={
+                                    this.props.hideDeleteModalSaasMode
+                                }
                             />
                         </div>
                     ) : (
@@ -89,6 +98,7 @@ const mapDispatchToProps = dispatch =>
         {
             deleteProject,
             hideDeleteModal,
+            hideDeleteModalSaasMode,
             switchProject: project => switchProject(dispatch, project),
         },
         dispatch
@@ -117,6 +127,7 @@ const mapStateToProps = (state, props) => {
         nextProject,
         visible: state.project.showDeleteModal,
         isRequesting: state.project.deleteProject.requesting,
+        deletedProjectSuccess: state.project.deleteProject.deleted,
         deletedModal: state.project.deletedModal,
     };
 };
@@ -125,6 +136,7 @@ DeleteProjectModal.propTypes = {
     deleteProject: PropTypes.func.isRequired,
     switchProject: PropTypes.func.isRequired,
     hideDeleteModal: PropTypes.func.isRequired,
+    hideDeleteModalSaasMode: PropTypes.func.isRequired,
     nextProject: PropTypes.oneOfType([
         PropTypes.oneOf([null, undefined]),
         PropTypes.object,
@@ -133,6 +145,7 @@ DeleteProjectModal.propTypes = {
     visible: PropTypes.bool,
     isRequesting: PropTypes.bool,
     deletedModal: PropTypes.bool,
+    deletedProjectSuccess: PropTypes.bool,
 };
 
 export default withRouter(

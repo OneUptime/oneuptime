@@ -189,24 +189,24 @@ module.exports = {
     },
     chargeAlert: async function(userId, projectId, chargeAmount) {
         try {
-            const project = await ProjectService.findOneBy({
+            let project = await ProjectService.findOneBy({
                 _id: projectId,
             });
             const { balance } = project;
             const { minimumBalance, rechargeToBalance } = project.alertOptions;
             if (balance < minimumBalance) {
-                const chargeForBalance = await StripeService.chargeCustomerForBalance(
+                const paymentIntent = await StripeService.chargeCustomerForBalance(
                     userId,
                     rechargeToBalance,
                     project.id
                 );
-                if (!chargeForBalance.paid) {
+                if (!paymentIntent.paid) {
                     //create notification
                     const message =
                         'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
                     const meta = {
                         type: 'action',
-                        client_secret: chargeForBalance.client_secret,
+                        client_secret: paymentIntent.client_secret,
                     };
                     await NotificationService.create(
                         projectId,
@@ -216,8 +216,16 @@ module.exports = {
                         meta
                     );
                 }
+
+                // confirm payment intent
+                // and update the project balance
+                // if further process is required the user will need to manually top up the account
+                await StripeService.confirmPayment(paymentIntent);
             }
-            const balanceAfterAlertSent = balance - chargeAmount;
+            project = await ProjectService.findOneBy({
+                _id: projectId,
+            });
+            const balanceAfterAlertSent = project.balance - chargeAmount;
             const updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {

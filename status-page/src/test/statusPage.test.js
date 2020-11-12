@@ -55,6 +55,7 @@ const dateId = moment(today)
     .replace(/, | /g, '');
 
 let browser, page, statusPageURL;
+const monitorMessage = 'You have subscribed to this status page successfully';
 
 describe('Status page monitors check', function() {
     this.timeout(240000);
@@ -347,6 +348,16 @@ describe('Status page monitors check', function() {
         expect(monitorCategoryName).to.be.equal('Uncategorized');
     });
 
+    it('should show incident card, and show incident if there is any', async function() {
+        await page.reload({
+            waitUntil: 'networkidle0',
+        });
+        const incidentCard = await page.waitForSelector('#incidentCard', {
+            visible: true,
+        });
+        expect(incidentCard).to.exist;
+    });
+
     it('should display scheduled events when enabled on status page', async function() {
         await page.reload({
             waitUntil: 'networkidle0',
@@ -411,17 +422,14 @@ describe('Status page monitors check', function() {
         const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
         await page.waitForSelector(monitorDaySelector);
-        await page.click(monitorDaySelector);
-        await page.waitFor(5000);
+        await page.$eval(monitorDaySelector, e => e.click());
 
-        await page.waitForSelector('#scheduledEvents');
-
-        await page.waitForSelector('li.scheduledEvent');
+        await page.waitForSelector('li.scheduledEvent', { visible: true });
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
         const scheduledEventName = await page.$eval(
-            'li.scheduledEvent .feed-title',
+            '#eventTitle',
             el => el.textContent
         );
 
@@ -541,6 +549,81 @@ describe('Private status page check', function() {
 
         newBrowser = await puppeteer.launch({ headless: true });
         newPage = await newBrowser.newPage();
+    });
+
+    it('it should successfully subscribe a user via email', async function() {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('input[name=email]');
+        await page.type('input[name=email]', 'testing@gmail.com');
+        await page.waitForSelector('#subscribe-btn-email');
+        await page.click('#subscribe-btn-email');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+        expect(response).to.be.eql(monitorMessage);
+    });
+
+    it('it should successfully subscribe a user via phone sms', async function() {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('#updates-dropdown-sms-btn');
+        await page.click('#updates-dropdown-sms-btn');
+        await page.waitForSelector('input[name=phone_number]');
+        await page.type('input[name=phone_number]', '0812348342');
+        await page.waitForSelector('#subscribe-btn-sms');
+        await page.click('#subscribe-btn-sms');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+        expect(response).to.be.eql(monitorMessage);
+    });
+    it('it should subscribe a user to webhook notification succesfully', async function() {
+        await request
+            .put(`/statusPage/${projectId}`)
+            .set('Authorization', authorization)
+            .send({
+                _id: statusPageId,
+                isSubscriberEnabled: true,
+            });
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('.bs-Button-subscribe');
+        await page.click('.bs-Button-subscribe');
+        await page.waitForSelector('#updates-dropdown-webhook-btn');
+        await page.click('#updates-dropdown-webhook-btn');
+        await page.waitForSelector('input[name=endpoint]');
+        await page.type('input[name=endpoint]', 'example.com');
+        await page.waitForSelector('input[name=email]');
+        await page.type('input[name=email]', 'testing@gmail.com');
+        await page.waitForSelector('#subscribe-btn-webhook');
+        await page.click('#subscribe-btn-webhook');
+        await page.waitForSelector('#monitor-subscribe-success-message');
+        const response = await page.$eval(
+            '#monitor-subscribe-success-message',
+            elem => elem.textContent
+        );
+
+        expect(response).to.be.eql(monitorMessage);
     });
 
     after(async function() {

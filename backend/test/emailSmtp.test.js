@@ -22,42 +22,29 @@ let projectId, jwtToken, emailSmtpId;
 describe('Email SMTP Api Test', function() {
     this.timeout(200000);
 
-    before(function(done) {
+    before(async function() {
         this.timeout(400000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, data.user, function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        await GlobalConfig.initTestConfig();
+        const res = await createUser(request, data.user);
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(async () => {
-                            // make created user master admin
-                            await UserService.updateBy(
-                                { _id: userId },
-                                { role: 'master-admin' }
-                            );
+        const project = res.body.project;
+        projectId = project._id;
+        userId = res.body.id;
 
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: data.user.email,
-                                    password: data.user.password,
-                                })
-                                .end(function(err, res) {
-                                    jwtToken = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                });
-            });
+        const verificationToken = await VerificationTokenModel.findOne({
+            userId,
         });
+        await request
+            .get(`/user/confirmation/${verificationToken.token}`)
+            .redirects(0);
+
+        await UserService.updateBy({ _id: userId }, { role: 'master-admin' });
+
+        const res1 = await request.post('/user/login').send({
+            email: data.user.email,
+            password: data.user.password,
+        });
+        jwtToken = res1.body.tokens.jwtAccessToken;
     });
 
     after(async () => {
@@ -73,112 +60,97 @@ describe('Email SMTP Api Test', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should confirm that `master-admin` exists', done => {
-        request.get('/user/masterAdminExists').end((err, res) => {
-            expect(res).to.have.status(200);
-            expect(res.body).have.property('result');
-            expect(res.body.result).to.eql(true);
-            done();
-        });
+    it('should confirm that `master-admin` exists', async () => {
+        const res = await request.get('/user/masterAdminExists');
+        expect(res).to.have.status(200);
+        expect(res.body).have.property('result');
+        expect(res.body.result).to.eql(true);
     });
 
-    it('should send test smtp email to the provided email address', done => {
+    it('should send test smtp email to the provided email address', async () => {
         const authorization = `Basic ${jwtToken}`;
-        GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
-            const payload = {
-                user: value.email,
-                pass: value.password,
-                host: value['smtp-server'],
-                port: value['smtp-port'],
-                from: value['from'],
-                name: value['from-name'],
-                secure: value['smtp-secure'],
-                email: testemail,
-            };
+        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const payload = {
+            user: value.email,
+            pass: value.password,
+            host: value['smtp-server'],
+            port: value['smtp-port'],
+            from: value['from'],
+            name: value['from-name'],
+            secure: value['smtp-secure'],
+            email: testemail,
+        };
 
-            request
-                .post('/emailSmtp/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end(function(err, res) {
-                    expect(res).to.have.status(200);
-                    expect(res.body).to.be.an('object');
-                    done();
-                });
-        });
+        const res = await request
+            .post('/emailSmtp/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(200);
+        expect(res.body).to.be.an('object');
     });
 
-    it('should not send test smtp email when user or pass is not valid', done => {
+    it('should not send test smtp email when user or pass is not valid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
-            value.email = 'randomemail@gmail.com';
-            const payload = {
-                user: value.email,
-                pass: value.password,
-                host: value['smtp-server'],
-                port: value['smtp-port'],
-                name: value['from-name'],
-                from: value['from'],
-                secure: value['smtp-secure'],
-                email: testemail,
-            };
+        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
 
-            request
-                .post('/emailSmtp/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end(function(err, res) {
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+        value.email = 'randomemail@gmail.com';
+        const payload = {
+            user: value.email,
+            pass: value.password,
+            host: value['smtp-server'],
+            port: value['smtp-port'],
+            name: value['from-name'],
+            from: value['from'],
+            secure: value['smtp-secure'],
+            email: testemail,
+        };
+        const res = await request
+            .post('/emailSmtp/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(400);
     });
 
-    it('should not send test smtp email when host or port is invalid', done => {
+    it('should not send test smtp email when host or port is invalid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        GlobalConfigService.findOneBy({ name: 'smtp' }).then(({ value }) => {
-            value['smtp-server'] = 'random.host';
-            const payload = {
-                user: value.email,
-                pass: value.password,
-                host: value['smtp-server'],
-                port: value['smtp-port'],
-                name: value['from-name'],
-                from: value['from'],
-                secure: value['smtp-secure'],
-                email: testemail,
-            };
+        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
 
-            request
-                .post('/emailSmtp/test')
-                .set('Authorization', authorization)
-                .send(payload)
-                .end(function(err, res) {
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+        value['smtp-server'] = 'random.host';
+        const payload = {
+            user: value.email,
+            pass: value.password,
+            host: value['smtp-server'],
+            port: value['smtp-port'],
+            name: value['from-name'],
+            from: value['from'],
+            secure: value['smtp-secure'],
+            email: testemail,
+        };
+
+        const res = await request
+            .post('/emailSmtp/test')
+            .set('Authorization', authorization)
+            .send(payload);
+        expect(res).to.have.status(400);
     });
 
-    it('should save custom SMTP settings', done => {
+    it('should save custom SMTP settings', async () => {
         const authorization = `Basic ${jwtToken}`;
         const data = {
             ...smtpCredential,
         };
 
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                emailSmtpId = res.body._id;
-                expect(res).to.have.status(200);
-                expect(data.user).to.be.equal(res.body.user);
-                done();
-            });
+            .send(data);
+
+        emailSmtpId = res.body._id;
+        expect(res).to.have.status(200);
+        expect(res.body.user).to.be.equal(data.user);
     });
 
-    it('should not save custom SMTP settings if user name is missing', done => {
+    it('should not save custom SMTP settings if user name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let user;
         const data = {
@@ -186,18 +158,15 @@ describe('Email SMTP Api Test', function() {
             user,
         };
 
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('User Name is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('User Name is required.');
     });
 
-    it('should not save custom SMTP settings if password is missing', done => {
+    it('should not save custom SMTP settings if password is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let pass;
         const data = {
@@ -205,18 +174,15 @@ describe('Email SMTP Api Test', function() {
             pass,
         };
 
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Password is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('Password is required.');
     });
 
-    it('should not save custom SMTP settings if host is missing', done => {
+    it('should not save custom SMTP settings if host is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let host;
         const data = {
@@ -224,109 +190,86 @@ describe('Email SMTP Api Test', function() {
             host,
         };
 
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('host is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('host is required.');
     });
 
-    it('should not save custom SMTP settings if port is missing', done => {
+    it('should not save custom SMTP settings if port is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let port;
         const data = {
             ...smtpCredential,
             port,
         };
-
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('port is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('port is required.');
     });
 
-    it('should not save custom SMTP settings if from is missing', done => {
+    it('should not save custom SMTP settings if from is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let from;
         const data = {
             ...smtpCredential,
             from,
         };
-
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('from is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('from is required.');
     });
 
-    it('should not save custom SMTP settings if name is missing', done => {
+    it('should not save custom SMTP settings if name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let name;
         const data = {
             ...smtpCredential,
             name,
         };
-
-        request
+        const res = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('name is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('name is required.');
     });
 
-    it('should update a custom SMTP settings', done => {
+    it('should update a custom SMTP settings', async () => {
         const authorization = `Basic ${jwtToken}`;
         const data = { ...smtpCredential, from: 'info@gmail.com' };
-
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(200);
-                expect(res.body.from).to.be.equal(data.from);
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(200);
+        expect(res.body.from).to.be.equal(data.from);
     });
 
-    it('should not update custom SMTP settings if user name is missing', done => {
+    it('should not update custom SMTP settings if user name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let user;
         const data = {
             ...smtpCredential,
             user,
         };
-
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('User Name is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('User Name is required.');
     });
 
-    it('should not update custom SMTP settings if password is missing', done => {
+    it('should not update custom SMTP settings if password is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let pass;
         const data = {
@@ -334,18 +277,15 @@ describe('Email SMTP Api Test', function() {
             pass,
         };
 
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Password is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('Password is required.');
     });
 
-    it('should not update custom SMTP settings if host is missing', done => {
+    it('should not update custom SMTP settings if host is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let host;
         const data = {
@@ -353,18 +293,16 @@ describe('Email SMTP Api Test', function() {
             host,
         };
 
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('host is required.');
-                done();
-            });
+            .send(data);
+
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('host is required.');
     });
 
-    it('should not update custom SMTP settings if port is missing', done => {
+    it('should not update custom SMTP settings if port is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let port;
         const data = {
@@ -372,52 +310,41 @@ describe('Email SMTP Api Test', function() {
             port,
         };
 
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('port is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('port is required.');
     });
 
-    it('should not update custom SMTP settings if from is missing', done => {
+    it('should not update custom SMTP settings if from is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let from;
         const data = {
             ...smtpCredential,
             from,
         };
-
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('from is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('from is required.');
     });
 
-    it('should not update custom SMTP settings if name is missing', done => {
+    it('should not update custom SMTP settings if name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let name;
         const data = {
             ...smtpCredential,
             name,
         };
-
-        request
+        const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
-            .send(data)
-            .end((err, res) => {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('name is required.');
-                done();
-            });
+            .send(data);
+        expect(res).to.have.status(400);
+        expect(res.body.message).to.be.equal('name is required.');
     });
 });

@@ -5,6 +5,10 @@ const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
 const { fork } = require('child_process');
 const moment = require('moment');
+const https = require('https');
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+});
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
@@ -106,6 +110,7 @@ const pingfetch = async url => {
         try {
             response = await fetch(url, {
                 timeout: 120000,
+                agent: httpsAgent,
                 headers: {
                     'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',

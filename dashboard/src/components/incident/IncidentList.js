@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import ReactMarkdown from 'react-markdown';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
@@ -339,7 +340,9 @@ export class IncidentList extends Component {
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {incident.title}
+                                                    <ReactMarkdown
+                                                        source={incident.title}
+                                                    />
                                                 </div>
                                             </td>
                                             <td

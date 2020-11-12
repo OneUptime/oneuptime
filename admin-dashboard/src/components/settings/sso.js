@@ -25,19 +25,21 @@ export class Component extends React.Component {
     }
 
     handleKeyboard = event => {
-        const { modalId } = this.props;
+        const { modalId, modalList } = this.props;
         const { ssoModalId } = this.state;
 
-        switch (event.key) {
-            case 'N':
-            case 'n':
-                if (modalId !== ssoModalId) {
-                    event.preventDefault();
-                    return this.addSso();
-                }
-                return false;
-            default:
-                return false;
+        if (event.target.localName === 'body' && event.key) {
+            switch (event.key) {
+                case 'N':
+                case 'n':
+                    if (modalList.length === 0 && modalId !== ssoModalId) {
+                        event.preventDefault();
+                        return this.addSso();
+                    }
+                    return false;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -411,6 +413,7 @@ Component.propTypes = {
     deleteSso: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
     modalId: PropTypes.string,
+    modalList: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch => {
@@ -429,6 +432,7 @@ function mapStateToProps(state) {
     return {
         ssos: state.sso.ssos,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,
+        modalList: state.modal.modals,
     };
 }
 

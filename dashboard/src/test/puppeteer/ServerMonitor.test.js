@@ -4,7 +4,13 @@ const init = require('./test-init');
 const { Cluster } = require('puppeteer-cluster');
 const axios = require('axios');
 axios.defaults.adapter = require('axios/lib/adapters/http');
-const serverMonitor = require('fyipe-server-monitor');
+let serverMonitor;
+try {
+    // try to use local package (with recent changes)
+    serverMonitor = require('../../../../server-monitor/lib/api');
+} catch (error) {
+    serverMonitor = require('fyipe-server-monitor');
+}
 
 require('should');
 
@@ -51,7 +57,7 @@ describe('Server Monitor API', () => {
     const monitorName = utils.generateRandomString();
 
     test(
-        'should set server monitor offline if no data is uploaded in 3 minutes',
+        'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 // Create Component first
@@ -71,7 +77,7 @@ describe('Server Monitor API', () => {
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(monitorName);
 
-                await page.waitFor(180000);
+                await page.waitFor(300000);
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -88,7 +94,7 @@ describe('Server Monitor API', () => {
     );
 
     test(
-        'should auto acknowledge and auto resolve offline incident',
+        'should auto acknowledge and resolve offline incident',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL, {
@@ -128,6 +134,7 @@ describe('Server Monitor API', () => {
                 monitorId = await monitorId.jsonValue();
 
                 const monitor = serverMonitor({
+                    simulate: 'online',
                     projectId,
                     apiUrl,
                     apiKey,
@@ -137,8 +144,6 @@ describe('Server Monitor API', () => {
                 monitor.start();
 
                 await page.waitFor(120000);
-
-                monitor.stop();
 
                 await page.waitForSelector('span#activeIncidentsText', {
                     visible: true,
@@ -151,6 +156,253 @@ describe('Server Monitor API', () => {
                 expect(activeIncidents).toEqual(
                     'No incidents currently active.'
                 );
+
+                monitor.stop();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create degraded incident',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+
+                let projectId = await page.$('#projectId', { visible: true });
+                projectId = await projectId.getProperty('innerText');
+                projectId = await projectId.jsonValue();
+
+                let apiUrl = await page.$('#apiUrl', { visible: true });
+                apiUrl = await apiUrl.getProperty('innerText');
+                apiUrl = await apiUrl.jsonValue();
+
+                await page.click('#apiKey');
+                let apiKey = await page.$('#apiKey', { visible: true });
+                apiKey = await apiKey.getProperty('innerText');
+                apiKey = await apiKey.jsonValue();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const monitor = serverMonitor({
+                    simulate: 'degraded',
+                    projectId,
+                    apiUrl,
+                    apiKey,
+                    monitorId,
+                });
+
+                monitor.start();
+
+                await page.waitFor(120000);
+
+                // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-degraded`
+                );
+                expect(element).toBeDefined();
+
+                monitor.stop();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create offline incident',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+
+                let projectId = await page.$('#projectId', { visible: true });
+                projectId = await projectId.getProperty('innerText');
+                projectId = await projectId.jsonValue();
+
+                let apiUrl = await page.$('#apiUrl', { visible: true });
+                apiUrl = await apiUrl.getProperty('innerText');
+                apiUrl = await apiUrl.jsonValue();
+
+                await page.click('#apiKey');
+                let apiKey = await page.$('#apiKey', { visible: true });
+                apiKey = await apiKey.getProperty('innerText');
+                apiKey = await apiKey.jsonValue();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const monitor = serverMonitor({
+                    simulate: 'offline',
+                    projectId,
+                    apiUrl,
+                    apiKey,
+                    monitorId,
+                });
+
+                monitor.start();
+
+                await page.waitFor(120000);
+
+                // check status
+                const element = await page.waitForSelector(
+                    `#${monitorName}-offline`
+                );
+                expect(element).toBeDefined();
+
+                monitor.stop();
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create offline incident 3 minutes after daemon is turned off',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
+
+                await page.waitForSelector('#projectSettings');
+                await page.click('#projectSettings');
+                await page.waitForSelector('#api');
+                await page.click('#api a');
+
+                let projectId = await page.$('#projectId', { visible: true });
+                projectId = await projectId.getProperty('innerText');
+                projectId = await projectId.jsonValue();
+
+                let apiUrl = await page.$('#apiUrl', { visible: true });
+                apiUrl = await apiUrl.getProperty('innerText');
+                apiUrl = await apiUrl.jsonValue();
+
+                await page.click('#apiKey');
+                let apiKey = await page.$('#apiKey', { visible: true });
+                apiKey = await apiKey.getProperty('innerText');
+                apiKey = await apiKey.jsonValue();
+
+                // Navigate to Monitor details
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+
+                let monitorId = await page.waitForSelector('#monitorId', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
+                monitorId = await monitorId.getProperty('innerText');
+                monitorId = await monitorId.jsonValue();
+
+                const monitor = serverMonitor({
+                    simulate: 'online',
+                    projectId,
+                    apiUrl,
+                    apiKey,
+                    monitorId,
+                });
+
+                monitor.start();
+
+                await page.waitFor(120000);
+
+                monitor.stop();
+
+                await page.waitFor(300000);
+
+                await page.waitForSelector('span#activeIncidentsText', {
+                    visible: true,
+                });
+                let activeIncidents = await page.$('span#activeIncidentsText');
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('1 Incident Currently Active');
+            });
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should create offline incident 3 minutes after manually resolving incident and daemon is turned off',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                // Navigate to details page of component created
+                await init.navigateToComponentDetails(componentName, page);
+
+                await page.waitForSelector(
+                    `#${monitorName}_EditIncidentDetails_0`
+                );
+                await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(5000);
+                await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
+                    e.click()
+                );
+                await page.waitFor(5000);
+
+                await page.waitForSelector('span#activeIncidentsText', {
+                    visible: true,
+                });
+                let activeIncidents = await page.$('span#activeIncidentsText');
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual(
+                    'No incidents currently active.'
+                );
+
+                await page.waitFor(300000);
+
+                await page.waitForSelector('span#activeIncidentsText', {
+                    visible: true,
+                });
+                activeIncidents = await page.$('span#activeIncidentsText');
+                activeIncidents = await activeIncidents.getProperty(
+                    'innerText'
+                );
+                activeIncidents = await activeIncidents.jsonValue();
+                expect(activeIncidents).toEqual('1 Incident Currently Active');
             });
         },
         operationTimeOut

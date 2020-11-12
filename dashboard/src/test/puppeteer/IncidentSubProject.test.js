@@ -111,17 +111,19 @@ describe('Incident API With SubProjects', () => {
                 });
                 await page.$eval('#closeIncident_0', elem => elem.click());
 
-                await page.waitForSelector('#incident_span_0', {
+                await page.waitForSelector('#incident_0', {
                     visible: true,
                 });
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                const incidentTitleSelector = await page.$(
+                    '#incident_0  .bs-font-header'
+                );
 
                 let textContent = await incidentTitleSelector.getProperty(
                     'innerText'
                 );
                 textContent = await textContent.jsonValue();
                 expect(textContent.toLowerCase()).toEqual(
-                    `${projectMonitorName}'s Incident Status`.toLowerCase()
+                    `${projectMonitorName} is offline`.toLowerCase()
                 );
                 await init.logout(page);
             });
@@ -140,7 +142,9 @@ describe('Incident API With SubProjects', () => {
                 // Navigate to details page of monitor
                 await init.navigateToComponentDetails(newComponentName, page);
 
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                const incidentTitleSelector = await page.$(
+                    '#incident_0 .bs-font-header'
+                );
                 expect(incidentTitleSelector).toBeNull();
                 await init.logout(page);
             });
@@ -181,15 +185,17 @@ describe('Incident API With SubProjects', () => {
                 });
                 await page.$eval('#closeIncident_0', elem => elem.click());
 
-                await page.waitForSelector('#incident_span_0');
-                const incidentTitleSelector = await page.$('#incident_span_0');
+                await page.waitForSelector('#incident_1');
+                const incidentTitleSelector = await page.$(
+                    '#incident_0 .bs-font-header'
+                );
 
                 let textContent = await incidentTitleSelector.getProperty(
                     'innerText'
                 );
                 textContent = await textContent.jsonValue();
                 expect(textContent.toLowerCase()).toEqual(
-                    `${projectMonitorName1}'s Incident Status`.toLowerCase()
+                    `${projectMonitorName1} is offline`.toLowerCase()
                 );
                 await init.logout(page);
             });
@@ -274,7 +280,7 @@ describe('Incident API With SubProjects', () => {
 
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
 
@@ -299,7 +305,7 @@ describe('Incident API With SubProjects', () => {
                 await page.reload({ waitUntil: 'networkidle0' });
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
 
@@ -314,6 +320,10 @@ describe('Incident API With SubProjects', () => {
                 expect(internalContent).toEqual(internalNote);
 
                 type = 'investigation';
+                await init.gotoTab(
+                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    page
+                );
                 // fill investigation message thread form
                 await page.waitForSelector(`#add-${type}-message`);
                 await page.$eval(`#add-${type}-message`, e => e.click());
@@ -376,7 +386,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
                 await init.gotoTab(
-                    utils.incidentTabIndexes.INCIDENT_NOTES,
+                    utils.incidentTabIndexes.BASIC,
                     page
                 );
                 await page.waitFor(2000);

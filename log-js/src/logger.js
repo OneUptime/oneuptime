@@ -3,6 +3,7 @@ class FyipeLogger {
     #applicationLogId;
     #applicationLogKey;
     #apiUrl;
+    #tracker;
     constructor(apiUrl, applicationLogId, applicationLogKey) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
