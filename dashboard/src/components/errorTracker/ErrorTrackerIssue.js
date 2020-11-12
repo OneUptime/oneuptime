@@ -5,6 +5,7 @@ import Badge from '../common/Badge';
 import PropTypes from 'prop-types';
 import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
+import ErrorEventUtil from '../../utils/ErrorEventUtil';
 
 function getComponentBadge(componentName) {
     return (
@@ -15,16 +16,7 @@ function getComponentBadge(componentName) {
     );
 }
 getComponentBadge.displayName = 'getComponentBadge';
-function getExceptionColor(type) {
-    let indicator = '#ff0000';
-    if (type === 'exception') {
-        indicator = '#ffa500';
-    }
-    if (type === 'message') {
-        indicator = '#b7a718';
-    }
-    return indicator;
-}
+
 function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
     console.log('view more');
     console.log({ projectId, componentId, errorTrackerId, errorEventId });
@@ -58,7 +50,7 @@ function ErrorTrackerIssue({
                         style={{
                             height: '20px',
                             width: '10px',
-                            backgroundColor: `${getExceptionColor(
+                            backgroundColor: `${ErrorEventUtil.getExceptionColor(
                                 errorTrackerIssue.type
                             )}`,
                             borderTopRightRadius: '5px',

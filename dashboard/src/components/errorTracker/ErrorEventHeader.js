@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+import ErrorEventUtil from '../../utils/ErrorEventUtil';
+
 class ErrorEventHeader extends Component {
     render() {
         const { errorEvent } = this.props;
@@ -30,7 +32,9 @@ class ErrorEventHeader extends Component {
                                             style={{
                                                 height: '12px',
                                                 width: '12px',
-                                                backgroundColor: 'red',
+                                                backgroundColor: `${ErrorEventUtil.getExceptionColor(
+                                                    errorEvent.errorEvent?.type
+                                                )}`,
                                                 borderRadius: '50%',
                                             }}
                                         ></div>{' '}
