@@ -16,8 +16,6 @@ class ErrorEventHeader extends Component {
     render() {
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
-        console.log(errorEvent);
-        console.log(errorEventDetails);
         return (
             <div>
                 <ShouldRender if={errorEvent.requesting}>

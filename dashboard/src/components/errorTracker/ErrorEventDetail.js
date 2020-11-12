@@ -27,12 +27,9 @@ class ErrorEventDetail extends Component {
                                 <div className="Padding-all--20">
                                     <ErrorEventHeader
                                         errorEvent={errorEvent}
-                                        componentId={componentId}
-                                        projectId={projectId}
-                                        errorTrackerId={errorTrackerId}
                                         navigationLink={navigationLink}
                                     />
-                                    <ErrorEventDevice />
+                                    <ErrorEventDevice errorEvent={errorEvent} />
                                     <ErrorEventMiniTag />
                                     <ErrorEventStackTrace />
                                     <ErrorEventTimeline />
