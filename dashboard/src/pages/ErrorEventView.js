@@ -7,12 +7,15 @@ import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import { fetchErrorTrackers, fetchErrorEvent } from '../actions/errorTracker';
+import {
+    fetchErrorTrackers,
+    fetchErrorEvent,
+    setCurrentErrorEvent,
+} from '../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
-
 class ErrorEventView extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -44,6 +47,22 @@ class ErrorEventView extends Component {
             errorTrackerId,
             errorEventId
         );
+        setCurrentErrorEvent(errorEventId);
+    };
+    navigationLink = errorEventId => {
+        const {
+            currentProject,
+            component,
+            errorTracker,
+            setCurrentErrorEvent,
+        } = this.props;
+        this.props.fetchErrorEvent(
+            currentProject._id,
+            component._id,
+            errorTracker[0]._id,
+            errorEventId
+        );
+        setCurrentErrorEvent(errorEventId);
     };
     render() {
         const {
@@ -51,6 +70,7 @@ class ErrorEventView extends Component {
             component,
             errorTracker,
             errorEvent,
+            currentProject,
         } = this.props;
 
         const componentName = component ? component.name : '';
@@ -82,7 +102,15 @@ class ErrorEventView extends Component {
                     </ShouldRender>
                     <ShouldRender if={errorEvent}>
                         <div>
-                            <ErrorEventDetail errorEvent={errorEvent} />
+                            <ErrorEventDetail
+                                errorEvent={errorEvent}
+                                componentId={component && component._id}
+                                projectId={currentProject && currentProject._id}
+                                errorTrackerId={
+                                    errorTracker[0] && errorTracker[0]._id
+                                }
+                                navigationLink={this.navigationLink}
+                            />
                         </div>
                     </ShouldRender>
                 </Fade>
@@ -97,12 +125,16 @@ const mapDispatchToProps = dispatch => {
         {
             fetchErrorEvent,
             fetchErrorTrackers,
+            setCurrentErrorEvent,
         },
         dispatch
     );
 };
 const mapStateToProps = (state, ownProps) => {
     const { componentId, errorTrackerId, errorEventId } = ownProps.match.params;
+    const currentErrorEvent = state.errorTracker.currentErrorEvent;
+    const currentErrorEventId =
+        currentErrorEvent === '' ? errorEventId : currentErrorEvent;
     const currentProject = state.project.currentProject;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -119,7 +151,10 @@ const mapStateToProps = (state, ownProps) => {
     const errorEvents = state.errorTracker.errorEvents;
     if (errorEvents) {
         for (const errorEventKey in errorEvents) {
-            if (errorEventKey === errorEventId && errorEvents[errorEventKey]) {
+            if (
+                errorEventKey === currentErrorEventId &&
+                errorEvents[errorEventKey]
+            ) {
                 errorEvent = errorEvents[errorEventKey];
             }
         }
@@ -129,6 +164,7 @@ const mapStateToProps = (state, ownProps) => {
         component,
         errorTracker,
         errorEvent,
+        currentErrorEvent,
     };
 };
 ErrorEventView.propTypes = {
@@ -140,5 +176,6 @@ ErrorEventView.propTypes = {
     errorTracker: PropsType.array,
     fetchErrorTrackers: PropsType.func,
     errorEvent: PropsType.object,
+    setCurrentErrorEvent: PropsType.func,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventView);

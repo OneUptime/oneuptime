@@ -18,8 +18,6 @@ function getComponentBadge(componentName) {
 getComponentBadge.displayName = 'getComponentBadge';
 
 function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
-    console.log('view more');
-    console.log({ projectId, componentId, errorTrackerId, errorEventId });
     return history.push(
         '/dashboard/project/' +
             projectId +
