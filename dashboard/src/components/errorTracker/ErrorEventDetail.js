@@ -30,7 +30,9 @@ class ErrorEventDetail extends Component {
                                     <ErrorEventStackTrace
                                         errorEvent={errorEvent}
                                     />
-                                    <ErrorEventTimeline />
+                                    <ErrorEventTimeline
+                                        errorEvent={errorEvent}
+                                    />
                                     <ErrorEventInfoSection />
                                     <div className="Box-divider--border-top-1 Padding-vertical--20">
                                         <div className="Flex-flex Flex-justifyContent--spaceBetween">

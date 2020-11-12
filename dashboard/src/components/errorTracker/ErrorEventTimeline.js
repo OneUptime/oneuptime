@@ -1,9 +1,42 @@
 import React, { Component } from 'react';
 import Badge from '../common/Badge';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+import moment from 'moment';
 
 class ErrorEventTimeline extends Component {
+    renderTimelineContent = timeline => {
+        let rendered = '';
+        if (timeline.category === 'ui.click') {
+            rendered = <span> {timeline.data.content.path}</span>;
+        } else if (timeline.category === 'console') {
+            rendered = <span> {timeline.data.content} </span>;
+        } else if (timeline.category === 'fetch') {
+            rendered = (
+                <span>
+                    <span>{timeline.data.content.method.toUpperCase()}</span>{' '}
+                    <a
+                        href={timeline.data.content.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'blue' }}
+                    >
+                        {timeline.data.content.url}
+                    </a>{' '}
+                    <span>[{timeline.data.content.status_code}]</span>
+                </span>
+            );
+        } else {
+            rendered =
+                typeof timeline.data === 'object'
+                    ? JSON.stringify(timeline.data)
+                    : timeline.data;
+        }
+
+        return rendered;
+    };
     render() {
+        const { errorEvent } = this.props;
+        const errorEventDetails = errorEvent.errorEvent;
         return (
             <div className="Box-divider--border-top-1 Padding-vertical--20">
                 <div className="Flex-flex Flex-justifyContent--spaceBetween">
@@ -114,111 +147,119 @@ class ErrorEventTimeline extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            <tr>
-                                <td>
-                                    <div className="db-ListViewItem-link">
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-left--20 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                            <div>
-                                                <div className="Box-root Flex-flex">
-                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                            <img
-                                                                src="/dashboard/assets/img/debugging.svg"
-                                                                alt=""
-                                                                style={{
-                                                                    height:
-                                                                        '35px',
-                                                                    width:
-                                                                        '35px',
-                                                                    padding:
-                                                                        '5px',
-                                                                }}
-                                                            />
+                            {errorEventDetails &&
+                            errorEventDetails.timeline &&
+                            errorEventDetails.timeline.length > 0 ? (
+                                errorEventDetails.timeline.map(
+                                    (timeline, i) => {
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-left--20 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
+                                                                            <img
+                                                                                src="/dashboard/assets/img/debugging.svg"
+                                                                                alt=""
+                                                                                style={{
+                                                                                    height:
+                                                                                        '35px',
+                                                                                    width:
+                                                                                        '35px',
+                                                                                    padding:
+                                                                                        '5px',
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="db-ListViewItem-link">
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                            <div>
-                                                <div className="Box-root Flex-flex">
-                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                            <span>
-                                                                {' '}
-                                                                console{' '}
-                                                            </span>
+                                                </td>
+                                                <td>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
+                                                                            <span>
+                                                                                {` ${timeline.category}`}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="db-ListViewItem-link">
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                            <div>
-                                                <div className="Box-root Flex-flex">
-                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                            <span>
-                                                                [object
-                                                                Object],[object
-                                                                Object],[object
-                                                                Object],[object
-                                                                Object],[object
-                                                                Object],[object
-                                                                Object]
-                                                            </span>
+                                                </td>
+                                                <td>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
+                                                                            {this.renderTimelineContent(
+                                                                                timeline
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="db-ListViewItem-link">
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                            <div>
-                                                <div className="Box-root Flex-flex">
-                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                            <Badge color="orange">
-                                                                {' '}
-                                                                warn{' '}
-                                                            </Badge>
+                                                </td>
+                                                <td>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
+                                                                            <Badge color="orange">
+                                                                                {` ${timeline.type}`}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className="db-ListViewItem-link">
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
-                                            <div>
-                                                <div className="Box-root Flex-flex">
-                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                            <span>
-                                                                {' '}
-                                                                08:22:30{' '}
-                                                            </span>
+                                                </td>
+                                                <td>
+                                                    <div className="db-ListViewItem-link">
+                                                        <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-alignItems--center">
+                                                            <div>
+                                                                <div className="Box-root Flex-flex">
+                                                                    <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                        <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
+                                                                            <span>
+                                                                                {moment(
+                                                                                    timeline.timestamp
+                                                                                ).format(
+                                                                                    'h:mm:ss a'
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>{' '}
-                                </td>
-                            </tr>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                )
+                            ) : (
+                                <div> no timeline activity</div>
+                            )}
+
                             <tr>
                                 <td>
                                     <div className="db-ListViewItem-link">
