@@ -8,8 +8,14 @@ import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 
 class ErrorEventHeader extends Component {
+    navigate = currentId => {
+        if (currentId) {
+            this.props.navigationLink(currentId);
+        }
+        return;
+    };
     render() {
-        const { errorEvent, navigationLink } = this.props;
+        const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         console.log(errorEvent);
         console.log(errorEventDetails);
@@ -164,8 +170,10 @@ class ErrorEventHeader extends Component {
                                             : 'Navigator-Oldest Navigator-Disable'
                                     }`}
                                     onClick={() =>
-                                        navigationLink(
-                                            errorEvent.previous.oldest
+                                        this.navigate(
+                                            errorEvent.previous
+                                                ? errorEvent.previous.oldest
+                                                : null
                                         )
                                     }
                                 >
@@ -184,7 +192,11 @@ class ErrorEventHeader extends Component {
                                 </div>
                                 <div
                                     onClick={() =>
-                                        navigationLink(errorEvent.previous._id)
+                                        this.navigate(
+                                            errorEvent.previous
+                                                ? errorEvent.previous._id
+                                                : null
+                                        )
                                     }
                                     className={`${
                                         errorEvent.previous
@@ -196,7 +208,11 @@ class ErrorEventHeader extends Component {
                                 </div>
                                 <div
                                     onClick={() =>
-                                        navigationLink(errorEvent.next._id)
+                                        this.navigate(
+                                            errorEvent.next
+                                                ? errorEvent.next._id
+                                                : null
+                                        )
                                     }
                                     className={`${
                                         errorEvent.next
@@ -208,7 +224,11 @@ class ErrorEventHeader extends Component {
                                 </div>
                                 <div
                                     onClick={() =>
-                                        navigationLink(errorEvent.next.latest)
+                                        this.navigate(
+                                            errorEvent.next
+                                                ? errorEvent.next.latest
+                                                : null
+                                        )
                                     }
                                     className={`${
                                         errorEvent.next
@@ -249,7 +269,7 @@ const mapStateToProps = (state, ownProps) => {
         }
     }
     return {
-        errorEvent,
+        errorEventsss: errorEvent,
     };
 };
 ErrorEventHeader.propTypes = {
