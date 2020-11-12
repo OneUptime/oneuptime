@@ -158,9 +158,14 @@ module.exports = {
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
+            const errorEvent = await ErrorEventModel.findOne({
+                _id: errorEventId,
+                errorTrackerId: errorTrackerId,
+            });
             const previousErrorEvent = await ErrorEventModel.find({
                 _id: { $lt: errorEventId },
-                errorTrackerId: errorTrackerId,
+                errorTrackerId: errorEvent.errorTrackerId,
+                fingerprintHash: errorEvent.fingerprintHash,
             })
                 .sort({ _id: -1 })
                 .limit(1);
@@ -170,13 +175,11 @@ module.exports = {
                     createdAt: previousErrorEvent[0].createdAt,
                 };
             }
-            const errorEvent = await ErrorEventModel.findOne({
-                _id: errorEventId,
-                errorTrackerId: errorTrackerId,
-            });
+
             const nextErrorEvent = await ErrorEventModel.find({
                 _id: { $gt: errorEventId },
-                errorTrackerId: errorTrackerId,
+                errorTrackerId: errorEvent.errorTrackerId,
+                fingerprintHash: errorEvent.fingerprintHash,
             })
                 .sort({ _id: -1 })
                 .limit(1);
