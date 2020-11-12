@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
-import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 
 class ErrorEventHeader extends Component {
@@ -255,26 +254,9 @@ class ErrorEventHeader extends Component {
         );
     }
 }
-const mapStateToProps = (state, ownProps) => {
-    const errorEventId = ownProps.errorEvent.errorEvent
-        ? ownProps.errorEvent.errorEvent._id
-        : '';
-    let errorEvent = {};
-    const errorEvents = state.errorTracker.errorEvents;
-    if (errorEvents) {
-        for (const errorEventKey in errorEvents) {
-            if (errorEventKey === errorEventId && errorEvents[errorEventKey]) {
-                errorEvent = errorEvents[errorEventKey];
-            }
-        }
-    }
-    return {
-        errorEventsss: errorEvent,
-    };
-};
 ErrorEventHeader.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
-export default connect(mapStateToProps)(ErrorEventHeader);
+export default ErrorEventHeader;
