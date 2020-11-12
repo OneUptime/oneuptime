@@ -187,10 +187,16 @@ module.exports = {
                 };
             }
 
+            const totalEvents = await this.countBy({
+                errorTrackerId: errorEvent.errorTrackerId,
+                fingerprintHash: errorEvent.fingerprintHash,
+            });
+
             return {
                 previous: previous || null,
                 errorEvent,
                 next: next || null,
+                totalEvents: totalEvents,
             };
         } catch (error) {
             ErrorService.log('errorEventService.findOneWithPrevAndNext', error);

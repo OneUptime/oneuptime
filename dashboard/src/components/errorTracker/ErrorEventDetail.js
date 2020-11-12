@@ -7,10 +7,11 @@ import ErrorEventTimeline from './ErrorEventTimeline';
 import ErrorEventInfoSection from './ErrorEventInfoSection';
 import ErrorEventTagDetail from './ErrorEventTagDetail';
 import ErrorEventList from './ErrorEventList';
-// import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';
 
 class ErrorEventDetail extends Component {
     render() {
+        const { errorEvent } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -18,7 +19,7 @@ class ErrorEventDetail extends Component {
                         <div className="Box-root">
                             <div>
                                 <div className="Padding-all--20">
-                                    <ErrorEventHeader />
+                                    <ErrorEventHeader errorEvent={errorEvent} />
                                     <ErrorEventDevice />
                                     <ErrorEventMiniTag />
                                     <ErrorEventStackTrace />
@@ -127,6 +128,8 @@ class ErrorEventDetail extends Component {
         );
     }
 }
-ErrorEventDetail.propTypes = {};
+ErrorEventDetail.propTypes = {
+    errorEvent: PropTypes.object,
+};
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default ErrorEventDetail;

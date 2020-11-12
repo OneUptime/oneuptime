@@ -196,6 +196,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           success: false,
                           previous: null,
                           next: null,
+                          totalEvents: 0,
                       },
             };
             return Object.assign({}, state, {
@@ -212,6 +213,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         success: true,
                         previous: action.payload.previous,
                         next: action.payload.next,
+                        totalEvents: action.payload.totalEvents,
                     },
                 },
             });
@@ -232,6 +234,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           success: false,
                           previous: null,
                           next: null,
+                          totalEvents: 0,
                       },
             };
             return Object.assign({}, state, {

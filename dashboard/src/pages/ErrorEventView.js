@@ -7,10 +7,10 @@ import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import { fetchErrorEvent } from '../actions/errorTracker';
+import { fetchErrorTrackers, fetchErrorEvent } from '../actions/errorTracker';
 import { bindActionCreators } from 'redux';
-// import ShouldRender from '../components/basic/ShouldRender';
-// import { LoadingState } from '../components/basic/Loader';
+import ShouldRender from '../components/basic/ShouldRender';
+import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
 
 class ErrorEventView extends Component {
@@ -35,6 +35,9 @@ class ErrorEventView extends Component {
             ? this.props.match.params.errorEventId
             : null;
 
+        // fetching error trackers is necessary incase a reload is done on error event details page
+        this.props.fetchErrorTrackers(projectId, componentId);
+
         this.props.fetchErrorEvent(
             projectId,
             componentId,
@@ -47,6 +50,7 @@ class ErrorEventView extends Component {
             location: { pathname },
             component,
             errorTracker,
+            errorEvent,
         } = this.props;
 
         const componentName = component ? component.name : '';
@@ -73,14 +77,14 @@ class ErrorEventView extends Component {
                         pageTitle="Error Tracking"
                         containerType="Error Tracker Container"
                     />
-                    {/* <ShouldRender if={!errorTracker[0]}>
+                    <ShouldRender if={!errorEvent}>
                         <LoadingState />
-                    </ShouldRender> */}
-                    {/* <ShouldRender if={errorTracker && errorTracker[0]}> */}
-                    <div>
-                        <ErrorEventDetail />
-                    </div>
-                    {/* </ShouldRender> */}
+                    </ShouldRender>
+                    <ShouldRender if={errorEvent}>
+                        <div>
+                            <ErrorEventDetail errorEvent={errorEvent} />
+                        </div>
+                    </ShouldRender>
                 </Fade>
             </Dashboard>
         );
@@ -92,6 +96,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchErrorEvent,
+            fetchErrorTrackers,
         },
         dispatch
     );
@@ -133,5 +138,7 @@ ErrorEventView.propTypes = {
     match: PropsType.object,
     fetchErrorEvent: PropsType.func,
     errorTracker: PropsType.array,
+    fetchErrorTrackers: PropsType.func,
+    errorEvent: PropsType.object,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventView);

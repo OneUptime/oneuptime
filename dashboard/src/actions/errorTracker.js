@@ -210,6 +210,7 @@ export function fetchErrorEvent(
                         errorEvent: response.data.errorEvent,
                         previous: response.data.previous,
                         next: response.data.next,
+                        totalEvents: response.data.totalEvents,
                     })
                 );
             },
