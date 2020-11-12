@@ -1016,9 +1016,12 @@ module.exports = {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
                     : incident.monitorId;
-                const subscribers = await SubscriberService.findBy({
-                    monitorId: monitorId,
-                });
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
+
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
@@ -1062,9 +1065,11 @@ module.exports = {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
                     : incident.monitorId;
-                const subscribers = await SubscriberService.findBy({
-                    monitorId: monitorId,
-                });
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
@@ -1106,9 +1111,11 @@ module.exports = {
                 const monitorId = incident.monitorId._id
                     ? incident.monitorId._id
                     : incident.monitorId;
-                const subscribers = await SubscriberService.findBy({
-                    monitorId: monitorId,
-                });
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(

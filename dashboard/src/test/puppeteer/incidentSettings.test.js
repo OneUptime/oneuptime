@@ -200,6 +200,9 @@ describe('Incident Settings API', () => {
                     monitorName,
                     page
                 );
+                await page.reload({
+                    waitUntil: 'networkidle0',
+                });
                 await page.waitForSelector(
                     `#monitorCreateIncident_${monitorName}`
                 );

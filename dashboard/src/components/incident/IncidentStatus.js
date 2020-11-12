@@ -616,7 +616,6 @@ export class IncidentStatus extends Component {
                                                                             }
                                                                         >
                                                                             <label
-                                                                                id={`btnResolve_${this.props.count}`}
                                                                                 className="Bs-btn-no bs-flex-display bs-margin-left"
                                                                             >
                                                                                 <svg
@@ -649,6 +648,7 @@ export class IncidentStatus extends Component {
                                                                         REQUIRED
                                                                     </div>
                                                                     <button
+                                                                        id={`btnAcknowledge_${this.props.count}`}
                                                                         onClick={() =>
                                                                             this.handleIncident(
                                                                                 1,
@@ -1047,6 +1047,7 @@ export class IncidentStatus extends Component {
                                                                                 REQUIRED
                                                                             </div>
                                                                             <button
+                                                                                id={`btnResolve_${this.props.count}`}
                                                                                 onClick={() =>
                                                                                     this.handleIncident(
                                                                                         2
