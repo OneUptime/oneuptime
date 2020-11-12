@@ -45,6 +45,8 @@ const {
     ScheduledEventDetail,
     Consulting,
     Advanced,
+    ComponentSettings,
+    ComponentSettingsAdvanced
 } = pages;
 
 export const groups = [
@@ -223,6 +225,42 @@ export const groups = [
                     },
                 ],
                 index: 5,
+            },
+            {
+                title: 'Component Settings',
+                path:
+                    '/dashboard/project/:projectId/:componentId/settings/basic',
+                icon: 'businessSettings',
+                visible: true,
+                exact: true,
+                component: ComponentSettings,
+                shortcut: 'c+l',
+                subRoutes: [
+                    {
+                        title: 'Basic',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/settings/basic',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: ComponentSettings,
+                        index: 1,
+                        shortcut: 'c+s',
+                        exact: true,
+                    },
+                    {
+                        title: 'Advanced',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/settings/advanced',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: ComponentSettingsAdvanced,
+                        index: 2,
+                        shortcut: 'c+s',
+                        exact: true,
+                    },
+                ],
             },
             {
                 title: 'Back to Dashboard',
