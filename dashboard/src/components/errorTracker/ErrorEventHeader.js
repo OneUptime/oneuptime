@@ -58,9 +58,18 @@ class ErrorEventHeader extends Component {
                                             ></div>{' '}
                                             <span className="Text-fontSize--12 Margin-left--4">
                                                 {errorEventDetails &&
-                                                    errorEventDetails.content &&
-                                                    errorEventDetails.content
-                                                        .message}
+                                                errorEventDetails.content &&
+                                                errorEventDetails.content
+                                                    .message
+                                                    ? errorEventDetails.content
+                                                          .message.length > 100
+                                                        ? `${errorEventDetails.content.message.substring(
+                                                              0,
+                                                              100
+                                                          )} ...`
+                                                        : errorEventDetails
+                                                              .content.message
+                                                    : ''}
                                             </span>
                                         </div>
                                     </div>

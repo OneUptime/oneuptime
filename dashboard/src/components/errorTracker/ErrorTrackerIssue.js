@@ -103,7 +103,13 @@ function ErrorTrackerIssue({
                         >
                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                 {errorTrackerIssue.content.message
-                                    ? errorTrackerIssue.content.message
+                                    ? errorTrackerIssue.content.message.length >
+                                      100
+                                        ? `${errorTrackerIssue.content.message.substr(
+                                              0,
+                                              100
+                                          )} ...`
+                                        : errorTrackerIssue.content.message
                                     : ''}
                             </div>
                         </div>
