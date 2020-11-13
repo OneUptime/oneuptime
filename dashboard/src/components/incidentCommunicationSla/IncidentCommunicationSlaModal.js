@@ -25,6 +25,7 @@ function validate(values) {
 class IncidentCommunicationSlaModal extends React.Component {
     state = {
         monitorError: null,
+        setCustom: false,
     };
 
     componentDidMount() {
@@ -45,6 +46,7 @@ class IncidentCommunicationSlaModal extends React.Component {
             data,
             slaError,
         } = this.props;
+        const { setCustom } = this.state;
         const projectId = data.projectId;
         const postObj = {};
 
@@ -58,7 +60,6 @@ class IncidentCommunicationSlaModal extends React.Component {
         }
 
         postObj.name = values.name;
-        postObj.duration = values.duration;
         postObj.isDefault = values.isDefault;
 
         const isDuplicate = postObj.monitors
@@ -83,6 +84,12 @@ class IncidentCommunicationSlaModal extends React.Component {
                 monitorError: 'No monitor was selected',
             });
             return;
+        }
+
+        if (setCustom) {
+            postObj.duration = values.customDuration;
+        } else {
+            postObj.duration = values.durationOption;
         }
 
         createCommunicationSla(projectId, postObj).then(() => {
@@ -317,6 +324,7 @@ class IncidentCommunicationSlaModal extends React.Component {
             handleSubmit,
             createIncidentSlaModalId,
         } = this.props;
+        const { setCustom } = this.state;
 
         return (
             <div
@@ -436,20 +444,82 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                             width: '100%',
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="duration"
-                                                            placeholder="3600"
-                                                            id="duration"
-                                                            className="bs-TextInput"
-                                                            style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
-                                                            }}
-                                                        />
+                                                        {setCustom && (
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="customDuration"
+                                                                placeholder="60"
+                                                                id="customDuration"
+                                                                className="bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                            />
+                                                        )}
+                                                        {!setCustom && (
+                                                            <Field
+                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                name="durationOption"
+                                                                id="durationOption"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    height: 28,
+                                                                }}
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select a Duration',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '15',
+                                                                        label:
+                                                                            '15 minutes',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '30',
+                                                                        label:
+                                                                            '30 minutes',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '60',
+                                                                        label:
+                                                                            '1 hour',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'custom',
+                                                                        label:
+                                                                            'Custom',
+                                                                    },
+                                                                ]}
+                                                                onChange={(
+                                                                    event,
+                                                                    value
+                                                                ) => {
+                                                                    value ===
+                                                                        'custom' &&
+                                                                        this.setState(
+                                                                            {
+                                                                                setCustom: true,
+                                                                            }
+                                                                        );
+                                                                }}
+                                                            />
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
