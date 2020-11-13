@@ -51,11 +51,13 @@ export const updateCommunicationSlaFailure = error => ({
 export const updateCommunicationSla = (
     projectId,
     incidentSlaId,
-    data
+    data,
+    handleDefault = false
 ) => async dispatch => {
     try {
         dispatch(updateCommunicationSlaRequest());
 
+        data.handleDefault = handleDefault;
         const response = await putApi(
             `incidentSla/${projectId}/${incidentSlaId}`,
             data
@@ -150,3 +152,9 @@ export const deleteCommunicationSla = (
         dispatch(deleteCommunicationSlaFailure(errorMsg));
     }
 };
+
+// set active sla
+export const setActiveSla = incidentSlaId => ({
+    type: types.SET_ACTIVE_SLA,
+    payload: incidentSlaId,
+});

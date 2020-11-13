@@ -16,6 +16,7 @@ const initialState = {
         skip: 0,
         limit: 10,
     },
+    activeSla: '',
 };
 
 export default function incidentCommunicationSla(state = initialState, action) {
@@ -177,6 +178,12 @@ export default function incidentCommunicationSla(state = initialState, action) {
                     success: false,
                     error: action.payload,
                 },
+            };
+
+        case types.SET_ACTIVE_SLA:
+            return {
+                ...state,
+                activeSla: action.payload,
             };
 
         default:
