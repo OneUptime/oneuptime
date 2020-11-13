@@ -104,7 +104,11 @@ class ErrorEventView extends Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name={`Type Error`}
+                        name={
+                            errorEvent &&
+                            errorEvent.errorEvent &&
+                            errorEvent.errorEvent.content.type
+                        }
                         pageTitle="Error Tracking"
                         containerType="Error Tracker Container"
                     />

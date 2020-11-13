@@ -11294,7 +11294,7 @@ table {
     overflow: hidden;
     overflow-x: auto;
     overflow-y: scroll;
-    max-height: 200px;
+    max-height: 300px;
     border: solid 1px #D8D2DE;
     border-radius: 3px;
 }

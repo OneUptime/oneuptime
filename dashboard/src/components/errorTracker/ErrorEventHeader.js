@@ -75,15 +75,10 @@ class ErrorEventHeader extends Component {
                                     </div>
                                     <div className="Flex-flex">
                                         <div className="Flex-flex Flex-direction--column Text-align--right Margin-horizontal--4">
-                                            <span className="Text-fontSize--11">
+                                            <span className="Text-fontSize--14">
                                                 Events
                                             </span>
-                                            <span
-                                                className="Text-fontSize--14"
-                                                style={{
-                                                    color: 'blue',
-                                                }}
-                                            >
+                                            <span className="Text-fontSize--20 Text-fontWeight--bold">
                                                 {errorEvent.totalEvents}
                                             </span>
                                         </div>
