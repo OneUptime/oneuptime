@@ -435,7 +435,7 @@ class EditIncidentCommunicationSlaModal extends React.Component {
                                                                 RenderField
                                                             }
                                                             name="duration"
-                                                            placeholder="3600"
+                                                            placeholder="60"
                                                             id="duration"
                                                             className="bs-TextInput"
                                                             style={{
