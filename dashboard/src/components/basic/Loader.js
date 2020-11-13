@@ -40,10 +40,11 @@ export const FormLoader2 = () => (
 
 FormLoader2.displayName = 'FormLoader2';
 
-export const ListLoader = () => (
+// eslint-disable-next-line react/prop-types
+export const ListLoader = ({ style }) => (
     <div
         className="ball-beat"
-        style={{ textAlign: 'center', marginTop: '20px' }}
+        style={{ textAlign: 'center', marginTop: '20px', ...style }}
     >
         <div
             style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
