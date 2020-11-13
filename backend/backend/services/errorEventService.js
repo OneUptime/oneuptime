@@ -11,6 +11,7 @@ module.exports = {
             errorEvent.tags = data.tags;
             errorEvent.createdById = data.createdById;
             errorEvent.type = data.type;
+            errorEvent.sdk = data.sdk;
 
             // generate hash from fingerprint
             const hash = sha256(data.fingerprint.join(''));

@@ -23,6 +23,11 @@ const errorEventSchema = new Schema({
             type: Object,
         },
     ],
+    sdk: [
+        {
+            type: Object,
+        },
+    ],
     fingerprint: [
         {
             type: String,
