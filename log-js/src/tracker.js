@@ -2,7 +2,7 @@ import FyipeListiner from './listener';
 import Util from './util';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-import { name, version } from './package.json';
+import { name, version } from '../package.json';
 
 class FyipeTracker {
     // constructor to set up global listeners
@@ -155,7 +155,7 @@ class FyipeTracker {
                 // get device location and details
 
                 // set the a handled tag
-                _this.setTag('handled', false);
+                _this.setTag('handled', 'false');
                 // prepare to send to server
                 _this.prepareErrorObject('error', errorObj);
 
@@ -192,7 +192,7 @@ class FyipeTracker {
         };
         this.#listenerObj.logErrorEvent(content);
         // set the a handled tag
-        this.setTag('handled', false);
+        this.setTag('handled', 'false');
         // prepare to send to server
         this.prepareErrorObject('error', errorObj);
 
@@ -214,7 +214,7 @@ class FyipeTracker {
     }
     captureMessage(message) {
         // set the a handled tag
-        this.setTag('handled', true);
+        this.setTag('handled', 'true');
         this.prepareErrorObject('message', { message });
 
         // send to the server
@@ -225,7 +225,7 @@ class FyipeTracker {
         const errorObj = this.#utilObj._getErrorStackTrace(error);
 
         // set the a handled tag
-        this.setTag('handled', true);
+        this.setTag('handled', 'true');
 
         this.prepareErrorObject('exception', errorObj);
 
