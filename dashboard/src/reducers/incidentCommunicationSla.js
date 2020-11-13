@@ -144,7 +144,7 @@ export default function incidentCommunicationSla(state = initialState, action) {
             const incidentSlas = state.incidentCommunicationSlas.incidentSlas.map(
                 sla => {
                     if (
-                        sla.isDefault &&
+                        action.payload.isDefault &&
                         String(sla._id) !== String(action.payload._id)
                     ) {
                         sla.isDefault = false;
