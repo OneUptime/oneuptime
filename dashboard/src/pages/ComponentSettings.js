@@ -4,20 +4,23 @@ import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { connect } from 'react-redux';
-import { FormLoader } from '../components/basic/Loader';
+import { Spinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../config';
 import { RenderField } from '../components/basic/RenderField'
 import PropTypes from 'prop-types';
+import { editComponent } from '../actions/component'
+import { bindActionCreators } from 'redux';
 
 class ComponentSettings extends Component {
-    ready = () => {
-        
-    }
 
     submitForm = values => {
+        if(this.props.initialValues.name === values.name) {
+            return
+        }
 
+        this.props.editComponent(this.props.projectId, values)
     }
 
     render() {
@@ -29,14 +32,14 @@ class ComponentSettings extends Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
+            <Dashboard>
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname, null, 'component')}
                         name={componentName}
                     />
                     <BreadCrumbItem
-                        route={pathname+'/edit'}
+                        route={pathname + '/edit'}
                         name="Component Settings"
                         pageTitle="Advanced"
                     />
@@ -89,6 +92,7 @@ class ComponentSettings extends Component {
                                                                     validate={
                                                                         ValidateField.text
                                                                     }
+                                                                    autoFocus={true}
                                                                 />
                                                             </div>
                                                         </div>
@@ -96,24 +100,25 @@ class ComponentSettings extends Component {
                                                 </fieldset>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end' }} className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }} className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                            <div className="bs-Modal-messages">
+                                                <ShouldRender if={this.props.editingComponent.error}>
+                                                    <p className="bs-Modal-message">
+                                                        {this.props.editingComponent.error}
+                                                    </p>
+                                                </ShouldRender>
+                                            </div>
                                             <div>
                                                 <button
                                                     id="addContainerBtn"
                                                     className="bs-Button bs-Button--blue"
-                                                    // disabled={
-                                                    //     addingContainer ||
-                                                    //     requestingDockerCredentials
-                                                    // }
                                                     type="submit"
+                                                    disabled={this.props.editingComponent.requesting}
                                                 >
-                                                    <ShouldRender if={!false}>
-                                                        <span>Edit Component</span>
+                                                    <ShouldRender if={this.props.editingComponent.requesting}>
+                                                        <Spinner />
                                                     </ShouldRender>
-
-                                                    <ShouldRender if={false}>
-                                                        <FormLoader />
-                                                    </ShouldRender>
+                                                    <span>Update</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -140,7 +145,10 @@ ComponentSettings.propTypes = {
             name: PropTypes.string,
         })
     ),
-    handleSubmit: PropTypes.func
+    handleSubmit: PropTypes.func,
+    initialValues: PropTypes.shape({ name: PropTypes.string }),
+    editComponent: PropTypes.func.isRequired,
+    projectId: PropTypes.string,
 }
 
 const mapStateToProps = (state, ownProps) => {
@@ -153,12 +161,26 @@ const mapStateToProps = (state, ownProps) => {
             }
         });
     });
+    const initialData = state.component.componentList.components.map(
+        components => {
+            return components.components.filter(
+                component => component._id === ownProps.match.params.componentId
+            )
+        }
+    )[0];
+
     return {
         component,
-        initialValues: {
-            name: component && component.name
-        }
+        initialValues: initialData && initialData[0],
+        editingComponent: state.component.editComponent,
+        projectId:
+            state.project.currentProject !== null &&
+            state.project.currentProject._id,
     }
+}
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators({ editComponent }, dispatch);
 }
 
 const NewComponentSettings = reduxForm({
@@ -167,4 +189,4 @@ const NewComponentSettings = reduxForm({
     enableReinitialize: true,
 })(ComponentSettings)
 
-export default connect(mapStateToProps, null)(NewComponentSettings);
+export default connect(mapStateToProps, mapDispatchToProps)(NewComponentSettings);

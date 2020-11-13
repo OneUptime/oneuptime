@@ -23,7 +23,6 @@ import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
 import { closeModal } from '../actions/modal';
-import DeleteComponentModal from './component/DeleteComponentModal';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
@@ -145,8 +144,6 @@ export class DashboardApp extends Component {
                 <UpgradePlanModal />
 
                 <DeleteProjectModal />
-
-                <DeleteComponentModal />
 
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
                     <ProfileMenu visible={this.props.profile.menuVisible} />
