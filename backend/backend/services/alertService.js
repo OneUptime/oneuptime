@@ -1645,6 +1645,25 @@ module.exports = {
                                 alertStatus,
                             }
                         );
+                        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                            const balanceStatus = await _this.getBalanceStatus(
+                                incident.projectId,
+                                contactPhone,
+                                AlertType.SMS
+                            );
+                            await AlertChargeService.create(
+                                incident.projectId,
+                                balanceStatus.chargeAmount,
+                                balanceStatus.closingBalance,
+                                null,
+                                incident.monitorId._id
+                                    ? incident.monitorId._id
+                                    : incident.monitorId,
+                                incident._id,
+                                contactPhone,
+                                alertId
+                            );
+                        }
                     }
                 } catch (error) {
                     await SubscriberAlertService.updateBy(

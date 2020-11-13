@@ -23,6 +23,7 @@ const {
     markIncidentAsResolved,
     updateSchedule,
     verifyToken,
+    getChargedAlerts,
 } = require('./test-utils');
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
@@ -867,6 +868,79 @@ describe('SMS/Calls Incident Alerts', function() {
          * Global twilio settings Call enable : false
          * SMS/Call alerts enabled for the project (billing): true
          */
+
+        it('it should also create billing details of subscriber  when sms is sent on the chargeAlert', async function() {
+            const globalSettings = await GlobalConfigModel.findOne({
+                name: 'twilio',
+            });
+            const { value } = globalSettings;
+            value['sms-enabled'] = true;
+            await GlobalConfigModel.findOneAndUpdate(
+                { name: 'twilio' },
+                { value }
+            );
+
+            const billingEndpointResponse = await request
+                .put(`/project/${projectId}/alertOptions`)
+                .set('Authorization', authorization)
+                .send({
+                    alertEnable: true,
+                    billingNonUSCountries: true,
+                    billingRiskCountries: true,
+                    billingUS: true,
+                    minimumBalance: '100',
+                    rechargeToBalance: '200',
+                    _id: projectId,
+                });
+            expect(billingEndpointResponse).to.have.status(200);
+            const newIncident = await createIncident({
+                request,
+                authorization,
+                projectId,
+                monitorId,
+                payload: {
+                    monitorId,
+                    projectId,
+                    title: 'test monitor  is degraded.',
+                    incidentType: 'degraded',
+                    description: 'Incident description',
+                },
+            });
+            expect(newIncident).to.have.status(200);
+            const chargeResonse = await getChargedAlerts({
+                request,
+                authorization,
+                projectId,
+            });
+            expect(chargeResonse).to.have.status(200);
+            expect(chargeResonse.body).to.an('object');
+            expect(chargeResonse.body.count).to.equal(4);
+            expect(chargeResonse.body.data).to.an('array');
+            expect(chargeResonse.body.data.length).to.equal(4);
+
+            const { _id: incidentId } = newIncident.body;
+            const incidentResolved = await markIncidentAsResolved({
+                request,
+                authorization,
+                projectId,
+                incidentId,
+            });
+
+            expect(incidentResolved).to.have.status(200);
+            await sleep(10 * 1000);
+            const chargeResonseAfterResolvedIncident = await getChargedAlerts({
+                request,
+                authorization,
+                projectId,
+            });
+            expect(chargeResonseAfterResolvedIncident).to.have.status(200);
+            expect(chargeResonseAfterResolvedIncident.body).to.an('object');
+            expect(chargeResonseAfterResolvedIncident.body.count).to.equal(8);
+            expect(chargeResonseAfterResolvedIncident.body.data).to.an('array');
+            expect(
+                chargeResonseAfterResolvedIncident.body.data.length
+            ).to.equal(8);
+        });
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
