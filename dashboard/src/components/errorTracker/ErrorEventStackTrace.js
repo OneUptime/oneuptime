@@ -34,15 +34,15 @@ class ErrorEventStackTrace extends Component {
                     <div className="Flex-flex Flex-wrap--wrap">
                         <div className="Tag-Pill">
                             <div className="Tag-Title">function</div>
-                            <div className="Tag-Content">getUserDetails</div>
-                        </div>
-                        <div className="Tag-Pill">
-                            <div className="Tag-Title">handled</div>
-                            <div className="Tag-Content">true</div>
-                        </div>
-                        <div className="Tag-Pill">
-                            <div className="Tag-Title">platform</div>
-                            <div className="Tag-Content">JavaScript</div>
+                            <div className="Tag-Content">
+                                {errorEventDetails &&
+                                    errorEventDetails.content &&
+                                    errorEventDetails.content.stacktrace &&
+                                    errorEventDetails.content.stacktrace
+                                        .frames &&
+                                    errorEventDetails.content.stacktrace
+                                        .frames[0].methodName}
+                            </div>
                         </div>
                     </div>
                     <div className="Stacktrace-Listing">
@@ -56,10 +56,15 @@ class ErrorEventStackTrace extends Component {
                                 (frame, i) => {
                                     return (
                                         <div key={i}>
-                                            <span className="Text-fontWeight--bold">
+                                            <a
+                                                href={frame.fileName}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="Text-fontWeight--bold"
+                                            >
                                                 {frame.fileName}
                                                 {'  '}
-                                            </span>
+                                            </a>
                                             <img
                                                 src="/dashboard/assets/img/external.svg"
                                                 alt=""
