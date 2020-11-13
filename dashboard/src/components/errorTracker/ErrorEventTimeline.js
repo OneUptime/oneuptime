@@ -246,7 +246,17 @@ class ErrorEventTimeline extends Component {
                                                                     <div className="Box-root Flex-flex">
                                                                         <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                             <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                                                <Badge color="orange">
+                                                                                <Badge
+                                                                                    color={
+                                                                                        timeline.type ===
+                                                                                        'info'
+                                                                                            ? `blue`
+                                                                                            : timeline.type ===
+                                                                                              'warning'
+                                                                                            ? `orange`
+                                                                                            : 'red'
+                                                                                    }
+                                                                                >
                                                                                     {` ${timeline.type}`}
                                                                                 </Badge>
                                                                             </div>
