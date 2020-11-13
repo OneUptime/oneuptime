@@ -58,15 +58,15 @@ router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
 ) {
     try {
         const { projectId, incidentSlaId } = req.params;
-        const { name, monitors } = req.body;
+        const { name, monitors, handleDefault } = req.body;
 
-        if (!name || !name.trim()) {
+        if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
-        if (!monitors || monitors.length === 0) {
+        if (!handleDefault && (!monitors || monitors.length === 0)) {
             const error = new Error(
                 'You need at least one monitor to update an incident SLA'
             );

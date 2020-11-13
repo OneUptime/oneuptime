@@ -117,41 +117,45 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            if (!data.monitors || data.monitors.length === 0) {
-                const error = new Error(
-                    'You need at least one monitor to update an incident SLA'
-                );
-                error.code = 400;
-                throw error;
-            }
+            // check if we are only setting default sla
+            // or using update modal for editing the details
+            if (!data.handleDefault) {
+                if (!data.monitors || data.monitors.length === 0) {
+                    const error = new Error(
+                        'You need at least one monitor to update an incident SLA'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
 
-            if (!isArrayUnique(data.monitors)) {
-                const error = new Error(
-                    'You cannot have multiple selection of a monitor'
-                );
-                error.code = 400;
-                throw error;
-            }
+                if (!isArrayUnique(data.monitors)) {
+                    const error = new Error(
+                        'You cannot have multiple selection of a monitor'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
 
-            // reassign data.monitors to match schema design
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
+                // reassign data.monitors to match schema design
+                data.monitors = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
 
-            const incidentCommunicationSla = await this.findOneBy({
-                name: data.name,
-                projectId: query.projectId,
-            });
+                const incidentCommunicationSla = await this.findOneBy({
+                    name: data.name,
+                    projectId: query.projectId,
+                });
 
-            if (
-                incidentCommunicationSla &&
-                String(incidentCommunicationSla._id) !== String(query._id)
-            ) {
-                const error = new Error(
-                    'Incident communication SLA with the same name already exist'
-                );
-                error.code = 400;
-                throw error;
+                if (
+                    incidentCommunicationSla &&
+                    String(incidentCommunicationSla._id) !== String(query._id)
+                ) {
+                    const error = new Error(
+                        'Incident communication SLA with the same name already exist'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
             }
 
             let incidentSla;
