@@ -5,6 +5,28 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
 class DeleteMessaging extends Component {
+    componentDidMount() {
+        window.addEventListener('keydown', this.handleKeyBoard);
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        switch (e.key) {
+            case 'Escape':
+                return this.props.hide();
+            case 'Enter':
+                if (e.target.localName !== 'textarea') {
+                    return this.handleClick();
+                }
+                return;
+            default:
+                return false;
+        }
+    };
+
     handleClick = () => {
         this.props.changeDeleteModal();
     };
@@ -79,9 +101,9 @@ class DeleteMessaging extends Component {
                                 'bs-is-disabled'}`}
                             disabled={requesting}
                             type="button"
-                            // autoFocus={true}
                             id="btnDeleteProject"
                             onClick={this.handleClick}
+                            autoFocus={true}
                         >
                             {/* <ShouldRender if={requesting}>
                                     <Spinner />

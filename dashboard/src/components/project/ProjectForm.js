@@ -269,17 +269,18 @@ class _ProjectForm extends React.Component {
                         <div className="bs-Modal-footer-actions">
                             <button
                                 id="btnCancelProject"
-                                className={`bs-Button bs-DeprecatedButton ${requesting &&
+                                className={`bs-Button btn__modal bs-DeprecatedButton ${requesting &&
                                     'bs-is-disabled'}`}
                                 type="button"
                                 onClick={hideForm}
                                 disabled={requesting}
                             >
                                 <span>Cancel</span>
+                                <span className="cancel-btn__keycode">Esc</span>
                             </button>
                             <button
                                 id="btnCreateProject"
-                                className={`bs-Button bs-DeprecatedButton bs-Button--blue ${requesting &&
+                                className={`bs-Button btn__modal bs-DeprecatedButton bs-Button--blue ${requesting &&
                                     'bs-is-disabled'}`}
                                 type="submit"
                                 disabled={requesting}
@@ -289,6 +290,9 @@ class _ProjectForm extends React.Component {
                                 </ShouldRender>
 
                                 <span>Create Project</span>
+                                <span className="create-btn__keycode">
+                                    <span className="keycode__icon keycode__icon--enter" />
+                                </span>
                             </button>
                         </div>
                     </div>

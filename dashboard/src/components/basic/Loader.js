@@ -77,7 +77,10 @@ TeamListLoader.displayName = 'TeamListLoader';
 
 // eslint-disable-next-line react/prop-types
 export const Spinner = ({ style }) => (
-    <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
+    <div
+        className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center"
+        style={{ top: 0 }}
+    >
         <svg
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
