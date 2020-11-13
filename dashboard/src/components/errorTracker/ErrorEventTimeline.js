@@ -4,8 +4,16 @@ import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+import TooltipMini from '../basic/TooltipMini';
 
 class ErrorEventTimeline extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            isAbsolute: true,
+        };
+    }
     renderTimelineContent = timeline => {
         let rendered = '';
         if (timeline.category === 'ui.click') {
@@ -159,11 +167,38 @@ class ErrorEventTimeline extends Component {
                                         }}
                                     >
                                         <div
-                                            className="db-ListViewItem-cellContent Padding-vertical--8 Flex-flex Flex-justifyContent--flexStart Flex-alignItems--center"
+                                            className="db-ListViewItem-cellContent Padding-vertical--8 Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center"
                                             style={{
                                                 height: '100%',
                                             }}
                                         >
+                                            <TooltipMini
+                                                title={`Switch to ${
+                                                    this.state.isAbsolute
+                                                        ? 'absolute'
+                                                        : 'relative'
+                                                }`}
+                                                content={
+                                                    <img
+                                                        onClick={() =>
+                                                            this.setState(
+                                                                this.setState(
+                                                                    state => ({
+                                                                        isAbsolute: !state.isAbsolute,
+                                                                    })
+                                                                )
+                                                            )
+                                                        }
+                                                        src="/dashboard/assets/img/http.svg"
+                                                        alt=""
+                                                        style={{
+                                                            height: '25px',
+                                                            width: '25px',
+                                                            padding: '5px',
+                                                        }}
+                                                    />
+                                                }
+                                            />
                                             Time
                                         </div>
                                     </td>
@@ -273,26 +308,42 @@ class ErrorEventTimeline extends Component {
                                                                     <div className="Box-root Flex-flex">
                                                                         <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                             <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-right--8 Padding-vertical--2">
-                                                                                <span>
-                                                                                    {moment(
-                                                                                        timeline.timestamp
-                                                                                    ).format(
-                                                                                        'h:mm:ss a'
-                                                                                    )}
-                                                                                </span>
-                                                                                <span>
-                                                                                    {' '}
-                                                                                    {moment(
-                                                                                        timeline.timestamp
-                                                                                    ).diff(
-                                                                                        moment(
-                                                                                            errorEventDetails.createdAt
-                                                                                        ),
-                                                                                        'seconds'
-                                                                                    )}
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        this
+                                                                                            .state
+                                                                                            .isAbsolute
+                                                                                    }
+                                                                                >
+                                                                                    <span>
+                                                                                        {moment(
+                                                                                            timeline.timestamp
+                                                                                        ).format(
+                                                                                            'h:mm:ss a'
+                                                                                        )}
+                                                                                    </span>
+                                                                                </ShouldRender>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        !this
+                                                                                            .state
+                                                                                            .isAbsolute
+                                                                                    }
+                                                                                >
+                                                                                    <span>
+                                                                                        {' '}
+                                                                                        {moment(
+                                                                                            timeline.timestamp
+                                                                                        ).diff(
+                                                                                            moment(
+                                                                                                errorEventDetails.createdAt
+                                                                                            ),
+                                                                                            'seconds'
+                                                                                        )}
 
-                                                                                    s
-                                                                                </span>
+                                                                                        s
+                                                                                    </span>
+                                                                                </ShouldRender>
                                                                             </div>
                                                                         </div>
                                                                     </div>
