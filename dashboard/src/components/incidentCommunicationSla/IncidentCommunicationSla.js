@@ -154,10 +154,7 @@ class IncidentCommunicationSla extends Component {
                                         Monitor(s)
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Duration (seconds)
-                                    </div>
-                                    <div className="bs-ObjectList-cell">
-                                        Default SLA
+                                        Duration (minutes)
                                     </div>
                                     <div
                                         className="bs-ObjectList-cell"

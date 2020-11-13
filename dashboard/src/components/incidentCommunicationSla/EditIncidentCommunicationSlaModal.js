@@ -420,7 +420,7 @@ class EditIncidentCommunicationSlaModal extends React.Component {
                                                     htmlFor="monitorIds"
                                                 >
                                                     <span>
-                                                        Duration (seconds)
+                                                        Duration (minutes)
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -480,8 +480,7 @@ class EditIncidentCommunicationSlaModal extends React.Component {
                                                     <div className="Checkbox-label Box-root Margin-left--8">
                                                         <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                Make default
-                                                                Incident SLA
+                                                                Set as Default
                                                             </span>
                                                         </span>
                                                     </div>
