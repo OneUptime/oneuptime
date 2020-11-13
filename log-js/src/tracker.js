@@ -152,8 +152,6 @@ class FyipeTracker {
                 };
                 _this.#listenerObj.logErrorEvent(content);
 
-                // get device location and details
-
                 // set the a handled tag
                 _this.setTag('handled', 'false');
                 // prepare to send to server
@@ -235,6 +233,7 @@ class FyipeTracker {
     prepareErrorObject(type, errorStackTrace) {
         // get current timeline
         const timeline = this.getTimeline();
+        // get device location and details
         const deviceDetails = this.#utilObj._getUserDeviceDetails();
         const tags = this._getTags();
         const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace
