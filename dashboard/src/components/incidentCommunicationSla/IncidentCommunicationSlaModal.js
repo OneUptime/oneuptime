@@ -44,7 +44,6 @@ class IncidentCommunicationSlaModal extends React.Component {
             fetchCommunicationSlas,
             monitors,
             data,
-            slaError,
         } = this.props;
         const { setCustom } = this.state;
         const projectId = data.projectId;
@@ -96,7 +95,7 @@ class IncidentCommunicationSlaModal extends React.Component {
             this.setState({
                 monitorError: null,
             });
-            if (!slaError) {
+            if (!this.props.slaError) {
                 fetchCommunicationSlas(projectId, 0, 10);
                 closeModal({
                     id: createIncidentSlaModalId,

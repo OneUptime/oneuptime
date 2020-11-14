@@ -304,6 +304,52 @@ class Incident extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
+                        {this.props.incident &&
+                            this.props.incident.countDown &&
+                            this.props.incident.countDown !== '0:0' && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0 }}
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        Alert{' '}
+                                                        {
+                                                            this.props.incident
+                                                                .countDown
+                                                        }{' '}
+                                                        minutes before SLA
+                                                        breaches
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        {this.props.incident &&
+                            this.props.incident.breachedCommunicationSla && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0 }}
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        You&#39;ve breached the
+                                                        SLA for this monitor
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         <TabPanel>
                             <Fade>
                                 <IncidentStatus

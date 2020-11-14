@@ -88,6 +88,34 @@ export default function incident(state = initialState, action) {
         incidentMessages,
         noteStatus;
     switch (action.type) {
+        case 'SLA_COUNT_DOWN': {
+            const { incident: incidentData, countDown } = action.payload;
+            if (
+                state.incident.incident &&
+                String(incidentData._id) === String(state.incident.incident._id)
+            ) {
+                const incident = { ...state.incident.incident, countDown };
+                return {
+                    ...state,
+                    incident: {
+                        ...state.incident,
+                        incident,
+                    },
+                };
+            } else {
+                return state;
+            }
+        }
+        case 'UPDATE_INCIDENT': {
+            return {
+                ...state,
+                incident: {
+                    ...state.incident,
+                    incident: action.payload,
+                },
+            };
+        }
+
         case types.INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
                 incidents: {
