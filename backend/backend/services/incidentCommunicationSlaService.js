@@ -21,16 +21,10 @@ module.exports = {
                 throw error;
             }
 
-            // reassign data.monitors to match schema design
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
-
-            const incidentCommunicationSla = await this.findOneBy({
+            let incidentCommunicationSla = await this.findOneBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-
             if (incidentCommunicationSla) {
                 const error = new Error(
                     'Incident communication SLA with the same name already exist'
@@ -38,6 +32,24 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+
+            incidentCommunicationSla = await this.findOneBy({
+                projectId: data.projectId,
+                'monitors.monitorId': { $in: data.monitors },
+            });
+
+            if (incidentCommunicationSla) {
+                const error = new Error(
+                    'A monitor cannot be in more than one incident communication SLA'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            // reassign data.monitors to match schema design
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
 
             if (data.isDefault) {
                 // automatically set isDefault to false
@@ -71,7 +83,8 @@ module.exports = {
                 query
             )
                 .populate('projectId')
-                .populate('monitors.monitorId');
+                .populate('monitors.monitorId')
+                .lean();
 
             return incidentCommunicationSla;
         } catch (error) {
