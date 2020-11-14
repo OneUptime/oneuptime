@@ -10155,6 +10155,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     top: 0;
     width: 240px;
     z-index: 1;
+    transition: width 500ms linear;
 }
 .db-World-topContent {
     height: 68px;
@@ -11288,4 +11289,7 @@ table {
 }
 .Stacktrace-Listing:first-child {
     border-top: none;
+}
+.animate{
+    width:0px; 
 }

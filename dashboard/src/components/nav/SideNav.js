@@ -189,9 +189,10 @@ class SideNav extends Component {
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className={`db-World-sideNavContainer${
-                        this.props.sidenavopen ? ' open' : ''
-                    }`}
+                    className={`db-World-sideNavContainer${(this.props
+                        .sidenavopen
+                        ? ' open'
+                        : '') + (this.props.animateSidebar ? ' animate' : '')}`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
@@ -311,6 +312,7 @@ const mapStateToProps = function(state, props) {
         sidenavopen: state.page.sidenavopen,
         profilePic,
         userName,
+        animateSidebar: state.animateSidebar.animateSidebar,
     };
 };
 
@@ -343,6 +345,7 @@ SideNav.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     userName: PropTypes.string,
+    animateSidebar: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SideNav);

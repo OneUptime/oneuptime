@@ -199,11 +199,14 @@ export class SidebarNavItem extends Component {
                     <Link
                         to={path}
                         onClick={() => {
-                            loadPage(route.title);
+                            setTimeout(() => {
+                                loadPage(route.title);
+                                this.props.animateSidebar(true) ;
+                            }, 500);
                             // if (routes.title === 'Components') {
                             //     this.props.animateSidebar(false);
                             // }
-                            this.props.animateSidebar(false);
+                            this.props.animateSidebar(true);
                         }}
                         {...(route.disabled
                             ? { style: { pointerEvents: 'none' } }

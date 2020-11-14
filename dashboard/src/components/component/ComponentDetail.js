@@ -19,7 +19,7 @@ import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
 import EditComponent from '../modals/EditComponent';
 import ResourceTabularList from './ResourceTabularList';
-import {animateSidebar} from '../../actions/animateSidebar';
+import { animateSidebar } from '../../actions/animateSidebar';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -217,13 +217,16 @@ export class ComponentDetail extends Component {
                                 className="bs-Button bs-Button--icon bs-Button--more"
                                 type="button"
                                 onClick={() => {
-                                    history.push(
-                                        '/dashboard/project/' +
-                                            currentProject._id +
-                                            '/' +
-                                            component._id +
-                                            '/monitoring'
-                                    );
+                                    setTimeout(() => {
+                                        history.push(
+                                            '/dashboard/project/' +
+                                                currentProject._id +
+                                                '/' +
+                                                component._id +
+                                                '/monitoring'
+                                        );
+                                        this.props.animateSidebar(false);
+                                    }, 500);
                                     this.props.animateSidebar(true);
                                 }}
                             >
