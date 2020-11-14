@@ -19,6 +19,7 @@ import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
 import EditComponent from '../modals/EditComponent';
 import ResourceTabularList from './ResourceTabularList';
+import {animateSidebar} from '../../actions/animateSidebar';
 
 export class ComponentDetail extends Component {
     constructor(props) {
@@ -223,6 +224,7 @@ export class ComponentDetail extends Component {
                                             component._id +
                                             '/monitoring'
                                     );
+                                    this.props.animateSidebar(true);
                                 }}
                             >
                                 <span>More</span>
@@ -306,6 +308,7 @@ const mapDispatchToProps = dispatch => {
             fetchComponents,
             fetchComponentResources,
             fetchMonitors,
+            animateSidebar,
         },
         dispatch
     );
@@ -327,6 +330,7 @@ function mapStateToProps(state, props) {
         currentProject: state.project.currentProject,
         subProject: state.subProject,
         componentResources: state.component.componentResourceList,
+        animateSidebar: state.animateSidebar,
     };
 }
 
@@ -346,6 +350,7 @@ ComponentDetail.propTypes = {
         PropTypes.array,
     ]),
     fetchMonitors: PropTypes.func,
+    animateSidebar: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);

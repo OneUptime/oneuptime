@@ -38,6 +38,7 @@ import slackWebhooks from './slackWebhooks';
 import incidentPriorities from './incidentPriorities';
 import incidentBasicSettings from './incidentBasicSettings';
 import errorTracker from './errorTracker';
+import animateSidebar from './animateSidebar';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -78,6 +79,7 @@ const appReducer = combineReducers({
     incidentPriorities,
     incidentBasicSettings,
     errorTracker,
+    animateSidebar,
 });
 
 export default (state, action) => {

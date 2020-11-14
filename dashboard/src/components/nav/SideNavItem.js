@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
+import { animateSidebar } from '../../actions/animateSidebar';
 
 export class SidebarNavItem extends Component {
     constructor(props) {
@@ -197,7 +198,13 @@ export class SidebarNavItem extends Component {
                 <ShouldRender if={!route.invisible}>
                     <Link
                         to={path}
-                        onClick={() => loadPage(route.title)}
+                        onClick={() => {
+                            loadPage(route.title);
+                            // if (routes.title === 'Components') {
+                            //     this.props.animateSidebar(false);
+                            // }
+                            this.props.animateSidebar(false);
+                        }}
                         {...(route.disabled
                             ? { style: { pointerEvents: 'none' } }
                             : {})}
@@ -396,6 +403,7 @@ SidebarNavItem.displayName = 'SidebarNavItem';
 const mapStateToProps = state => ({
     component: state.component,
     currentProject: state.project.currentProject,
+    animateSidebar: state.animateSidebar,
     schedule:
         state.schedule &&
         state.schedule.schedules &&
@@ -417,6 +425,7 @@ SidebarNavItem.propTypes = {
     currentProject: PropTypes.object,
     component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,
+    animateSidebar: PropTypes.func,
 };
 
 export default withRouter(
