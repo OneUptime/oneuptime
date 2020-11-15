@@ -143,7 +143,7 @@ describe('Monitor Detail API', () => {
 
                 const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
-                await page.click(selector);
+                await page.$eval(selector,e=>e.click());
                 const incidentTitleSelector =
                     '.bs-Fieldset-rows > .bs-right-side > .bs-content:nth-of-type(1) > div';
                 await page.waitForSelector(incidentTitleSelector, {
@@ -157,12 +157,12 @@ describe('Monitor Detail API', () => {
                 await page.waitForSelector(
                     `#${monitorName}_EditIncidentDetails`
                 );
-                await page.click(`#${monitorName}_EditIncidentDetails`);
+                await page.$eval(`#${monitorName}_EditIncidentDetails`,e=>e.click());
                 await page.waitForSelector('#saveIncident');
                 await page.click('#title', { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 await page.type('#title', newIncidentTitle);
-                await page.click('#saveIncident');
+                await page.$eval('#saveIncident',e=>e.click());
                 await page.waitForSelector('#saveIncident', { hidden: true });
                 currentTitle = await page.$eval(
                     incidentTitleSelector,
