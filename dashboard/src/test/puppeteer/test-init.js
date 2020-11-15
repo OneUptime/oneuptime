@@ -378,8 +378,8 @@ module.exports = {
             await this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         } else {
-            await page.waitForSelector('#incidentLog a');
-            await page.$eval('#incidentLog a', e => e.click());
+            await page.waitForSelector('#incidentLog');
+            await page.$eval('#incidentLog', e => e.click());
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
