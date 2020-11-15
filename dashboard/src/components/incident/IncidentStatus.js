@@ -615,9 +615,7 @@ export class IncidentStatus extends Component {
                                                                                 showResolveButton
                                                                             }
                                                                         >
-                                                                            <label
-                                                                                className="Bs-btn-no bs-flex-display bs-margin-left"
-                                                                            >
+                                                                            <label className="Bs-btn-no bs-flex-display bs-margin-left">
                                                                                 <svg
                                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                                     viewBox="0 0 24 24"

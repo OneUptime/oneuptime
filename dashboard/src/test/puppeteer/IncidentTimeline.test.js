@@ -100,7 +100,9 @@ describe('Incident Timeline API', () => {
                     `#incident_${projectMonitorName}_0`,
                     { visible: true }
                 );
-                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
 
                 // click on incident notes tab
                 await init.gotoTab(
@@ -162,7 +164,9 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
 
                 // click on incident notes tab
                 await init.gotoTab(
@@ -224,16 +228,15 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
 
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
                 // fill internal message thread form
                 await page.waitForSelector(`#add-${type}-message`);
-                await page.$eval(`#add-${type}-message`, e=> e.click());
+                await page.$eval(`#add-${type}-message`, e => e.click());
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`
                 );
@@ -286,12 +289,11 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
-                // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
                 );
+                // click on incident notes tab
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 await page.waitForSelector(`#edit_${type}_incident_message_0`);
                 await page.click(`#edit_${type}_incident_message_0`);
@@ -311,10 +313,7 @@ describe('Incident Timeline API', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 await page.waitForSelector(
                     `#content_${type}_incident_message_0`,
@@ -350,13 +349,12 @@ describe('Incident Timeline API', () => {
                 await page.click(`#more-details-${projectMonitorName}`);
 
                 await page.waitForSelector(`#incident_${projectMonitorName}_0`);
-                await page.$eval(`#incident_${projectMonitorName}_0`, e=> e.click());
+                await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+                    e.click()
+                );
 
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 await page.waitForSelector(
                     `#delete_${type}_incident_message_0`
@@ -434,7 +432,7 @@ describe('Incident Timeline API', () => {
             expect(countIncidentTimelines).toEqual(10);
 
             await page.waitForSelector('#btnTimelineNext');
-            await page.$eval('#btnTimelineNext', e=>e.click());
+            await page.$eval('#btnTimelineNext', e => e.click());
             await page.waitFor(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
@@ -443,7 +441,7 @@ describe('Incident Timeline API', () => {
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(6);
 
-            await page.$eval('#btnTimelinePrev',e=>e.click());
+            await page.$eval('#btnTimelinePrev', e => e.click());
             await page.waitFor(2000);
             await page.waitForSelector('.ball-beat', { hidden: true });
             incidentTimelineRows = await page.$$(
@@ -474,7 +472,7 @@ describe('Incident Timeline API', () => {
                 // click on incident notes tab
                 await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.$eval('#btnAcknowledge_0',e=> e.click());
+                await page.$eval('#btnAcknowledge_0', e => e.click());
                 await page.waitForSelector('#AcknowledgeText_0', {
                     visible: true,
                 });
