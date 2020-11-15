@@ -986,7 +986,6 @@ describe('Monitor Detail API', () => {
                 );
 
                 await page.waitForSelector('input[id=siteUrl]');
-                await page.$eval('input[id=siteUrl]', e => e.click());
                 await page.type('input[id=siteUrl]', 'https://fyipe.com');
                 await page.$eval('#addSiteUrlButton', e => e.click());
                 // await page.waitFor(5000);
