@@ -38,7 +38,7 @@ class ComponentSettingsAdvanced extends Component {
         );
         if (IS_SAAS_SERVICE) {
             logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
-                ProjectId: this.props.currentProject._id,
+                ProjectId: this.props.component.projectId._id,
                 componentId,
             });
         }
@@ -52,9 +52,7 @@ class ComponentSettingsAdvanced extends Component {
         } = this.props;
 
         const { deleteComponentModalId } = this.state;
-
-        console.log('component22', component)
-
+        const componentName = component && component.name
         return (
             <Dashboard>
                 <Fade>
@@ -87,6 +85,7 @@ class ComponentSettingsAdvanced extends Component {
                                                                 <div>
                                                                     <button
                                                                         className="bs-Button bs-Button--red"
+                                                                        id={`delete-component-${componentName}`}
                                                                         onClick={() =>
                                                                             this.props.openModal({
                                                                                 id: deleteComponentModalId,

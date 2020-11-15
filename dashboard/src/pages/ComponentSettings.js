@@ -35,11 +35,11 @@ class ComponentSettings extends Component {
             <Dashboard>
                 <Fade>
                     <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'component')}
+                        route={getParentRoute(pathname, null, 'basic')}
                         name={componentName}
                     />
                     <BreadCrumbItem
-                        route={pathname + '/edit'}
+                        route={pathname}
                         name="Component Settings"
                         pageTitle="Advanced"
                     />
@@ -50,7 +50,7 @@ class ComponentSettings extends Component {
                                     <div className="Box-root">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                <span>Edit Component - {componentName}</span>
+                                                <span>Edit Component - <span id={`component-title-${componentName}`}>{componentName}</span></span>
                                             </span>
                                         </span>
                                         <p>
@@ -110,7 +110,7 @@ class ComponentSettings extends Component {
                                             </div>
                                             <div>
                                                 <button
-                                                    id="addContainerBtn"
+                                                    id="editComponentButton"
                                                     className="bs-Button bs-Button--blue"
                                                     type="submit"
                                                     disabled={this.props.editingComponent.requesting}

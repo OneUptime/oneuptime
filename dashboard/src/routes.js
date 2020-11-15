@@ -234,7 +234,7 @@ export const groups = [
                 visible: true,
                 exact: true,
                 component: ComponentSettings,
-                shortcut: 'c+l',
+                shortcut: 'c+e',
                 subRoutes: [
                     {
                         title: 'Basic',
@@ -245,7 +245,7 @@ export const groups = [
                         subRoutes: [],
                         component: ComponentSettings,
                         index: 1,
-                        shortcut: 'c+s',
+                        shortcut: 'c+b',
                         exact: true,
                     },
                     {
@@ -257,7 +257,7 @@ export const groups = [
                         subRoutes: [],
                         component: ComponentSettingsAdvanced,
                         index: 2,
-                        shortcut: 'c+s',
+                        shortcut: 'c+d',
                         exact: true,
                     },
                 ],
