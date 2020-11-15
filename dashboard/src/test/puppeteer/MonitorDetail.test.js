@@ -249,7 +249,7 @@ describe('Monitor Detail API', () => {
                 // await page.waitFor(5000);
                 const selector = `#incident_${monitorName}_0`;
                 await page.waitForSelector(selector);
-                await page.click(selector);
+                await page.$eval(selector,e=>e.click());
                 // await page.waitFor(5000);
 
                 // click on advance option tab
