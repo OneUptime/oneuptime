@@ -436,7 +436,7 @@ module.exports = {
                     }
                 );
 
-                _this.clearInterval(incidentId);
+                _this.refreshInterval(incidentId);
 
                 // automatically create acknowledgement incident note
                 await IncidentMessageService.create({
