@@ -5,8 +5,6 @@ import ErrorEventMiniTag from './ErrorEventMiniTag';
 import ErrorEventStackTrace from './ErrorEventStackTrace';
 import ErrorEventTimeline from './ErrorEventTimeline';
 import ErrorEventInfoSection from './ErrorEventInfoSection';
-import ErrorEventTagDetail from './ErrorEventTagDetail';
-import ErrorEventList from './ErrorEventList';
 import PropTypes from 'prop-types';
 
 class ErrorEventDetail extends Component {
@@ -36,9 +34,6 @@ class ErrorEventDetail extends Component {
                                     <ErrorEventInfoSection
                                         errorEvent={errorEvent}
                                     />
-
-                                    <ErrorEventTagDetail />
-                                    <ErrorEventList />
                                 </div>
                             </div>
                         </div>
