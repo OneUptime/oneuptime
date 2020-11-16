@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import {
     fetchErrorTrackerIssues,
     deleteErrorTracker,
+    editErrorTrackerSwitch,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
@@ -51,6 +52,10 @@ class ErrorTrackerDetail extends Component {
         );
         return promise;
     };
+    editErrorTracker = () => {
+        const { editErrorTrackerSwitch, errorTracker } = this.props;
+        editErrorTrackerSwitch(errorTracker._id);
+    };
     componentDidMount() {
         const {
             fetchErrorTrackerIssues,
@@ -90,6 +95,7 @@ class ErrorTrackerDetail extends Component {
                                     deleteErrorTracker={this.deleteErrorTracker}
                                     openModal={openModal}
                                     deleteModalId={deleteModalId}
+                                    editErrorTracker={this.editErrorTracker}
                                 />
                                 <div>
                                     <ErrorTrackerDetailView
@@ -116,6 +122,7 @@ ErrorTrackerDetail.propTypes = {
     isDetails: PropTypes.bool,
     deleteErrorTracker: PropTypes.func,
     openModal: PropTypes.func,
+    editErrorTrackerSwitch: PropTypes.func,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -123,6 +130,7 @@ const mapDispatchToProps = dispatch => {
             fetchErrorTrackerIssues,
             deleteErrorTracker,
             openModal,
+            editErrorTrackerSwitch,
         },
         dispatch
     );

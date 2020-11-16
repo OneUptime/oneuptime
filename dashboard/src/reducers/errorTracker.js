@@ -19,6 +19,7 @@ import {
     DELETE_ERROR_TRACKER_FAILURE,
     DELETE_ERROR_TRACKER_REQUEST,
     DELETE_ERROR_TRACKER_SUCCESS,
+    EDIT_ERROR_TRACKER_SWITCH,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -287,6 +288,33 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     success: false,
                 },
                 deleteErrorTracker: action.payload,
+            });
+        case EDIT_ERROR_TRACKER_SWITCH:
+            temporaryErrorEvents = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload) {
+                        if (!errorTracker.editMode)
+                            errorTracker.editMode = true;
+                        else errorTracker.editMode = false;
+                    } else {
+                        errorTracker.editMode = false;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    errorTrackers: temporaryErrorEvents,
+                },
+                editApplicationLog: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
             });
         default:
             return state;

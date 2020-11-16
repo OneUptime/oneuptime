@@ -25,6 +25,7 @@ class ErrorTrackerHeader extends Component {
             deleteErrorTracker,
             openModal,
             deleteModalId,
+            editErrorTracker,
         } = this.props;
         let deleting = false;
         if (
@@ -100,7 +101,7 @@ class ErrorTrackerHeader extends Component {
                                         id={`edit_${errorTracker.name}`}
                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
                                         type="button"
-                                        // onClick={editApplicationLog}
+                                        onClick={editErrorTracker}
                                     >
                                         <span>Edit</span>
                                     </button>
@@ -225,5 +226,6 @@ ErrorTrackerHeader.propTypes = {
     deleteErrorTracker: PropTypes.func,
     openModal: PropTypes.func,
     deleteModalId: PropTypes.string,
+    editErrorTracker: PropTypes.func,
 };
 export default connect(mapStateToProps)(ErrorTrackerHeader);

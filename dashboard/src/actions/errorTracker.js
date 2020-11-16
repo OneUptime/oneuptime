@@ -324,3 +324,10 @@ export function deleteErrorTrackerFailure(error) {
         payload: error,
     };
 }
+
+export function editErrorTrackerSwitch(index) {
+    return {
+        type: types.EDIT_ERROR_TRACKER_SWITCH,
+        payload: index,
+    };
+}
