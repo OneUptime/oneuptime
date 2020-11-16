@@ -168,6 +168,9 @@ class IncidentCommunicationSla extends Component {
                                     <div className="bs-ObjectList-cell">
                                         Duration (minutes)
                                     </div>
+                                    <div className="bs-ObjectList-cell">
+                                        Alert Time (minutes)
+                                    </div>
                                     <div
                                         className="bs-ObjectList-cell"
                                         style={{
@@ -193,7 +196,7 @@ class IncidentCommunicationSla extends Component {
                                                     className="bs-ObjectList-cell bs-u-v-middle"
                                                     style={{
                                                         display: 'flex',
-                                                        width: '20vw',
+                                                        width: '15vw',
                                                     }}
                                                 >
                                                     <div className="bs-ObjectList-cell-row">
@@ -215,7 +218,7 @@ class IncidentCommunicationSla extends Component {
                                                     className="bs-ObjectList-cell bs-u-v-middle"
                                                     style={{
                                                         display: 'flex',
-                                                        width: '20vw',
+                                                        width: '15vw',
                                                     }}
                                                 >
                                                     <div className="bs-ObjectList-cell-row">
@@ -236,7 +239,7 @@ class IncidentCommunicationSla extends Component {
                                             </div>
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '25vw' }}
+                                                style={{ width: '10vw' }}
                                             >
                                                 <div className="bs-ObjectList-cell-row">
                                                     {incidentSla.duration}
@@ -244,7 +247,15 @@ class IncidentCommunicationSla extends Component {
                                             </div>
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '25vw' }}
+                                                style={{ width: '10vw' }}
+                                            >
+                                                <div className="bs-ObjectList-cell-row">
+                                                    {incidentSla.alertTime}
+                                                </div>
+                                            </div>
+                                            <div
+                                                className="bs-ObjectList-cell bs-u-v-middle"
+                                                style={{ width: '20vw' }}
                                             >
                                                 <div
                                                     className="bs-ObjectList-cell-row"

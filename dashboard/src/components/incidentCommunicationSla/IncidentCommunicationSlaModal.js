@@ -19,6 +19,22 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Communication SLA name is required';
     }
+    if (values.customDuration && isNaN(values.customDuration)) {
+        errors.customDuration = 'Only numeric values are allowed';
+    }
+    if (
+        values.alertTime &&
+        values.alertTime.trim() &&
+        isNaN(values.alertTime)
+    ) {
+        errors.alertTime = 'Only numeric values are allowed';
+    }
+    if (
+        Number(values.alertTime) >= Number(values.customDuration) ||
+        Number(values.alertTime) >= Number(values.durationOption)
+    ) {
+        errors.alertTime = 'Alert time should be less than duration';
+    }
     return errors;
 }
 
@@ -60,6 +76,7 @@ class IncidentCommunicationSlaModal extends React.Component {
 
         postObj.name = values.name;
         postObj.isDefault = values.isDefault;
+        postObj.alertTime = values.alertTime;
 
         const isDuplicate = postObj.monitors
             ? postObj.monitors.length === new Set(postObj.monitors).size
@@ -360,7 +377,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
+                                                    htmlFor="name"
                                                 >
                                                     <span>SLA Name</span>
                                                 </label>
@@ -397,10 +414,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                 className="bs-Fieldset-row"
                                                 style={{ padding: 0 }}
                                             >
-                                                <label
-                                                    className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="endpoint"
-                                                >
+                                                <label className="bs-Fieldset-label Text-align--left">
                                                     <span>Monitors</span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -430,7 +444,11 @@ class IncidentCommunicationSlaModal extends React.Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="monitorIds"
+                                                    htmlFor={
+                                                        setCustom
+                                                            ? 'customDuration'
+                                                            : 'durationOption'
+                                                    }
                                                 >
                                                     <span>
                                                         Duration (minutes)
@@ -519,6 +537,55 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                 }}
                                                             />
                                                         )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                    <fieldset className="Margin-bottom--16">
+                                        <div className="bs-Fieldset-rows">
+                                            <div
+                                                className="bs-Fieldset-row"
+                                                style={{ padding: 0 }}
+                                            >
+                                                <label
+                                                    className="bs-Fieldset-label Text-align--left"
+                                                    htmlFor="alertTime"
+                                                >
+                                                    <span>
+                                                        Alert Team (minutes)
+                                                    </span>
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <div
+                                                        className="bs-Fieldset-field"
+                                                        style={{
+                                                            width: '100%',
+                                                            flexDirection:
+                                                                'column',
+                                                        }}
+                                                    >
+                                                        <Field
+                                                            component={
+                                                                RenderField
+                                                            }
+                                                            name="alertTime"
+                                                            placeholder="60"
+                                                            id="alertTime"
+                                                            className="bs-TextInput"
+                                                            style={{
+                                                                width: '100%',
+                                                                padding:
+                                                                    '3px 5px',
+                                                            }}
+                                                        />
+                                                        <p className="bs-Fieldset-explanation">
+                                                            <span>
+                                                                Alert X minutes
+                                                                before SLA is
+                                                                breached.
+                                                            </span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -675,6 +742,7 @@ const mapStateToProps = (state, ownProps) => {
         monitors,
         initialValues: {
             selectAllMonitors: true,
+            durationOption: '60',
         },
         formValues:
             state.form.incidentSlaForm && state.form.incidentSlaForm.values,
