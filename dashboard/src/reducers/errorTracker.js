@@ -135,6 +135,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         skip: action.payload.skip,
                         limit: action.payload.limit,
                         count: action.payload.count,
+                        dateRange: action.payload.dateRange,
                     },
                 },
             });
@@ -159,6 +160,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           skip: 0,
                           limit: 10,
                           count: null,
+                          dateRange: null,
                       },
             };
             return Object.assign({}, state, {
@@ -190,6 +192,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           skip: 0,
                           limit: 10,
                           count: null,
+                          dateRange: null,
                       },
             };
             return Object.assign({}, state, {

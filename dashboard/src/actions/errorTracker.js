@@ -137,6 +137,7 @@ export function fetchErrorTrackerIssues(
                         errorTrackerId,
                         errorTrackerIssues:
                             response.data.data.errorTrackerIssues,
+                        dateRange: response.data.data.dateRange,
                         skip,
                         limit,
                         count: response.data.count,
