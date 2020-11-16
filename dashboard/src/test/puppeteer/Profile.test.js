@@ -88,7 +88,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('#changePassword');
-                await page.$eval('#changePassword > a', elem => elem.click());
+                await page.$eval('#changePassword', elem => elem.click());
                 await page.waitForSelector('input[name=currentPassword]');
                 await page.type('input[name=currentPassword]', user.password);
                 await page.waitForSelector('input[name=newPassword]');
@@ -122,7 +122,7 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
                 await page.waitForSelector('#changePassword');
-                await page.$eval('#changePassword > a', elem => elem.click());
+                await page.$eval('#changePassword', elem => elem.click());
                 await page.waitForSelector('input[name=currentPassword]');
                 await page.type('input[name=currentPassword]', user.password);
                 await page.waitForSelector('input[name=newPassword]');
