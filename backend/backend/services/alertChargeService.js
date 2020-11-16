@@ -47,7 +47,7 @@ module.exports = {
             }
             let alertCharges;
             if (skip >= 0 && limit > 0) {
-                alertCharges = await AlertChargeModel.find({})
+                alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
