@@ -28,7 +28,7 @@ class ErrorEventHeader extends Component {
                         errorEventDetails.content
                     }
                 >
-                    <div>
+                    <div className="Padding-vertical--20">
                         <div className="db-Trends-title">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -144,7 +144,7 @@ class ErrorEventHeader extends Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="Flex-flex Flex-justifyContent--spaceBetween">
+                        <div className="Flex-flex Flex-justifyContent--spaceBetween Navigator-Wrapper">
                             <div className="Flex-flex Flex-direction--column">
                                 <span>
                                     <span className="Text-fontWeight--bold">

@@ -11223,6 +11223,12 @@ table {
 .MuiInputBase-input {
     cursor: pointer;
 }
+@media only screen and (max-width: 500px) {
+    .Navigator-Wrapper {
+        flex-direction: column;
+    }
+  }
+
 .Navigator-Btn-Group {
     display: flex;
 }
