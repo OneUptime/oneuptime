@@ -12,10 +12,13 @@ import ErrorTrackerDetailView from './ErrorTrackerDetailView';
 import { history } from '../../store';
 import { openModal } from '../../actions/modal';
 import uuid from 'uuid';
+import ShouldRender from '../basic/ShouldRender';
+import NewErrorTracker from './NewErrorTracker';
 
 class ErrorTrackerDetail extends Component {
     constructor(props) {
         super(props);
+        this.props = props;
         this.state = {
             deleteModalId: uuid.v4(),
         };
@@ -81,35 +84,56 @@ class ErrorTrackerDetail extends Component {
             openModal,
         } = this.props;
         const { deleteModalId } = this.state;
-        return (
-            <div className="bs-BIM">
-                <div className="Box-root Margin-bottom--12">
-                    <div className="bs-ContentSection Card-root Card-shadow--medium">
-                        <div className="Box-root">
-                            <div>
-                                <ErrorTrackerHeader
-                                    errorTracker={errorTracker}
-                                    errorTrackerIssue={errorTrackerIssue}
-                                    isDetails={isDetails}
-                                    viewMore={this.viewMore}
-                                    deleteErrorTracker={this.deleteErrorTracker}
-                                    openModal={openModal}
-                                    deleteModalId={deleteModalId}
-                                    editErrorTracker={this.editErrorTracker}
-                                />
+        if (errorTracker) {
+            return (
+                <div className="bs-BIM">
+                    <div className="Box-root Margin-bottom--12">
+                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                            <div className="Box-root">
                                 <div>
-                                    <ErrorTrackerDetailView
-                                        errorTracker={errorTracker}
-                                        componentId={componentId}
-                                        projectId={currentProject._id}
-                                    />
+                                    <ShouldRender if={!errorTracker.editMode}>
+                                        <ErrorTrackerHeader
+                                            errorTracker={errorTracker}
+                                            errorTrackerIssue={
+                                                errorTrackerIssue
+                                            }
+                                            isDetails={isDetails}
+                                            viewMore={this.viewMore}
+                                            deleteErrorTracker={
+                                                this.deleteErrorTracker
+                                            }
+                                            openModal={openModal}
+                                            deleteModalId={deleteModalId}
+                                            editErrorTracker={
+                                                this.editErrorTracker
+                                            }
+                                        />
+                                    </ShouldRender>
+                                    <ShouldRender if={errorTracker.editMode}>
+                                        <NewErrorTracker
+                                            edit={errorTracker.editMode}
+                                            errorTracker={errorTracker}
+                                            index={errorTracker._id}
+                                            componentId={componentId}
+                                        />
+                                    </ShouldRender>
+
+                                    <div>
+                                        <ErrorTrackerDetailView
+                                            errorTracker={errorTracker}
+                                            componentId={componentId}
+                                            projectId={currentProject._id}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        } else {
+            return null;
+        }
     }
 }
 ErrorTrackerDetail.displayName = 'ErrorTrackerDetail';
@@ -147,6 +171,7 @@ function mapStateToProps(state, ownProps) {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
         errorTrackerIssue,
+        editMode: currentErrorTracker[0].editMode,
     };
 }
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackerDetail);

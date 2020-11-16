@@ -9,14 +9,16 @@ import { connect } from 'react-redux';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { bindActionCreators } from 'redux';
-import { createErrorTracker } from '../../actions/errorTracker';
+import {
+    createErrorTracker,
+    editErrorTrackerSwitch,
+    editErrorTracker,
+} from '../../actions/errorTracker';
 import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewErrorTracker');
 
 class NewErrorTracker extends Component {
     submitForm = values => {
-        // eslint-disable-next-line no-console
-        console.log(values);
         const thisObj = this;
         const postObj = {};
         postObj.name = values[`name`];
@@ -46,14 +48,46 @@ class NewErrorTracker extends Component {
                         }
                     }
                 );
+        } else {
+            const {
+                editErrorTracker,
+                currentProject,
+                componentId,
+                errorTracker,
+            } = this.props;
+            editErrorTracker(
+                currentProject._id,
+                componentId,
+                errorTracker._id,
+                postObj
+            ).then(
+                () => {
+                    thisObj.props.reset();
+                    if (SHOULD_LOG_ANALYTICS) {
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING > EDIT ERROR TRACKING',
+                            values
+                        );
+                    }
+                },
+                error => {
+                    if (error && error.message) {
+                        return error;
+                    }
+                }
+            );
         }
+    };
+    cancelEdit = () => {
+        const { editErrorTrackerSwitch, errorTracker } = this.props;
+        editErrorTrackerSwitch(errorTracker._id);
     };
     render() {
         const {
             handleSubmit,
             requesting,
             edit,
-            // errorTracker,
+            errorTracker,
             resourceCategoryList,
         } = this.props;
         return (
@@ -74,18 +108,18 @@ class NewErrorTracker extends Component {
                                         </span>
                                     </p>
                                 </ShouldRender>
-                                {/* <ShouldRender if={edit}>
+                                <ShouldRender if={edit}>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Edit Log </span>
+                                        <span>Edit Tracker </span>
                                     </span>
                                     <p>
                                         <span
-                                            id={`application-log-edit-title-${errorTracker?.name}`}
+                                            id={`error-tracker-edit-title-${errorTracker?.name}`}
                                         >
-                                            {`Edit Log  ${errorTracker?.name}`}
+                                            {`Edit Tracker  ${errorTracker?.name}`}
                                         </span>
                                     </p>
-                                </ShouldRender> */}
+                                </ShouldRender>
                             </div>
                         </div>
                         <form
@@ -195,7 +229,7 @@ class NewErrorTracker extends Component {
                                                 </span>
                                             </div>
                                         </ShouldRender>
-                                        {/* <ShouldRender
+                                        <ShouldRender
                                             if={
                                                 this.props.errorTrackerState
                                                     .editErrorTracker.error
@@ -214,7 +248,7 @@ class NewErrorTracker extends Component {
                                                     }
                                                 </span>
                                             </div>
-                                        </ShouldRender> */}
+                                        </ShouldRender>
                                     </div>
                                 </div>
                                 <ShouldRender if={!edit}>
@@ -234,7 +268,7 @@ class NewErrorTracker extends Component {
                                         </button>
                                     </div>
                                 </ShouldRender>
-                                {/* <ShouldRender if={edit}>
+                                <ShouldRender if={edit}>
                                     <div>
                                         <button
                                             className="bs-Button"
@@ -244,12 +278,12 @@ class NewErrorTracker extends Component {
                                             <span>Cancel</span>
                                         </button>
                                         <button
-                                            id="addErrorTrackerButton"
+                                            id="editErrorTrackerButton"
                                             className="bs-Button bs-Button--blue"
                                             type="submit"
                                         >
                                             <ShouldRender if={!requesting}>
-                                                <span>Edit Application </span>
+                                                <span>Edit Tracker </span>
                                             </ShouldRender>
 
                                             <ShouldRender if={requesting}>
@@ -257,7 +291,7 @@ class NewErrorTracker extends Component {
                                             </ShouldRender>
                                         </button>
                                     </div>
-                                </ShouldRender> */}
+                                </ShouldRender>
                             </div>
                         </form>
                     </div>
@@ -279,6 +313,8 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             createErrorTracker,
+            editErrorTrackerSwitch,
+            editErrorTracker,
         },
         dispatch
     );
@@ -286,7 +322,9 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
-    const requesting = state.errorTracker.newErrorTracker.requesting;
+    const requesting = ownProps.edit
+        ? state.errorTracker.editErrorTracker.requesting
+        : state.errorTracker.newErrorTracker.requesting;
     const currentProject = state.project.currentProject;
     const initialValues = {
         name: ownProps.errorTracker ? ownProps.errorTracker.name : '',
@@ -310,20 +348,16 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 NewErrorTracker.propTypes = {
-    // index: PropTypes.oneOfType([
-    //     PropTypes.string.isRequired,
-    //     PropTypes.number.isRequired,
-    // ]),
     createErrorTracker: PropTypes.func.isRequired,
     errorTrackerState: PropTypes.object.isRequired,
-    // errorTracker: PropTypes.object,
+    errorTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,
     componentId: PropTypes.string,
     requesting: PropTypes.bool,
     currentProject: PropTypes.object,
     edit: PropTypes.bool,
-    // editErrorTrackerSwitch: PropTypes.func,
-    // editErrorTracker: PropTypes.func,
+    editErrorTrackerSwitch: PropTypes.func,
+    editErrorTracker: PropTypes.func,
     resourceCategoryList: PropTypes.array,
 };
 
