@@ -349,8 +349,8 @@ class Incident extends React.Component {
                                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
-                                                        You&#39;ve breached the
-                                                        SLA for this monitor
+                                                        You&#39;ve breached SLA
+                                                        with this incident
                                                     </span>
                                                 </span>
                                             </div>
