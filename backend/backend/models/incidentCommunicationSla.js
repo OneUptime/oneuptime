@@ -12,6 +12,7 @@ const incidentCommunicationSlaSchema = new Schema(
         projectId: { ref: 'Project', type: Schema.Types.ObjectId },
         isDefault: { type: Boolean, default: false },
         duration: { type: String, default: '60' },
+        alertTime: String,
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
     },
