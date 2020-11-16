@@ -279,10 +279,7 @@ describe('Incident API With SubProjects', () => {
                 await page.waitForSelector('#incident_0', { visible: true });
 
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 let type = 'internal';
                 // fill internal message thread form
@@ -304,10 +301,7 @@ describe('Incident API With SubProjects', () => {
                 });
                 await page.reload({ waitUntil: 'networkidle0' });
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
                 const internalMessage = await page.$(
                     `#content_${type}_incident_message_0`
@@ -385,10 +379,7 @@ describe('Incident API With SubProjects', () => {
                 );
                 await page.waitForSelector('#incident_0', { visible: true });
                 // click on incident notes tab
-                await init.gotoTab(
-                    utils.incidentTabIndexes.BASIC,
-                    page
-                );
+                await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
                 await page.waitFor(2000);
 
                 for (let i = 0; i < 10; i++) {

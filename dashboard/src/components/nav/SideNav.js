@@ -148,6 +148,12 @@ class SideNav extends Component {
             ) ||
             location.pathname.match(
                 /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/error-tracker/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/basic/
+            ) ||
+            location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/advanced/
             );
         const switchToProfileNav =
             location.pathname.match(/profile\/settings/) ||

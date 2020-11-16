@@ -98,7 +98,7 @@ class ResourceTabularList extends Component {
                     <StatusIndicator
                         status={monitorStatus}
                         resourceName={componentResource.name}
-                        monitorName={monitor.name}
+                        monitorName={monitor && monitor.name}
                     />
                 );
                 statusDescription = monitorStatus;

@@ -14,20 +14,22 @@ class IncidentCreated extends Component {
         const {
             projectId,
             _id: notificationId,
-            meta: { componentId, incidentId },
+            meta: { componentId, incidentId: {_id} },
         } = notification;
-        this.props.markAsRead(projectId, notificationId);
+        const project_Id = typeof projectId === 'object' ? projectId._id : projectId
+        this.props.markAsRead(project_Id, notificationId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
         history.push(
-            `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
+            `/dashboard/project/${project_Id}/${componentId}/incidents/${_id}`
         );
     };
 
     handleCloseNotification = notification => {
         const { projectId, _id: notificationId } = notification;
-        this.props.closeNotification(projectId, notificationId);
+        const project_Id = typeof projectId === 'object' ? projectId._id : projectId
+        this.props.closeNotification(project_Id, notificationId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }
@@ -104,6 +106,15 @@ class IncidentCreated extends Component {
                                                       <div className="Notify-fyipe">
                                                           <div className="Notify-fyipe-container-row-primary db-SideNav-icon--danger" />
                                                           <span className="Notify-fyipe-container-row-secondary Text-color--white">
+                                                              <span>
+                                                                  #
+                                                                  {
+                                                                      notification
+                                                                          .meta
+                                                                          .incidentId
+                                                                          .idNumber
+                                                                  }
+                                                              </span>{' '}
                                                               {
                                                                   notification.message
                                                               }{' '}

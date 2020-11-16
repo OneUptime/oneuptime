@@ -4,50 +4,18 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
 import {
-    ResponsiveContainer,
-    AreaChart as Chart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-} from 'recharts';
-import {
     getIncidents,
     getIncidentsError,
     getIncidentsRequest,
     getIncidentsSuccess,
 } from '../../actions/reports';
+import { Chart } from 'react-google-charts';
 
 const noDataStyle = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     height: '150px',
-};
-
-const CustomTooltip = ({ active, payload, label }) => {
-    if (active) {
-        return (
-            <div className="custom-tooltip">
-                <h3>{label}</h3>
-                <p className="label">{`${payload[0].name} : ${
-                    payload && payload[0] ? payload[0].value : 0
-                }`}</p>
-            </div>
-        );
-    }
-
-    return null;
-};
-
-CustomTooltip.displayName = 'CustomTooltip';
-
-CustomTooltip.propTypes = {
-    active: PropTypes.bool,
-    payload: PropTypes.array,
-    label: PropTypes.string,
 };
 
 class Incidents extends Component {
@@ -98,27 +66,74 @@ class Incidents extends Component {
     render() {
         const { incidents } = this.state;
         const { incidentReports, filter } = this.props;
+        const chartData = [
+            [
+                filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : '',
+                'Incidents',
+                {
+                    role: 'tooltip',
+                    type: 'string',
+                    p: { html: true },
+                },
+            ],
+        ];
+        incidents.map(element => {
+            const value = [
+                element[filter],
+                element.incidents,
+                `<div class="custom-tooltip"> <h3>${
+                    element[filter]
+                } </h3> <p class="label"> ${element.incidents} ${
+                    element.incidents > 1 ? 'Incidents' : 'Incident'
+                } </p></div>`,
+            ];
+            chartData.push(value);
+            return element;
+        });
 
         if (incidents && incidents.length > 0) {
             return (
-                <ResponsiveContainer width="100%" height={300}>
-                    <Chart data={incidents} margin={{ left: -15 }}>
-                        <Legend verticalAlign="top" height={36} />
-                        <XAxis dataKey={filter} />
-                        <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <Area
-                            type="linear"
-                            isAnimationActive={false}
-                            name="Incidents"
-                            dataKey="incidents"
-                            stroke="#000000"
-                            strokeWidth={1.5}
-                            fill="#e2e1f2"
-                        />
-                    </Chart>
-                </ResponsiveContainer>
+                <Chart
+                    width={'100%'}
+                    height={'400px'}
+                    chartType="Bar"
+                    loader={<Loader />}
+                    data={chartData}
+                    options={{
+                        animation: {
+                            startup: true,
+                        },
+                        bar: {
+                            groupWidth: '40%',
+                        },
+                        bars: 'vertical',
+                        hAxis: {
+                            textStyle: {
+                                color: '#757575',
+                            },
+                        },
+                        vAxis: {
+                            minValue: 0,
+                            gridlines: {
+                                minSpacing: 20,
+                                count: 5,
+                            },
+                            minorGridlines: {
+                                count: 0,
+                            },
+                            textStyle: {
+                                color: '#757575',
+                            },
+                        },
+                        colors: ['#000000'],
+                        legend: {
+                            position: 'top',
+                            alignment: 'center',
+                            textStyle: { color: '#757575', fontSize: 16 },
+                        },
+                        tooltip: { isHtml: true },
+                    }}
+                />
             );
         } else {
             return (

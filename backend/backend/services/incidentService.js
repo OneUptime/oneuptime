@@ -321,10 +321,9 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            await AlertService.sendCreatedIncidentToSubscribers(
-                incident,
-                component
-            );
+
+            // handle this asynchronous operation in the background
+            AlertService.sendCreatedIncidentToSubscribers(incident, component);
             const meta = {
                 type: 'Incident',
                 componentId:
@@ -492,9 +491,7 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                await AlertService.sendAcknowledgedIncidentToSubscribers(
-                    incident
-                );
+                AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
                 await WebHookService.sendNotification(
                     incident.projectId,
@@ -616,7 +613,7 @@ module.exports = {
                 status: 'resolved',
             });
 
-            await _this.sendIncidentResolvedNotification(incident, name);
+            _this.sendIncidentResolvedNotification(incident, name);
             await RealTimeService.incidentResolved(incident);
             await ZapierService.pushToZapier('incident_resolve', incident);
 
@@ -757,7 +754,8 @@ module.exports = {
                     downtimestring
                 );
 
-                await AlertService.sendResolvedIncidentToSubscribers(incident);
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
             } else {
                 msg = `${
                     resolvedincident.monitorId.name
@@ -797,7 +795,9 @@ module.exports = {
                     component,
                     downtimestring
                 );
-                await AlertService.sendResolvedIncidentToSubscribers(incident);
+
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
             }
         } catch (error) {
             ErrorService.log(
