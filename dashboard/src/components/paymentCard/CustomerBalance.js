@@ -80,8 +80,16 @@ export class CustomerBalance extends Component {
         const { MessageBoxId } = this.state;
         return addBalance(projectId, values)
             .then(() => {
-                const { paymentIntent } = this.props;
-                this.handlePaymentIntent(paymentIntent.client_secret);
+                const { paymentIntent, balance, getProjects } = this.props;
+                const creditedBalance = paymentIntent.amount / 100;
+                openModal({
+                    id: MessageBoxId,
+                    content: MessageBox,
+                    title: 'Message',
+                    message: `Transaction successful, your balance is now ${balance +
+                        creditedBalance}$`,
+                });
+                getProjects();
             })
             .catch(err => {
                 openModal({
@@ -91,48 +99,6 @@ export class CustomerBalance extends Component {
                     message: err.message,
                 });
             });
-    };
-    handlePaymentIntent = paymentIntentClientSecret => {
-        const {
-            stripe,
-            openModal,
-            getProjects,
-            balance,
-            updateProjectBalance,
-            projectId,
-        } = this.props;
-        const { MessageBoxId } = this.state;
-        stripe.handleCardPayment(paymentIntentClientSecret).then(result => {
-            if (
-                result.paymentIntent &&
-                result.paymentIntent.status === 'succeeded'
-            ) {
-                const creditedBalance = result.paymentIntent.amount / 100;
-
-                // update the project balance at this point
-                updateProjectBalance({
-                    projectId,
-                    intentId: result.paymentIntent.id,
-                }).then(function() {
-                    openModal({
-                        id: MessageBoxId,
-                        content: MessageBox,
-                        title: 'Message',
-                        message: `Transaction successful, your balance is now ${balance +
-                            creditedBalance}$`,
-                    });
-                    getProjects();
-                });
-            } else {
-                openModal({
-                    id: MessageBoxId,
-                    content: MessageBox,
-                    title: 'Message',
-                    message:
-                        'Transaction failed, try again later or use a different card.',
-                });
-            }
-        });
     };
     render() {
         const { balance } = this.props;
