@@ -388,3 +388,59 @@ export function editErrorTrackerFailure(error) {
         payload: error,
     };
 }
+
+export function resetErrorTrackerKey(projectId, componentId, errorTrackerId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/reset-key`
+        );
+        dispatch(resetErrorTrackerKeyRequest());
+
+        promise.then(
+            function(errorTracker) {
+                dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resetErrorTrackerKeyFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function resetErrorTrackerKeySuccess(errorTracker) {
+    return {
+        type: types.RESET_ERROR_TRACKER_KEY_SUCCESS,
+        payload: errorTracker,
+    };
+}
+
+export function resetErrorTrackerKeyRequest() {
+    return {
+        type: types.RESET_ERROR_TRACKER_KEY_REQUEST,
+    };
+}
+
+export function resetErrorTrackerKeyFailure(error) {
+    return {
+        type: types.RESET_ERROR_TRACKER_KEY_FAILURE,
+        payload: error,
+    };
+}
+
+export function resetresetErrorTrackerKey() {
+    return {
+        type: types.RESET_ERROR_TRACKER_KEY_RESET,
+    };
+}

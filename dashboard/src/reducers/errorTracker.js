@@ -24,6 +24,10 @@ import {
     EDIT_ERROR_TRACKER_REQUEST,
     EDIT_ERROR_TRACKER_RESET,
     EDIT_ERROR_TRACKER_SUCCESS,
+    RESET_ERROR_TRACKER_KEY_FAILURE,
+    RESET_ERROR_TRACKER_KEY_REQUEST,
+    RESET_ERROR_TRACKER_KEY_RESET,
+    RESET_ERROR_TRACKER_KEY_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -360,6 +364,49 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case EDIT_ERROR_TRACKER_REQUEST:
             return Object.assign({}, state, {
                 editErrorTracker: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESET_ERROR_TRACKER_KEY_SUCCESS:
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload._id) {
+                        errorTracker = action.payload;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: temporaryErrorTrackers,
+                },
+            });
+
+        case RESET_ERROR_TRACKER_KEY_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESET_ERROR_TRACKER_KEY_RESET:
+            return Object.assign({}, state, {
+                errorTrackersList: INITIAL_STATE.errorTrackersList,
+            });
+
+        case RESET_ERROR_TRACKER_KEY_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
                     requesting: true,
                     error: null,
                     success: false,
