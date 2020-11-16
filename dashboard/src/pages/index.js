@@ -51,6 +51,8 @@ import DeleteAccountPage from './DeleteAccountPage';
 import Consulting from './Consulting';
 import ErrorTracking from './ErrorTracking';
 import Advanced from './Advanced';
+import ComponentSettings from './ComponentSettings';
+import ComponentSettingsAdvanced from './ComponentSettingsAdvanced';
 
 export default {
     ChangePassword,
@@ -95,4 +97,6 @@ export default {
     Consulting,
     ErrorTracking,
     Advanced,
+    ComponentSettings,
+    ComponentSettingsAdvanced
 };
