@@ -20,6 +20,10 @@ import {
     DELETE_ERROR_TRACKER_REQUEST,
     DELETE_ERROR_TRACKER_SUCCESS,
     EDIT_ERROR_TRACKER_SWITCH,
+    EDIT_ERROR_TRACKER_FAILURE,
+    EDIT_ERROR_TRACKER_REQUEST,
+    EDIT_ERROR_TRACKER_RESET,
+    EDIT_ERROR_TRACKER_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -39,9 +43,14 @@ const INITIAL_STATE = {
     errorTrackerIssues: {},
     errorEvents: {},
     currentErrorEvent: '',
+    editErrorTracker: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
-    let temporaryIssues, temporaryErrorEvents;
+    let temporaryIssues, temporaryErrorEvents, temporaryErrorTrackers;
     switch (action.type) {
         case CREATE_ERROR_TRACKER_SUCCESS:
             return Object.assign({}, state, {
@@ -290,7 +299,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 deleteErrorTracker: action.payload,
             });
         case EDIT_ERROR_TRACKER_SWITCH:
-            temporaryErrorEvents = state.errorTrackersList.errorTrackers.map(
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
                     if (errorTracker._id === action.payload) {
                         if (!errorTracker.editMode)
@@ -308,10 +317,50 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: false,
-                    errorTrackers: temporaryErrorEvents,
+                    errorTrackers: temporaryErrorTrackers,
                 },
-                editApplicationLog: {
+                editErrorTracker: {
                     requesting: false,
+                    error: null,
+                    success: false,
+                },
+            });
+        case EDIT_ERROR_TRACKER_SUCCESS:
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload._id) {
+                        errorTracker = action.payload;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: temporaryErrorTrackers,
+                },
+            });
+        case EDIT_ERROR_TRACKER_FAILURE:
+            return Object.assign({}, state, {
+                editErrorTracker: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case EDIT_ERROR_TRACKER_RESET:
+            return Object.assign({}, state, {
+                editErrorTracker: INITIAL_STATE.editErrorTracker,
+            });
+
+        case EDIT_ERROR_TRACKER_REQUEST:
+            return Object.assign({}, state, {
+                editErrorTracker: {
+                    requesting: true,
                     error: null,
                     success: false,
                 },

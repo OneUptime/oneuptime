@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/errorTracker';
 import errors from '../errors';
 
@@ -329,5 +329,62 @@ export function editErrorTrackerSwitch(index) {
     return {
         type: types.EDIT_ERROR_TRACKER_SWITCH,
         payload: index,
+    };
+}
+//Edit new errorTracker
+export function editErrorTracker(
+    projectId,
+    componentId,
+    errorTrackerId,
+    values
+) {
+    return function(dispatch) {
+        const promise = putApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}`,
+            values
+        );
+        dispatch(editErrorTrackerRequest());
+
+        promise.then(
+            function(errorTracker) {
+                dispatch(editErrorTrackerSuccess(errorTracker.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(editErrorTrackerFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function editErrorTrackerSuccess(newErrorTracker) {
+    return {
+        type: types.EDIT_ERROR_TRACKER_SUCCESS,
+        payload: newErrorTracker,
+    };
+}
+
+export function editErrorTrackerRequest() {
+    return {
+        type: types.EDIT_ERROR_TRACKER_REQUEST,
+    };
+}
+
+export function editErrorTrackerFailure(error) {
+    return {
+        type: types.EDIT_ERROR_TRACKER_FAILURE,
+        payload: error,
     };
 }
