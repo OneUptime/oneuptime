@@ -894,10 +894,17 @@ module.exports = {
 
     startInterval: async function(projectId, monitorId, incident) {
         const _this = this;
-        const incidentSla = await IncidentCommunicationSlaService.findOneBy({
+        let incidentSla = await IncidentCommunicationSlaService.findOneBy({
             projectId: projectId,
             'monitors.monitorId': { $in: [monitorId] },
         });
+
+        if (!incidentSla) {
+            incidentSla = await IncidentCommunicationSlaService.findOneBy({
+                projectId: projectId,
+                isDefault: true,
+            });
+        }
 
         if (incidentSla) {
             let countDown = incidentSla.duration * 60;
