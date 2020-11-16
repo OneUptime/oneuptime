@@ -1,4 +1,4 @@
-import { postApi, getApi } from '../api';
+import { postApi, getApi, deleteApi } from '../api';
 import * as types from '../constants/errorTracker';
 import errors from '../errors';
 
@@ -264,5 +264,63 @@ export function setCurrentErrorEvent(errorEventId) {
     return {
         type: types.SET_CURRENT_ERROR_EVENT,
         payload: { errorEventId },
+    };
+}
+
+//Delete an errorTrackeer
+//props -> {name: '', type, data -> { data.url}}
+export function deleteErrorTracker(projectId, componentId, errorTrackerId) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}`
+        );
+        dispatch(deleteErrorTrackerRequest(errorTrackerId));
+
+        promise.then(
+            function(errorTracker) {
+                dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    deleteErrorTrackerFailure({
+                        error: errors(error),
+                        errorTrackerId,
+                    })
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteErrorTrackerSuccess(removedErrorTrackerId) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_SUCCESS,
+        payload: removedErrorTrackerId,
+    };
+}
+
+export function deleteErrorTrackerRequest(errorTrackerId) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_REQUEST,
+        payload: errorTrackerId,
+    };
+}
+
+export function deleteErrorTrackerFailure(error) {
+    return {
+        type: types.DELETE_ERROR_TRACKER_FAILURE,
+        payload: error,
     };
 }

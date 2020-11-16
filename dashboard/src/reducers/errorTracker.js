@@ -16,6 +16,9 @@ import {
     FETCH_ERROR_EVENT_RESET,
     FETCH_ERROR_EVENT_SUCCESS,
     SET_CURRENT_ERROR_EVENT,
+    DELETE_ERROR_TRACKER_FAILURE,
+    DELETE_ERROR_TRACKER_REQUEST,
+    DELETE_ERROR_TRACKER_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -249,6 +252,41 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case SET_CURRENT_ERROR_EVENT:
             return Object.assign({}, state, {
                 currentErrorEvent: action.payload.errorEventId,
+            });
+        case DELETE_ERROR_TRACKER_SUCCESS:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: state.errorTrackersList.errorTrackers.filter(
+                        ({ _id }) => _id !== action.payload
+                    ),
+                },
+                deleteErrorTracker: false,
+            });
+
+        case DELETE_ERROR_TRACKER_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteErrorTracker: false,
+            });
+
+        case DELETE_ERROR_TRACKER_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+                deleteErrorTracker: action.payload,
             });
         default:
             return state;
