@@ -107,7 +107,9 @@ class ErrorEventView extends Component {
                         name={
                             errorEvent &&
                             errorEvent.errorEvent &&
-                            errorEvent.errorEvent.content.type
+                            errorEvent.errorEvent.content
+                                ? errorEvent.errorEvent.content.type
+                                : ''
                         }
                         pageTitle="Error Tracking"
                         containerType="Error Tracker Container"
