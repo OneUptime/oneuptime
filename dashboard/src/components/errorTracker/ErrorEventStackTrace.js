@@ -31,20 +31,23 @@ class ErrorEventStackTrace extends Component {
                                 errorEventDetails.content.message}
                         </span>
                     </div>
-                    <div className="Flex-flex Flex-wrap--wrap">
-                        <div className="Tag-Pill">
-                            <div className="Tag-Title">function</div>
-                            <div className="Tag-Content">
-                                {errorEventDetails &&
-                                    errorEventDetails.content &&
-                                    errorEventDetails.content.stacktrace &&
-                                    errorEventDetails.content.stacktrace
-                                        .frames &&
-                                    errorEventDetails.content.stacktrace
-                                        .frames[0].methodName}
+                    {errorEventDetails &&
+                        errorEventDetails.content &&
+                        errorEventDetails.content.stacktrace &&
+                        errorEventDetails.content.stacktrace.frames && (
+                            <div className="Flex-flex Flex-wrap--wrap">
+                                <div className="Tag-Pill">
+                                    <div className="Tag-Title">function</div>
+                                    <div className="Tag-Content">
+                                        {
+                                            errorEventDetails.content.stacktrace
+                                                .frames[0].methodName
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        )}
+
                     <div className="Stacktrace-Listing">
                         {errorEventDetails &&
                         errorEventDetails.content &&
