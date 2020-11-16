@@ -315,7 +315,10 @@ router.post(
                 skip || 0
             );
 
-            return sendListResponse(req, res, { errorTrackerIssues });
+            return sendListResponse(req, res, {
+                errorTrackerIssues: errorTrackerIssues.totalErrorEvents,
+                dateRange: errorTrackerIssues.dateRange,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

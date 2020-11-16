@@ -150,7 +150,25 @@ module.exports = {
                 // increment index
                 index = index + 1;
             }
-            return totalErrorEvents;
+            let dateRange = { startDate: '', endDate: '' };
+            // set the date time range
+            if (query.createdAt) {
+                dateRange = {
+                    startDate: query.createdAt.$gte,
+                    endDate: query.createdAt.$lte,
+                };
+            } else {
+                totalErrorEvents.length > 0
+                    ? (dateRange = {
+                          startDate:
+                              totalErrorEvents[totalErrorEvents.length - 1]
+                                  .earliestOccurennce,
+                          endDate: totalErrorEvents[0].latestOccurennce,
+                      })
+                    : null;
+            }
+
+            return { totalErrorEvents, dateRange };
         } catch (error) {
             ErrorService.log('errorEventService.findBy', error);
             throw error;
