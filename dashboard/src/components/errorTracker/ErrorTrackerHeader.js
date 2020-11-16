@@ -7,6 +7,7 @@ import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 import { connect } from 'react-redux';
+import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
 
 class ErrorTrackerHeader extends Component {
     constructor(props) {
@@ -26,6 +27,8 @@ class ErrorTrackerHeader extends Component {
             openModal,
             deleteModalId,
             editErrorTracker,
+            trackerKeyModalId,
+            resetErrorTrackerKey,
         } = this.props;
         let deleting = false;
         if (
@@ -80,20 +83,20 @@ class ErrorTrackerHeader extends Component {
                                             'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
                                         }
                                         type="button"
-                                        // onClick={() =>
-                                        //     openModal({
-                                        //         id: openApplicationLogKeyModalId,
-                                        //         onClose: () => '',
-                                        //         onConfirm: () =>
-                                        //             resetApplicationLogKey(),
-                                        //         content: DataPathHoC(
-                                        //             ViewApplicationLogKey,
-                                        //             {
-                                        //                 applicationLog,
-                                        //             }
-                                        //         ),
-                                        //     })
-                                        // }
+                                        onClick={() =>
+                                            openModal({
+                                                id: trackerKeyModalId,
+                                                onClose: () => '',
+                                                onConfirm: () =>
+                                                    resetErrorTrackerKey(),
+                                                content: DataPathHoC(
+                                                    ViewErrorTrackerKey,
+                                                    {
+                                                        errorTracker,
+                                                    }
+                                                ),
+                                            })
+                                        }
                                     >
                                         <span>Tracker Key</span>
                                     </button>
@@ -227,5 +230,7 @@ ErrorTrackerHeader.propTypes = {
     openModal: PropTypes.func,
     deleteModalId: PropTypes.string,
     editErrorTracker: PropTypes.func,
+    trackerKeyModalId: PropTypes.string,
+    resetErrorTrackerKey: PropTypes.func,
 };
 export default connect(mapStateToProps)(ErrorTrackerHeader);

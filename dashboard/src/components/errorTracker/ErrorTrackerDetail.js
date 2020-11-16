@@ -5,15 +5,18 @@ import {
     fetchErrorTrackerIssues,
     deleteErrorTracker,
     editErrorTrackerSwitch,
+    resetErrorTrackerKey,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
 import { history } from '../../store';
-import { openModal } from '../../actions/modal';
+import { openModal, closeModal } from '../../actions/modal';
 import uuid from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import NewErrorTracker from './NewErrorTracker';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from 'amplitude-js';
 
 class ErrorTrackerDetail extends Component {
     constructor(props) {
@@ -21,6 +24,7 @@ class ErrorTrackerDetail extends Component {
         this.props = props;
         this.state = {
             deleteModalId: uuid.v4(),
+            trackerKeyModalId: uuid.v4(),
         };
     }
     viewMore = () => {
@@ -33,6 +37,32 @@ class ErrorTrackerDetail extends Component {
                 '/error-trackers/' +
                 errorTracker._id
         );
+    };
+    resetErrorTrackerKey = () => {
+        const {
+            currentProject,
+            componentId,
+            errorTracker,
+            resetErrorTrackerKey,
+            closeModal,
+        } = this.props;
+        return resetErrorTrackerKey(
+            currentProject._id,
+            componentId,
+            errorTracker._id
+        ).then(() => {
+            closeModal({
+                id: this.state.trackerKeyModalId,
+            });
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > COMPONENTS > ERROR TRACKER > ERROR TRACKER DETAILS > RESET ERROR TRACKER KEY',
+                    {
+                        errorTrackerId: errorTracker._id,
+                    }
+                );
+            }
+        });
     };
     deleteErrorTracker = () => {
         const {
@@ -83,7 +113,7 @@ class ErrorTrackerDetail extends Component {
             currentProject,
             openModal,
         } = this.props;
-        const { deleteModalId } = this.state;
+        const { deleteModalId, trackerKeyModalId } = this.state;
         if (errorTracker) {
             return (
                 <div className="bs-BIM">
@@ -106,6 +136,12 @@ class ErrorTrackerDetail extends Component {
                                             deleteModalId={deleteModalId}
                                             editErrorTracker={
                                                 this.editErrorTracker
+                                            }
+                                            trackerKeyModalId={
+                                                trackerKeyModalId
+                                            }
+                                            resetErrorTrackerKey={
+                                                this.resetErrorTrackerKey
                                             }
                                         />
                                     </ShouldRender>
@@ -147,6 +183,8 @@ ErrorTrackerDetail.propTypes = {
     deleteErrorTracker: PropTypes.func,
     openModal: PropTypes.func,
     editErrorTrackerSwitch: PropTypes.func,
+    resetErrorTrackerKey: PropTypes.func,
+    closeModal: PropTypes.func,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -155,6 +193,8 @@ const mapDispatchToProps = dispatch => {
             deleteErrorTracker,
             openModal,
             editErrorTrackerSwitch,
+            resetErrorTrackerKey,
+            closeModal,
         },
         dispatch
     );
