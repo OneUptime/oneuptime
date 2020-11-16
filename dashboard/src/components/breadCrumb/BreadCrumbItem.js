@@ -23,7 +23,7 @@ function BreadCrumbItem({
 
     const getRoute = (route, projectId) => {
         if (route === '/') {
-            return `/dashboard/project/${projectId}/components`;
+            return `/dashboard/project/${projectId}`;
         }
         return route;
     };
