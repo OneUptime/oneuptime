@@ -901,6 +901,7 @@ module.exports = {
 
         if (incidentSla) {
             let countDown = incidentSla.duration * 60;
+            const alertTime = incidentSla.alertTime * 60;
 
             // count down every second
             const intervalId = setInterval(async () => {
@@ -915,11 +916,22 @@ module.exports = {
                     `${minutes}:${seconds}`
                 );
 
+                if (countDown === alertTime) {
+                    // send mail to team
+                    await AlertService.sendSlaEmailToTeamMembers(projectId);
+                }
+
                 if (countDown === 0) {
                     _this.clearInterval(incident._id);
                     await _this.updateOneBy(
                         { _id: incident._id },
                         { breachedCommunicationSla: true }
+                    );
+
+                    // send mail to team
+                    await AlertService.sendSlaEmailToTeamMembers(
+                        projectId,
+                        true
                     );
                 }
             }, 1000);
