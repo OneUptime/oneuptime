@@ -262,6 +262,7 @@ class NewMonitor extends Component {
             const { monitorId } = this.props;
             postObj._id = this.props.editMonitorProp._id;
             this.props.editMonitor(postObj.projectId, postObj).then(() => {
+                this.props.toggleEdit(false);
                 thisObj.props.destroy();
                 if (monitorId === this.props.editMonitorProp._id) {
                     this.props.fetchMonitorsIncidents(

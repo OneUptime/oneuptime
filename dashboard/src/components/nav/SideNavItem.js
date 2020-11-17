@@ -205,9 +205,10 @@ export class SidebarNavItem extends Component {
         const routes = route.shortcut && route.shortcut.split('+');
 
         return (
-            <div id={this.camalize(route.title)} style={routeStyle}>
+            <div style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
                     <Link
+                        id={this.camalize(route.title)}
                         to={path}
                         onClick={() => loadPage(route.title)}
                         {...(route.disabled

@@ -86,8 +86,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced a');
-                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#advanced');
+                await page.$eval('#advanced', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
@@ -129,8 +129,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced a');
-                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#advanced');
+                await page.$eval('#advanced', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
@@ -174,8 +174,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced a');
-                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#advanced');
+                await page.$eval('#advanced', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
@@ -198,8 +198,8 @@ describe('Profile -> Delete Account Component test', () => {
                 await page.click('#profile-menu');
                 await page.waitForSelector('#userProfile');
                 await page.click('#userProfile');
-                await page.waitForSelector('#advanced a');
-                await page.$eval('#advanced a', elem => elem.click());
+                await page.waitForSelector('#advanced');
+                await page.$eval('#advanced', elem => elem.click());
                 await page.waitForSelector('#btn_delete_account');
                 await page.click('#btn_delete_account');
                 await page.waitForSelector('#btn_confirm_delete');
