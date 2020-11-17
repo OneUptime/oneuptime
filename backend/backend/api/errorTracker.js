@@ -289,7 +289,7 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const { skip, limit, startDate, endDate } = req.body;
+            const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
@@ -309,6 +309,11 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
+            if (filters) {
+                for (const [key, value] of Object.entries(filters)) {
+                    query[key] = value;
+                }
+            }
             const errorTrackerIssues = await ErrorEventService.findDistinct(
                 query,
                 limit || 10,
@@ -318,6 +323,7 @@ router.post(
             return sendListResponse(req, res, {
                 errorTrackerIssues: errorTrackerIssues.totalErrorEvents,
                 dateRange: errorTrackerIssues.dateRange,
+                count: errorTrackerIssues.count,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
