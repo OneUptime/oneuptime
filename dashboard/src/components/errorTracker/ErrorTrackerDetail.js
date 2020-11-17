@@ -18,6 +18,7 @@ import NewErrorTracker from './NewErrorTracker';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import moment from 'moment';
+import ErrorEventUtil from '../../utils/ErrorEventUtil';
 
 class ErrorTrackerDetail extends Component {
     constructor(props) {
@@ -97,6 +98,27 @@ class ErrorTrackerDetail extends Component {
     handleEndDateTimeChange = val => {
         const endDate = moment(val);
         this.fetchByDateChange(this.props.startDate, endDate);
+    };
+    handleFilterUpdate = val => {
+        const filters = ErrorEventUtil.generateFilterOption(val);
+        const {
+            fetchErrorTrackerIssues,
+            currentProject,
+            errorTracker,
+            componentId,
+            startDate,
+            endDate,
+        } = this.props;
+        fetchErrorTrackerIssues(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            0,
+            10,
+            startDate,
+            endDate,
+            filters
+        );
     };
     fetchByDateChange = (startDate, endDate) => {
         const {
@@ -180,6 +202,9 @@ class ErrorTrackerDetail extends Component {
                                             }
                                             handleEndDateTimeChange={
                                                 this.handleEndDateTimeChange
+                                            }
+                                            handleFilterUpdate={
+                                                this.handleFilterUpdate
                                             }
                                             formId="errorTrackerDateTimeForm"
                                         />

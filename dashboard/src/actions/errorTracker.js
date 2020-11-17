@@ -123,12 +123,13 @@ export function fetchErrorTrackerIssues(
     skip,
     limit,
     startDate,
-    endDate
+    endDate,
+    filters = null
 ) {
     return function(dispatch) {
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues`,
-            { skip, limit, startDate, endDate }
+            { skip, limit, startDate, endDate, filters }
         );
         dispatch(fetchErrorTrackerIssuesRequest(errorTrackerId));
 

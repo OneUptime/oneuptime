@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Select from '../../components/basic/react-select-fyipe';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -34,6 +33,7 @@ class ErrorTrackerHeader extends Component {
             formId,
             handleStartDateTimeChange,
             handleEndDateTimeChange,
+            handleFilterUpdate,
         } = this.props;
         let deleting = false;
         if (
@@ -157,60 +157,70 @@ class ErrorTrackerHeader extends Component {
                             )}
                         </div>
                     </div>
-                    <div className="db-Trends-controls Margin-top--12 Flex-flex Flex-justifyContent--spaceBetween">
-                        <DateTimeRangePicker
-                            currentDateRange={currentDateRange}
-                            handleStartDateTimeChange={
-                                handleStartDateTimeChange
-                            }
-                            handleEndDateTimeChange={handleEndDateTimeChange}
-                            formId={formId}
-                        />
-                        <div className="Flex-flex">
-                            <span className="Margin-all--8">
-                                <Dropdown>
-                                    <Dropdown.Toggle
-                                        id="filterToggle"
-                                        className="bs-Button bs-DeprecatedButton"
-                                        title={'Sort By: Last Seen'}
-                                    />
-                                    <Dropdown.Menu>
-                                        <MenuItem title="clear">
-                                            Clear Filters
-                                        </MenuItem>
-                                        <MenuItem title="unacknowledged">
-                                            Unacknowledged
-                                        </MenuItem>
-                                        <MenuItem title="unresolved">
-                                            Unresolved
-                                        </MenuItem>
-                                    </Dropdown.Menu>
-                                </Dropdown>
-                            </span>
-                            <div
-                                style={{
-                                    height: '33px',
-                                    margin: '5px 0px',
-                                }}
-                            >
-                                <Select
-                                    name="log_type_selector"
-                                    placeholder="Filter Errors"
-                                    className="db-select-pr"
-                                    id="log_type_selector"
+                    <ShouldRender if={isDetails}>
+                        <div
+                            className="db-Trends-controls Margin-top--12 Flex-flex Flex-justifyContent--spaceBetween"
+                            style={{
+                                display: this.state.showFilters
+                                    ? 'flex'
+                                    : 'none',
+                            }}
+                        >
+                            <DateTimeRangePicker
+                                currentDateRange={currentDateRange}
+                                handleStartDateTimeChange={
+                                    handleStartDateTimeChange
+                                }
+                                handleEndDateTimeChange={
+                                    handleEndDateTimeChange
+                                }
+                                formId={formId}
+                            />
+                            <div className="Flex-flex">
+                                <div
                                     style={{
                                         height: '33px',
+                                        margin: '5px 0px',
                                     }}
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'Unresolved Errors',
-                                        },
-                                    ]}
-                                />
+                                >
+                                    <Select
+                                        name="log_type_selector"
+                                        placeholder="Filter Errors"
+                                        className="db-select-pr-flexible"
+                                        id="log_type_selector"
+                                        isMulti={true}
+                                        style={{
+                                            height: '33px',
+                                        }}
+                                        onChange={handleFilterUpdate}
+                                        options={[
+                                            {
+                                                value: 'is:resolved',
+                                                label: 'Resolved',
+                                            },
+                                            {
+                                                value: 'is:unresolved',
+                                                label: 'Unresolved',
+                                            },
+                                            {
+                                                value: 'is:ignored',
+                                                label: 'Ignored',
+                                            },
+                                            {
+                                                value: 'is:assigned',
+                                                label: 'Assigned',
+                                            },
+                                            {
+                                                value: 'is:unassigned',
+                                                label: 'Unassigned',
+                                            },
+                                        ]}
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </ShouldRender>
+
                     <div>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
@@ -256,5 +266,6 @@ ErrorTrackerHeader.propTypes = {
     formId: PropTypes.string,
     handleStartDateTimeChange: PropTypes.func,
     handleEndDateTimeChange: PropTypes.func,
+    handleFilterUpdate: PropTypes.func,
 };
 export default connect(mapStateToProps)(ErrorTrackerHeader);

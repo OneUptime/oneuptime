@@ -9,6 +9,10 @@
     width: 250px;
     font-size: 14px;
 }
+.db-select-pr-flexible {
+    min-width: 250px;
+    font-size: 14px;
+}
 
 .db-select-ne {
     width: 120px;
