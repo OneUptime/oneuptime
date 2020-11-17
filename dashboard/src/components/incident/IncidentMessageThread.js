@@ -46,9 +46,7 @@ export class IncidentMessageThread extends Component {
                         <button
                             className="bs-Button bs-ButtonLegacy ActionIconParent"
                             type="button"
-                            id={`add-${
-                                type
-                            }-message`}
+                            id={`add-${type}-message`}
                             onClick={() =>
                                 openModal({
                                     id: createMessageModalId,
@@ -417,9 +415,7 @@ export class IncidentMessageThread extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    id={`btn-${
-                                        type
-                                    }-Prev`}
+                                    id={`btn-${type}-Prev`}
                                     onClick={() => {
                                         olderMessage();
                                     }}
@@ -440,9 +436,7 @@ export class IncidentMessageThread extends Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    id={`btn-${
-                                        type
-                                    }-Next`}
+                                    id={`btn-${type}-Next`}
                                     onClick={() => {
                                         newerMessage();
                                     }}

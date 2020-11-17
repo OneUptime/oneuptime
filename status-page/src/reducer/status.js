@@ -155,7 +155,7 @@ const INITIAL_STATE = {
         timelines: [],
     },
     showEventCard: false,
-    showIncidentCard: false,
+    showIncidentCard: true,
 };
 
 export default (state = INITIAL_STATE, action) => {

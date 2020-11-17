@@ -653,18 +653,20 @@ describe('Components', () => {
     );
 
     test(
-        'Should edit a component',
+        'should edit a component in the component settings SideNav',
         async () => {
             return await cluster.execute(null, async ({ page }) => {
-                // Navigate to Components page
                 await page.goto(utils.DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
-                });
+                })
+
                 await page.waitForSelector('#components', { visible: true });
                 await page.$eval('#components',e=>e.click());
 
-                await page.waitForSelector(`#edit-component-${componentName}`);
-                await page.$eval(`#edit-component-${componentName}`,e=>e.click());
+                await page.click(`#more-details-${componentName}`);
+
+                await page.waitForSelector('#componentSettings');
+                await page.click('#componentSettings');
 
                 await page.waitForSelector('input[name=name]');
                 await page.type('input[name=name]', '-two');
@@ -676,10 +678,45 @@ describe('Components', () => {
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
                 spanElement.should.be.exactly(`${componentName}-two`);
-            });
-        },
-        operationTimeOut
-    );
+            })
+        }
+    )
+
+    test(
+        'should delete a component in the component settings sideNav',
+        async () => {
+            return await cluster.execute(null, async ({ page }) => {
+                await page.goto(utils.DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                })
+
+                await page.waitForSelector('#components', { visible: true });
+                await page.click('#components');
+
+                await page.click(`#more-details-${componentName}-two`);
+
+                await page.waitForSelector('#componentSettings');
+                await page.click('#componentSettings');
+
+                await page.waitForSelector('#advanced');
+                await page.click('#advanced');
+
+                await page.waitForSelector(`#delete-component-${componentName}-two`, { visible: true })
+                await page.click(`#delete-component-${componentName}-two`)
+
+                await page.waitForSelector('#deleteComponent', {visible: true})
+                await page.click('#deleteComponent'); // after deleting the component
+
+                const componentClicked = await page.waitForSelector(
+                    '#components',
+                    {
+                        visible: true
+                    }
+                )
+                expect(componentClicked).toBeDefined();
+            })
+        }
+    )
 
     test(
         'Should create new project from incident page and redirect to the home page and not component page',

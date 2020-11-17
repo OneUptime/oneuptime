@@ -21,7 +21,12 @@ module.exports = {
             const notifications = await NotificationModel.find(query)
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .populate({
+                    path: 'meta.incidentId',
+                    model: 'Incident',
+                    select: '_id idNumber',
+                });
             return notifications;
         } catch (error) {
             ErrorService.log('notificationService.findBy', error);
@@ -56,6 +61,7 @@ module.exports = {
             notification.createdBy = userId;
             notification.meta = meta;
             notification = await notification.save();
+            notification = await this.findOneBy({_id: notification._id})
             await RealTimeService.sendNotification(notification);
             return notification;
         } catch (error) {
@@ -169,7 +175,8 @@ module.exports = {
             query.deleted = false;
             const notification = await NotificationModel.findOne(
                 query
-            ).populate('projectId', 'name');
+            ).populate('projectId', 'name')
+            .populate({path: 'meta.incidentId', model: 'Incident', select: '_id idNumber'});
             return notification;
         } catch (error) {
             ErrorService.log('notificationService.findOneBy', error);

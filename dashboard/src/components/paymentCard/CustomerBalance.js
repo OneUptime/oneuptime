@@ -43,6 +43,11 @@ export class CustomerBalance extends Component {
         createTopUpModalId: uuid.v4(),
     };
 
+    componentDidMount() {
+        // fetch the project
+        getProjects();
+    }
+
     submitForm = values => {
         const { projectId, openModal, currentProject } = this.props;
         const userId = User.getUserId();
@@ -100,6 +105,7 @@ export class CustomerBalance extends Component {
                 });
             });
     };
+
     render() {
         const { balance } = this.props;
         return (
@@ -215,7 +221,11 @@ export class CustomerBalance extends Component {
                                                                                 fontWeight:
                                                                                     'bold',
                                                                             }}
-                                                                        >{`${balance}$`}</span>
+                                                                        >{`${Number.parseFloat(
+                                                                            balance
+                                                                        ).toFixed(
+                                                                            2
+                                                                        )}$`}</span>
                                                                     </p>
                                                                 </label>
                                                             </div>

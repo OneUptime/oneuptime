@@ -2,6 +2,18 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/component';
 import errors from '../errors';
 
+export function showDeleteModal() {
+    return {
+        type: types.SHOW_DELETE_MODAL,
+    };
+}
+
+export function hideDeleteModal() {
+    return {
+        type: types.HIDE_DELETE_MODAL,
+    };
+}
+
 // Component list
 // props -> {name: '', type, data -> { data.url}}
 export function fetchComponents(projectId) {

@@ -29,6 +29,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
+import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
 import { API_URL } from '../config';
 import io from 'socket.io-client';
 import { history } from '../store';
@@ -100,6 +101,7 @@ class DashboardView extends Component {
             : null;
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
+        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
         this.props.monitor.monitorsList.monitors.forEach(subProject => {
             if (subProject.monitors.length > 0) {
                 subProject.monitors.forEach(monitor => {
@@ -466,6 +468,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorStatuses,
             fetchLighthouseLogs,
             fetchIncidentPriorities,
+            fetchBasicIncidentSettings,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -570,6 +573,7 @@ DashboardView.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
+    fetchBasicIncidentSettings: PropTypes.func.isRequired,
     createMonitorSuccess: PropTypes.func.isRequired,
     tutorialStat: PropTypes.object,
 };
