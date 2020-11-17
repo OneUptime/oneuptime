@@ -1836,6 +1836,109 @@ const _this = {
             ? smtpConfigurations
             : false;
     },
+
+    sendSlaNotification: async function({ userEmail, name, projectId }) {
+        const smtpSettings = await _this.getProjectSmtpSettings(projectId);
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                to: userEmail,
+                subject: 'About to Breach Incident SLA',
+                template: 'sla_notification',
+                context: {
+                    name: name ? name.split(' ')[0].toString() : '',
+                    currentYear: new Date().getFullYear(),
+                },
+            };
+
+            const mailer = await _this.createMailer(smtpSettings);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendSlaNotification', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
+    },
+    sendSlaBreachNotification: async function({ userEmail, name, projectId }) {
+        const smtpSettings = await _this.getProjectSmtpSettings(projectId);
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                to: userEmail,
+                subject: 'Breach of Incident SLA',
+                template: 'breack_sla_notification',
+                context: {
+                    name: name ? name.split(' ')[0].toString() : '',
+                    currentYear: new Date().getFullYear(),
+                },
+            };
+
+            const mailer = await _this.createMailer(smtpSettings);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendSlaBreachNotification', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
+    },
 };
 
 module.exports = _this;

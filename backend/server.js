@@ -226,6 +226,10 @@ app.use(
     ['/error-tracker', '/api/error-tracker'],
     require('./backend/api/errorTracker')
 );
+app.use(
+    ['/incidentSla', '/api/incidentSla'],
+    require('./backend/api/incidentCommunicationSla')
+);
 
 app.set('port', process.env.PORT || 3002);
 
