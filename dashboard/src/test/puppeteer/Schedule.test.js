@@ -56,10 +56,10 @@ describe('Schedule', () => {
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
-                await page.waitForSelector('#onCallSchedules a', {
+                await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules a', elem => elem.click());
+                await page.$eval('#onCallSchedules', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
                 await page.waitForSelector(createScheduleBtn, {
                     visible: true,
@@ -93,10 +93,10 @@ describe('Schedule', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules a', {
+                await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules a', elem => elem.click());
+                await page.$eval('#onCallSchedules', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.evaluate(() => {
@@ -128,10 +128,10 @@ describe('Schedule', () => {
                     componentName
                 );
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#onCallSchedules a', {
+                await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules a', elem => elem.click());
+                await page.$eval('#onCallSchedules', elem => elem.click());
 
                 await page.reload({ waitUntil: 'networkidle0' });
                 await page.evaluate(() => {
@@ -160,10 +160,10 @@ describe('Schedule', () => {
                 const newScheduleName = 'test';
                 await init.addProject(page, projectName);
 
-                await page.waitForSelector('#onCallSchedules a', {
+                await page.waitForSelector('#onCallSchedules', {
                     visible: true,
                 });
-                await page.$eval('#onCallSchedules a', elem => elem.click());
+                await page.$eval('#onCallSchedules', elem => elem.click());
                 const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
                 await page.waitForSelector(createScheduleBtn, {
                     visible: true,

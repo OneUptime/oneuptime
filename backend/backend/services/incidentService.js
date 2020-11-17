@@ -120,6 +120,9 @@ module.exports = {
                 }
 
                 incident = await incident.save();
+
+                _this.startInterval(data.projectId, data.monitorId, incident);
+
                 incident = await _this.findOneBy({ _id: incident._id });
                 const notification = await _this._sendIncidentCreatedAlert(
                     incident
@@ -411,6 +414,8 @@ module.exports = {
                     }
                 );
 
+                _this.refreshInterval(incidentId);
+
                 // automatically create acknowledgement incident note
                 await IncidentMessageService.create({
                     content: 'This incident has been acknowledged',
@@ -532,6 +537,9 @@ module.exports = {
             data.resolvedByZapier = zapier;
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
+
+            _this.clearInterval(incidentId);
+
             incident = await _this.findOneBy({ _id: incident._id });
 
             if (incident.probes && incident.probes.length > 0) {
@@ -797,7 +805,95 @@ module.exports = {
             throw error;
         }
     },
+
+    startInterval: async function(projectId, monitorId, incident) {
+        const _this = this;
+        let incidentSla = await IncidentCommunicationSlaService.findOneBy({
+            projectId: projectId,
+            'monitors.monitorId': { $in: [monitorId] },
+        });
+
+        if (!incidentSla) {
+            incidentSla = await IncidentCommunicationSlaService.findOneBy({
+                projectId: projectId,
+                isDefault: true,
+            });
+        }
+
+        if (incidentSla) {
+            let countDown = incidentSla.duration * 60;
+            const alertTime = incidentSla.alertTime * 60;
+
+            // count down every second
+            const intervalId = setInterval(async () => {
+                countDown -= 1;
+
+                const minutes = Math.floor(countDown / 60);
+                let seconds = countDown % 60;
+                seconds =
+                    seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+                await RealTimeService.sendSlaCountDown(
+                    incident,
+                    `${minutes}:${seconds}`
+                );
+
+                if (countDown === alertTime) {
+                    // send mail to team
+                    await AlertService.sendSlaEmailToTeamMembers(projectId);
+                }
+
+                if (countDown === 0) {
+                    _this.clearInterval(incident._id);
+                    await _this.updateOneBy(
+                        { _id: incident._id },
+                        { breachedCommunicationSla: true }
+                    );
+
+                    // send mail to team
+                    await AlertService.sendSlaEmailToTeamMembers(
+                        projectId,
+                        true
+                    );
+                }
+            }, 1000);
+
+            intervals.push({
+                incidentId: incident._id,
+                intervalId,
+            });
+        }
+    },
+
+    clearInterval: function(incidentId) {
+        const allIntervals = [...intervals];
+        intervals = [];
+        for (const interval of allIntervals) {
+            if (String(interval.incidentId) === String(incidentId)) {
+                clearInterval(interval.intervalId);
+            } else {
+                intervals.push(interval);
+            }
+        }
+    },
+
+    refreshInterval: async function(incidentId) {
+        const _this = this;
+        for (const interval of intervals) {
+            if (String(interval.incidentId) === String(incidentId)) {
+                _this.clearInterval(incidentId);
+
+                const incident = await _this.findOneBy({ _id: incidentId });
+                _this.startInterval(
+                    incident.projectId,
+                    incident.monitorId,
+                    incident
+                );
+            }
+        }
+    },
 };
+
+let intervals = [];
 
 const IncidentModel = require('../models/incident');
 const IncidentTimelineService = require('./incidentTimelineService');
@@ -822,5 +918,6 @@ const {
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
 } = require('../constants/incidentEvents');
-
 const IncidentUtilitiy = require('../utils/incident');
+const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');
+
