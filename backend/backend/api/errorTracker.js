@@ -346,13 +346,14 @@ router.post(
             }
             const errorTrackerId = req.params.errorTrackerId;
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+            const currentErrorEvent = await ErrorEventService.findOneBy({
+                _id: errorEventId,
+                errorTrackerId,
             });
-            if (!currentErrorTracker) {
+            if (!currentErrorEvent) {
                 return sendErrorResponse(req, res, {
                     code: 404,
-                    message: 'Error Tracker not found',
+                    message: 'Error Event not found',
                 });
             }
 
@@ -361,6 +362,60 @@ router.post(
                 errorEventId,
                 errorTrackerId
             );
+
+            return sendItemResponse(req, res, errorEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Ignore an error event by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId/ignore',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const errorEventId = req.params.errorEventId;
+            if (!errorEventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const currentErrorEvent = await ErrorEventService.findOneBy({
+                _id: errorEventId,
+                errorTrackerId,
+            });
+            if (!currentErrorEvent) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Event not found',
+                });
+            }
+
+            // check if error event is already ignored
+            if (currentErrorEvent.ignored) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event already ignored',
+                });
+            }
+            // Ignore Data
+            const ignoreData = {
+                ignored: true,
+                ignoredAt: new Date(),
+                ignoredById: req.user.id,
+            };
+
+            const errorEvent = await ErrorEventService.updateOneBy(
+                { _id: currentErrorEvent._id },
+                ignoreData
+            );
+
+            // TODO update a timeline object
 
             return sendItemResponse(req, res, errorEvent);
         } catch (error) {

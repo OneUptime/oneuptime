@@ -290,6 +290,29 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let errorEvent = await ErrorEventModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            errorEvent = await this.findOneBy(query);
+
+            return errorEvent;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.updateOneBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorEventModel = require('../models/errorEvent');
