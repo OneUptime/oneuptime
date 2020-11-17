@@ -87,46 +87,55 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 .name}
                                                         :
                                                     </b>{' '}
-                                                    {status === 'active' ? (
+                                                    {
+                                                        schedule.startTime && schedule.endTime && schedule.timezone ?
                                                         <span>
-                                                            Your duty ends at{' '}
+                                                            {status === 'active' ? (
+                                                            <span>
+                                                                Your duty ends at{' '}
+                                                                <b>
+                                                                    {moment(
+                                                                        schedule.endTime,
+                                                                        'HH:mm'
+                                                                    ).format(
+                                                                        'hh:mm A'
+                                                                    )}
+                                                                    {schedule.timezone &&
+                                                                        ` (${schedule.timezone})`}
+                                                                </b>{' '}
+                                                                and your next duty
+                                                                begins at
+                                                            </span>
+                                                            ) : (
+                                                                <span>
+                                                                    Your next duty
+                                                                    begins at
+                                                                </span>
+                                                            )}{' '}
+                                                            <b>
+                                                                {moment(
+                                                                    schedule.startTime,
+                                                                    'HH:mm'
+                                                                ).format('hh:mm A')}
+                                                                {schedule.timezone &&
+                                                                    ` (${schedule.timezone})`}
+                                                            </b>{' '}
+                                                            and ends at{' '}
                                                             <b>
                                                                 {moment(
                                                                     schedule.endTime,
                                                                     'HH:mm'
-                                                                ).format(
-                                                                    'hh:mm A'
-                                                                )}
+                                                                ).format('hh:mm A')}
                                                                 {schedule.timezone &&
                                                                     ` (${schedule.timezone})`}
-                                                            </b>{' '}
-                                                            and your next duty
-                                                            begins at
-                                                        </span>
-                                                    ) : (
-                                                        <span>
-                                                            Your next duty
-                                                            begins at
-                                                        </span>
-                                                    )}{' '}
-                                                    <b>
-                                                        {moment(
-                                                            schedule.startTime,
-                                                            'HH:mm'
-                                                        ).format('hh:mm A')}
-                                                        {schedule.timezone &&
-                                                            ` (${schedule.timezone})`}
-                                                    </b>{' '}
-                                                    and ends at{' '}
-                                                    <b>
-                                                        {moment(
-                                                            schedule.endTime,
-                                                            'HH:mm'
-                                                        ).format('hh:mm A')}
-                                                        {schedule.timezone &&
-                                                            ` (${schedule.timezone})`}
-                                                        .
-                                                    </b>
+                                                                .
+                                                            </b>
+                                                            </span>
+                                                            :
+                                                            <span>
+                                                                You're on duty all the time
+                                                            </span>
+                                                    }
                                                 </li>
                                             );
                                         })}

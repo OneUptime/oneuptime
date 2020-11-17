@@ -154,9 +154,9 @@ class Home extends Component {
                 ).zoneAbbr();
 
                 const tempObj = { ...userSchedule };
-                tempObj.startTime = startTime;
-                tempObj.endTime = endTime;
-                tempObj.timezone = timezone;
+                tempObj.startTime = userSchedule.startTime && startTime;
+                tempObj.endTime = userSchedule.endTime && endTime;
+                tempObj.timezone = userSchedule.timezone && timezone;
 
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
