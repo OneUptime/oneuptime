@@ -49,7 +49,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await init.addProject(page, 'test');
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
                 await page.waitForSelector('#btnCreateStatusPage_test');
                 await page.click('#btnCreateStatusPage_test');
                 await page.waitForSelector('#name');
@@ -90,7 +90,7 @@ describe('Status Page -> Pricing Plan Component', () => {
     //     async () => {
     //         await cluster.execute(null, async ({ page }) => {
     //             await page.goto(utils.DASHBOARD_URL);
-    //             await page.$eval('#statusPages > a', elem => elem.click());
+    //             await page.$eval('#statusPages', elem => elem.click());
     //             // select the first item from the table row
     //             const rowItem = await page.waitForSelector(
     //                 '#statusPagesListContainer > tr',
@@ -159,7 +159,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
                 // select the first item from the table row
                 const rowItem = await page.waitForSelector(
                     '#statusPagesListContainer > tr',
@@ -199,7 +199,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         async () => {
             await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
                 // select the first item from the table row
                 const rowItem = await page.waitForSelector(
                     '#statusPagesListContainer > tr',
