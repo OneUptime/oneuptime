@@ -12,6 +12,7 @@ const MonitorStatusService = require('../services/monitorStatusService');
 const StatusPageService = require('../services/statusPageService');
 const RealTimeService = require('../services/realTimeService');
 const IncidentMessageService = require('../services/incidentMessageService');
+const AlertService = require('../services/alertService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
@@ -471,6 +472,7 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
+                    AlertService.sendStatusPageToSubscribers(incident)
                 } else {
                     const updatedMessage = {
                         content: data.content,
