@@ -95,30 +95,12 @@ class ErrorTrackerDetailView extends Component {
                                             type="button"
                                         >
                                             <span>Resolve</span>
-                                            <img
-                                                src="/dashboard/assets/img/down.svg"
-                                                alt=""
-                                                style={{
-                                                    margin: '0px 10px',
-                                                    height: '10px',
-                                                    width: '10px',
-                                                }}
-                                            />
                                         </button>
                                         <button
                                             className="bs-Button bs-Button--icon bs-Button--block"
                                             type="button"
                                         >
                                             <span>Ignore</span>
-                                            <img
-                                                src="/dashboard/assets/img/down.svg"
-                                                alt=""
-                                                style={{
-                                                    margin: '0px 10px',
-                                                    height: '10px',
-                                                    width: '10px',
-                                                }}
-                                            />
                                         </button>
                                         <button
                                             className="bs-Button"
