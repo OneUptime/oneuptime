@@ -179,6 +179,7 @@ describe('Incident API With SubProjects', () => {
                 await page.click('#createIncident');
                 await page.waitForSelector('#createIncident', { hidden: true });
 
+                await page.reload({ waitUntil: 'networkidle0' });
                 // close incident modal
                 await page.waitForSelector('#closeIncident_0', {
                     visible: true,
