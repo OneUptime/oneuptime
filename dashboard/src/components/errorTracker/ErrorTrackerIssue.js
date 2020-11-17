@@ -29,11 +29,16 @@ function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
             errorEventId
     );
 }
+function isSelected(selectedErrorEvents, id) {
+    return selectedErrorEvents.indexOf(id) > -1 ? true : false;
+}
 function ErrorTrackerIssue({
     projectId,
     componentId,
     errorTrackerIssue,
     errorTracker,
+    selectErrorEvent,
+    selectedErrorEvents,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -55,7 +60,16 @@ function ErrorTrackerIssue({
                             borderBottomRightRadius: '5px',
                         }}
                     ></div>
-                    <input type="checkbox" />
+                    <input
+                        type="checkbox"
+                        onChange={() =>
+                            selectErrorEvent(errorTrackerIssue.latestId)
+                        }
+                        checked={isSelected(
+                            selectedErrorEvents,
+                            errorTrackerIssue.latestId
+                        )}
+                    />
                 </div>
             </td>
             <td
@@ -142,11 +156,11 @@ function ErrorTrackerIssue({
                                     />
                                     <span className="Padding-left--8">
                                         {moment(
-                                            errorTrackerIssue.earliestOccurennce
+                                            errorTrackerIssue.latestOccurennce
                                         ).fromNow()}{' '}
                                         -{' '}
                                         {moment(
-                                            errorTrackerIssue.latestOccurennce
+                                            errorTrackerIssue.earliestOccurennce
                                         ).fromNow()}
                                     </span>
                                 </div>
@@ -237,6 +251,8 @@ ErrorTrackerIssue.propTypes = {
     errorTrackerIssue: PropTypes.object,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    selectErrorEvent: PropTypes.func,
+    selectedErrorEvents: PropTypes.array,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;

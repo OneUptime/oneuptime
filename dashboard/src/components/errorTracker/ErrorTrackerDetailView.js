@@ -1,11 +1,56 @@
 import React, { Component } from 'react';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import ErrorTrackerIssue from './ErrorTrackerIssue';
 import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
 class ErrorTrackerDetailView extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            selectedErrorEvents: [],
+        };
+    }
+    selectErrorEvent = errorEventId => {
+        this.setState(state => ({
+            selectedErrorEvents: this.removeOrAdd(
+                state.selectedErrorEvents,
+                errorEventId
+            ),
+        }));
+    };
+    removeOrAdd(selectedErrorEvents, errorEventId) {
+        let response;
+        const index = selectedErrorEvents.indexOf(errorEventId);
+        if (index === -1) {
+            // it doesnt exist add it
+            response = [...selectedErrorEvents, errorEventId];
+        } else {
+            // it exist, remove it
+            response = selectedErrorEvents.filter(id => id !== errorEventId);
+        }
+        return response;
+    }
+    selectAllErrorEvents = () => {
+        let errorEventsId = [];
+        // if the number of selected error events is different from the total number of available issues, select all ids and set it as the new selected array
+        if (
+            this.state.selectedErrorEvents.length !==
+            this.props.errorTrackerIssues.errorTrackerIssues.length
+        ) {
+            errorEventsId = this.props.errorTrackerIssues.errorTrackerIssues.map(
+                errorTrackerIssue => errorTrackerIssue.latestId
+            );
+        }
+
+        this.setState({
+            selectedErrorEvents: errorEventsId,
+        });
+    };
+    ignoreErrorEvent = () => {
+        console.log(this.state.selectedErrorEvents);
+    };
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
@@ -16,6 +61,7 @@ class ErrorTrackerDetailView extends Component {
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
     render() {
+        const { selectedErrorEvents } = this.state;
         const {
             errorTrackerIssues,
             errorTracker,
@@ -79,7 +125,25 @@ class ErrorTrackerDetailView extends Component {
                                             height: '100%',
                                         }}
                                     >
-                                        <input type="checkbox" />
+                                        {errorTrackerIssues &&
+                                        errorTrackerIssues.errorTrackerIssues ? (
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    this.state
+                                                        .selectedErrorEvents
+                                                        .length ===
+                                                    errorTrackerIssues
+                                                        .errorTrackerIssues
+                                                        .length
+                                                        ? true
+                                                        : false
+                                                }
+                                                onClick={
+                                                    this.selectAllErrorEvents
+                                                }
+                                            />
+                                        ) : null}
                                     </div>
                                 </td>
                                 <td
@@ -93,41 +157,37 @@ class ErrorTrackerDetailView extends Component {
                                         <button
                                             className="bs-Button bs-Button--icon bs-Button--check"
                                             type="button"
+                                            disabled={
+                                                selectedErrorEvents.length < 1
+                                                    ? true
+                                                    : false
+                                            }
                                         >
                                             <span>Resolve</span>
                                         </button>
                                         <button
                                             className="bs-Button bs-Button--icon bs-Button--block"
                                             type="button"
+                                            disabled={
+                                                selectedErrorEvents.length < 1
+                                                    ? true
+                                                    : false
+                                            }
+                                            onClick={this.ignoreErrorEvent}
                                         >
                                             <span>Ignore</span>
                                         </button>
                                         <button
                                             className="bs-Button"
                                             type="button"
-                                            disabled={true}
+                                            disabled={
+                                                selectedErrorEvents.length < 2
+                                                    ? true
+                                                    : false
+                                            }
                                         >
                                             <span>Merge</span>
                                         </button>
-                                        <span className="Margin-left--8">
-                                            <Dropdown>
-                                                <Dropdown.Toggle
-                                                    id="filterToggle"
-                                                    className="bs-Button bs-DeprecatedButton"
-                                                />
-                                                <Dropdown.Menu>
-                                                    <MenuItem title="clear">
-                                                        Clear Filters
-                                                    </MenuItem>
-                                                    <MenuItem title="unacknowledged">
-                                                        Unacknowledged
-                                                    </MenuItem>
-                                                    <MenuItem title="unresolved">
-                                                        Unresolved
-                                                    </MenuItem>
-                                                </Dropdown.Menu>
-                                            </Dropdown>
-                                        </span>
                                     </div>
                                 </td>
                                 <td
@@ -203,6 +263,13 @@ class ErrorTrackerDetailView extends Component {
                                                 key={i}
                                                 projectId={projectId}
                                                 componentId={componentId}
+                                                selectErrorEvent={
+                                                    this.selectErrorEvent
+                                                }
+                                                selectedErrorEvents={
+                                                    this.state
+                                                        .selectedErrorEvents
+                                                }
                                             />
                                         );
                                     }
