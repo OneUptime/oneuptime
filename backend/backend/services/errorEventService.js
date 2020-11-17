@@ -41,10 +41,10 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const errorEvent = await ErrorEventModel.findOne(query).populate(
-                'errorTrackerId',
-                'name'
-            );
+            const errorEvent = await ErrorEventModel.findOne(query)
+                .populate('errorTrackerId', 'name')
+                .populate('resolvedById', 'name')
+                .populate('ignoredById', 'navme');
             return errorEvent;
         } catch (error) {
             ErrorService.log('errorEventService.findOneBy', error);
@@ -178,7 +178,7 @@ module.exports = {
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
-            const errorEvent = await ErrorEventModel.findOne({
+            const errorEvent = await this.findOneBy({
                 _id: errorEventId,
                 errorTrackerId: errorTrackerId,
             });
