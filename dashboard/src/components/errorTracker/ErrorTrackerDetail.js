@@ -139,6 +139,25 @@ class ErrorTrackerDetail extends Component {
             );
         }
     };
+    handleNavigationButtonClick = (skip, limit) => {
+        const {
+            fetchErrorTrackerIssues,
+            currentProject,
+            errorTracker,
+            componentId,
+            startDate,
+            endDate,
+        } = this.props;
+        fetchErrorTrackerIssues(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            skip,
+            limit,
+            startDate,
+            endDate
+        );
+    };
     componentDidMount() {
         const {
             fetchErrorTrackerIssues,
@@ -223,6 +242,9 @@ class ErrorTrackerDetail extends Component {
                                             errorTracker={errorTracker}
                                             componentId={componentId}
                                             projectId={currentProject._id}
+                                            handleNavigationButtonClick={
+                                                this.handleNavigationButtonClick
+                                            }
                                         />
                                     </div>
                                 </div>

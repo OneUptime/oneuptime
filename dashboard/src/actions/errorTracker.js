@@ -143,7 +143,7 @@ export function fetchErrorTrackerIssues(
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        count: response.data.count,
+                        count: response.data.data.count,
                     })
                 );
             },
