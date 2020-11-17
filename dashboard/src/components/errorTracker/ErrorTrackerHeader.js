@@ -8,6 +8,7 @@ import DataPathHoC from '../DataPathHoC';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 import { connect } from 'react-redux';
 import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 class ErrorTrackerHeader extends Component {
     constructor(props) {
@@ -29,6 +30,10 @@ class ErrorTrackerHeader extends Component {
             editErrorTracker,
             trackerKeyModalId,
             resetErrorTrackerKey,
+            currentDateRange,
+            formId,
+            handleStartDateTimeChange,
+            handleEndDateTimeChange,
         } = this.props;
         let deleting = false;
         if (
@@ -152,7 +157,15 @@ class ErrorTrackerHeader extends Component {
                             )}
                         </div>
                     </div>
-                    <div className="db-Trends-controls Margin-top--12">
+                    <div className="db-Trends-controls Margin-top--12 Flex-flex Flex-justifyContent--spaceBetween">
+                        <DateTimeRangePicker
+                            currentDateRange={currentDateRange}
+                            handleStartDateTimeChange={
+                                handleStartDateTimeChange
+                            }
+                            handleEndDateTimeChange={handleEndDateTimeChange}
+                            formId={formId}
+                        />
                         <div className="Flex-flex">
                             <span className="Margin-all--8">
                                 <Dropdown>
@@ -213,9 +226,16 @@ class ErrorTrackerHeader extends Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, ownProps) => {
+    const currentDateRange = state.errorTracker.errorTrackerIssues[
+        ownProps.errorTracker._id
+    ]
+        ? state.errorTracker.errorTrackerIssues[ownProps.errorTracker._id]
+              .dateRange
+        : null;
     return {
         errorTrackerState: state.errorTracker,
+        currentDateRange,
     };
 };
 
@@ -232,5 +252,9 @@ ErrorTrackerHeader.propTypes = {
     editErrorTracker: PropTypes.func,
     trackerKeyModalId: PropTypes.string,
     resetErrorTrackerKey: PropTypes.func,
+    currentDateRange: PropTypes.object,
+    formId: PropTypes.string,
+    handleStartDateTimeChange: PropTypes.func,
+    handleEndDateTimeChange: PropTypes.func,
 };
 export default connect(mapStateToProps)(ErrorTrackerHeader);

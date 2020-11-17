@@ -17,6 +17,7 @@ import ShouldRender from '../basic/ShouldRender';
 import NewErrorTracker from './NewErrorTracker';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
+import moment from 'moment';
 
 class ErrorTrackerDetail extends Component {
     constructor(props) {
@@ -89,19 +90,50 @@ class ErrorTrackerDetail extends Component {
         const { editErrorTrackerSwitch, errorTracker } = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
+    handleStartDateTimeChange = val => {
+        const startDate = moment(val);
+        this.fetchByDateChange(startDate, this.props.endDate);
+    };
+    handleEndDateTimeChange = val => {
+        const endDate = moment(val);
+        this.fetchByDateChange(this.props.startDate, endDate);
+    };
+    fetchByDateChange = (startDate, endDate) => {
+        const {
+            errorTracker,
+            currentProject,
+            componentId,
+            fetchErrorTrackerIssues,
+        } = this.props;
+        if (moment(startDate).isBefore(endDate)) {
+            fetchErrorTrackerIssues(
+                currentProject._id,
+                componentId,
+                errorTracker._id,
+                0,
+                10,
+                startDate,
+                endDate
+            );
+        }
+    };
     componentDidMount() {
         const {
             fetchErrorTrackerIssues,
             currentProject,
             errorTracker,
             componentId,
+            startDate,
+            endDate,
         } = this.props;
         fetchErrorTrackerIssues(
             currentProject._id,
             componentId,
             errorTracker._id,
             0,
-            10
+            10,
+            startDate,
+            endDate
         );
     }
     render() {
@@ -143,6 +175,13 @@ class ErrorTrackerDetail extends Component {
                                             resetErrorTrackerKey={
                                                 this.resetErrorTrackerKey
                                             }
+                                            handleStartDateTimeChange={
+                                                this.handleStartDateTimeChange
+                                            }
+                                            handleEndDateTimeChange={
+                                                this.handleEndDateTimeChange
+                                            }
+                                            formId="errorTrackerDateTimeForm"
                                         />
                                     </ShouldRender>
                                     <ShouldRender if={errorTracker.editMode}>
@@ -185,6 +224,8 @@ ErrorTrackerDetail.propTypes = {
     editErrorTrackerSwitch: PropTypes.func,
     resetErrorTrackerKey: PropTypes.func,
     closeModal: PropTypes.func,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -207,11 +248,23 @@ function mapStateToProps(state, ownProps) {
     );
     const errorTrackerIssue =
         state.errorTracker.errorTrackerIssues[errorTrackerId];
+    const startDate = state.form.errorTrackerDateTimeForm
+        ? state.form.errorTrackerDateTimeForm.values
+            ? state.form.errorTrackerDateTimeForm.values.startDate
+            : ''
+        : '';
+    const endDate = state.form.errorTrackerDateTimeForm
+        ? state.form.errorTrackerDateTimeForm.values
+            ? state.form.errorTrackerDateTimeForm.values.endDate
+            : ''
+        : '';
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
         errorTrackerIssue,
         editMode: currentErrorTracker[0].editMode,
+        startDate,
+        endDate,
     };
 }
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackerDetail);
