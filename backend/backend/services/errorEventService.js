@@ -102,8 +102,10 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            // get all unique hashes
-            const uniqueHashes = await this.getUniqueHashes();
+            // get all unique hashes by error tracker Id
+            const uniqueHashes = await this.getTotalUniqueHashesForErrorTracker(
+                query.errorTrackerId
+            );
 
             const totalErrorEvents = [];
             let index = skip; // set the skip as the starting index
@@ -112,9 +114,8 @@ module.exports = {
             while (totalErrorEvents.length < limit && uniqueHashes[index]) {
                 const fingerprintHash = uniqueHashes[index];
                 // update query with the current hash
-                query.fingerprintHash = fingerprintHash._id;
+                query.fingerprintHash = fingerprintHash;
                 // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                // todo update query to exclude resolved error events
                 const earliestErrorEvent = await ErrorEventModel.findOne(
                     query
                 ).sort({ createdAt: 1 });
@@ -168,7 +169,7 @@ module.exports = {
                     : null;
             }
 
-            return { totalErrorEvents, dateRange };
+            return { totalErrorEvents, dateRange, count: uniqueHashes.length };
         } catch (error) {
             ErrorService.log('errorEventService.findBy', error);
             throw error;
@@ -257,6 +258,21 @@ module.exports = {
             return uniqueHashes;
         } catch (error) {
             ErrorService.log('errorEventService.uniqueHashes', error);
+            throw error;
+        }
+    },
+    async getTotalUniqueHashesForErrorTracker(errorTrackerId) {
+        try {
+            const uniqueHashes = await ErrorEventModel.distinct(
+                'fingerprintHash',
+                { errorTrackerId }
+            );
+            return uniqueHashes;
+        } catch (error) {
+            ErrorService.log(
+                'errorEventService.getTotalUniqueHashesForErrorTracker',
+                error
+            );
             throw error;
         }
     },
