@@ -1658,12 +1658,16 @@ module.exports = {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.Webhook) {
-                await WebHookService.sendNotification(
+                const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
+                await WebHookService.sendSubscriberNotification(
+                    subscriber,
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'created',
-                    component
+                    component,
+                    downTimeString
                 );
             }
         } catch (error) {
@@ -1843,3 +1847,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
+const IncidentUtility = require('../utils/incident');
