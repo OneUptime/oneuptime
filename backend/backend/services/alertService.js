@@ -1009,6 +1009,37 @@ module.exports = {
         }
     },
 
+    sendStatusPageToSubscribers: async function(incident) {
+        try {
+            const monitor = await MonitorService.findOneBy({
+                _id: incident.monitorId._id
+            })
+            const component = await ComponentService.findOneBy({
+                _id:
+                monitor.componentId && monitor.componentId._id
+                ? monitor.componentId._id
+                : monitor.componentId,
+            });
+            if(incident) {
+                const monitorId = incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId;
+                const subscribers = await SubscriberService.subscribersForAlert(
+                    {
+                        monitorId: monitorId,
+                    }
+                );
+                console.log('subscribers: ', subscribers)
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendStatusPageToSubscribers',
+                error
+            );
+            throw error;
+        }
+    },
+
     sendCreatedIncidentToSubscribers: async function(incident, component) {
         try {
             const _this = this;
