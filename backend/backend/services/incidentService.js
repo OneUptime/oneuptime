@@ -697,14 +697,15 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     'fyipe'}`;
-
-                await NotificationService.create(
-                    incident.projectId,
-                    msg,
-                    'fyipe',
-                    'success'
-                );
             }
+            NotificationService.create(
+                incident.projectId,
+                msg,
+                resolvedincident.resolvedBy
+                    ? resolvedincident.resolvedBy._id
+                    : 'fyipe',
+                'success'
+            );
         } catch (error) {
             ErrorService.log(
                 'incidentService.sendIncidentResolvedNotification',

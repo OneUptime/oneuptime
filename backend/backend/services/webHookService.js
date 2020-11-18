@@ -229,7 +229,9 @@ module.exports = {
                 projectId: project._id,
                 projectName: project.name,
                 createdAt: incident.createdAt,
-                createdBy: incident.createdById.name,
+                createdBy: incident.createdById
+                    ? incident.createdById.name
+                    : 'Fyipe',
                 incidentStatus: incident.incidentType,
                 monitorStatus,
             };
