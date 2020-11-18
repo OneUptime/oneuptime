@@ -1,16 +1,48 @@
 import React, { Component } from 'react';
 import Select from '../../components/basic/react-select-fyipe';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import PropTypes from 'prop-types';
+import ShouldRender from '../basic/ShouldRender';
+import { FormLoader } from '../basic/Loader';
+import DataPathHoC from '../DataPathHoC';
+import DeleteErrorTracker from '../modals/DeleteErrorTracker';
+import { connect } from 'react-redux';
+import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
+import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 class ErrorTrackerHeader extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            showFilters: false,
+        };
+    }
     render() {
         const {
             errorTracker,
             isDetails,
             errorTrackerIssue,
             viewMore,
+            deleteErrorTracker,
+            openModal,
+            deleteModalId,
+            editErrorTracker,
+            trackerKeyModalId,
+            resetErrorTrackerKey,
+            currentDateRange,
+            formId,
+            handleStartDateTimeChange,
+            handleEndDateTimeChange,
+            handleFilterUpdate,
         } = this.props;
+        let deleting = false;
+        if (
+            this.props.errorTrackerState &&
+            this.props.errorTrackerState.deleteErrorTracker &&
+            this.props.errorTrackerState.deleteErrorTracker === errorTracker._id
+        ) {
+            deleting = true;
+        }
         return (
             <div>
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -33,49 +65,85 @@ class ErrorTrackerHeader extends Component {
                         </div>
                         <div className="Flex-flex">
                             {isDetails ? (
-                                <div className="Flex-flex">
-                                    <span className="Margin-all--8">
-                                        <Dropdown>
-                                            <Dropdown.Toggle
-                                                id="filterToggle"
-                                                className="bs-Button bs-DeprecatedButton"
-                                                title={'Sort By: Last Seen'}
-                                            />
-                                            <Dropdown.Menu>
-                                                <MenuItem title="clear">
-                                                    Clear Filters
-                                                </MenuItem>
-                                                <MenuItem title="unacknowledged">
-                                                    Unacknowledged
-                                                </MenuItem>
-                                                <MenuItem title="unresolved">
-                                                    Unresolved
-                                                </MenuItem>
-                                            </Dropdown.Menu>
-                                        </Dropdown>
-                                    </span>
-                                    <div
-                                        style={{
-                                            height: '33px',
-                                            margin: '5px 0px',
-                                        }}
+                                <div>
+                                    <button
+                                        id={`filter_${errorTracker.name}`}
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--filter"
+                                        type="button"
+                                        onClick={() =>
+                                            this.setState(state => ({
+                                                showFilters: !state.showFilters,
+                                            }))
+                                        }
                                     >
-                                        <Select
-                                            name="log_type_selector"
-                                            placeholder="Filter Errors"
-                                            className="db-select-pr"
-                                            id="log_type_selector"
-                                            style={{
-                                                height: '33px',
-                                            }}
-                                            options={[
-                                                {
-                                                    value: '',
-                                                    label: 'Unresolved Errors',
-                                                },
-                                            ]}
-                                        />
-                                    </div>
+                                        <span>
+                                            {this.state.showFilters
+                                                ? 'Hide Filters'
+                                                : 'Filter'}
+                                        </span>
+                                    </button>
+                                    <button
+                                        id={`key_${errorTracker.name}`}
+                                        className={
+                                            'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--key'
+                                        }
+                                        type="button"
+                                        onClick={() =>
+                                            openModal({
+                                                id: trackerKeyModalId,
+                                                onClose: () => '',
+                                                onConfirm: () =>
+                                                    resetErrorTrackerKey(),
+                                                content: DataPathHoC(
+                                                    ViewErrorTrackerKey,
+                                                    {
+                                                        errorTracker,
+                                                    }
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        <span>Tracker Key</span>
+                                    </button>
+                                    <button
+                                        id={`edit_${errorTracker.name}`}
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                        type="button"
+                                        onClick={editErrorTracker}
+                                    >
+                                        <span>Edit</span>
+                                    </button>
+                                    <button
+                                        id={`delete_${errorTracker.name}`}
+                                        className={
+                                            deleting
+                                                ? 'bs-Button bs-Button--blue'
+                                                : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
+                                        }
+                                        type="button"
+                                        disabled={deleting}
+                                        onClick={() =>
+                                            openModal({
+                                                id: deleteModalId,
+                                                onClose: () => '',
+                                                onConfirm: () =>
+                                                    deleteErrorTracker(),
+                                                content: DataPathHoC(
+                                                    DeleteErrorTracker,
+                                                    {
+                                                        errorTracker,
+                                                    }
+                                                ),
+                                            })
+                                        }
+                                    >
+                                        <ShouldRender if={!deleting}>
+                                            <span>Delete</span>
+                                        </ShouldRender>
+                                        <ShouldRender if={deleting}>
+                                            <FormLoader />
+                                        </ShouldRender>
+                                    </button>
                                 </div>
                             ) : (
                                 <button
@@ -89,6 +157,70 @@ class ErrorTrackerHeader extends Component {
                             )}
                         </div>
                     </div>
+                    <ShouldRender if={isDetails}>
+                        <div
+                            className="db-Trends-controls Margin-top--12 Flex-flex Flex-justifyContent--spaceBetween"
+                            style={{
+                                display: this.state.showFilters
+                                    ? 'flex'
+                                    : 'none',
+                            }}
+                        >
+                            <DateTimeRangePicker
+                                currentDateRange={currentDateRange}
+                                handleStartDateTimeChange={
+                                    handleStartDateTimeChange
+                                }
+                                handleEndDateTimeChange={
+                                    handleEndDateTimeChange
+                                }
+                                formId={formId}
+                            />
+                            <div className="Flex-flex">
+                                <div
+                                    style={{
+                                        height: '33px',
+                                        margin: '5px 0px',
+                                    }}
+                                >
+                                    <Select
+                                        name="log_type_selector"
+                                        placeholder="Filter Errors"
+                                        className="db-select-pr-flexible"
+                                        id="log_type_selector"
+                                        isMulti={true}
+                                        style={{
+                                            height: '33px',
+                                        }}
+                                        onChange={handleFilterUpdate}
+                                        options={[
+                                            {
+                                                value: 'is:resolved',
+                                                label: 'Resolved',
+                                            },
+                                            {
+                                                value: 'is:unresolved',
+                                                label: 'Unresolved',
+                                            },
+                                            {
+                                                value: 'is:ignored',
+                                                label: 'Ignored',
+                                            },
+                                            {
+                                                value: 'is:assigned',
+                                                label: 'Assigned',
+                                            },
+                                            {
+                                                value: 'is:unassigned',
+                                                label: 'Unassigned',
+                                            },
+                                        ]}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </ShouldRender>
+
                     <div>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
@@ -104,11 +236,36 @@ class ErrorTrackerHeader extends Component {
     }
 }
 
+const mapStateToProps = (state, ownProps) => {
+    const currentDateRange = state.errorTracker.errorTrackerIssues[
+        ownProps.errorTracker._id
+    ]
+        ? state.errorTracker.errorTrackerIssues[ownProps.errorTracker._id]
+              .dateRange
+        : null;
+    return {
+        errorTrackerState: state.errorTracker,
+        currentDateRange,
+    };
+};
+
 ErrorTrackerHeader.displayName = 'ErrorTrackerHeader';
 ErrorTrackerHeader.propTypes = {
     errorTracker: PropTypes.object,
     isDetails: PropTypes.bool,
     errorTrackerIssue: PropTypes.object,
     viewMore: PropTypes.func,
+    errorTrackerState: PropTypes.object,
+    deleteErrorTracker: PropTypes.func,
+    openModal: PropTypes.func,
+    deleteModalId: PropTypes.string,
+    editErrorTracker: PropTypes.func,
+    trackerKeyModalId: PropTypes.string,
+    resetErrorTrackerKey: PropTypes.func,
+    currentDateRange: PropTypes.object,
+    formId: PropTypes.string,
+    handleStartDateTimeChange: PropTypes.func,
+    handleEndDateTimeChange: PropTypes.func,
+    handleFilterUpdate: PropTypes.func,
 };
-export default ErrorTrackerHeader;
+export default connect(mapStateToProps)(ErrorTrackerHeader);

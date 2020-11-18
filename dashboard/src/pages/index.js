@@ -98,5 +98,5 @@ export default {
     ErrorTracking,
     Advanced,
     ComponentSettings,
-    ComponentSettingsAdvanced
+    ComponentSettingsAdvanced,
 };

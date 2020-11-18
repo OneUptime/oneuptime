@@ -10,6 +10,9 @@ module.exports = {
             incidentMessage.incident_state = data.incident_state;
 
             incidentMessage = await incidentMessage.save();
+
+            IncidentService.refreshInterval(data.incidentId);
+
             incidentMessage = await this.findOneBy({
                 _id: incidentMessage._id,
             });
@@ -136,3 +139,4 @@ module.exports = {
 const IncidentMessageModel = require('../models/incidentMessage');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
+const IncidentService = require('./incidentService');

@@ -658,6 +658,59 @@ module.exports = {
         }
     },
 
+    sendSlaEmailToTeamMembers: async function(projectId, breached = false) {
+        try {
+            const teamMembers = await TeamService.getTeamMembersBy({
+                _id: projectId,
+            });
+
+            if (teamMembers && teamMembers.length > 0) {
+                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
+                    {
+                        name: 'smtp',
+                    }
+                );
+                const areEmailAlertsEnabledInGlobalSettings =
+                    hasGlobalSmtpSettings &&
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
+                        ? true
+                        : false;
+                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                    projectId
+                );
+
+                if (
+                    !areEmailAlertsEnabledInGlobalSettings &&
+                    !hasCustomSmtpSettings
+                ) {
+                    return;
+                }
+
+                if (breached) {
+                    for (const member of teamMembers) {
+                        await MailService.sendSlaBreachNotification({
+                            userEmail: member.email,
+                            name: member.name,
+                            projectId,
+                        });
+                    }
+                } else {
+                    for (const member of teamMembers) {
+                        await MailService.sendSlaNotification({
+                            userEmail: member.email,
+                            name: member.name,
+                            projectId,
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log('AlertService.updateOneBy', error);
+            throw error;
+        }
+    },
+
     sendCallAlert: async function({
         incident,
         user,
@@ -1843,3 +1896,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
+const TeamService = require('./teamService');
