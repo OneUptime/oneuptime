@@ -147,6 +147,19 @@ module.exports = {
             )
             .set('Authorization', authorization);
     },
+    getChargedAlerts: async ({
+        request,
+        authorization,
+        projectId,
+        skip = 0,
+        limit = 999,
+    }) => {
+        return await request
+            .get(
+                `/alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`
+            )
+            .set('Authorization', authorization);
+    },
     getOnCallAlerts: async ({
         request,
         authorization,
