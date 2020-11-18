@@ -4,6 +4,11 @@ const Schema = mongoose.Schema;
 const issueSchema = new Schema({
     name: String,
     description: String,
+    errorTrackerId: {
+        type: Schema.Types.ObjectId,
+        ref: 'ErrorTracker',
+        alias: 'errorTracker',
+    }, //which error tracker this issue belongs to.
     type: {
         type: String,
         enum: ['exception', 'message', 'error'],
@@ -40,6 +45,12 @@ const issueSchema = new Schema({
     },
 
     ignoredById: { type: String, ref: 'User' },
+});
+issueSchema.virtual('errorTracker', {
+    localField: '_id',
+    foreignField: 'errorTrackerId',
+    ref: 'ErrorTracker',
+    justOne: true,
 });
 
 module.exports = mongoose.model('Issue', issueSchema);

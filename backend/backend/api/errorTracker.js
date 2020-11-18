@@ -272,10 +272,13 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     try {
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
+        data.errorTrackerId = errorTrackerId;
 
-        // try to fetch the particular issue with thee fingerprint of the error event
-
-        let issue = await IssueService.findOneByHash(data.fingerprint);
+        // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
+        let issue = await IssueService.findOneByHashAndErrorTracker(
+            data.fingerprint,
+            errorTrackerId
+        );
 
         // if it doesnt exist, create the issue and use its details
         if (!issue) {
@@ -284,8 +287,6 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         // if it exist, use the issue details
         data.issueId = issue._id;
         data.fingerprintHash = issue.fingerprintHash;
-
-        data.errorTrackerId = errorTrackerId;
 
         const errorEvent = await ErrorEventService.create(data);
         await RealTimeService.sendErrorEventCreated(errorEvent);
@@ -382,30 +383,30 @@ router.post(
         }
     }
 );
-// Description: Ignore, Resolve and Unresolve an error event by _id and errorTrackerId.
+// Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
 router.post(
-    '/:projectId/:componentId/:errorTrackerId/action/error-events',
+    '/:projectId/:componentId/:errorTrackerId/issues/action',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const { errorEventsId, action } = req.body;
-            if (!errorEventsId) {
+            const { issueId, action } = req.body;
+            if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Error Event ID(s) is required',
+                    message: 'Issue ID is required',
                 });
             }
-            if (!Array.isArray(errorEventsId)) {
+            if (!Array.isArray(issueId)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Error Event ID(s) has to be of type array',
+                    message: 'Issue ID has to be of type array',
                 });
             }
-            if (errorEventsId.length < 1) {
+            if (issueId.length < 1) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Atleast one Error Event ID is required',
+                    message: 'Atleast one Issue ID is required',
                 });
             }
             if (!action) {
