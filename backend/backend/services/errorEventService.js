@@ -44,7 +44,7 @@ module.exports = {
             const errorEvent = await ErrorEventModel.findOne(query)
                 .populate('errorTrackerId', 'name')
                 .populate('resolvedById', 'name')
-                .populate('ignoredById', 'navme');
+                .populate('ignoredById', 'name');
             return errorEvent;
         } catch (error) {
             ErrorService.log('errorEventService.findOneBy', error);
