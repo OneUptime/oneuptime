@@ -25,6 +25,7 @@ const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
 const ErrorEventService = require('../services/errorEventService');
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const IssueService = require('../services/issueService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -271,6 +272,19 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     try {
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
+
+
+        // try to fetch the particular issue with thee fingerprint of the error event
+
+        let issue = await IssueService.findOneByHash(data.fingerprint);
+
+        // if it doesnt exist, create the issue and use its details
+        if (!issue) {
+            issue = IssueService.create(data);
+        }
+        // if it exist, use the issue details
+        data.issueId = issue._id;
+        data.fingerprintHash = issue.fingerprintHash;
 
         data.errorTrackerId = errorTrackerId;
 

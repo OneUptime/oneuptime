@@ -1,34 +1,30 @@
 module.exports = {
     create: async function(data) {
         try {
-            const _this = this;
-
             // prepare error event model
-            let errorEvent = new ErrorEventModel();
+            const errorEvent = new ErrorEventModel();
 
             errorEvent.content = data.exception;
             errorEvent.device = data.deviceDetails;
             errorEvent.tags = data.tags;
-            errorEvent.createdById = data.createdById;
             errorEvent.type = data.type;
             errorEvent.sdk = data.sdk;
 
-            // generate hash from fingerprint
-            const hash = sha256(data.fingerprint.join(''));
-            errorEvent.fingerprintHash = hash;
+            errorEvent.fingerprintHash = data.fingerprintHash;
             errorEvent.fingerprint = data.fingerprint;
 
             // set error trackerid
             errorEvent.errorTrackerId = data.errorTrackerId;
 
+            // set issueId
+            errorEvent.issueId = data.issueId;
+
             // set timeline
             errorEvent.timeline = data.timeline;
 
             const savedErrorEvent = await errorEvent.save();
-            errorEvent = await _this.findOneBy({
-                _id: savedErrorEvent._id,
-            });
-            return errorEvent;
+
+            return savedErrorEvent;
         } catch (error) {
             ErrorService.log('errorEventService.create', error);
             throw error;
@@ -335,4 +331,3 @@ module.exports = {
 
 const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
-const sha256 = require('crypto-js/sha256');
