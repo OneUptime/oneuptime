@@ -46,7 +46,7 @@ const {
     Consulting,
     Advanced,
     ComponentSettings,
-    ComponentSettingsAdvanced
+    ComponentSettingsAdvanced,
 } = pages;
 
 export const groups = [

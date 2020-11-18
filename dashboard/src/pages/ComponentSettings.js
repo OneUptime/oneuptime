@@ -8,26 +8,25 @@ import { Spinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../config';
-import { RenderField } from '../components/basic/RenderField'
+import { RenderField } from '../components/basic/RenderField';
 import PropTypes from 'prop-types';
-import { editComponent } from '../actions/component'
+import { editComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
 
 class ComponentSettings extends Component {
-
     submitForm = values => {
-        if(this.props.initialValues.name === values.name) {
-            return
+        if (this.props.initialValues.name === values.name) {
+            return;
         }
 
-        this.props.editComponent(this.props.projectId, values)
-    }
+        this.props.editComponent(this.props.projectId, values);
+    };
 
     render() {
         const {
             location: { pathname },
             component,
-            handleSubmit
+            handleSubmit,
         } = this.props;
         const componentName = component ? component.name : '';
 
@@ -50,7 +49,14 @@ class ComponentSettings extends Component {
                                     <div className="Box-root">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                <span>Edit Component - <span id={`component-title-${componentName}`}>{componentName}</span></span>
+                                                <span>
+                                                    Edit Component -{' '}
+                                                    <span
+                                                        id={`component-title-${componentName}`}
+                                                    >
+                                                        {componentName}
+                                                    </span>
+                                                </span>
                                             </span>
                                         </span>
                                         <p>
@@ -92,7 +98,9 @@ class ComponentSettings extends Component {
                                                                     validate={
                                                                         ValidateField.text
                                                                     }
-                                                                    autoFocus={true}
+                                                                    autoFocus={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -100,11 +108,27 @@ class ComponentSettings extends Component {
                                                 </fieldset>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }} className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                            }}
+                                            className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12"
+                                        >
                                             <div className="bs-Modal-messages">
-                                                <ShouldRender if={this.props.editingComponent.error}>
+                                                <ShouldRender
+                                                    if={
+                                                        this.props
+                                                            .editingComponent
+                                                            .error
+                                                    }
+                                                >
                                                     <p className="bs-Modal-message">
-                                                        {this.props.editingComponent.error}
+                                                        {
+                                                            this.props
+                                                                .editingComponent
+                                                                .error
+                                                        }
                                                     </p>
                                                 </ShouldRender>
                                             </div>
@@ -113,9 +137,19 @@ class ComponentSettings extends Component {
                                                     id="editComponentButton"
                                                     className="bs-Button bs-Button--blue"
                                                     type="submit"
-                                                    disabled={this.props.editingComponent.requesting}
+                                                    disabled={
+                                                        this.props
+                                                            .editingComponent
+                                                            .requesting
+                                                    }
                                                 >
-                                                    <ShouldRender if={this.props.editingComponent.requesting}>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .editingComponent
+                                                                .requesting
+                                                        }
+                                                    >
                                                         <Spinner />
                                                     </ShouldRender>
                                                     <span>Update</span>
@@ -129,7 +163,7 @@ class ComponentSettings extends Component {
                     </div>
                 </Fade>
             </Dashboard>
-        )
+        );
     }
 }
 
@@ -149,7 +183,7 @@ ComponentSettings.propTypes = {
     initialValues: PropTypes.shape({ name: PropTypes.string }),
     editComponent: PropTypes.func.isRequired,
     projectId: PropTypes.string,
-}
+};
 
 const mapStateToProps = (state, ownProps) => {
     const { componentId } = ownProps.match.params;
@@ -165,7 +199,7 @@ const mapStateToProps = (state, ownProps) => {
         components => {
             return components.components.filter(
                 component => component._id === ownProps.match.params.componentId
-            )
+            );
         }
     )[0];
 
@@ -176,17 +210,20 @@ const mapStateToProps = (state, ownProps) => {
         projectId:
             state.project.currentProject !== null &&
             state.project.currentProject._id,
-    }
-}
+    };
+};
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators({ editComponent }, dispatch);
-}
+};
 
 const NewComponentSettings = reduxForm({
     form: 'ComponentSettingsForm',
     destroyOnUnmount: true,
     enableReinitialize: true,
-})(ComponentSettings)
+})(ComponentSettings);
 
-export default connect(mapStateToProps, mapDispatchToProps)(NewComponentSettings);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(NewComponentSettings);

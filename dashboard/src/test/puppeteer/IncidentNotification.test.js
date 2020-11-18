@@ -58,12 +58,12 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 // Rename project
                 await page.waitForSelector('#projectSettings');
-                await page.$eval('#projectSettings', e=>e.click());
+                await page.$eval('#projectSettings', e => e.click());
                 await page.waitForSelector('input[name=project_name]');
                 await page.click('input[name=project_name]', { clickCount: 3 });
                 await page.type('input[name=project_name]', projectName);
                 await page.waitForSelector('button[id=btnCreateProject]');
-                await page.$eval('button[id=btnCreateProject]',e=>e.click());
+                await page.$eval('button[id=btnCreateProject]', e => e.click());
                 await page.waitForSelector(`#cb${projectName}`, {
                     visible: true,
                 });
@@ -94,24 +94,24 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('button[id=viewIncident-0]');
-                await page.$eval('button[id=viewIncident-0]',e=>e.click());
+                await page.$eval('button[id=viewIncident-0]', e => e.click());
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.$eval('#btnAcknowledge_0',e=>e.click());
+                await page.$eval('#btnAcknowledge_0', e => e.click());
                 await page.waitForSelector('#btnResolve_0');
-                await page.$eval('#btnResolve_0',e=>e.click());
+                await page.$eval('#btnResolve_0', e => e.click());
                 await page.waitForSelector('#ResolveText_0', { visible: true });
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Invite member on the project
                 await page.waitForSelector('#teamMembers');
-                await page.$eval('#teamMembers',e=>e.click());
+                await page.$eval('#teamMembers', e => e.click());
                 await page.waitForSelector(`#btn_${projectName}`);
-                await page.$eval(`#btn_${projectName}`,e=>e.click());
+                await page.$eval(`#btn_${projectName}`, e => e.click());
                 await page.waitForSelector('input[name=emails]');
                 await page.type('input[name=emails]', user1.email);
                 await page.waitForSelector(`#${role}_${projectName}`);
-                await page.$eval(`#${role}_${projectName}`,e=>e.click());
-                await page.$eval(`#btn_modal_${projectName}`,e=>e.click());
+                await page.$eval(`#${role}_${projectName}`, e => e.click());
+                await page.$eval(`#btn_modal_${projectName}`, e => e.click());
                 await page.waitForSelector(`#btn_modal_${projectName}`, {
                     hidden: true,
                 });
@@ -159,10 +159,10 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components', { visible: true });
-                await page.$eval('#components',e=>e.click());
+                await page.$eval('#components', e => e.click());
 
                 await page.waitForSelector('button[id=viewIncident-0]');
-                await page.$eval('button[id=viewIncident-0]',e=>e.click());
+                await page.$eval('button[id=viewIncident-0]', e => e.click());
                 await page.waitForSelector('#cbIncident', { visible: true });
                 let pageTitle = await page.$('#cbIncident');
                 pageTitle = await pageTitle.getProperty('innerText');
@@ -241,7 +241,7 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#activeIncidents');
-                await page.$eval('#activeIncidents',e=>e.click());
+                await page.$eval('#activeIncidents', e => e.click());
                 await page.waitForSelector('#cbHome');
                 let activeIncidents = await page.$('#cbHome', {
                     visible: true,
@@ -270,15 +270,15 @@ describe('Incident Created test', () => {
 
                 // Acknowledge this incident
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.$eval('#btnAcknowledge_0',e=>e.click());
+                await page.$eval('#btnAcknowledge_0', e => e.click());
 
                 await page.waitForSelector('#backToMonitorView');
-                await page.$eval('#backToMonitorView',e=>e.click());
+                await page.$eval('#backToMonitorView', e => e.click());
 
                 await page.waitForSelector('button[id=filterToggle]');
-                await page.$eval('button[id=filterToggle]',e=>e.click());
+                await page.$eval('button[id=filterToggle]', e => e.click());
                 await page.waitForSelector('div[title=unacknowledged]');
-                await page.$eval('div[title=unacknowledged]',e=>e.click());
+                await page.$eval('div[title=unacknowledged]', e => e.click());
 
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
@@ -296,34 +296,38 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
 
                 // Acknowledge the second incident
                 await page.waitForSelector(`tr#incident_${monitorName}_1`);
-                await page.$eval(`tr#incident_${monitorName}_1`,e=>e.click());
+                await page.$eval(`tr#incident_${monitorName}_1`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.$eval('#btnAcknowledge_0',e=>e.click());
+                await page.$eval('#btnAcknowledge_0', e => e.click());
 
                 await page.waitForSelector('#backToDashboard');
-                await page.$eval('#backToDashboard',e=>e.click());
+                await page.$eval('#backToDashboard', e => e.click());
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
 
                 // Acknowledge the third incident
                 await page.waitForSelector(`tr#incident_${monitorName}_2`);
-                await page.$eval(`tr#incident_${monitorName}_2`,e=>e.click());
+                await page.$eval(`tr#incident_${monitorName}_2`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#btnAcknowledge_0');
-                await page.$eval('#btnAcknowledge_0',e=>e.click());
+                await page.$eval('#btnAcknowledge_0', e => e.click());
 
                 await page.waitForSelector('#backToDashboard');
-                await page.$eval('#backToDashboard',e=>e.click());
+                await page.$eval('#backToDashboard', e => e.click());
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
 
                 await page.waitForSelector('button[id=filterToggle]');
-                await page.$eval('button[id=filterToggle]',e=>e.click());
+                await page.$eval('button[id=filterToggle]', e => e.click());
                 await page.waitForSelector('div[title=unacknowledged]');
-                await page.$eval('div[title=unacknowledged]',e=>e.click());
+                await page.$eval('div[title=unacknowledged]', e => e.click());
 
                 let filteredIncidents = await page.$(
                     'span#noIncidentsInnerText'
@@ -345,17 +349,19 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
-                await page.$eval('#components',e=>e.click());
+                await page.$eval('#components', e => e.click());
 
                 await page.waitForSelector(
                     `button[id=view-resource-${monitorName}]`
                 );
-                await page.$eval(`button[id=view-resource-${monitorName}]`,e=>e.click());
+                await page.$eval(`button[id=view-resource-${monitorName}]`, e =>
+                    e.click()
+                );
 
                 await page.waitForSelector('button[id=filterToggle]');
-                await page.$eval('button[id=filterToggle]',e=>e.click());
+                await page.$eval('button[id=filterToggle]', e => e.click());
                 await page.waitForSelector('div[title=unresolved]');
-                await page.$eval('div[title=unresolved]',e=>e.click());
+                await page.$eval('div[title=unresolved]', e => e.click());
 
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
@@ -373,17 +379,19 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#components');
-                await page.$eval('#components',e=>e.click());
+                await page.$eval('#components', e => e.click());
 
                 await page.waitForSelector(
                     `button[id=view-resource-${monitorName}]`
                 );
-                await page.$eval(`button[id=view-resource-${monitorName}]`,e=>e.click());
+                await page.$eval(`button[id=view-resource-${monitorName}]`, e =>
+                    e.click()
+                );
 
                 await page.waitForSelector('button[id=filterToggle]');
-                await page.$eval('button[id=filterToggle]',e=>e.click());
+                await page.$eval('button[id=filterToggle]', e => e.click());
                 await page.waitForSelector('div[title=clear]');
-                await page.$eval('div[title=clear]',e=>e.click());
+                await page.$eval('div[title=clear]', e => e.click());
 
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
@@ -412,7 +420,7 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
 
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
@@ -429,14 +437,16 @@ describe('Incident Created test', () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
-                await page.$eval(`#btnCreateIncident_${projectName}`,e=>e.click());
+                await page.$eval(`#btnCreateIncident_${projectName}`, e =>
+                    e.click()
+                );
                 await page.waitForSelector('#frmIncident');
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Degraded', page);
                 await init.selectByText('#incidentPriority', 'Low', page);
-                await page.$eval('#createIncident',e=>e.click());
+                await page.$eval('#createIncident', e => e.click());
                 await page.waitForSelector('#createIncident', { hidden: true });
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
@@ -473,7 +483,7 @@ describe('Incident Created test', () => {
                 await page.goto(utils.DASHBOARD_URL);
                 // remove existing notification
                 await page.waitForSelector('#incidents');
-                await page.$eval('#incidents',e=>e.click());
+                await page.$eval('#incidents', e => e.click());
                 await page.waitForSelector(`#btnCreateIncident_${projectName}`);
                 await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                     e.click()
@@ -482,7 +492,7 @@ describe('Incident Created test', () => {
                 await init.selectByText('#monitorList', monitorName2, page);
                 await init.selectByText('#incidentTypeId', 'Online', page);
                 await init.selectByText('#incidentPriority', 'Low', page);
-                await page.$eval('#createIncident',e=>e.click());
+                await page.$eval('#createIncident', e => e.click());
                 await page.waitForSelector('#createIncident', { hidden: true });
                 await page.goto(utils.DASHBOARD_URL);
                 await page.$eval(`#${monitorName2}_ViewIncidentDetails`, elem =>
@@ -492,9 +502,8 @@ describe('Incident Created test', () => {
                     '#closeIncident_2',
                     { hidden: true }
                 );
-                const rowsCount = (
-                    await page.$$('#notificationscroll button')
-                ).length;
+                const rowsCount = (await page.$$('#notificationscroll button'))
+                    .length;
 
                 expect(rowsCount).toEqual(2);
             });
