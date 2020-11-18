@@ -123,14 +123,14 @@ class FyipeListiner {
                 // check if it is not a request to Fyipe servers
                 if (!url.startsWith(_this.#BASE_URL)) {
                     obj.status_code = this.status;
-                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
+                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().INFO);
                 }
             });
             this.addEventListener('error', function() {
                 // check if it is not a request to Fyipe servers
                 if (!url.startsWith(_this.#BASE_URL)) {
                     obj.status_code = this.status;
-                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().HTTP);
+                    _this._logXHREvent(obj, _this.#utilObj.getErrorType().INFO);
                 }
             });
 
@@ -161,7 +161,7 @@ class FyipeListiner {
                 }
             );
             if (!url.startsWith(_this.#BASE_URL)) {
-                _this._logFetchEvent(obj, _this.#utilObj.getErrorType().HTTP);
+                _this._logFetchEvent(obj, _this.#utilObj.getErrorType().INFO);
             }
 
             return promise;
@@ -188,7 +188,7 @@ class FyipeListiner {
                                 if (!log.url.startsWith(_this.#BASE_URL)) {
                                     _this._logHttpRequestEvent(
                                         log,
-                                        _this.#utilObj.getErrorType().HTTP
+                                        _this.#utilObj.getErrorType().INFO
                                     );
                                 }
                             });

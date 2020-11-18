@@ -23,6 +23,7 @@ const errorEventSchema = new Schema({
             type: Object,
         },
     ],
+    sdk: Object,
     fingerprint: [
         {
             type: String,
@@ -42,6 +43,20 @@ const errorEventSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User' },
+    resolved: { type: Boolean, default: false },
+
+    resolvedAt: {
+        type: Date,
+    },
+
+    resolvedById: { type: String, ref: 'User' },
+    ignored: { type: Boolean, default: false },
+
+    ignoredAt: {
+        type: Date,
+    },
+
+    ignoredById: { type: String, ref: 'User' },
 });
 
 errorEventSchema.virtual('errorTracker', {
