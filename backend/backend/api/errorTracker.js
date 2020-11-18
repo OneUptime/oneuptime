@@ -369,14 +369,14 @@ router.post(
         }
     }
 );
-// Description: Ignore an error event by _id and errorTrackerId.
+// Description: Ignore, Resolve and Unresolve an error event by _id and errorTrackerId.
 router.post(
-    '/:projectId/:componentId/:errorTrackerId/ignore/error-events',
+    '/:projectId/:componentId/:errorTrackerId/action/error-events',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const { errorEventsId } = req.body;
+            const { errorEventsId, action } = req.body;
             if (!errorEventsId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -393,6 +393,19 @@ router.post(
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Atleast one Error Event ID is required',
+                });
+            }
+            if (!action) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is required',
+                });
+            }
+            const allowedActions = ['ignore', 'unresolve'];
+            if (!allowedActions.includes(action)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is not allowed',
                 });
             }
             const componentId = req.params.componentId;
@@ -421,17 +434,34 @@ router.post(
                 });
             }
 
-            // Ignore Data
-            const ignoreData = {
-                ignored: true,
-                ignoredAt: new Date(),
-                ignoredById: req.user.id,
-            };
+            let updateData = {};
 
-            const ignoredErrorEvents = [];
+            switch (action) {
+                case 'ignore':
+                    updateData = {
+                        ignored: true,
+                        ignoredAt: new Date(),
+                        ignoredById: req.user.id,
+                    };
+                    break;
+                case 'unresolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        resolved: false,
+                        resolvedAt: '',
+                        ignoredById: null,
+                        resolvedById: null,
+                    };
+                    break;
+
+                default:
+                    break;
+            }
+
+            const errorEvents = [];
             for (let index = 0; index < errorEventsId.length; index++) {
                 const errorEventId = errorEventsId[index];
-                console.log(errorEventId);
                 const currentErrorEvent = await ErrorEventService.findOneBy({
                     _id: errorEventId,
                     errorTrackerId,
@@ -442,15 +472,15 @@ router.post(
                             fingerprintHash: currentErrorEvent.fingerprintHash,
                             errorTrackerId,
                         },
-                        ignoreData
+                        updateData
                     );
-                    ignoredErrorEvents.push(errorEventId);
+                    errorEvents.push(errorEventId);
 
                     // TODO update a timeline object
                 }
             }
 
-            return sendItemResponse(req, res, { ignoredErrorEvents });
+            return sendItemResponse(req, res, { errorEvents });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
