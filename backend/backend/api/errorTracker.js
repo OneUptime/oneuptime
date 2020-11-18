@@ -273,7 +273,6 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
 
-
         // try to fetch the particular issue with thee fingerprint of the error event
 
         let issue = await IssueService.findOneByHash(data.fingerprint);

@@ -97,7 +97,7 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted) delete query.deleted;
             // get all unique hashes by error tracker Id
             const uniqueHashes = await this.getTotalUniqueHashesForErrorTracker(
                 query.errorTrackerId
@@ -109,41 +109,39 @@ module.exports = {
             // if total unique error events length is less than limit and the next index is available in the hash, proceed
             while (totalErrorEvents.length < limit && uniqueHashes[index]) {
                 const fingerprintHash = uniqueHashes[index];
-                // update query with the current hash
-                query.fingerprintHash = fingerprintHash;
-                // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                const earliestErrorEvent = await ErrorEventModel.findOne(
-                    query
-                ).sort({ createdAt: 1 });
-                const latestErrorEvent = await ErrorEventModel.findOne(
-                    query
-                ).sort({ createdAt: -1 });
-                // if we have an earliest and latest error event
-                if (earliestErrorEvent && latestErrorEvent) {
-                    // get total number of events for that hash
-                    const totalNumberOfEvents = await this.countBy(query);
-                    // fill in its biodata with the latest error event details
-                    const errorEvent = {
-                        name: latestErrorEvent.name,
-                        earliestOccurennce: earliestErrorEvent.createdAt,
-                        earliestId: earliestErrorEvent._id,
-                        latestOccurennce: latestErrorEvent.createdAt,
-                        latestId: latestErrorEvent._id,
-                        totalNumberOfEvents,
-                        content: {
-                            type:
-                                latestErrorEvent.content &&
-                                latestErrorEvent.content.type,
-                            message:
-                                latestErrorEvent.content &&
-                                latestErrorEvent.content.message,
-                        },
-                        type: latestErrorEvent.type,
-                        fingerprintHash: fingerprintHash._id,
-                        ignored: earliestErrorEvent.ignored, // use the oldest to determine if it has been ignored
-                    };
-                    // add it to the list of error events
-                    totalErrorEvents.push(errorEvent);
+
+                const issue = await IssueService.findOneBy({ fingerprintHash });
+
+                if (issue) {
+                    // update query with the current hash
+                    query.issueId = issue._id;
+                    // run a query to get the first and last error event that has current error tracker id and fingerprint hash
+                    const earliestErrorEvent = await ErrorEventModel.findOne(
+                        query
+                    ).sort({ createdAt: 1 });
+                    const latestErrorEvent = await ErrorEventModel.findOne(
+                        query
+                    ).sort({ createdAt: -1 });
+                    // if we have an earliest and latest error event
+                    if (earliestErrorEvent && latestErrorEvent) {
+                        // get total number of events for that hash
+                        const totalNumberOfEvents = await this.countBy(query);
+                        // fill in its biodata with the latest error event details
+                        const errorEvent = {
+                            name: issue.name,
+                            description: issue.description,
+                            type: issue.type,
+                            fingerprintHash: issue.fingerprintHash,
+                            ignored: issue.ignored,
+                            earliestOccurennce: earliestErrorEvent.createdAt,
+                            earliestId: earliestErrorEvent._id,
+                            latestOccurennce: latestErrorEvent.createdAt,
+                            latestId: latestErrorEvent._id,
+                            totalNumberOfEvents,
+                        };
+                        // add it to the list of error events
+                        totalErrorEvents.push(errorEvent);
+                    }
                 }
                 // increment index
                 index = index + 1;
@@ -331,3 +329,4 @@ module.exports = {
 
 const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
+const IssueService = require('./issueService');
