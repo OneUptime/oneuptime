@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import { history } from '../../store';
 
-const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
+const OnCallSchedule = ({ status, schedules, currentProjectId, isOnDutyAllTheTime }) => {
     let color;
     switch (status) {
         case 'active':
@@ -88,7 +88,7 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                         :
                                                     </b>{' '}
                                                     {
-                                                        schedule.startTime && schedule.endTime && schedule.timezone ?
+                                                        !schedule.isOnDutyAllTheTime ?
                                                         <span>
                                                             {status === 'active' ? (
                                                             <span>
