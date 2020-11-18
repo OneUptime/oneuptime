@@ -39,6 +39,14 @@ module.exports = {
             if (!query.deleted) delete query.deleted;
             const errorEvent = await ErrorEventModel.findOne(query)
                 .populate('errorTrackerId', 'name')
+                .populate('issueId', [
+                    '_id',
+                    'name',
+                    'description',
+                    'type',
+                    'ignored',
+                    'resolved',
+                ])
                 .populate('resolvedById', 'name')
                 .populate('ignoredById', 'name');
             return errorEvent;
