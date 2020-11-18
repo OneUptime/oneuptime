@@ -448,3 +448,68 @@ export function resetresetErrorTrackerKey() {
         type: types.RESET_ERROR_TRACKER_KEY_RESET,
     };
 }
+
+export function ignoreErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    errorEventsId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/ignore/error-events`,
+            { errorEventsId }
+        );
+        dispatch(ignoreErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    ignoreErrorEventSuccess({
+                        errorTrackerId,
+                        ignoredErrorEvents: response.data.ignoredErrorEvents,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(ignoreErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function ignoreErrorEventReset() {
+    return {
+        type: types.IGNORE_ERROR_EVENT_RESET,
+    };
+}
+
+export function ignoreErrorEventRequest() {
+    return {
+        type: types.IGNORE_ERROR_EVENT_REQUEST,
+    };
+}
+export function ignoreErrorEventFailure(error) {
+    return {
+        type: types.IGNORE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function ignoreErrorEventSuccess(errorEvents) {
+    return {
+        type: types.IGNORE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}

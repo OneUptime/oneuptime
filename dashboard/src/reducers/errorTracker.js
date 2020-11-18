@@ -28,6 +28,10 @@ import {
     RESET_ERROR_TRACKER_KEY_REQUEST,
     RESET_ERROR_TRACKER_KEY_RESET,
     RESET_ERROR_TRACKER_KEY_SUCCESS,
+    IGNORE_ERROR_EVENT_FAILURE,
+    IGNORE_ERROR_EVENT_REQUEST,
+    IGNORE_ERROR_EVENT_RESET,
+    IGNORE_ERROR_EVENT_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -48,6 +52,11 @@ const INITIAL_STATE = {
     errorEvents: {},
     currentErrorEvent: '',
     editErrorTracker: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    ignoreErrorEvent: {
         requesting: false,
         error: null,
         success: false,
@@ -414,6 +423,53 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     error: null,
                     success: false,
                 },
+            });
+        case IGNORE_ERROR_EVENT_SUCCESS:
+            temporaryIssues =
+                state.errorTrackerIssues[action.payload.errorTrackerId]
+                    .errorTrackerIssues;
+            temporaryIssues.map(errorTrackerIssues => {
+                const index = action.payload.ignoredErrorEvents.indexOf(
+                    errorTrackerIssues.latestId
+                );
+                if (index > -1) {
+                    errorTrackerIssues.ignored = true;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case IGNORE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                ignoreErrorEvent: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case IGNORE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                ignoreErrorEvent: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case IGNORE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                ignoreErrorEvent: INITIAL_STATE.ignoreErrorEvent,
             });
         default:
             return state;
