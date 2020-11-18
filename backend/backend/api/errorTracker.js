@@ -371,7 +371,7 @@ router.post(
 );
 // Description: Ignore an error event by _id and errorTrackerId.
 router.post(
-    '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId/ignore',
+    '/:projectId/:componentId/:errorTrackerId/ignore/error-events',
     getUser,
     isAuthorized,
     async function(req, res) {
@@ -431,6 +431,7 @@ router.post(
             const ignoredErrorEvents = [];
             for (let index = 0; index < errorEventsId.length; index++) {
                 const errorEventId = errorEventsId[index];
+                console.log(errorEventId);
                 const currentErrorEvent = await ErrorEventService.findOneBy({
                     _id: errorEventId,
                     errorTrackerId,
