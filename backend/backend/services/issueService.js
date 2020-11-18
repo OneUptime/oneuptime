@@ -94,6 +94,39 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data, unsetData = null) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let issue = await IssueModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            if (unsetData) {
+                issue = await IssueModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
+
+            issue = await this.findOneBy(query);
+
+            return issue;
+        } catch (error) {
+            ErrorService.log('applicationLogService.updateOneBy', error);
+            throw error;
+        }
+    },
 };
 
 const IssueModel = require('../models/issue');

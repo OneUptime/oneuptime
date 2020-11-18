@@ -282,7 +282,7 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
 
         // if it doesnt exist, create the issue and use its details
         if (!issue) {
-            issue = IssueService.create(data);
+            issue = await IssueService.create(data);
         }
         // if it exist, use the issue details
         data.issueId = issue._id;
@@ -473,28 +473,26 @@ router.post(
                     break;
             }
 
-            const errorEvents = [];
-            for (let index = 0; index < errorEventsId.length; index++) {
-                const errorEventId = errorEventsId[index];
-                const currentErrorEvent = await ErrorEventService.findOneBy({
-                    _id: errorEventId,
+            const issues = [];
+            for (let index = 0; index < issueId.length; index++) {
+                const currentIssueId = issueId[index];
+                const query = {
+                    _id: currentIssueId,
                     errorTrackerId,
-                });
-                if (currentErrorEvent) {
-                    await ErrorEventService.updateBy(
-                        {
-                            fingerprintHash: currentErrorEvent.fingerprintHash,
-                            errorTrackerId,
-                        },
+                };
+                const currentIssue = await IssueService.findOneBy(query);
+                if (currentIssue) {
+                    const issue = await IssueService.updateOneBy(
+                        query,
                         updateData
                     );
-                    errorEvents.push(errorEventId);
+                    issues.push(issue);
 
                     // TODO update a timeline object
                 }
             }
 
-            return sendItemResponse(req, res, { errorEvents });
+            return sendItemResponse(req, res, { issues });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

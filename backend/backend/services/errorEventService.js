@@ -130,6 +130,7 @@ module.exports = {
                         const totalNumberOfEvents = await this.countBy(query);
                         // fill in its biodata with the latest error event details
                         const errorEvent = {
+                            _id: issue._id,
                             name: issue.name,
                             description: issue.description,
                             type: issue.type,
