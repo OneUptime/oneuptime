@@ -15,6 +15,7 @@ module.exports = {
             issue.fingerprint = data.fingerprint;
 
             issue.type = data.type;
+            issue.errorTrackerId = data.errorTrackerId;
 
             const savedIssue = await issue.save();
             issue = await _this.findOneBy({
@@ -26,6 +27,39 @@ module.exports = {
             throw error;
         }
     },
+    // find a list of Issues
+    async findBy(query, limit, skip) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const issues = await IssueModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('errorTrackerId', 'name')
+                .populate('resolvedById', 'name')
+                .populate('ignoredById', 'name');
+            return issues;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.findBy', error);
+            throw error;
+        }
+    },
     async findOneBy(query) {
         try {
             if (!query) {
@@ -34,6 +68,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const issue = await IssueModel.findOne(query)
+                .populate('errorTrackerId', 'name')
                 .populate('resolvedById', 'name')
                 .populate('ignoredById', 'name');
             return issue;
@@ -42,13 +77,14 @@ module.exports = {
             throw error;
         }
     },
-    findOneByHash: async function(fingerprint) {
+    findOneByHashAndErrorTracker: async function(fingerprint, errorTrackerId) {
         try {
             const query = {};
             const hash = sha256(fingerprint.join('')).toString();
 
             if (!query.deleted) query.deleted = false;
             query.fingerprintHash = hash;
+            query.errorTrackerId = errorTrackerId;
             const issue = await IssueModel.findOne(query)
                 .populate('resolvedById', 'name')
                 .populate('ignoredById', 'name');

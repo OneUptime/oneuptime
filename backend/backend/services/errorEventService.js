@@ -99,21 +99,23 @@ module.exports = {
 
             if (!query.deleted) delete query.deleted;
             // get all unique hashes by error tracker Id
-            const uniqueHashes = await this.getTotalUniqueHashesForErrorTracker(
-                query.errorTrackerId
+            const errorTrackerIssues = await IssueService.findBy(
+                {
+                    errorTrackerId: query.errorTrackerId,
+                },
+                limit,
+                skip
             );
 
             const totalErrorEvents = [];
-            let index = skip; // set the skip as the starting index
+            let index = 0;
 
-            // if total unique error events length is less than limit and the next index is available in the hash, proceed
-            while (totalErrorEvents.length < limit && uniqueHashes[index]) {
-                const fingerprintHash = uniqueHashes[index];
-
-                const issue = await IssueService.findOneBy({ fingerprintHash });
+            // if the next index is available in the issue tracker, proceed
+            while (errorTrackerIssues[index]) {
+                const issue = errorTrackerIssues[index];
 
                 if (issue) {
-                    // update query with the current hash
+                    // update query with the current issue ID
                     query.issueId = issue._id;
                     // run a query to get the first and last error event that has current error tracker id and fingerprint hash
                     const earliestErrorEvent = await ErrorEventModel.findOne(
@@ -164,9 +166,13 @@ module.exports = {
                     : null;
             }
 
-            return { totalErrorEvents, dateRange, count: uniqueHashes.length };
+            return {
+                totalErrorEvents,
+                dateRange,
+                count: errorTrackerIssues.length,
+            };
         } catch (error) {
-            ErrorService.log('errorEventService.findBy', error);
+            ErrorService.log('errorEventService.findDistinct', error);
             throw error;
         }
     },
@@ -238,36 +244,6 @@ module.exports = {
             };
         } catch (error) {
             ErrorService.log('errorEventService.findOneWithPrevAndNext', error);
-            throw error;
-        }
-    },
-    async getUniqueHashes() {
-        try {
-            const uniqueHashes = await ErrorEventModel.aggregate([
-                {
-                    $group: {
-                        _id: '$fingerprintHash',
-                    },
-                },
-            ]);
-            return uniqueHashes;
-        } catch (error) {
-            ErrorService.log('errorEventService.uniqueHashes', error);
-            throw error;
-        }
-    },
-    async getTotalUniqueHashesForErrorTracker(errorTrackerId) {
-        try {
-            const uniqueHashes = await ErrorEventModel.distinct(
-                'fingerprintHash',
-                { errorTrackerId }
-            );
-            return uniqueHashes;
-        } catch (error) {
-            ErrorService.log(
-                'errorEventService.getTotalUniqueHashesForErrorTracker',
-                error
-            );
             throw error;
         }
     },
