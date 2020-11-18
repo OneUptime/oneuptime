@@ -38,61 +38,95 @@ router.post('/stripe/events', async function(req, res) {
     }
 });
 
-router.get('/:userId/charges', async function(req, res) {
+router.get('/:userId/charges', getUser, async function(req, res) {
     try {
-        const { userId } = req.params;
-        const charges = await StripeService.charges(userId);
-        return sendListResponse(req, res, charges);
+        const userId = req.user.id;
+        if (userId) {
+            const charges = await StripeService.charges(userId);
+            return sendListResponse(req, res, charges);
+        }
+        const error = new Error('User is required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/:userId/creditCard/:token/pi', async function(req, res) {
+router.post('/:userId/creditCard/:token/pi', getUser, async function(req, res) {
     try {
-        const { userId, token } = req.params;
-        const item = await StripeService.creditCard.create(token, userId);
-        return sendItemResponse(req, res, item);
+        const { token } = req.params;
+        const userId = req.user.id;
+        if (token && userId) {
+            const item = await StripeService.creditCard.create(token, userId);
+            return sendItemResponse(req, res, item);
+        }
+        const error = new Error('Both user and token are required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.put('/:userId/creditCard/:cardId', async function(req, res) {
+router.put('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
-        const { userId, cardId } = req.params;
-        const card = await StripeService.creditCard.update(userId, cardId);
-        return sendItemResponse(req, res, card);
+        const { cardId } = req.params;
+        const userId = req.user.id;
+        if (cardId && userId) {
+            const card = await StripeService.creditCard.update(userId, cardId);
+            return sendItemResponse(req, res, card);
+        }
+        const error = new Error('Both user and card are required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.delete('/:userId/creditCard/:cardId', async function(req, res) {
+router.delete('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
-        const { userId, cardId } = req.params;
-        const card = await StripeService.creditCard.delete(cardId, userId);
-        return sendItemResponse(req, res, card);
+        const { cardId } = req.params;
+        const userId = req.user.id;
+        if (cardId && userId) {
+            const card = await StripeService.creditCard.delete(cardId, userId);
+            return sendItemResponse(req, res, card);
+        }
+        const error = new Error('Both user and card are required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:userId/creditCard', async function(req, res) {
+router.get('/:userId/creditCard', getUser, async function(req, res) {
     try {
-        const userId = req.params.userId;
-        const cards = await StripeService.creditCard.get(userId);
-        return sendItemResponse(req, res, cards);
+        const userId = req.user.id;
+        if (userId) {
+            const cards = await StripeService.creditCard.get(userId);
+            return sendItemResponse(req, res, cards);
+        }
+        const error = new Error('User is required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.get('/:userId/creditCard/:cardId', async function(req, res) {
+router.get('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
-        const { userId, cardId } = req.params;
-        const card = await StripeService.creditCard.get(userId, cardId);
-        return sendItemResponse(req, res, card);
+        const { cardId } = req.params;
+        const userId = req.user.id;
+        if (userId && cardId) {
+            const card = await StripeService.creditCard.get(userId, cardId);
+            return sendItemResponse(req, res, card);
+        }
+        const error = new Error('Both user and card are required');
+        error.code = 400;
+        throw error;
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
