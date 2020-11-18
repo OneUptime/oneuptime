@@ -376,33 +376,51 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const errorEventId = req.params.errorEventId;
-            if (!errorEventId) {
+            const { errorEventsId } = req.body;
+            if (!errorEventsId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Error Event ID is required',
+                    message: 'Error Event ID(s) is required',
+                });
+            }
+            if (!Array.isArray(errorEventsId)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event ID(s) has to be of type array',
+                });
+            }
+            if (errorEventsId.length < 1) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Atleast one Error Event ID is required',
+                });
+            }
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
                 });
             }
             const errorTrackerId = req.params.errorTrackerId;
-
-            const currentErrorEvent = await ErrorEventService.findOneBy({
-                _id: errorEventId,
-                errorTrackerId,
-            });
-            if (!currentErrorEvent) {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Error Event not found',
-                });
-            }
-
-            // check if error event is already ignored
-            if (currentErrorEvent.ignored) {
+            if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Error Event already ignored',
+                    message: 'Error Tracker ID is required',
                 });
             }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
             // Ignore Data
             const ignoreData = {
                 ignored: true,
@@ -410,14 +428,28 @@ router.post(
                 ignoredById: req.user.id,
             };
 
-            const errorEvent = await ErrorEventService.updateOneBy(
-                { _id: currentErrorEvent._id },
-                ignoreData
-            );
+            const ignoredErrorEvents = [];
+            for (let index = 0; index < errorEventsId.length; index++) {
+                const errorEventId = errorEventsId[index];
+                const currentErrorEvent = await ErrorEventService.findOneBy({
+                    _id: errorEventId,
+                    errorTrackerId,
+                });
+                if (currentErrorEvent) {
+                    await ErrorEventService.updateBy(
+                        {
+                            fingerprintHash: currentErrorEvent.fingerprintHash,
+                            errorTrackerId,
+                        },
+                        ignoreData
+                    );
+                    ignoredErrorEvents.push(errorEventId);
 
-            // TODO update a timeline object
+                    // TODO update a timeline object
+                }
+            }
 
-            return sendItemResponse(req, res, errorEvent);
+            return sendItemResponse(req, res, { ignoredErrorEvents });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

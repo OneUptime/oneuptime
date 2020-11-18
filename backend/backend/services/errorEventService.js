@@ -144,6 +144,7 @@ module.exports = {
                         },
                         type: latestErrorEvent.type,
                         fingerprintHash: fingerprintHash._id,
+                        ignored: earliestErrorEvent.ignored, // use the oldest to determine if it has been ignored
                     };
                     // add it to the list of error events
                     totalErrorEvents.push(errorEvent);
@@ -310,6 +311,23 @@ module.exports = {
             return errorEvent;
         } catch (error) {
             ErrorService.log('errorTrackerService.updateOneBy', error);
+            throw error;
+        }
+    },
+    updateBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const updateProcess = await ErrorEventModel.updateMany(query, {
+                $set: data,
+            });
+
+            return updateProcess;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.updateBy', error);
             throw error;
         }
     },
