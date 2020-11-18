@@ -40,10 +40,11 @@ export const FormLoader2 = () => (
 
 FormLoader2.displayName = 'FormLoader2';
 
-export const ListLoader = () => (
+// eslint-disable-next-line react/prop-types
+export const ListLoader = ({ style }) => (
     <div
         className="ball-beat"
-        style={{ textAlign: 'center', marginTop: '20px' }}
+        style={{ textAlign: 'center', marginTop: '20px', ...style }}
     >
         <div
             style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
@@ -77,7 +78,10 @@ TeamListLoader.displayName = 'TeamListLoader';
 
 // eslint-disable-next-line react/prop-types
 export const Spinner = ({ style }) => (
-    <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
+    <div
+        className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center"
+        style={{ top: 0 }}
+    >
         <svg
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"

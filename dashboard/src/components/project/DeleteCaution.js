@@ -28,7 +28,7 @@ class DeleteCaution extends Component {
         switch (e.key) {
             case 'Escape':
                 if (IS_SAAS_SERVICE) {
-                    return this.props.hideOnDelete();
+                    this.props.hideOnDelete();
                 }
                 return this.props.hide();
             case 'Enter':

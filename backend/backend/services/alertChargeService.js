@@ -6,17 +6,19 @@ module.exports = {
         alertId,
         monitorId,
         incidentId,
-        sentTo
+        sentTo,
+        subscriberId
     ) {
         try {
             const alertCharge = new AlertChargeModel();
             alertCharge.projectId = projectId;
             alertCharge.chargeAmount = chargeAmount;
             alertCharge.closingAccountBalance = balanceAfterAlertSent;
-            alertCharge.alertId = alertId;
+            alertCharge.alertId = alertId || null;
             alertCharge.monitorId = monitorId;
             alertCharge.incidentId = incidentId;
             alertCharge.sentTo = sentTo;
+            alertCharge.subscriberAlertId = subscriberId || null;
             alertCharge.save();
             return alertCharge;
         } catch (error) {
@@ -48,6 +50,7 @@ module.exports = {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
+                    .populate('subscriberAlertId', 'alertVia')
                     .populate('monitorId', 'name')
                     .limit(limit)
                     .skip(skip);

@@ -98,7 +98,7 @@ class ResourceTabularList extends Component {
                     <StatusIndicator
                         status={monitorStatus}
                         resourceName={componentResource.name}
-                        monitorName={monitor.name}
+                        monitorName={monitor && monitor.name}
                     />
                 );
                 statusDescription = monitorStatus;
@@ -272,7 +272,7 @@ class ResourceTabularList extends Component {
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
+                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row resourceName-width">
                                                                 <span
                                                                     className={`db-SideNav-icon db-SideNav-icon--${componentResource.icon} db-SideNav-icon--selected Margin-right--4`}
                                                                     style={{
@@ -328,7 +328,7 @@ class ResourceTabularList extends Component {
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <div
-                                                            className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            className={` Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 resourceType-width`}
                                                         >
                                                             <span
                                                                 id={`resource_type_${componentResource.name}`}

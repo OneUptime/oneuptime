@@ -14,8 +14,8 @@ const monitorName1 = 'testFyipe';
 
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
-    await page.waitForSelector('#statusPages > a');
-    await page.$eval('#statusPages > a', e=> e.click());
+    await page.waitForSelector('#statusPages');
+    await page.$eval('#statusPages', e => e.click());
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }
@@ -386,10 +386,10 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.waitForSelector('#statusPages > a', {
+                await page.waitForSelector('#statusPages', {
                     visible: true,
                 });
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
                 const elem = await page.waitForSelector('#domainNotSet', {
                     visible: true,
                 });
@@ -428,7 +428,7 @@ describe('Status Page', () => {
         async () => {
             return await cluster.execute(null, async ({ page }) => {
                 await page.goto(utils.DASHBOARD_URL);
-                await page.$eval('#statusPages > a', elem => elem.click());
+                await page.$eval('#statusPages', elem => elem.click());
 
                 const elem = await page.waitForSelector('#domainSet', {
                     visible: true,

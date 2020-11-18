@@ -97,7 +97,9 @@ module.exports = {
             page.waitForNavigation({ waitUntil: 'networkidle0' }),
             page.click('button[type=submit]'),
         ]);
-        expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(false);
+        expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(
+            false
+        );
     },
     logout: async function(page) {
         await page.goto(utils.DASHBOARD_URL);
@@ -307,6 +309,7 @@ module.exports = {
         await input.type('');
     },
     selectByText: async function(selector, text, page) {
+        await page.waitForSelector(selector, { visible: true });
         await page.click(selector);
         await page.keyboard.type(text);
         const noOption = await page.$('div.css-1gl4k7y');
@@ -378,8 +381,8 @@ module.exports = {
             await this.selectByText('#monitorList', monitorName, page);
             await page.$eval('#createIncident', e => e.click());
         } else {
-            await page.waitForSelector('#incidentLog a');
-            await page.$eval('#incidentLog a', e => e.click());
+            await page.waitForSelector('#incidentLog');
+            await page.$eval('#incidentLog', e => e.click());
             await page.waitForSelector(`#btnCreateIncident_${projectName}`);
             await page.$eval(`#btnCreateIncident_${projectName}`, e =>
                 e.click()
@@ -770,8 +773,8 @@ module.exports = {
         await page.waitForSelector('#user');
     },
     gotoTab: async function(tabId, page) {
-        await page.waitForSelector(`#react-tabs-${tabId}`, {visible: true});
-        await page.$eval(`#react-tabs-${tabId}`, e=> e.click());
+        await page.waitForSelector(`#react-tabs-${tabId}`, { visible: true });
+        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
         await page.waitFor(2000);
     },
     setAlertPhoneNumber: async (phoneNumber, code, page) => {

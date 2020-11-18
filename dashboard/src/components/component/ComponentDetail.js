@@ -2,32 +2,24 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
 import {
     fetchComponents,
     fetchComponentResources,
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
-import DeleteComponent from '../modals/DeleteComponent';
+import { closeModal } from '../../actions/modal';
 import { deleteComponent } from '../../actions/component';
-import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
 import { history } from '../../store';
 import { logEvent } from '../../analytics';
 import { IS_SAAS_SERVICE } from '../../config';
-import EditComponent from '../modals/EditComponent';
 import ResourceTabularList from './ResourceTabularList';
 
 export class ComponentDetail extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = {
-            deleteComponentModalId: uuid.v4(),
-            editComponentModalId: uuid.v4(),
-        };
     }
 
     prevClicked = () => {
@@ -136,7 +128,6 @@ export class ComponentDetail extends Component {
     }
 
     render() {
-        const { deleteComponentModalId, editComponentModalId } = this.state;
         const { component, componentState, currentProject } = this.props;
 
         component.error = null;
@@ -213,8 +204,13 @@ export class ComponentDetail extends Component {
                         <div>
                             <button
                                 id={`more-details-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--more"
+                                className="bs-Button"
                                 type="button"
+                                style={{
+                                    padding: '5px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                }}
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
@@ -225,40 +221,16 @@ export class ComponentDetail extends Component {
                                     );
                                 }}
                             >
-                                <span>More</span>
-                            </button>
-                            <button
-                                id={`edit-component-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--settings"
-                                type="button"
-                                onClick={() => {
-                                    this.props.openModal({
-                                        id: editComponentModalId,
-                                        content: DataPathHoC(EditComponent, {
-                                            componentId: component._id,
-                                        }),
-                                    });
-                                }}
-                            >
-                                <span>Edit</span>
-                            </button>
-                            <button
-                                id={`delete-component-${component.name}`}
-                                className="bs-Button bs-Button--icon bs-Button--delete"
-                                type="button"
-                                onClick={() =>
-                                    this.props.openModal({
-                                        id: deleteComponentModalId,
-                                        onClose: () => '',
-                                        onConfirm: () =>
-                                            this.deleteComponent(component._id),
-                                        content: DataPathHoC(DeleteComponent, {
-                                            component: this.props.component,
-                                        }),
-                                    })
-                                }
-                            >
-                                <span>Delete</span>
+                                <svg
+                                    height="15px"
+                                    viewBox="-192 0 512 512"
+                                    width="20px"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path d="m128 256c0 35.347656-28.652344 64-64 64s-64-28.652344-64-64 28.652344-64 64-64 64 28.652344 64 64zm0 0" />
+                                    <path d="m128 64c0 35.347656-28.652344 64-64 64s-64-28.652344-64-64 28.652344-64 64-64 64 28.652344 64 64zm0 0" />
+                                    <path d="m128 448c0 35.347656-28.652344 64-64 64s-64-28.652344-64-64 28.652344-64 64-64 64 28.652344 64 64zm0 0" />
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -300,7 +272,6 @@ ComponentDetail.displayName = 'ComponentDetail';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            openModal,
             closeModal,
             deleteComponent,
             fetchComponents,
@@ -334,7 +305,6 @@ ComponentDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     component: PropTypes.object.isRequired,
     componentState: PropTypes.object.isRequired,
-    openModal: PropTypes.func,
     deleteComponent: PropTypes.func,
     fetchComponents: PropTypes.func,
     projectName: PropTypes.string,

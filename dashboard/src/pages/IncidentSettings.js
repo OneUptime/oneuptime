@@ -18,6 +18,7 @@ import {
 } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
 import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
+import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
 
 class IncidentSettings extends React.Component {
     componentDidMount() {
@@ -97,6 +98,7 @@ class IncidentSettings extends React.Component {
     render() {
         const {
             location: { pathname },
+            match,
         } = this.props;
         const { skip, limit, count } = this.props.incidentPrioritiesList;
         const canPaginateForward =
@@ -277,6 +279,9 @@ class IncidentSettings extends React.Component {
                             </div>
                         </div>
                     </div>
+                    <IncidentCommunicationSla
+                        projectId={match.params.projectId}
+                    />
                 </Fade>
             </Dashboard>
         );
@@ -298,6 +303,7 @@ IncidentSettings.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    match: PropTypes.object,
 };
 const mapStateToProps = state => {
     return {

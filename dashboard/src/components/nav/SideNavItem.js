@@ -129,6 +129,10 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/scheduledEvents/
             ) &&
+                route.title === 'Component Settings') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/settings\/basic/
+            ) &&
                 route.title === 'Scheduled Events') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
                 route.title === 'Consulting & Services');
@@ -170,7 +174,15 @@ export class SidebarNavItem extends Component {
                       (location.pathname.match(
                           /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
                       ) &&
-                          link.title === 'Container Detail')
+                          link.title === 'Container Detail') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/advanced/
+                      ) &&
+                          link.title === 'Advanced') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/basic/
+                      ) &&
+                          link.title === 'Basic')
                     ? true
                     : false;
             return response;
@@ -187,15 +199,21 @@ export class SidebarNavItem extends Component {
 
         const routeStyle = {
             position: 'relative',
-            marginTop: route.title === 'Back to Dashboard' ? '20px' : 0,
+            marginTop:
+                route.title === 'Back to Dashboard'
+                    ? '20px'
+                    : route.title === 'Component Settings'
+                    ? '10px'
+                    : 0,
         };
 
         const routes = route.shortcut && route.shortcut.split('+');
 
         return (
-            <div id={this.camalize(route.title)} style={routeStyle}>
+            <div style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
                     <Link
+                        id={this.camalize(route.title)}
                         to={path}
                         onClick={() => loadPage(route.title)}
                         {...(route.disabled
