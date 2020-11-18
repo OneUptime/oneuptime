@@ -396,7 +396,8 @@ router.delete(
                         projectName,
                     });
                 } catch (error) {
-                    console.log(error);
+                    // eslint-disable-next-line
+                    console.error(error);
                 }
             }
 

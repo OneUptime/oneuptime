@@ -498,7 +498,7 @@ describe('Incident Created test', () => {
                 await page.$eval(`#${monitorName2}_ViewIncidentDetails`, elem =>
                     elem.click()
                 );
-                const closeButton = await page.waitForSelector(
+                await page.waitForSelector(
                     '#closeIncident_2',
                     { hidden: true }
                 );
