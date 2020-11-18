@@ -498,10 +498,9 @@ describe('Incident Created test', () => {
                 await page.$eval(`#${monitorName2}_ViewIncidentDetails`, elem =>
                     elem.click()
                 );
-                await page.waitForSelector(
-                    '#closeIncident_2',
-                    { hidden: true }
-                );
+                await page.waitForSelector('#closeIncident_2', {
+                    hidden: true,
+                });
                 const rowsCount = (await page.$$('#notificationscroll button'))
                     .length;
 

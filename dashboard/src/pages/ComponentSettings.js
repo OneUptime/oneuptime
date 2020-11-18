@@ -170,7 +170,6 @@ class ComponentSettings extends Component {
 ComponentSettings.displayName = 'Component Settings Form';
 
 ComponentSettings.propTypes = {
-    componentId: PropTypes.string,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -183,6 +182,7 @@ ComponentSettings.propTypes = {
     initialValues: PropTypes.shape({ name: PropTypes.string }),
     editComponent: PropTypes.func.isRequired,
     projectId: PropTypes.string,
+    editingComponent: PropTypes.object,
 };
 
 const mapStateToProps = (state, ownProps) => {
