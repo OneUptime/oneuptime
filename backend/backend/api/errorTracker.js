@@ -383,6 +383,39 @@ router.post(
         }
     }
 );
+// Description: Get issue by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/issues/:issueId/details',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const issue = await IssueService.findOneBy({
+                _id: issueId,
+                errorTrackerId,
+            });
+            if (!issue) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
+
+            return sendItemResponse(req, res, issue);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 // Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/action',
