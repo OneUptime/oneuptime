@@ -36,7 +36,7 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted) delete query.deleted;
             const errorEvent = await ErrorEventModel.findOne(query)
                 .populate('errorTrackerId', 'name')
                 .populate('resolvedById', 'name')
@@ -66,7 +66,7 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted) delete query.deleted;
             const errorEvents = await ErrorEventModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -180,7 +180,7 @@ module.exports = {
             const previousErrorEvent = await ErrorEventModel.find({
                 _id: { $lt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,
-                fingerprintHash: errorEvent.fingerprintHash,
+                issueId: errorEvent.issueId,
             })
                 .sort({ _id: -1 })
                 .limit(1);
@@ -193,7 +193,7 @@ module.exports = {
             const oldestErrorEvent = await ErrorEventModel.find({
                 _id: { $lt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,
-                fingerprintHash: errorEvent.fingerprintHash,
+                issueId: errorEvent.issueId,
             })
                 .sort({ _id: 1 })
                 .limit(1);
@@ -204,7 +204,7 @@ module.exports = {
             const nextErrorEvent = await ErrorEventModel.find({
                 _id: { $gt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,
-                fingerprintHash: errorEvent.fingerprintHash,
+                issueId: errorEvent.issueId,
             })
                 .sort({ _id: 1 })
                 .limit(1);
@@ -217,7 +217,7 @@ module.exports = {
             const latestErrorEvent = await ErrorEventModel.find({
                 _id: { $gt: errorEventId },
                 errorTrackerId: errorEvent.errorTrackerId,
-                fingerprintHash: errorEvent.fingerprintHash,
+                issueId: errorEvent.issueId,
             })
                 .sort({ _id: -1 })
                 .limit(1);
@@ -227,7 +227,7 @@ module.exports = {
 
             const totalEvents = await this.countBy({
                 errorTrackerId: errorEvent.errorTrackerId,
-                fingerprintHash: errorEvent.fingerprintHash,
+                issueId: errorEvent.issueId,
             });
 
             return {
