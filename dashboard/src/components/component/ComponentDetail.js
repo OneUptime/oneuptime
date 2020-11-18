@@ -2,13 +2,12 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
 import {
     fetchComponents,
     fetchComponentResources,
 } from '../../actions/component';
 import { fetchMonitors } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
+import { closeModal } from '../../actions/modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
@@ -21,10 +20,6 @@ export class ComponentDetail extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = {
-            deleteComponentModalId: uuid.v4(),
-            editComponentModalId: uuid.v4(),
-        };
     }
 
     prevClicked = () => {
@@ -277,7 +272,6 @@ ComponentDetail.displayName = 'ComponentDetail';
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            openModal,
             closeModal,
             deleteComponent,
             fetchComponents,
@@ -311,7 +305,6 @@ ComponentDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     component: PropTypes.object.isRequired,
     componentState: PropTypes.object.isRequired,
-    openModal: PropTypes.func,
     deleteComponent: PropTypes.func,
     fetchComponents: PropTypes.func,
     projectName: PropTypes.string,

@@ -13,6 +13,7 @@ const alertChargeSchema = new Schema({
     closingAccountBalance: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
     alertId: { type: String, ref: 'Alert' },
+    subscriberAlertId: { type: String, ref: 'SubscriberAlert' },
     monitorId: { type: String, ref: 'Monitor' },
     incidentId: { type: String, ref: 'Incident' },
     sentTo: { type: String },

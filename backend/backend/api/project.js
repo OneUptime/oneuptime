@@ -397,7 +397,6 @@ router.delete(
                     });
                 } catch (error) {
                     // eslint-disable-next-line
-                    console.error(error);
                 }
             }
 
