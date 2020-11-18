@@ -1,18 +1,105 @@
 import React, { Component } from 'react';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import ErrorTrackerIssue from './ErrorTrackerIssue';
 import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
 class ErrorTrackerDetailView extends Component {
+    constructor(props) {
+        super(props);
+        this.props = props;
+        this.state = {
+            selectedErrorEvents: [],
+        };
+    }
+    selectErrorEvent = errorEventId => {
+        this.setState(state => ({
+            selectedErrorEvents: this.removeOrAdd(
+                state.selectedErrorEvents,
+                errorEventId
+            ),
+        }));
+    };
+    removeOrAdd(selectedErrorEvents, errorEventId) {
+        let response;
+        const index = selectedErrorEvents.indexOf(errorEventId);
+        if (index === -1) {
+            // it doesnt exist add it
+            response = [...selectedErrorEvents, errorEventId];
+        } else {
+            // it exist, remove it
+            response = selectedErrorEvents.filter(id => id !== errorEventId);
+        }
+        return response;
+    }
+    selectAllErrorEvents = () => {
+        let errorEventsId = [];
+        // if the number of selected error events is different from the total number of available issues, select all ids and set it as the new selected array
+        if (
+            this.state.selectedErrorEvents.length !==
+            this.props.errorTrackerIssues.errorTrackerIssues.length
+        ) {
+            errorEventsId = this.props.errorTrackerIssues.errorTrackerIssues.map(
+                errorTrackerIssue => errorTrackerIssue.latestId
+            );
+        }
+
+        this.setState({
+            selectedErrorEvents: errorEventsId,
+        });
+    };
+    ignoreErrorEvent = () => {};
+    prevClicked = (skip, limit) => {
+        const { handleNavigationButtonClick } = this.props;
+        handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
+    };
+
+    nextClicked = (skip, limit) => {
+        const { handleNavigationButtonClick } = this.props;
+        handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
+    };
     render() {
+        const { selectedErrorEvents } = this.state;
         const {
             errorTrackerIssues,
             errorTracker,
             projectId,
             componentId,
         } = this.props;
+        let skip =
+            errorTrackerIssues && errorTrackerIssues.skip
+                ? errorTrackerIssues.skip
+                : null;
+        let limit =
+            errorTrackerIssues && errorTrackerIssues.limit
+                ? errorTrackerIssues.limit
+                : null;
+        const count =
+            errorTrackerIssues && errorTrackerIssues.count
+                ? errorTrackerIssues.count
+                : null;
+        if (skip && typeof skip === 'string') {
+            skip = parseInt(skip, 10);
+        }
+        if (limit && typeof limit === 'string') {
+            limit = parseInt(limit, 10);
+        }
+        if (!skip) skip = 0;
+        if (!limit) limit = 0;
+
+        let canNext = count && count > skip + limit ? true : false;
+        let canPrev = skip <= 0 ? false : true;
+
+        if (
+            errorTrackerIssues &&
+            (errorTrackerIssues.requesting ||
+                !errorTrackerIssues.errorTrackerIssues ||
+                (errorTrackerIssues.errorTrackerIssues &&
+                    errorTrackerIssues.errorTrackerIssues.length < 1))
+        ) {
+            canNext = false;
+            canPrev = false;
+        }
         return (
             <div>
                 <div
@@ -36,7 +123,25 @@ class ErrorTrackerDetailView extends Component {
                                             height: '100%',
                                         }}
                                     >
-                                        <input type="checkbox" />
+                                        {errorTrackerIssues &&
+                                        errorTrackerIssues.errorTrackerIssues ? (
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    this.state
+                                                        .selectedErrorEvents
+                                                        .length ===
+                                                    errorTrackerIssues
+                                                        .errorTrackerIssues
+                                                        .length
+                                                        ? true
+                                                        : false
+                                                }
+                                                onClick={
+                                                    this.selectAllErrorEvents
+                                                }
+                                            />
+                                        ) : null}
                                     </div>
                                 </td>
                                 <td
@@ -50,59 +155,37 @@ class ErrorTrackerDetailView extends Component {
                                         <button
                                             className="bs-Button bs-Button--icon bs-Button--check"
                                             type="button"
+                                            disabled={
+                                                selectedErrorEvents.length < 1
+                                                    ? true
+                                                    : false
+                                            }
                                         >
                                             <span>Resolve</span>
-                                            <img
-                                                src="/dashboard/assets/img/down.svg"
-                                                alt=""
-                                                style={{
-                                                    margin: '0px 10px',
-                                                    height: '10px',
-                                                    width: '10px',
-                                                }}
-                                            />
                                         </button>
                                         <button
                                             className="bs-Button bs-Button--icon bs-Button--block"
                                             type="button"
+                                            disabled={
+                                                selectedErrorEvents.length < 1
+                                                    ? true
+                                                    : false
+                                            }
+                                            onClick={this.ignoreErrorEvent}
                                         >
                                             <span>Ignore</span>
-                                            <img
-                                                src="/dashboard/assets/img/down.svg"
-                                                alt=""
-                                                style={{
-                                                    margin: '0px 10px',
-                                                    height: '10px',
-                                                    width: '10px',
-                                                }}
-                                            />
                                         </button>
                                         <button
                                             className="bs-Button"
                                             type="button"
-                                            disabled={true}
+                                            disabled={
+                                                selectedErrorEvents.length < 2
+                                                    ? true
+                                                    : false
+                                            }
                                         >
                                             <span>Merge</span>
                                         </button>
-                                        <span className="Margin-left--8">
-                                            <Dropdown>
-                                                <Dropdown.Toggle
-                                                    id="filterToggle"
-                                                    className="bs-Button bs-DeprecatedButton"
-                                                />
-                                                <Dropdown.Menu>
-                                                    <MenuItem title="clear">
-                                                        Clear Filters
-                                                    </MenuItem>
-                                                    <MenuItem title="unacknowledged">
-                                                        Unacknowledged
-                                                    </MenuItem>
-                                                    <MenuItem title="unresolved">
-                                                        Unresolved
-                                                    </MenuItem>
-                                                </Dropdown.Menu>
-                                            </Dropdown>
-                                        </span>
                                     </div>
                                 </td>
                                 <td
@@ -178,6 +261,13 @@ class ErrorTrackerDetailView extends Component {
                                                 key={i}
                                                 projectId={projectId}
                                                 componentId={componentId}
+                                                selectErrorEvent={
+                                                    this.selectErrorEvent
+                                                }
+                                                selectedErrorEvents={
+                                                    this.state
+                                                        .selectedErrorEvents
+                                                }
                                             />
                                         );
                                     }
@@ -209,6 +299,66 @@ class ErrorTrackerDetailView extends Component {
                         ? errorTrackerIssues.error
                         : null}
                 </div>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <span>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    {count
+                                        ? count +
+                                          (count > 1 ? ' Issues' : ' Issue')
+                                        : '0 Issues'}
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrev"
+                                    onClick={() => {
+                                        this.prevClicked(skip, limit);
+                                    }}
+                                    className={
+                                        'Button bs-ButtonLegacy' +
+                                        (canPrev ? '' : 'Is--disabled')
+                                    }
+                                    disabled={!canPrev}
+                                    data-db-analytics-name="list_view.pagination.previous"
+                                    type="button"
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNext"
+                                    onClick={() => {
+                                        this.nextClicked(skip, limit);
+                                    }}
+                                    className={
+                                        'Button bs-ButtonLegacy' +
+                                        (canNext ? '' : 'Is--disabled')
+                                    }
+                                    disabled={!canNext}
+                                    data-db-analytics-name="list_view.pagination.next"
+                                    type="button"
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -229,6 +379,7 @@ ErrorTrackerDetailView.propTypes = {
     errorTracker: PropTypes.object,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    handleNavigationButtonClick: PropTypes.string,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

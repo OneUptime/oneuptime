@@ -26,7 +26,7 @@ import {
     FETCH_COMPONENT_RESOURCES_RESET,
     FETCH_COMPONENT_RESOURCES_SUCCESS,
     SHOW_DELETE_MODAL,
-    HIDE_DELETE_MODAL
+    HIDE_DELETE_MODAL,
 } from '../constants/component';
 
 const INITIAL_STATE = {
@@ -55,7 +55,7 @@ const INITIAL_STATE = {
     },
     deleteComponent: false,
     componentResourceList: [],
-    showDeleteModal: false
+    showDeleteModal: false,
 };
 
 export default function component(state = INITIAL_STATE, action) {
@@ -126,12 +126,12 @@ export default function component(state = INITIAL_STATE, action) {
             });
         case SHOW_DELETE_MODAL:
             return Object.assign({}, state, {
-                showDeleteModal: true
-            })
+                showDeleteModal: true,
+            });
 
         case HIDE_DELETE_MODAL:
             return Object.assign({}, state, {
-                showDeleteModal: false
+                showDeleteModal: false,
             });
 
         case CREATE_COMPONENT_FAILURE:

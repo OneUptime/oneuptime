@@ -7,7 +7,7 @@ const OnCallSchedule = ({ status, schedules, currentProjectId, isOnDutyAllTheTim
     let color;
     switch (status) {
         case 'active':
-            color = 'red';
+            color = 'cyan5';
             break;
         case 'upcoming':
             color = 'yellow';

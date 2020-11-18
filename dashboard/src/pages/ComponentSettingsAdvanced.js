@@ -18,20 +18,20 @@ import uuid from 'uuid';
 
 class ComponentSettingsAdvanced extends Component {
     constructor(props) {
-        super(props)
+        super(props);
         this.state = {
             deleteComponentModalId: uuid.v4(),
-        }
+        };
     }
 
     handleClick = () => {
         this.props.showDeleteModal();
-    }
+    };
 
     deleteComponent = componentId => {
         const projectId =
-        this.props.component.projectId._id ||
-        this.props.component.projectId;
+            this.props.component.projectId._id ||
+            this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(
             `/dashboard/project/${this.props.component.projectId._id}/components`
@@ -48,11 +48,11 @@ class ComponentSettingsAdvanced extends Component {
     render() {
         const {
             location: { pathname },
-            component
+            component,
         } = this.props;
 
         const { deleteComponentModalId } = this.state;
-        const componentName = component && component.name
+        const componentName = component && component.name;
         return (
             <Dashboard>
                 <Fade>
@@ -70,13 +70,22 @@ class ComponentSettingsAdvanced extends Component {
                                                             <div className="Box-root">
                                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                                     <span>
-                                                                        Delete Component
+                                                                        Delete
+                                                                        Component
                                                                     </span>
                                                                 </span>
                                                                 <p>
                                                                     <span>
-                                                                        This component will be deleted PERMANENTLY
-                                                                        and will no longer be recoverable.
+                                                                        This
+                                                                        component
+                                                                        will be
+                                                                        deleted
+                                                                        PERMANENTLY
+                                                                        and will
+                                                                        no
+                                                                        longer
+                                                                        be
+                                                                        recoverable.
                                                                     </span>
                                                                 </p>
                                                             </div>
@@ -87,18 +96,31 @@ class ComponentSettingsAdvanced extends Component {
                                                                         className="bs-Button bs-Button--red"
                                                                         id={`delete-component-${componentName}`}
                                                                         onClick={() =>
-                                                                            this.props.openModal({
-                                                                                id: deleteComponentModalId,
-                                                                                onClose: () => '',
-                                                                                onConfirm: () =>
-                                                                                    this.deleteComponent(component._id),
-                                                                                content: DataPathHoC(DeleteComponent, {
-                                                                                    component: this.props.component,
-                                                                                }),
-                                                                            })
+                                                                            this.props.openModal(
+                                                                                {
+                                                                                    id: deleteComponentModalId,
+                                                                                    onClose: () =>
+                                                                                        '',
+                                                                                    onConfirm: () =>
+                                                                                        this.deleteComponent(
+                                                                                            component._id
+                                                                                        ),
+                                                                                    content: DataPathHoC(
+                                                                                        DeleteComponent,
+                                                                                        {
+                                                                                            component: this
+                                                                                                .props
+                                                                                                .component,
+                                                                                        }
+                                                                                    ),
+                                                                                }
+                                                                            )
                                                                         }
                                                                     >
-                                                                        <span>Delete Component</span>
+                                                                        <span>
+                                                                            Delete
+                                                                            Component
+                                                                        </span>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -112,10 +134,9 @@ class ComponentSettingsAdvanced extends Component {
                             </div>
                         </div>
                     </div>
-
                 </Fade>
             </Dashboard>
-        )
+        );
     }
 }
 
@@ -123,32 +144,38 @@ ComponentSettingsAdvanced.displayName = 'ComponentSettingsAdvanced';
 
 ComponentSettingsAdvanced.propTypes = {
     showDeleteModal: PropTypes.func,
-    openModal: PropTypes.func
-}
+    openModal: PropTypes.func,
+    component: PropTypes.object.isRequired,
+    deleteComponent: PropTypes.func,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
+};
 
 const mapStateToProps = (state, ownProps) => {
     const component = state.component.componentList.components.map(
         components => {
             return components.components.filter(
                 component => component._id === ownProps.match.params.componentId
-            )
+            );
         }
     )[0];
 
     return {
-        component: component && component[0]
-    }
-}
+        component: component && component[0],
+    };
+};
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             showDeleteModal,
             openModal,
-            deleteComponent
+            deleteComponent,
         },
         dispatch
     );
 
 export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(ComponentSettingsAdvanced));
+    connect(mapStateToProps, mapDispatchToProps)(ComponentSettingsAdvanced)
+);

@@ -1,5 +1,4 @@
 const express = require('express');
-const { debug } = require('winston');
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

@@ -5153,3 +5153,11 @@ left : 3px;
 .unread{
   border-right: 5px solid #000000;
 }
+
+.resourceName-width{
+  width: 177px;
+}
+
+.resourceType-width{
+  width: 108px;
+}

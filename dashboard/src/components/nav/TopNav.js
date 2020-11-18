@@ -88,12 +88,15 @@ class TopContent extends Component {
 
     renderActiveIncidents = incidentCounter => (
         <>
-            {
-                typeof incidentCounter === 'number' &&
+            {typeof incidentCounter === 'number' && (
                 <Fade>
                     <div
                         className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
-                            incidentCounter && incidentCounter > 0 ? 'red' : (incidentCounter === 0) ? 'green' : null
+                            incidentCounter && incidentCounter > 0
+                                ? 'red'
+                                : incidentCounter === 0
+                                ? 'green'
+                                : null
                         } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer`}
                         style={{ paddingBottom: '6px', paddingTop: '6px' }}
                         onClick={this.handleActiveIncidentClick}
@@ -101,7 +104,11 @@ class TopContent extends Component {
                     >
                         <span
                             className={`db-SideNav-icon db-SideNav-icon--${
-                                incidentCounter && incidentCounter > 0 ? 'info' : (incidentCounter === 0) ? 'tick' : null
+                                incidentCounter && incidentCounter > 0
+                                    ? 'info'
+                                    : incidentCounter === 0
+                                    ? 'tick'
+                                    : null
                             } db-SideNav-icon--selected`}
                             style={{
                                 filter: 'brightness(0) invert(1)',
@@ -110,7 +117,9 @@ class TopContent extends Component {
                             }}
                         />
                         <span id="activeIncidentsText">
-                            <ShouldRender if={incidentCounter && incidentCounter > 0}>
+                            <ShouldRender
+                                if={incidentCounter && incidentCounter > 0}
+                            >
                                 {`${incidentCounter +
                                     (incidentCounter === 1
                                         ? ' Incident Currently Active'
@@ -122,7 +131,7 @@ class TopContent extends Component {
                         </span>
                     </div>
                 </Fade>
-            }
+            )}
         </>
     );
 
