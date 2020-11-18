@@ -1646,7 +1646,7 @@ module.exports = {
                             }
                         );
                         if (
-                            alertStatus === 'success' &&
+                            alertStatus === 'Success' &&
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
