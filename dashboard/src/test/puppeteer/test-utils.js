@@ -13,13 +13,14 @@ const puppeteerLaunchConfig = {
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
-        '--window-size=1920x1080',
+        '--window-size=1920,1080',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
         '--disable-web-security',
         '--disable-features=IsolateOrigins,site-per-process', // fix issue with cross origin policy
     ],
+    defaultViewport: null,
     headless: true, //change this to `false` debug locally.
 };
 

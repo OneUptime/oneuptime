@@ -5,6 +5,7 @@ import Badge from '../common/Badge';
 import PropTypes from 'prop-types';
 import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
+import ErrorEventUtil from '../../utils/ErrorEventUtil';
 
 function getComponentBadge(componentName) {
     return (
@@ -15,19 +16,8 @@ function getComponentBadge(componentName) {
     );
 }
 getComponentBadge.displayName = 'getComponentBadge';
-function getExceptionColor(type) {
-    let indicator = '#ff0000';
-    if (type === 'exception') {
-        indicator = '#ffa500';
-    }
-    if (type === 'message') {
-        indicator = '#b7a718';
-    }
-    return indicator;
-}
+
 function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
-    console.log('view more');
-    console.log({ projectId, componentId, errorTrackerId, errorEventId });
     return history.push(
         '/dashboard/project/' +
             projectId +
@@ -39,11 +29,16 @@ function viewMore(projectId, componentId, errorTrackerId, errorEventId) {
             errorEventId
     );
 }
+function isSelected(selectedErrorEvents, id) {
+    return selectedErrorEvents.indexOf(id) > -1 ? true : false;
+}
 function ErrorTrackerIssue({
     projectId,
     componentId,
     errorTrackerIssue,
     errorTracker,
+    selectErrorEvent,
+    selectedErrorEvents,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -58,14 +53,23 @@ function ErrorTrackerIssue({
                         style={{
                             height: '20px',
                             width: '10px',
-                            backgroundColor: `${getExceptionColor(
+                            backgroundColor: `${ErrorEventUtil.getExceptionColor(
                                 errorTrackerIssue.type
                             )}`,
                             borderTopRightRadius: '5px',
                             borderBottomRightRadius: '5px',
                         }}
                     ></div>
-                    <input type="checkbox" />
+                    <input
+                        type="checkbox"
+                        onChange={() =>
+                            selectErrorEvent(errorTrackerIssue.latestId)
+                        }
+                        checked={isSelected(
+                            selectedErrorEvents,
+                            errorTrackerIssue.latestId
+                        )}
+                    />
                 </div>
             </td>
             <td
@@ -113,7 +117,13 @@ function ErrorTrackerIssue({
                         >
                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                 {errorTrackerIssue.content.message
-                                    ? errorTrackerIssue.content.message
+                                    ? errorTrackerIssue.content.message.length >
+                                      100
+                                        ? `${errorTrackerIssue.content.message.substr(
+                                              0,
+                                              100
+                                          )} ...`
+                                        : errorTrackerIssue.content.message
                                     : ''}
                             </div>
                         </div>
@@ -146,11 +156,11 @@ function ErrorTrackerIssue({
                                     />
                                     <span className="Padding-left--8">
                                         {moment(
-                                            errorTrackerIssue.earliestOccurennce
+                                            errorTrackerIssue.latestOccurennce
                                         ).fromNow()}{' '}
                                         -{' '}
                                         {moment(
-                                            errorTrackerIssue.latestOccurennce
+                                            errorTrackerIssue.earliestOccurennce
                                         ).fromNow()}
                                     </span>
                                 </div>
@@ -241,6 +251,8 @@ ErrorTrackerIssue.propTypes = {
     errorTrackerIssue: PropTypes.object,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
+    selectErrorEvent: PropTypes.func,
+    selectedErrorEvents: PropTypes.array,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;

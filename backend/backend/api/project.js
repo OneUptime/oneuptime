@@ -389,12 +389,16 @@ router.delete(
             if (project) {
                 const projectName = project.name;
                 const user = await UserService.findOneBy({ _id: userId });
-
-                await MailService.sendDeleteProjectEmail({
-                    name: user.name,
-                    userEmail: user.email,
-                    projectName,
-                });
+                try {
+                    await MailService.sendDeleteProjectEmail({
+                        name: user.name,
+                        userEmail: user.email,
+                        projectName,
+                    });
+                } catch (error) {
+                    // eslint-disable-next-line
+                    console.error(error);
+                }
             }
 
             const user = await UserService.findOneBy({ _id: userId });
