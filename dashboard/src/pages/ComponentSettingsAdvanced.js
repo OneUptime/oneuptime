@@ -145,6 +145,11 @@ ComponentSettingsAdvanced.displayName = 'ComponentSettingsAdvanced';
 ComponentSettingsAdvanced.propTypes = {
     showDeleteModal: PropTypes.func,
     openModal: PropTypes.func,
+    component: PropTypes.object.isRequired,
+    deleteComponent: PropTypes.func,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 const mapStateToProps = (state, ownProps) => {

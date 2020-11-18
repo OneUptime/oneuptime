@@ -48,9 +48,7 @@ class ErrorTrackerDetailView extends Component {
             selectedErrorEvents: errorEventsId,
         });
     };
-    ignoreErrorEvent = () => {
-        console.log(this.state.selectedErrorEvents);
-    };
+    ignoreErrorEvent = () => {};
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
