@@ -449,16 +449,16 @@ export function resetresetErrorTrackerKey() {
     };
 }
 
-export function ignoreErrorEvent(
+export function ignoreErrorEventByIssue(
     projectId,
     componentId,
     errorTrackerId,
-    errorEventsId
+    issueId
 ) {
     return function(dispatch) {
         const promise = postApi(
-            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/ignore/error-events`,
-            { errorEventsId }
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'ignore' }
         );
         dispatch(ignoreErrorEventRequest());
 
@@ -467,7 +467,7 @@ export function ignoreErrorEvent(
                 dispatch(
                     ignoreErrorEventSuccess({
                         errorTrackerId,
-                        ignoredErrorEvents: response.data.ignoredErrorEvents,
+                        ignoredIssues: response.data.issues,
                     })
                 );
             },
