@@ -63,12 +63,10 @@ function ErrorTrackerIssue({
                     ></div>
                     <input
                         type="checkbox"
-                        onChange={() =>
-                            selectErrorEvent(errorTrackerIssue.latestId)
-                        }
+                        onChange={() => selectErrorEvent(errorTrackerIssue._id)}
                         checked={isSelected(
                             selectedErrorEvents,
-                            errorTrackerIssue.latestId
+                            errorTrackerIssue._id
                         )}
                     />
                 </div>

@@ -40,7 +40,7 @@ class ErrorTrackerDetailView extends Component {
             this.props.errorTrackerIssues.errorTrackerIssues.length
         ) {
             errorEventsId = this.props.errorTrackerIssues.errorTrackerIssues.map(
-                errorTrackerIssue => errorTrackerIssue.latestId
+                errorTrackerIssue => errorTrackerIssue._id
             );
         }
 
@@ -49,7 +49,10 @@ class ErrorTrackerDetailView extends Component {
         });
     };
     ignoreErrorEvent = () => {
-        console.log(this.state.selectedErrorEvents);
+        this.props.ignoreErrorEvent(this.state.selectedErrorEvents);
+        this.setState({
+            selectedErrorEvents: [],
+        });
     };
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
@@ -133,9 +136,12 @@ class ErrorTrackerDetailView extends Component {
                                                     this.state
                                                         .selectedErrorEvents
                                                         .length ===
-                                                    errorTrackerIssues
-                                                        .errorTrackerIssues
-                                                        .length
+                                                        errorTrackerIssues
+                                                            .errorTrackerIssues
+                                                            .length &&
+                                                    this.state
+                                                        .selectedErrorEvents
+                                                        .length !== 0
                                                         ? true
                                                         : false
                                                 }
@@ -382,6 +388,7 @@ ErrorTrackerDetailView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
+    ignoreErrorEvent: PropTypes.string,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

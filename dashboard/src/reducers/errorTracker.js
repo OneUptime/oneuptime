@@ -429,10 +429,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 state.errorTrackerIssues[action.payload.errorTrackerId]
                     .errorTrackerIssues;
             temporaryIssues.map(errorTrackerIssues => {
-                const index = action.payload.ignoredErrorEvents.indexOf(
-                    errorTrackerIssues.latestId
+                const issue = action.payload.ignoredIssues.filter(
+                    ignoredIssue => ignoredIssue._id === errorTrackerIssues._id
                 );
-                if (index > -1) {
+
+                if (issue && issue.length > 0) {
                     errorTrackerIssues.ignored = true;
                 }
 
