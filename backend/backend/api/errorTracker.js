@@ -448,7 +448,7 @@ router.post(
                     message: 'Action is required',
                 });
             }
-            const allowedActions = ['ignore', 'unresolve'];
+            const allowedActions = ['ignore', 'unresolve', 'resolve'];
             if (!allowedActions.includes(action)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -489,16 +489,29 @@ router.post(
                         ignored: true,
                         ignoredAt: new Date(),
                         ignoredById: req.user.id,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
                     };
                     break;
                 case 'unresolve':
                     updateData = {
                         ignored: false,
                         ignoredAt: '',
+                        ignoredById: null,
                         resolved: false,
                         resolvedAt: '',
-                        ignoredById: null,
                         resolvedById: null,
+                    };
+                    break;
+                case 'resolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: true,
+                        resolvedAt: new Date(),
+                        resolvedById: req.user.id,
                     };
                     break;
 
