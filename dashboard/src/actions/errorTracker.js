@@ -578,3 +578,68 @@ export function unresolveErrorEventSuccess(errorEvents) {
         payload: errorEvents,
     };
 }
+
+export function resolveErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'resolve' }
+        );
+        dispatch(resolveErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    resolveErrorEventSuccess({
+                        errorTrackerId,
+                        resolvedIssues: response.data.issues,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resolveErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function resolveErrorEventReset() {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_RESET,
+    };
+}
+
+export function resolveErrorEventRequest() {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_REQUEST,
+    };
+}
+export function resolveErrorEventFailure(error) {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function resolveErrorEventSuccess(errorEvents) {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}

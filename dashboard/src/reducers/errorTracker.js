@@ -36,6 +36,10 @@ import {
     UNRESOLVE_ERROR_EVENT_REQUEST,
     UNRESOLVE_ERROR_EVENT_RESET,
     UNRESOLVE_ERROR_EVENT_SUCCESS,
+    RESOLVE_ERROR_EVENT_FAILURE,
+    RESOLVE_ERROR_EVENT_REQUEST,
+    RESOLVE_ERROR_EVENT_RESET,
+    RESOLVE_ERROR_EVENT_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -441,7 +445,8 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 );
 
                 if (issue && issue.length > 0) {
-                    errorTrackerIssues.ignored = true;
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
                 }
 
                 return errorTrackerIssues;
@@ -493,8 +498,8 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 );
 
                 if (issue && issue.length > 0) {
-                    errorTrackerIssues.ignored = false;
-                    errorTrackerIssues.resolved = false;
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
                 }
 
                 return errorTrackerIssues;
@@ -529,6 +534,59 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             });
 
         case UNRESOLVE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
+            });
+        case RESOLVE_ERROR_EVENT_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                      .errorTrackerIssues
+                : [...action.payload.resolvedIssues];
+            temporaryIssues.map(errorTrackerIssues => {
+                const issue = action.payload.resolvedIssues.filter(
+                    resolvedIssue =>
+                        resolvedIssue._id === errorTrackerIssues._id
+                );
+
+                if (issue && issue.length > 0) {
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case RESOLVE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESOLVE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESOLVE_ERROR_EVENT_RESET:
             return Object.assign({}, state, {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
