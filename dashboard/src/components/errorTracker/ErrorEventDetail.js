@@ -6,7 +6,10 @@ import ErrorEventStackTrace from './ErrorEventStackTrace';
 import ErrorEventTimeline from './ErrorEventTimeline';
 import ErrorEventInfoSection from './ErrorEventInfoSection';
 import PropTypes from 'prop-types';
-import { ignoreErrorEventByIssue } from '../../actions/errorTracker';
+import {
+    ignoreErrorEvent,
+    unresolveErrorEvent,
+} from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -16,11 +19,18 @@ class ErrorEventDetail extends Component {
             projectId,
             componentId,
             errorTrackerId,
-            ignoreErrorEventByIssue,
+            ignoreErrorEvent,
         } = this.props;
-        ignoreErrorEventByIssue(projectId, componentId, errorTrackerId, [
-            issueId,
-        ]);
+        ignoreErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
+    };
+    unresolveErrorEvent = issueId => {
+        const {
+            projectId,
+            componentId,
+            errorTrackerId,
+            unresolveErrorEvent,
+        } = this.props;
+        unresolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
     };
     render() {
         const { errorEvent, navigationLink, errorTrackerIssue } = this.props;
@@ -36,6 +46,9 @@ class ErrorEventDetail extends Component {
                                         errorTrackerIssue={errorTrackerIssue}
                                         navigationLink={navigationLink}
                                         ignoreErrorEvent={this.ignoreErrorEvent}
+                                        unresolveErrorEvent={
+                                            this.unresolveErrorEvent
+                                        }
                                     />
                                     <ErrorEventDevice errorEvent={errorEvent} />
                                     <ErrorEventMiniTag
@@ -62,7 +75,8 @@ class ErrorEventDetail extends Component {
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
-            ignoreErrorEventByIssue,
+            ignoreErrorEvent,
+            unresolveErrorEvent,
         },
         dispatch
     );
@@ -104,11 +118,12 @@ const mapStateToProps = (state, ownProps) => {
 ErrorEventDetail.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
-    ignoreErrorEventByIssue: PropTypes.func,
+    ignoreErrorEvent: PropTypes.func,
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     errorTrackerId: PropTypes.string,
     errorTrackerIssue: PropTypes.object,
+    unresolveErrorEvent: PropTypes.func,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);

@@ -13,8 +13,16 @@ class ErrorEventHeader extends Component {
         }
         return;
     };
+    handleIgnoreButton = errorTrackerIssue => {
+        const { ignoreErrorEvent, unresolveErrorEvent } = this.props;
+        if (!errorTrackerIssue.ignored) {
+            ignoreErrorEvent(errorTrackerIssue._id);
+        } else {
+            unresolveErrorEvent(errorTrackerIssue._id);
+        }
+    };
     render() {
-        const { errorEvent, ignoreErrorEvent, errorTrackerIssue } = this.props;
+        const { errorEvent, errorTrackerIssue } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
             <div>
@@ -99,8 +107,8 @@ class ErrorEventHeader extends Component {
                                                 className="bs-Button bs-Button--icon bs-Button--block"
                                                 type="button"
                                                 onClick={() =>
-                                                    ignoreErrorEvent(
-                                                        errorTrackerIssue._id
+                                                    this.handleIgnoreButton(
+                                                        errorTrackerIssue
                                                     )
                                                 }
                                             >
@@ -243,6 +251,7 @@ ErrorEventHeader.propTypes = {
     navigationLink: PropTypes.func,
     errorTrackerIssue: PropTypes.object,
     ignoreErrorEvent: PropTypes.func,
+    unresolveErrorEvent: PropTypes.func,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;
