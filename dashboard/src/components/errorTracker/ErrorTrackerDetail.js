@@ -6,7 +6,7 @@ import {
     deleteErrorTracker,
     editErrorTrackerSwitch,
     resetErrorTrackerKey,
-    ignoreErrorEventByIssue,
+    ignoreErrorEvent,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
@@ -97,9 +97,9 @@ class ErrorTrackerDetail extends Component {
             currentProject,
             componentId,
             errorTracker,
-            ignoreErrorEventByIssue,
+            ignoreErrorEvent,
         } = this.props;
-        ignoreErrorEventByIssue(
+        ignoreErrorEvent(
             currentProject._id,
             componentId,
             errorTracker._id,
@@ -291,7 +291,7 @@ ErrorTrackerDetail.propTypes = {
     closeModal: PropTypes.func,
     startDate: PropTypes.string,
     endDate: PropTypes.string,
-    ignoreErrorEventByIssue: PropTypes.func,
+    ignoreErrorEvent: PropTypes.func,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -302,7 +302,7 @@ const mapDispatchToProps = dispatch => {
             editErrorTrackerSwitch,
             resetErrorTrackerKey,
             closeModal,
-            ignoreErrorEventByIssue,
+            ignoreErrorEvent,
         },
         dispatch
     );
