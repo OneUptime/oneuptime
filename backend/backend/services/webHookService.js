@@ -8,24 +8,31 @@ module.exports = {
         component,
         duration
     ) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        if (project && project.parentProjectId) {
-            projectId = project.parentProjectId._id;
-        }
-        const monitorStatus = await MonitorStatusService.findOneBy({
-            monitorId: monitor._id,
-        });
+        try {
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            if (project && project.parentProjectId) {
+                projectId = project.parentProjectId._id;
+            }
+            const monitorStatus = await MonitorStatusService.findOneBy({
+                monitorId: monitor._id,
+            });
 
-        this.notify(
-            project,
-            monitor,
-            incident,
-            subscriber,
-            monitorStatus ? monitorStatus.status : null,
-            component,
-            duration,
-            EXTERNAL_SUBSCRIBER_WEBHOOK
-        );
+            return await this.notify(
+                project,
+                monitor,
+                incident,
+                subscriber,
+                monitorStatus ? monitorStatus.status : null,
+                component,
+                duration,
+                EXTERNAL_SUBSCRIBER_WEBHOOK
+            );
+        } catch (error) {
+            ErrorService.log(
+                'webHookService.sendSubscriberNotification',
+                error
+            );
+        }
     },
     // process messages to be sent to slack workspace channels
     sendIntegrationNotification: async function(
@@ -255,15 +262,22 @@ module.exports = {
                 }
             }
 
-            axios.request({
-                method: httpMethod,
-                url: webHookURL,
-                data: httpMethod === 'post' ? payload : null,
-                params: httpMethod === 'get' ? data : null,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            const response = await axios
+                .request({
+                    method: httpMethod,
+                    url: webHookURL,
+                    data: httpMethod === 'post' ? payload : null,
+                    params: httpMethod === 'get' ? data : null,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.status)
+                .catch(error => {
+                    ErrorService.log('WebHookService.notify', error);
+                    return 500;
+                });
+            return response === 200;
         } catch (error) {
             ErrorService.log('WebHookService.notify', 'error');
             throw error;
@@ -285,4 +299,3 @@ const {
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_CREATED,
 } = require('../constants/incidentEvents');
-const { webhook } = require('twilio/lib/webhooks/webhooks');

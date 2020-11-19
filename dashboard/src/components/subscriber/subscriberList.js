@@ -131,16 +131,7 @@ export class SubscriberList extends Component {
                                         </span>
                                     </div>
                                 </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px' }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span> HTTP Method</span>
-                                        </span>
-                                    </div>
-                                </td>
+
                                 <td
                                     id="placeholder-right"
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -275,7 +266,10 @@ export class SubscriberList extends Component {
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
                                                                     <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        {subscriber.contactWebhook ||
+                                                                        {(subscriber.contactWebhook &&
+                                                                            subscriber.contactWebhook +
+                                                                                `(${subscriber.webhookMethod ||
+                                                                                    'POST'})`.toUpperCase()) ||
                                                                             subscriber.contactEmail ||
                                                                             (subscriber.contactPhone &&
                                                                                 `+${countryTelephoneCode(
@@ -291,26 +285,7 @@ export class SubscriberList extends Component {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td
-                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                                style={{ height: '1px' }}
-                                            >
-                                                <div className="db-ListViewItem-link">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Text-align--left Text-typeface--upper">
-                                                                <span>
-                                                                    {subscriber.webhookMethod ||
-                                                                        (subscriber.alertVia ===
-                                                                        'webhook'
-                                                                            ? 'POST'
-                                                                            : '')}
-                                                                </span>
-                                                            </div>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
+
                                             <td
                                                 aria-hidden="true"
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"

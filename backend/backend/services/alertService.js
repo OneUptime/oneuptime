@@ -1737,7 +1737,7 @@ module.exports = {
                 const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
-                await WebHookService.sendSubscriberNotification(
+                const webhookNotificationSent = await WebHookService.sendSubscriberNotification(
                     subscriber,
                     incident.projectId,
                     incident,
@@ -1745,6 +1745,105 @@ module.exports = {
                     component,
                     downTimeString
                 );
+
+                // send email notification if webhook notification fails
+                if (!webhookNotificationSent) {
+                    const subscriberAlert = await SubscriberAlertService.create(
+                        {
+                            projectId: incident.projectId,
+                            incidentId: incident._id,
+                            subscriberId: subscriber._id,
+                            alertVia: AlertType.Email,
+                            alertStatus: 'Pending',
+                            eventType:
+                                templateType === ACKNOWLEDGED_MAIL_TEMPLATE
+                                    ? 'acknowledged'
+                                    : templateType === RESOLVED_MAIL_TEMPLATE
+                                    ? 'resolved'
+                                    : 'identified',
+                        }
+                    );
+                    const alertId = subscriberAlert._id;
+                    try {
+                        const emailTemplate = await EmailTemplateService.findOneBy(
+                            {
+                                projectId: incident.projectId,
+                                emailType: templateType,
+                            }
+                        );
+
+                        let alertStatus = 'Disabled';
+                        const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
+
+                        if (incident.resolved) {
+                            if (project.sendResolvedIncidentNotificationEmail) {
+                                MailService.sendIncidentResolvedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl,
+                                    project.replyAddress
+                                );
+                                alertStatus = 'Sent';
+                            }
+                        } else if (incident.acknowledged) {
+                            if (
+                                project.sendAcknowledgedIncidentNotificationEmail
+                            ) {
+                                MailService.sendIncidentAcknowledgedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl,
+                                    project.replyAddress
+                                );
+                                alertStatus = 'Sent';
+                            }
+                        } else {
+                            if (project.sendCreatedIncidentNotificationEmail) {
+                                MailService.sendIncidentCreatedMailToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    subscriber.contactEmail,
+                                    subscriber._id,
+                                    subscriber.contactEmail,
+                                    incident,
+                                    project.name,
+                                    emailTemplate,
+                                    trackEmailAsViewedUrl,
+                                    component.name,
+                                    statusPageUrl,
+                                    project.replyAddress
+                                );
+                                alertStatus = 'Sent';
+                            }
+                        }
+                        await SubscriberAlertService.updateOneBy(
+                            { _id: alertId },
+                            { alertStatus }
+                        );
+                    } catch (error) {
+                        await SubscriberAlertService.updateOneBy(
+                            { _id: alertId },
+                            { alertStatus: null }
+                        );
+                        throw error;
+                    }
+                }
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
@@ -1925,3 +2024,7 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
+const {
+    ACKNOWLEDGED_MAIL_TEMPLATE,
+    RESOLVED_MAIL_TEMPLATE,
+} = require('../constants/incidentMailTemplateTypes');
