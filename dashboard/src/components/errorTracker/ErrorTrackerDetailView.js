@@ -238,7 +238,7 @@ class ErrorTrackerDetailView extends Component {
                                         <button
                                             className="bs-Button"
                                             type="button"
-                                            disabled={false}
+                                            disabled={true}
                                         >
                                             <span>Merge</span>
                                         </button>
