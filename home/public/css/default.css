@@ -1390,7 +1390,7 @@ width:100%
     transition-duration:.25s
 }
 .globalNav .dropdownContainer{
-    overflow:hidden;
+    overflow:scroll;
     width:500px;
     position:absolute;
     top:0;
@@ -5890,3 +5890,50 @@ footer#main-footer div.country-selector ul a.selected:after{
         background-size:100% 100%
     }
 }
+.product-page{
+    width:1300px;
+    height:650px;
+    display: flex;
+    flex-direction:row;
+    justify-content:space-between;
+}
+
+.product-category{
+    flex:1;
+    padding:30px;
+    border-left: 1px solid #E5E8ED;
+}
+
+.product-category-heading{
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: black;
+    font-style: bold;
+    font-family: Segoe UI,sans-serif;
+}
+
+.product-item-title{
+    font-size: 16px;
+    line-height:18px;
+    color: black;
+    font-style:bold;
+    font-family: Segoe UI,sans-serif;
+}
+
+.product-item-subtitle{
+    font-size: 16px;
+    line-height:24px;
+    color: #797979;
+    font-family: Segoe UI,sans-serif;
+}
+
+.product-item:hover .product-item-subtitle{
+    color:black;
+}
+
+
+
+
+
