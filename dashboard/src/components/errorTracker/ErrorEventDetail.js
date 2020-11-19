@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import {
     ignoreErrorEvent,
     unresolveErrorEvent,
+    resolveErrorEvent,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -32,6 +33,15 @@ class ErrorEventDetail extends Component {
         } = this.props;
         unresolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
     };
+    resolveErrorEvent = issueId => {
+        const {
+            projectId,
+            componentId,
+            errorTrackerId,
+            resolveErrorEvent,
+        } = this.props;
+        resolveErrorEvent(projectId, componentId, errorTrackerId, [issueId]);
+    };
     render() {
         const { errorEvent, navigationLink, errorTrackerIssue } = this.props;
         return (
@@ -48,6 +58,9 @@ class ErrorEventDetail extends Component {
                                         ignoreErrorEvent={this.ignoreErrorEvent}
                                         unresolveErrorEvent={
                                             this.unresolveErrorEvent
+                                        }
+                                        resolveErrorEvent={
+                                            this.resolveErrorEvent
                                         }
                                     />
                                     <ErrorEventDevice errorEvent={errorEvent} />
@@ -77,6 +90,7 @@ const mapDispatchToProps = dispatch => {
         {
             ignoreErrorEvent,
             unresolveErrorEvent,
+            resolveErrorEvent,
         },
         dispatch
     );
@@ -113,6 +127,7 @@ const mapStateToProps = (state, ownProps) => {
         currentProject: state.project.currentProject,
         errorTrackerIssue: errorTrackerIssueStatus,
         ignored: errorTrackerIssueStatus.ignored,
+        resolved: errorTrackerIssueStatus.resolved,
     };
 };
 ErrorEventDetail.propTypes = {
@@ -124,6 +139,7 @@ ErrorEventDetail.propTypes = {
     errorTrackerId: PropTypes.string,
     errorTrackerIssue: PropTypes.object,
     unresolveErrorEvent: PropTypes.func,
+    resolveErrorEvent: PropTypes.func,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);

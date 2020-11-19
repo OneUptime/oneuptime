@@ -21,6 +21,14 @@ class ErrorEventHeader extends Component {
             unresolveErrorEvent(errorTrackerIssue._id);
         }
     };
+    handleResolveButton = errorTrackerIssue => {
+        const { resolveErrorEvent, unresolveErrorEvent } = this.props;
+        if (!errorTrackerIssue.resolved) {
+            resolveErrorEvent(errorTrackerIssue._id);
+        } else {
+            unresolveErrorEvent(errorTrackerIssue._id);
+        }
+    };
     render() {
         const { errorEvent, errorTrackerIssue } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
@@ -89,12 +97,34 @@ class ErrorEventHeader extends Component {
                                     </div>
                                 </div>
                                 <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8 Flex-flex">
-                                    <button
-                                        className="bs-Button bs-Button--icon bs-Button--check"
-                                        type="button"
-                                    >
-                                        <span>Resolve</span>
-                                    </button>
+                                    <TooltipMini
+                                        title={
+                                            errorTrackerIssue &&
+                                            errorTrackerIssue.resolved
+                                                ? ''
+                                                : 'Unresolved'
+                                        }
+                                        content={
+                                            <button
+                                                className="bs-Button bs-Button--icon bs-Button--check"
+                                                type="button"
+                                                onClick={() =>
+                                                    this.handleResolveButton(
+                                                        errorTrackerIssue
+                                                    )
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        errorTrackerIssue &&
+                                                        !errorTrackerIssue.resolved
+                                                    }
+                                                >
+                                                    <span>Resolve</span>
+                                                </ShouldRender>
+                                            </button>
+                                        }
+                                    />
                                     <TooltipMini
                                         title={
                                             errorTrackerIssue &&
@@ -252,6 +282,7 @@ ErrorEventHeader.propTypes = {
     errorTrackerIssue: PropTypes.object,
     ignoreErrorEvent: PropTypes.func,
     unresolveErrorEvent: PropTypes.func,
+    resolveErrorEvent: PropTypes.func,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;
