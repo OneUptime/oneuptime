@@ -169,7 +169,7 @@ class ErrorEventHeader extends Component {
                                         message={
                                             <span>
                                                 This issue has been marked as
-                                                ignore
+                                                ignored.
                                             </span>
                                         }
                                     />
@@ -180,7 +180,7 @@ class ErrorEventHeader extends Component {
                                         message={
                                             <span>
                                                 This issue has been marked as
-                                                resolved
+                                                resolved.
                                             </span>
                                         }
                                     />
