@@ -5891,8 +5891,8 @@ footer#main-footer div.country-selector ul a.selected:after{
     }
 }
 .product-page{
-    width:1200px;
-    height:500px;
+    width:1300px;
+    height:650px;
     display: flex;
     flex-direction:row;
     justify-content:space-between;
