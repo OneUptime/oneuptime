@@ -135,7 +135,11 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Scheduled Events') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
-                route.title === 'Consulting & Services');
+                route.title === 'Consulting & Services') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/error-track*/
+            ) &&
+                route.title === 'Error Tracking');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(
