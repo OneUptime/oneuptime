@@ -5892,7 +5892,7 @@ footer#main-footer div.country-selector ul a.selected:after{
 }
 .product-page{
     width:1300px;
-    height:650px;
+    height:460px;
     display: flex;
     flex-direction:row;
     justify-content:space-between;
@@ -5915,7 +5915,7 @@ footer#main-footer div.country-selector ul a.selected:after{
 }
 
 .product-item-title{
-    font-size: 16px;
+    font-size: 14px;
     line-height:18px;
     color: black;
     font-style:bold;
@@ -5923,7 +5923,7 @@ footer#main-footer div.country-selector ul a.selected:after{
 }
 
 .product-item-subtitle{
-    font-size: 16px;
+    font-size: 14px;
     line-height:24px;
     color: #797979;
     font-family: Segoe UI,sans-serif;
