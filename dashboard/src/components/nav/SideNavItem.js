@@ -52,7 +52,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId);
+            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':errorTrackerId', match.params.errorTrackerId);
     };
 
     subRoute = subRoute => {
@@ -93,7 +94,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId);
+            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':errorTrackerId', match.params.errorTrackerId);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -154,6 +156,10 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(
                 /:applicationLogId/,
                 match.params.applicationLogId
+            );
+            newPath = newPath.replace(
+                /:errorTrackerId/,
+                match.params.errorTrackerId
             );
 
             const response =
@@ -306,6 +312,8 @@ export class SidebarNavItem extends Component {
                 'Container Detail',
                 'Team Member Profile',
                 'Scheduled Event Detail',
+                'Error Tracking View',
+                'Error Tracking Detail View',
             ];
 
             if (removedLinks.some(link => link === child.title)) return null;
