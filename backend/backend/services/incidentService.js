@@ -343,7 +343,7 @@ module.exports = {
                 component
             );
             // send webhook notification
-            WebHookService.sendNotification(
+            WebHookService.sendIntegrationNotification(
                 incident.projectId,
                 incident,
                 incident.monitorId,
@@ -417,7 +417,7 @@ module.exports = {
                 _this.refreshInterval(incidentId);
 
                 // automatically create acknowledgement incident note
-                await IncidentMessageService.create({
+                IncidentMessageService.create({
                     content: 'This incident has been acknowledged',
                     incidentId,
                     createdById: userId,
@@ -429,7 +429,7 @@ module.exports = {
                     incident.createdAt
                 );
 
-                await NotificationService.create(
+                NotificationService.create(
                     incident.projectId,
                     `An Incident was acknowledged by ${name}`,
                     userId,
@@ -447,7 +447,7 @@ module.exports = {
                 });
                 incident = await _this.findOneBy({ _id: incident._id });
 
-                await IncidentTimelineService.create({
+                IncidentTimelineService.create({
                     incidentId: incidentId,
                     createdById: userId,
                     probeId: probeId,
@@ -457,7 +457,7 @@ module.exports = {
 
                 AlertService.sendAcknowledgedIncidentToSubscribers(incident);
 
-                await WebHookService.sendNotification(
+                WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     monitor,
@@ -466,7 +466,7 @@ module.exports = {
                     downtimestring
                 );
 
-                await SlackService.sendNotification(
+                SlackService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
@@ -475,7 +475,7 @@ module.exports = {
                     downtimestring
                 );
 
-                await MsTeamsService.sendNotification(
+                MsTeamsService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
@@ -484,11 +484,8 @@ module.exports = {
                     downtimestring
                 );
 
-                await RealTimeService.incidentAcknowledged(incident);
-                await ZapierService.pushToZapier(
-                    'incident_acknowledge',
-                    incident
-                );
+                RealTimeService.incidentAcknowledged(incident);
+                ZapierService.pushToZapier('incident_acknowledge', incident);
             } else {
                 incident = await _this.findOneBy({
                     _id: incidentId,
@@ -552,7 +549,7 @@ module.exports = {
                     });
                 });
             } else {
-                await MonitorStatusService.create({
+                MonitorStatusService.create({
                     monitorId: incident.monitorId._id,
                     probeId,
                     manuallyCreated: userId ? true : false,
@@ -561,7 +558,7 @@ module.exports = {
             }
 
             // automatically create resolved incident note
-            await IncidentMessageService.create({
+            IncidentMessageService.create({
                 content: 'This incident has been resolved',
                 incidentId,
                 createdById: userId,
@@ -569,7 +566,7 @@ module.exports = {
                 incident_state: 'Resolved',
             });
 
-            await IncidentTimelineService.create({
+            IncidentTimelineService.create({
                 incidentId: incidentId,
                 createdById: userId,
                 probeId: probeId,
@@ -578,8 +575,8 @@ module.exports = {
             });
 
             _this.sendIncidentResolvedNotification(incident, name);
-            await RealTimeService.incidentResolved(incident);
-            await ZapierService.pushToZapier('incident_resolve', incident);
+            RealTimeService.incidentResolved(incident);
+            ZapierService.pushToZapier('incident_resolve', incident);
 
             return incident;
         } catch (error) {
@@ -665,7 +662,7 @@ module.exports = {
             );
 
             // send slack notification
-            await SlackService.sendNotification(
+            SlackService.sendNotification(
                 incident.projectId,
                 incident,
                 incident.monitorId,
@@ -674,7 +671,7 @@ module.exports = {
                 downtimestring
             );
             // Ping webhook
-            await WebHookService.sendNotification(
+            WebHookService.sendIntegrationNotification(
                 incident.projectId,
                 incident,
                 resolvedincident.monitorId,
@@ -683,7 +680,7 @@ module.exports = {
                 downtimestring
             );
             // Ms Teams
-            await MsTeamsService.sendNotification(
+            MsTeamsService.sendNotification(
                 incident.projectId,
                 incident,
                 incident.monitorId,

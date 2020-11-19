@@ -10,6 +10,7 @@ module.exports = {
         subscriberModel.contactPhone = data.contactPhone || null;
         subscriberModel.countryCode = data.countryCode || null;
         subscriberModel.contactWebhook = data.contactWebhook || null;
+        subscriberModel.webhookMethod = data.webhookMethod || 'post';
         try {
             const subscriber = await subscriberModel.save();
             return await _this.findByOne({ _id: subscriber._id });
@@ -127,6 +128,7 @@ module.exports = {
                 temp.contactPhone = result.contactPhone;
                 temp.countryCode = result.countryCode;
                 temp.contactWebhook = result.contactWebhook;
+                temp.webhookMethod = result.webhookMethod;
                 subscribersArr.push(temp);
             }
             return subscribersArr;
@@ -169,6 +171,7 @@ module.exports = {
                 temp.contactPhone = result.contactPhone;
                 temp.countryCode = result.countryCode;
                 temp.contactWebhook = result.contactWebhook;
+                temp.webhookMethod = result.webhookMethod;
                 subscribersArr.push(temp);
             }
             return subscribersArr;

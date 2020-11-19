@@ -21,14 +21,14 @@ module.exports = {
             monitor,
             incident,
             subscriber,
-            monitorStatus,
+            monitorStatus ? monitorStatus.status : null,
             component,
             duration,
             EXTERNAL_SUBSCRIBER_WEBHOOK
         );
     },
     // process messages to be sent to slack workspace channels
-    sendNotification: async function(
+    sendIntegrationNotification: async function(
         projectId,
         incident,
         monitor,
@@ -94,7 +94,7 @@ module.exports = {
         project,
         monitor,
         incident,
-        webHookAgent,
+        webhookAgent,
         monitorStatus,
         component,
         duration,
@@ -107,8 +107,8 @@ module.exports = {
             let payload;
             // let webhook url default to external subscriber's webhook url but
             // could later change if the agent is a project webhook
-            let webHookURL = webHookAgent.contactWebhook;
-            let requestMethod = 'post';
+            let webHookURL = webhookAgent.contactWebhook;
+            let httpMethod = webhookAgent.webhookMethod || 'post';
 
             if (incident.resolved) {
                 payload = {
@@ -245,9 +245,9 @@ module.exports = {
             }
 
             if (webHookType === PROJECT_WEBHOOK) {
-                webHookURL = webHookAgent.data.endpoint;
-                requestMethod = webHookAgent.data.endpointType;
-                if (requestMethod === undefined) {
+                webHookURL = webhookAgent.data.endpoint;
+                httpMethod = webhookAgent.data.endpointType;
+                if (httpMethod === undefined) {
                     const error = new Error('Webhook endpoint type missing');
                     error.code = 400;
                     ErrorService.log('WebHookService.notify', 'error');
@@ -256,10 +256,10 @@ module.exports = {
             }
 
             axios.request({
-                method: requestMethod,
+                method: httpMethod,
                 url: webHookURL,
-                data: requestMethod === 'post' ? payload : null,
-                params: requestMethod === 'get' ? data : null,
+                data: httpMethod === 'post' ? payload : null,
+                params: httpMethod === 'get' ? data : null,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -285,3 +285,4 @@ const {
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_CREATED,
 } = require('../constants/incidentEvents');
+const { webhook } = require('twilio/lib/webhooks/webhooks');
