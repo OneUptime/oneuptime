@@ -11,12 +11,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 class ErrorEventDetail extends Component {
-    ignoreErrorEvent = (issueId, type) => {
+    ignoreErrorEvent = issueId => {
         const {
             projectId,
             componentId,
             errorTrackerId,
-            errorEvent,
             ignoreErrorEventByIssue,
         } = this.props;
         ignoreErrorEventByIssue(projectId, componentId, errorTrackerId, [
@@ -24,7 +23,7 @@ class ErrorEventDetail extends Component {
         ]);
     };
     render() {
-        const { errorEvent, navigationLink } = this.props;
+        const { errorEvent, navigationLink, errorTrackerIssue } = this.props;
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
@@ -34,6 +33,7 @@ class ErrorEventDetail extends Component {
                                 <div className="Padding-all--20">
                                     <ErrorEventHeader
                                         errorEvent={errorEvent}
+                                        errorTrackerIssue={errorTrackerIssue}
                                         navigationLink={navigationLink}
                                         ignoreErrorEvent={this.ignoreErrorEvent}
                                     />
@@ -68,24 +68,47 @@ const mapDispatchToProps = dispatch => {
     );
 };
 const mapStateToProps = (state, ownProps) => {
-    console.log(ownProps);
-    const errorTrackerId = ownProps.index;
+    const errorTrackerId = ownProps.errorTrackerId;
     const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
     const currentErrorTracker = errorTrackers.filter(
         errorTracker => errorTracker._id === errorTrackerId
     );
-    const errorTrackerIssue =
-        state.errorTracker.errorTrackerIssues[errorTrackerId];
+    const errorTrackerIssues = state.errorTracker.errorTrackerIssues[
+        errorTrackerId
+    ]
+        ? state.errorTracker.errorTrackerIssues[errorTrackerId]
+              .errorTrackerIssues
+        : [];
+    const errorEvent = ownProps.errorEvent.errorEvent;
+    // check if issue id exist in the redux state first, before using the issue details in the error event
+    let errorEventIssue;
+    if (errorEvent) {
+        errorEventIssue = errorTrackerIssues.filter(
+            errorTrackerIssue =>
+                errorTrackerIssue._id === errorEvent.issueId._id
+        )[0];
+    }
+    const errorTrackerIssueStatus = errorEventIssue
+        ? errorEventIssue
+        : errorEvent
+        ? errorEvent.issueId
+        : {};
+
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
-        errorTrackerIssue,
+        errorTrackerIssue: errorTrackerIssueStatus,
+        ignored: errorTrackerIssueStatus.ignored,
     };
 };
 ErrorEventDetail.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
     ignoreErrorEventByIssue: PropTypes.func,
+    projectId: PropTypes.string,
+    componentId: PropTypes.string,
+    errorTrackerId: PropTypes.string,
+    errorTrackerIssue: PropTypes.object,
 };
 ErrorEventDetail.displayName = 'ErrorEventDetail';
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventDetail);

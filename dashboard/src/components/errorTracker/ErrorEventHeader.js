@@ -14,7 +14,7 @@ class ErrorEventHeader extends Component {
         return;
     };
     render() {
-        const { errorEvent, ignoreErrorEvent } = this.props;
+        const { errorEvent, ignoreErrorEvent, errorTrackerIssue } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
             <div>
@@ -38,10 +38,8 @@ class ErrorEventHeader extends Component {
                                             className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
                                             <span id={`application-log-title-`}>
-                                                {errorEventDetails &&
-                                                    errorEventDetails.issueId &&
-                                                    errorEventDetails.issueId
-                                                        .name}
+                                                {errorTrackerIssue &&
+                                                    errorTrackerIssue.name}
                                             </span>
                                         </span>
                                         <div className="Flex-flex Flex-alignItems--center">
@@ -50,28 +48,23 @@ class ErrorEventHeader extends Component {
                                                     height: '12px',
                                                     width: '12px',
                                                     backgroundColor: `${ErrorEventUtil.getExceptionColor(
-                                                        errorEventDetails &&
-                                                            errorEventDetails
-                                                                .issueId.type
+                                                        errorTrackerIssue &&
+                                                            errorTrackerIssue.type
                                                     )}`,
                                                     borderRadius: '50%',
                                                 }}
                                             ></div>{' '}
                                             <span className="Text-fontSize--12 Margin-left--4">
-                                                {errorEventDetails &&
-                                                errorEventDetails.issueId &&
-                                                errorEventDetails.issueId
-                                                    .description
-                                                    ? errorEventDetails.issueId
+                                                {errorTrackerIssue &&
+                                                errorTrackerIssue.description
+                                                    ? errorTrackerIssue
                                                           .description.length >
                                                       100
-                                                        ? `${errorEventDetails.issueId.description.substring(
+                                                        ? `${errorTrackerIssue.description.substring(
                                                               0,
                                                               100
                                                           )} ...`
-                                                        : errorEventDetails
-                                                              .issueId
-                                                              .description
+                                                        : errorTrackerIssue.description
                                                     : ''}
                                             </span>
                                         </div>
@@ -96,8 +89,8 @@ class ErrorEventHeader extends Component {
                                     </button>
                                     <TooltipMini
                                         title={
-                                            errorEventDetails &&
-                                            errorEventDetails.issueId.ignored
+                                            errorTrackerIssue &&
+                                            errorTrackerIssue.ignored
                                                 ? 'Change Status to Unresolved'
                                                 : ''
                                         }
@@ -107,16 +100,14 @@ class ErrorEventHeader extends Component {
                                                 type="button"
                                                 onClick={() =>
                                                     ignoreErrorEvent(
-                                                        errorEventDetails
-                                                            .issueId._id
+                                                        errorTrackerIssue._id
                                                     )
                                                 }
                                             >
                                                 <ShouldRender
                                                     if={
-                                                        errorEventDetails &&
-                                                        !errorEventDetails
-                                                            .issueId.ignored
+                                                        errorTrackerIssue &&
+                                                        !errorTrackerIssue.ignored
                                                     }
                                                 >
                                                     <span>Ignore</span>
@@ -250,6 +241,8 @@ class ErrorEventHeader extends Component {
 ErrorEventHeader.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
+    errorTrackerIssue: PropTypes.object,
+    ignoreErrorEvent: PropTypes.func,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;
