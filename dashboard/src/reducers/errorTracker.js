@@ -32,6 +32,10 @@ import {
     IGNORE_ERROR_EVENT_REQUEST,
     IGNORE_ERROR_EVENT_RESET,
     IGNORE_ERROR_EVENT_SUCCESS,
+    UNRESOLVE_ERROR_EVENT_FAILURE,
+    UNRESOLVE_ERROR_EVENT_REQUEST,
+    UNRESOLVE_ERROR_EVENT_RESET,
+    UNRESOLVE_ERROR_EVENT_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -56,7 +60,7 @@ const INITIAL_STATE = {
         error: null,
         success: false,
     },
-    ignoreErrorEvent: {
+    errorTrackerStatus: {
         requesting: false,
         error: null,
         success: false,
@@ -456,7 +460,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
 
         case IGNORE_ERROR_EVENT_REQUEST:
             return Object.assign({}, state, {
-                ignoreErrorEvent: {
+                errorTrackerStatus: {
                     requesting: true,
                     error: null,
                     success: false,
@@ -464,7 +468,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             });
         case IGNORE_ERROR_EVENT_FAILURE:
             return Object.assign({}, state, {
-                ignoreErrorEvent: {
+                errorTrackerStatus: {
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -473,7 +477,60 @@ export default function errorTracker(state = INITIAL_STATE, action) {
 
         case IGNORE_ERROR_EVENT_RESET:
             return Object.assign({}, state, {
-                ignoreErrorEvent: INITIAL_STATE.ignoreErrorEvent,
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
+            });
+        case UNRESOLVE_ERROR_EVENT_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                      .errorTrackerIssues
+                : [...action.payload.unresolvedIssues];
+            temporaryIssues.map(errorTrackerIssues => {
+                const issue = action.payload.unresolvedIssues.filter(
+                    unresolvedIssue =>
+                        unresolvedIssue._id === errorTrackerIssues._id
+                );
+
+                if (issue && issue.length > 0) {
+                    errorTrackerIssues.ignored = false;
+                    errorTrackerIssues.resolved = false;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case UNRESOLVE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case UNRESOLVE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case UNRESOLVE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         default:
             return state;

@@ -449,7 +449,7 @@ export function resetresetErrorTrackerKey() {
     };
 }
 
-export function ignoreErrorEventByIssue(
+export function ignoreErrorEvent(
     projectId,
     componentId,
     errorTrackerId,
@@ -510,6 +510,71 @@ export function ignoreErrorEventFailure(error) {
 export function ignoreErrorEventSuccess(errorEvents) {
     return {
         type: types.IGNORE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}
+
+export function unresolveErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'unresolve' }
+        );
+        dispatch(unresolveErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    unresolveErrorEventSuccess({
+                        errorTrackerId,
+                        unresolvedIssues: response.data.issues,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(unresolveErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function unresolveErrorEventReset() {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_RESET,
+    };
+}
+
+export function unresolveErrorEventRequest() {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_REQUEST,
+    };
+}
+export function unresolveErrorEventFailure(error) {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function unresolveErrorEventSuccess(errorEvents) {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
     };
 }
