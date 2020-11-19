@@ -238,11 +238,7 @@ class ErrorTrackerDetailView extends Component {
                                         <button
                                             className="bs-Button"
                                             type="button"
-                                            disabled={
-                                                selectedErrorEvents.length < 2
-                                                    ? true
-                                                    : false
-                                            }
+                                            disabled={false}
                                         >
                                             <span>Merge</span>
                                         </button>
