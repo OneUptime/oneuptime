@@ -1390,7 +1390,7 @@ width:100%
     transition-duration:.25s
 }
 .globalNav .dropdownContainer{
-    overflow:hidden;
+    overflow:scroll;
     width:500px;
     position:absolute;
     top:0;
