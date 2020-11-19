@@ -39,10 +39,14 @@ class Tutorial extends React.Component {
                             width:
                                 this.props.type === 'gitCredentials'
                                     ? '6rem'
+                                    : this.props.type === 'dockerCredentials'
+                                    ? '4rem'
                                     : null,
                             height:
                                 this.props.type === 'gitCredentials'
                                     ? '8rem'
+                                    : this.props.type === 'dockerCredentials'
+                                    ? '4rem'
                                     : null,
                             objectFit:
                                 this.props.type === 'gitCredentials'
