@@ -1,27 +1,10 @@
 const IncidentCommunicationSlaModel = require('../models/incidentCommunicationSla');
-const isArrayUnique = require('../utils/isArrayUnique');
 const ErrorService = require('./errorService');
 
 module.exports = {
     create: async function(data) {
         try {
-            if (!data.monitors || data.monitors.length === 0) {
-                const error = new Error(
-                    'You need at least one monitor to create an incident SLA'
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            if (!isArrayUnique(data.monitors)) {
-                const error = new Error(
-                    'You cannot have multiple selection of a monitor'
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            let incidentCommunicationSla = await this.findOneBy({
+            const incidentCommunicationSla = await this.findOneBy({
                 name: data.name,
                 projectId: data.projectId,
             });
@@ -32,24 +15,6 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-
-            incidentCommunicationSla = await this.findOneBy({
-                projectId: data.projectId,
-                'monitors.monitorId': { $in: data.monitors },
-            });
-
-            if (incidentCommunicationSla) {
-                const error = new Error(
-                    'A monitor cannot be in more than one incident communication SLA'
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            // reassign data.monitors to match schema design
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
 
             if (data.isDefault) {
                 // automatically set isDefault to false
@@ -83,7 +48,6 @@ module.exports = {
                 query
             )
                 .populate('projectId')
-                .populate('monitors.monitorId')
                 .lean();
 
             return incidentCommunicationSla;
@@ -115,8 +79,7 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId')
-                .populate('monitors.monitorId');
+                .populate('projectId');
 
             return incidentCommunicationSla;
         } catch (error) {
@@ -133,27 +96,6 @@ module.exports = {
             // check if we are only setting default sla
             // or using update modal for editing the details
             if (!data.handleDefault) {
-                if (!data.monitors || data.monitors.length === 0) {
-                    const error = new Error(
-                        'You need at least one monitor to update an incident SLA'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-
-                if (!isArrayUnique(data.monitors)) {
-                    const error = new Error(
-                        'You cannot have multiple selection of a monitor'
-                    );
-                    error.code = 400;
-                    throw error;
-                }
-
-                // reassign data.monitors to match schema design
-                data.monitors = data.monitors.map(monitor => ({
-                    monitorId: monitor,
-                }));
-
                 const incidentCommunicationSla = await this.findOneBy({
                     name: data.name,
                     projectId: query.projectId,
@@ -204,7 +146,6 @@ module.exports = {
 
             updatedIncidentCommunicationSla = await updatedIncidentCommunicationSla
                 .populate('projectId')
-                .populate('monitors.monitorId')
                 .execPopulate();
 
             return updatedIncidentCommunicationSla;
