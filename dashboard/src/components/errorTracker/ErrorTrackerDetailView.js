@@ -3,6 +3,9 @@ import ErrorTrackerIssue from './ErrorTrackerIssue';
 import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
+import DataPathHoC from '../DataPathHoC';
+import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
+import uuid from 'uuid';
 
 class ErrorTrackerDetailView extends Component {
     constructor(props) {
@@ -10,6 +13,7 @@ class ErrorTrackerDetailView extends Component {
         this.props = props;
         this.state = {
             selectedErrorEvents: [],
+            ignoreModalId: uuid.v4(),
         };
     }
     selectErrorEvent = errorEventId => {
@@ -49,10 +53,13 @@ class ErrorTrackerDetailView extends Component {
         });
     };
     ignoreErrorEvent = () => {
-        this.props.ignoreErrorEvent(this.state.selectedErrorEvents);
+        const promise = this.props
+            .ignoreErrorEvent(this.state.selectedErrorEvents)
+            .then();
         this.setState({
             selectedErrorEvents: [],
         });
+        return promise;
     };
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
@@ -64,12 +71,13 @@ class ErrorTrackerDetailView extends Component {
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
     render() {
-        const { selectedErrorEvents } = this.state;
+        const { selectedErrorEvents, ignoreModalId } = this.state;
         const {
             errorTrackerIssues,
             errorTracker,
             projectId,
             componentId,
+            openModal,
         } = this.props;
         let skip =
             errorTrackerIssues && errorTrackerIssues.skip
@@ -179,7 +187,24 @@ class ErrorTrackerDetailView extends Component {
                                                     ? true
                                                     : false
                                             }
-                                            onClick={this.ignoreErrorEvent}
+                                            onClick={() => {
+                                                openModal({
+                                                    id: ignoreModalId,
+                                                    onClose: () => '',
+                                                    onConfirm: () =>
+                                                        this.ignoreErrorEvent(),
+                                                    content: DataPathHoC(
+                                                        ConfirmErrorTrackerIssueAction,
+                                                        {
+                                                            action: 'ignore',
+                                                            actionTitle:
+                                                                'Ignore',
+                                                            count:
+                                                                selectedErrorEvents.length,
+                                                        }
+                                                    ),
+                                                });
+                                            }}
                                         >
                                             <span>Ignore</span>
                                         </button>
@@ -389,6 +414,7 @@ ErrorTrackerDetailView.propTypes = {
     componentId: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
     ignoreErrorEvent: PropTypes.string,
+    openModal: PropTypes.func,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

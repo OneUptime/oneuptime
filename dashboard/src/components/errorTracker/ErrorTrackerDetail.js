@@ -99,7 +99,7 @@ class ErrorTrackerDetail extends Component {
             errorTracker,
             ignoreErrorEvent,
         } = this.props;
-        ignoreErrorEvent(
+        return ignoreErrorEvent(
             currentProject._id,
             componentId,
             errorTracker._id,
@@ -263,6 +263,7 @@ class ErrorTrackerDetail extends Component {
                                             ignoreErrorEvent={
                                                 this.ignoreErrorEvent
                                             }
+                                            openModal={openModal}
                                         />
                                     </div>
                                 </div>
