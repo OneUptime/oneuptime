@@ -107,7 +107,14 @@ function ErrorTrackerIssue({
                                         }}
                                     />
                                 </ShouldRender>
-                                <span className="Text-color--slate Text-fontSize--16 Padding-right--4">
+                                <span
+                                    className="Text-color--slate Text-fontSize--16 Padding-right--4"
+                                    style={{
+                                        textDecoration: errorTrackerIssue.resolved
+                                            ? 'line-through'
+                                            : 'none',
+                                    }}
+                                >
                                     {errorTrackerIssue.name
                                         ? errorTrackerIssue.name
                                         : 'Unknown Error Event'}

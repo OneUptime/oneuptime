@@ -61,6 +61,15 @@ class ErrorTrackerDetailView extends Component {
         });
         return promise;
     };
+    resolveErrorEvent = () => {
+        const promise = this.props
+            .resolveErrorEvent(this.state.selectedErrorEvents)
+            .then();
+        this.setState({
+            selectedErrorEvents: [],
+        });
+        return promise;
+    };
     prevClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
@@ -176,6 +185,24 @@ class ErrorTrackerDetailView extends Component {
                                                     ? true
                                                     : false
                                             }
+                                            onClick={() => {
+                                                openModal({
+                                                    id: ignoreModalId,
+                                                    onClose: () => '',
+                                                    onConfirm: () =>
+                                                        this.resolveErrorEvent(),
+                                                    content: DataPathHoC(
+                                                        ConfirmErrorTrackerIssueAction,
+                                                        {
+                                                            action: 'resolve',
+                                                            actionTitle:
+                                                                'Resolution',
+                                                            count:
+                                                                selectedErrorEvents.length,
+                                                        }
+                                                    ),
+                                                });
+                                            }}
                                         >
                                             <span>Resolve</span>
                                         </button>
@@ -414,6 +441,7 @@ ErrorTrackerDetailView.propTypes = {
     componentId: PropTypes.string,
     handleNavigationButtonClick: PropTypes.string,
     ignoreErrorEvent: PropTypes.string,
+    resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
