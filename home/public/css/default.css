@@ -5929,7 +5929,9 @@ footer#main-footer div.country-selector ul a.selected:after{
     font-family: Segoe UI,sans-serif;
 }
 
-
+.product-item:hover .product-item-subtitle{
+    color:black;
+}
 
 
 
