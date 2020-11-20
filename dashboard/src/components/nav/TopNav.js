@@ -20,7 +20,7 @@ import Fade from 'react-reveal/Fade';
 import {
     openOnCallScheduleModal,
     closeOnCallScheduleModal,
-} from '../../actions/OnCallSchedule';
+} from '../../actions/onCallSchedule';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -178,6 +178,7 @@ class TopContent extends Component {
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
+                
             </div>
         );
     };
@@ -241,11 +242,6 @@ class TopContent extends Component {
 
                     <ClickOutside onClickOutside={this.hideFeedbackModal}>
                         <FeedBackModal />
-                    </ClickOutside>
-                    <ClickOutside
-                        onClickOutside={this.closeOnScheduleCallModal}
-                    >
-                        <div></div>
                     </ClickOutside>
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">

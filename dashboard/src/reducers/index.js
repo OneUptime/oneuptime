@@ -39,7 +39,7 @@ import incidentPriorities from './incidentPriorities';
 import incidentBasicSettings from './incidentBasicSettings';
 import errorTracker from './errorTracker';
 import incidentCommunicationSla from './incidentCommunicationSla';
-import OnCallSchedule from './OnCallSchedule';
+import onCallSchedule from './onCallSchedule';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -81,7 +81,7 @@ const appReducer = combineReducers({
     incidentBasicSettings,
     errorTracker,
     incidentSla: incidentCommunicationSla,
-    OnCallSchedule,
+    onCallSchedule,
 });
 
 export default (state, action) => {
