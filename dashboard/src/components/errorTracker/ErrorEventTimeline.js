@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Badge from '../common/Badge';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
@@ -20,10 +19,13 @@ class ErrorEventTimeline extends Component {
             rendered = <span> {timeline.data.content.path}</span>;
         } else if (timeline.category === 'console') {
             rendered = <span> {timeline.data.content} </span>;
-        } else if (timeline.category === 'fetch') {
+        } else if (
+            timeline.category === 'fetch' ||
+            timeline.category === 'xhr'
+        ) {
             rendered = (
                 <span>
-                    <span>{timeline.data.content.method.toUpperCase()}</span>{' '}
+                    <span>{timeline.data.content.method}</span>{' '}
                     <a
                         href={timeline.data.content.url}
                         target="_blank"
@@ -45,12 +47,15 @@ class ErrorEventTimeline extends Component {
         return rendered;
     };
     getTimelineIcon = timeline => {
-        let image = 'default';
+        let image = 'event';
         if (timeline.category === 'ui.click') {
             image = 'user';
         } else if (timeline.category === 'console') {
             image = 'debugging';
-        } else if (timeline.category === 'fetch') {
+        } else if (
+            timeline.category === 'fetch' ||
+            timeline.category === 'xhr'
+        ) {
             image = 'http';
         }
 
@@ -70,26 +75,6 @@ class ErrorEventTimeline extends Component {
                 <div className="Box-divider--border-top-1 Padding-vertical--20">
                     <div className="Flex-flex Flex-justifyContent--spaceBetween">
                         <p className="SubHeader">Timeline</p>
-                        <span className="Margin-all--8">
-                            <Dropdown>
-                                <Dropdown.Toggle
-                                    id="filterToggle"
-                                    className="bs-Button bs-DeprecatedButton"
-                                    title={'Sort By: Last Seen'}
-                                />
-                                <Dropdown.Menu>
-                                    <MenuItem title="clear">
-                                        Clear Filters
-                                    </MenuItem>
-                                    <MenuItem title="unacknowledged">
-                                        Unacknowledged
-                                    </MenuItem>
-                                    <MenuItem title="unresolved">
-                                        Unresolved
-                                    </MenuItem>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </span>
                     </div>
                     <div className="Timeline-Table">
                         <table className="Table">

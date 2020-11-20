@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
+import TooltipMini from '../basic/TooltipMini';
+import AlertPanel from '../basic/AlertPanel';
 
 class ErrorEventHeader extends Component {
     navigate = currentId => {
@@ -13,8 +14,24 @@ class ErrorEventHeader extends Component {
         }
         return;
     };
+    handleIgnoreButton = errorTrackerIssue => {
+        const { ignoreErrorEvent, unresolveErrorEvent } = this.props;
+        if (!errorTrackerIssue.ignored) {
+            ignoreErrorEvent(errorTrackerIssue._id);
+        } else {
+            unresolveErrorEvent(errorTrackerIssue._id);
+        }
+    };
+    handleResolveButton = errorTrackerIssue => {
+        const { resolveErrorEvent, unresolveErrorEvent } = this.props;
+        if (!errorTrackerIssue.resolved) {
+            resolveErrorEvent(errorTrackerIssue._id);
+        } else {
+            unresolveErrorEvent(errorTrackerIssue._id);
+        }
+    };
     render() {
-        const { errorEvent } = this.props;
+        const { errorEvent, errorTrackerIssue } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
             <div>
@@ -38,10 +55,8 @@ class ErrorEventHeader extends Component {
                                             className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                         >
                                             <span id={`application-log-title-`}>
-                                                {errorEventDetails &&
-                                                    errorEventDetails.content &&
-                                                    errorEventDetails.content
-                                                        .type}
+                                                {errorTrackerIssue &&
+                                                    errorTrackerIssue.name}
                                             </span>
                                         </span>
                                         <div className="Flex-flex Flex-alignItems--center">
@@ -50,25 +65,23 @@ class ErrorEventHeader extends Component {
                                                     height: '12px',
                                                     width: '12px',
                                                     backgroundColor: `${ErrorEventUtil.getExceptionColor(
-                                                        errorEventDetails &&
-                                                            errorEventDetails.type
+                                                        errorTrackerIssue &&
+                                                            errorTrackerIssue.type
                                                     )}`,
                                                     borderRadius: '50%',
                                                 }}
                                             ></div>{' '}
                                             <span className="Text-fontSize--12 Margin-left--4">
-                                                {errorEventDetails &&
-                                                errorEventDetails.content &&
-                                                errorEventDetails.content
-                                                    .message
-                                                    ? errorEventDetails.content
-                                                          .message.length > 100
-                                                        ? `${errorEventDetails.content.message.substring(
+                                                {errorTrackerIssue &&
+                                                errorTrackerIssue.description
+                                                    ? errorTrackerIssue
+                                                          .description.length >
+                                                      100
+                                                        ? `${errorTrackerIssue.description.substring(
                                                               0,
                                                               100
                                                           )} ...`
-                                                        : errorEventDetails
-                                                              .content.message
+                                                        : errorTrackerIssue.description
                                                     : ''}
                                             </span>
                                         </div>
@@ -85,36 +98,63 @@ class ErrorEventHeader extends Component {
                                     </div>
                                 </div>
                                 <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8 Flex-flex">
-                                    <button
-                                        className="bs-Button bs-Button--icon bs-Button--check"
-                                        type="button"
-                                    >
-                                        <span>Resolve</span>
-                                        <img
-                                            src="/dashboard/assets/img/down.svg"
-                                            alt=""
-                                            style={{
-                                                margin: '0px 10px',
-                                                height: '10px',
-                                                width: '10px',
-                                            }}
-                                        />
-                                    </button>
-                                    <button
-                                        className="bs-Button bs-Button--icon bs-Button--block"
-                                        type="button"
-                                    >
-                                        <span>Ignore</span>
-                                        <img
-                                            src="/dashboard/assets/img/down.svg"
-                                            alt=""
-                                            style={{
-                                                margin: '0px 10px',
-                                                height: '10px',
-                                                width: '10px',
-                                            }}
-                                        />
-                                    </button>
+                                    <TooltipMini
+                                        title={
+                                            errorTrackerIssue &&
+                                            errorTrackerIssue.resolved
+                                                ? ''
+                                                : 'Unresolved'
+                                        }
+                                        content={
+                                            <button
+                                                className="bs-Button bs-Button--icon bs-Button--check"
+                                                type="button"
+                                                onClick={() =>
+                                                    this.handleResolveButton(
+                                                        errorTrackerIssue
+                                                    )
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        errorTrackerIssue &&
+                                                        !errorTrackerIssue.resolved
+                                                    }
+                                                >
+                                                    <span>Resolve</span>
+                                                </ShouldRender>
+                                            </button>
+                                        }
+                                    />
+                                    <TooltipMini
+                                        title={
+                                            errorTrackerIssue &&
+                                            errorTrackerIssue.ignored
+                                                ? 'Change Status to Unresolved'
+                                                : ''
+                                        }
+                                        content={
+                                            <button
+                                                className="bs-Button bs-Button--icon bs-Button--block"
+                                                type="button"
+                                                onClick={() =>
+                                                    this.handleIgnoreButton(
+                                                        errorTrackerIssue
+                                                    )
+                                                }
+                                            >
+                                                <ShouldRender
+                                                    if={
+                                                        errorTrackerIssue &&
+                                                        !errorTrackerIssue.ignored
+                                                    }
+                                                >
+                                                    <span>Ignore</span>
+                                                </ShouldRender>
+                                            </button>
+                                        }
+                                    />
+
                                     <button
                                         className="bs-Button"
                                         type="button"
@@ -122,26 +162,29 @@ class ErrorEventHeader extends Component {
                                     >
                                         <span>Merge</span>
                                     </button>
-                                    <span className="Margin-left--8">
-                                        <Dropdown>
-                                            <Dropdown.Toggle
-                                                id="filterToggle"
-                                                className="bs-Button bs-DeprecatedButton"
-                                            />
-                                            <Dropdown.Menu>
-                                                <MenuItem title="clear">
-                                                    Clear Filters
-                                                </MenuItem>
-                                                <MenuItem title="unacknowledged">
-                                                    Unacknowledged
-                                                </MenuItem>
-                                                <MenuItem title="unresolved">
-                                                    Unresolved
-                                                </MenuItem>
-                                            </Dropdown.Menu>
-                                        </Dropdown>
-                                    </span>
                                 </div>
+                                <ShouldRender if={errorTrackerIssue.ignored}>
+                                    <AlertPanel
+                                        backgroundClass="Box-background--red4"
+                                        message={
+                                            <span>
+                                                This issue has been marked as
+                                                ignored.
+                                            </span>
+                                        }
+                                    />
+                                </ShouldRender>
+                                <ShouldRender if={errorTrackerIssue.resolved}>
+                                    <AlertPanel
+                                        backgroundClass="Box-background--green"
+                                        message={
+                                            <span>
+                                                This issue has been marked as
+                                                resolved.
+                                            </span>
+                                        }
+                                    />
+                                </ShouldRender>
                             </div>
                         </div>
                         <div className="Flex-flex Flex-justifyContent--spaceBetween Navigator-Wrapper">
@@ -259,6 +302,10 @@ class ErrorEventHeader extends Component {
 ErrorEventHeader.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
+    errorTrackerIssue: PropTypes.object,
+    ignoreErrorEvent: PropTypes.func,
+    unresolveErrorEvent: PropTypes.func,
+    resolveErrorEvent: PropTypes.func,
 };
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;

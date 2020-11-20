@@ -448,3 +448,198 @@ export function resetresetErrorTrackerKey() {
         type: types.RESET_ERROR_TRACKER_KEY_RESET,
     };
 }
+
+export function ignoreErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'ignore' }
+        );
+        dispatch(ignoreErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    ignoreErrorEventSuccess({
+                        errorTrackerId,
+                        ignoredIssues: response.data.issues,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(ignoreErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function ignoreErrorEventReset() {
+    return {
+        type: types.IGNORE_ERROR_EVENT_RESET,
+    };
+}
+
+export function ignoreErrorEventRequest() {
+    return {
+        type: types.IGNORE_ERROR_EVENT_REQUEST,
+    };
+}
+export function ignoreErrorEventFailure(error) {
+    return {
+        type: types.IGNORE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function ignoreErrorEventSuccess(errorEvents) {
+    return {
+        type: types.IGNORE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}
+
+export function unresolveErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'unresolve' }
+        );
+        dispatch(unresolveErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    unresolveErrorEventSuccess({
+                        errorTrackerId,
+                        unresolvedIssues: response.data.issues,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(unresolveErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function unresolveErrorEventReset() {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_RESET,
+    };
+}
+
+export function unresolveErrorEventRequest() {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_REQUEST,
+    };
+}
+export function unresolveErrorEventFailure(error) {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function unresolveErrorEventSuccess(errorEvents) {
+    return {
+        type: types.UNRESOLVE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}
+
+export function resolveErrorEvent(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
+            { issueId, action: 'resolve' }
+        );
+        dispatch(resolveErrorEventRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    resolveErrorEventSuccess({
+                        errorTrackerId,
+                        resolvedIssues: response.data.issues,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(resolveErrorEventFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function resolveErrorEventReset() {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_RESET,
+    };
+}
+
+export function resolveErrorEventRequest() {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_REQUEST,
+    };
+}
+export function resolveErrorEventFailure(error) {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_FAILURE,
+        payload: error,
+    };
+}
+export function resolveErrorEventSuccess(errorEvents) {
+    return {
+        type: types.RESOLVE_ERROR_EVENT_SUCCESS,
+        payload: errorEvents,
+    };
+}

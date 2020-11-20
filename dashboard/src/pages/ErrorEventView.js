@@ -42,6 +42,7 @@ class ErrorEventView extends Component {
         // fetching error trackers is necessary incase a reload is done on error event details page
         this.props.fetchErrorTrackers(projectId, componentId);
 
+        // TODO fetch the current issues based on the limit and skip in the redux
         this.props.fetchErrorEvent(
             projectId,
             componentId,

@@ -25,6 +25,7 @@ const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
 const ErrorEventService = require('../services/errorEventService');
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const IssueService = require('../services/issueService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -271,8 +272,21 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     try {
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
-
         data.errorTrackerId = errorTrackerId;
+
+        // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
+        let issue = await IssueService.findOneByHashAndErrorTracker(
+            data.fingerprint,
+            errorTrackerId
+        );
+
+        // if it doesnt exist, create the issue and use its details
+        if (!issue) {
+            issue = await IssueService.create(data);
+        }
+        // if it exist, use the issue details
+        data.issueId = issue._id;
+        data.fingerprintHash = issue.fingerprintHash;
 
         const errorEvent = await ErrorEventService.create(data);
         await RealTimeService.sendErrorEventCreated(errorEvent);
@@ -369,15 +383,15 @@ router.post(
         }
     }
 );
-// Description: Ignore an error event by _id and errorTrackerId.
+// Description: Get issue by _id and errorTrackerId.
 router.post(
-    '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId/ignore',
+    '/:projectId/:componentId/:errorTrackerId/issues/:issueId/details',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const errorEventId = req.params.errorEventId;
-            if (!errorEventId) {
+            const issueId = req.params.issueId;
+            if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Event ID is required',
@@ -385,39 +399,146 @@ router.post(
             }
             const errorTrackerId = req.params.errorTrackerId;
 
-            const currentErrorEvent = await ErrorEventService.findOneBy({
-                _id: errorEventId,
+            const issue = await IssueService.findOneBy({
+                _id: issueId,
                 errorTrackerId,
             });
-            if (!currentErrorEvent) {
+            if (!issue) {
                 return sendErrorResponse(req, res, {
                     code: 404,
-                    message: 'Error Event not found',
+                    message: 'Issue not found',
                 });
             }
 
-            // check if error event is already ignored
-            if (currentErrorEvent.ignored) {
+            return sendItemResponse(req, res, issue);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/issues/action',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { issueId, action } = req.body;
+            if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Error Event already ignored',
+                    message: 'Issue ID is required',
                 });
             }
-            // Ignore Data
-            const ignoreData = {
-                ignored: true,
-                ignoredAt: new Date(),
-                ignoredById: req.user.id,
-            };
+            if (!Array.isArray(issueId)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID has to be of type array',
+                });
+            }
+            if (issueId.length < 1) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Atleast one Issue ID is required',
+                });
+            }
+            if (!action) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is required',
+                });
+            }
+            const allowedActions = ['ignore', 'unresolve', 'resolve'];
+            if (!allowedActions.includes(action)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is not allowed',
+                });
+            }
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
 
-            const errorEvent = await ErrorEventService.updateOneBy(
-                { _id: currentErrorEvent._id },
-                ignoreData
-            );
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
 
-            // TODO update a timeline object
+            let updateData = {};
 
-            return sendItemResponse(req, res, errorEvent);
+            switch (action) {
+                case 'ignore':
+                    updateData = {
+                        ignored: true,
+                        ignoredAt: new Date(),
+                        ignoredById: req.user.id,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    break;
+                case 'unresolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    break;
+                case 'resolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: true,
+                        resolvedAt: new Date(),
+                        resolvedById: req.user.id,
+                    };
+                    break;
+
+                default:
+                    break;
+            }
+
+            const issues = [];
+            for (let index = 0; index < issueId.length; index++) {
+                const currentIssueId = issueId[index];
+                const query = {
+                    _id: currentIssueId,
+                    errorTrackerId,
+                };
+                const currentIssue = await IssueService.findOneBy(query);
+                if (currentIssue) {
+                    const issue = await IssueService.updateOneBy(
+                        query,
+                        updateData
+                    );
+                    issues.push(issue);
+
+                    // TODO update a timeline object
+                }
+            }
+
+            return sendItemResponse(req, res, { issues });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
