@@ -430,9 +430,10 @@ TopContent.propTypes = {
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
-    openOnCallScheduleModal: PropTypes.func.isRequired,
-    closeOnCallScheduleModal: PropTypes.func.isRequired,
-    onCallScheduleModalVisble: PropTypes.bool.isRequired,
+    // openOnCallScheduleModal: PropTypes.func.isRequired,
+    // closeOnCallScheduleModal: PropTypes.func.isRequired,
+    // onCallScheduleModalVisble: PropTypes.bool.isRequired,
+    openModal: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
