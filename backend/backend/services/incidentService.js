@@ -894,21 +894,23 @@ module.exports = {
 
     startInterval: async function(projectId, monitorId, incident) {
         const _this = this;
-        let incidentSla = await IncidentCommunicationSlaService.findOneBy({
-            projectId: projectId,
-            'monitors.monitorId': { $in: [monitorId] },
+        const monitor = await MonitorService.findOneBy({
+            _id: monitorId,
         });
+        let incidentCommunicationSla = monitor.incidentCommunicationSla;
 
-        if (!incidentSla) {
-            incidentSla = await IncidentCommunicationSlaService.findOneBy({
-                projectId: projectId,
-                isDefault: true,
-            });
+        if (!incidentCommunicationSla) {
+            incidentCommunicationSla = await IncidentCommunicationSlaService.findOneBy(
+                {
+                    projectId: projectId,
+                    isDefault: true,
+                }
+            );
         }
 
-        if (incidentSla) {
-            let countDown = incidentSla.duration * 60;
-            const alertTime = incidentSla.alertTime * 60;
+        if (incidentCommunicationSla) {
+            let countDown = incidentCommunicationSla.duration * 60;
+            const alertTime = incidentCommunicationSla.alertTime * 60;
 
             // count down every second
             const intervalId = setInterval(async () => {

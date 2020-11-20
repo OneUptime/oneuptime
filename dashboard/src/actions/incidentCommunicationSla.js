@@ -92,15 +92,20 @@ export const fetchCommunicationSlasFailure = error => ({
 
 export const fetchCommunicationSlas = (
     projectId,
-    skip,
-    limit
+    skip = 0,
+    limit = 0
 ) => async dispatch => {
     try {
         dispatch(fetchCommunicationSlasRequest());
 
-        const response = await getApi(
-            `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
-        );
+        let response;
+        if (skip === 0 && limit === 0) {
+            response = await getApi(`incidentSla/${projectId}`);
+        } else {
+            response = await getApi(
+                `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
+            );
+        }
         dispatch(fetchCommunicationSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =

@@ -96,8 +96,8 @@ export const groups = [
                 visible: true,
                 exact: true,
                 component: ErrorTracking,
-                index: 4,
-                shortcut: 'c+l',
+                index: 7,
+                shortcut: 'c+t',
                 subRoutes: [
                     {
                         title: 'Error Tracking View',

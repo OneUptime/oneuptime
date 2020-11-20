@@ -6,6 +6,8 @@ import {
     deleteErrorTracker,
     editErrorTrackerSwitch,
     resetErrorTrackerKey,
+    ignoreErrorEvent,
+    resolveErrorEvent,
 } from '../../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
@@ -90,6 +92,34 @@ class ErrorTrackerDetail extends Component {
     editErrorTracker = () => {
         const { editErrorTrackerSwitch, errorTracker } = this.props;
         editErrorTrackerSwitch(errorTracker._id);
+    };
+    ignoreErrorEvent = issues => {
+        const {
+            currentProject,
+            componentId,
+            errorTracker,
+            ignoreErrorEvent,
+        } = this.props;
+        return ignoreErrorEvent(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            issues
+        );
+    };
+    resolveErrorEvent = issues => {
+        const {
+            currentProject,
+            componentId,
+            errorTracker,
+            resolveErrorEvent,
+        } = this.props;
+        return resolveErrorEvent(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            issues
+        );
     };
     handleStartDateTimeChange = val => {
         const startDate = moment(val);
@@ -245,6 +275,13 @@ class ErrorTrackerDetail extends Component {
                                             handleNavigationButtonClick={
                                                 this.handleNavigationButtonClick
                                             }
+                                            ignoreErrorEvent={
+                                                this.ignoreErrorEvent
+                                            }
+                                            resolveErrorEvent={
+                                                this.resolveErrorEvent
+                                            }
+                                            openModal={openModal}
                                         />
                                     </div>
                                 </div>
@@ -273,6 +310,8 @@ ErrorTrackerDetail.propTypes = {
     closeModal: PropTypes.func,
     startDate: PropTypes.string,
     endDate: PropTypes.string,
+    ignoreErrorEvent: PropTypes.func,
+    resolveErrorEvent: PropTypes.func,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -283,6 +322,8 @@ const mapDispatchToProps = dispatch => {
             editErrorTrackerSwitch,
             resetErrorTrackerKey,
             closeModal,
+            ignoreErrorEvent,
+            resolveErrorEvent,
         },
         dispatch
     );
