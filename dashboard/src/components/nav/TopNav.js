@@ -21,6 +21,8 @@ import {
     openOnCallScheduleModal,
     closeOnCallScheduleModal,
 } from '../../actions/onCallSchedule';
+import OnCallScheduleModal from '../onCallScheduleModal';
+import { openModal, closeModal } from '../../actions/modal';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -172,13 +174,24 @@ class TopContent extends Component {
             <div
                 className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-right--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                onClick={() => this.props.openOnCallScheduleModal()}
+                onClick={() =>
+                    this.props.openModal({
+                        //  id: deleteModalId,
+                        // onClose: () => {},
+                        // onConfirm: () => {},
+                        content: OnCallScheduleModal,
+                    })
+                }
                 id="onCallSchedule"
             >
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
-                
+                {/* {this.props.onCallScheduleModalVisble === true && (
+                    <OnCallScheduleModal
+                        closeThisDialog={this.props.closeOnCallScheduleModal}
+                    />
+                )} */}
             </div>
         );
     };
@@ -364,7 +377,8 @@ const mapStateToProps = (state, props) => {
     return {
         profilePic,
         feedback: state.feedback,
-        onCallSchedule: state.onCallScheduleModalVisble,
+        onCallScheduleModalVisble:
+            state.onCallSchedule.onCallScheduleModalVisble,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
@@ -387,6 +401,7 @@ const mapDispatchToProps = dispatch =>
             fetchSubProjectOngoingScheduledEvents,
             openOnCallScheduleModal,
             closeOnCallScheduleModal,
+            openModal,
         },
         dispatch
     );
@@ -417,7 +432,7 @@ TopContent.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     openOnCallScheduleModal: PropTypes.func.isRequired,
     closeOnCallScheduleModal: PropTypes.func.isRequired,
-    onCallScheduleModalVisble: PropTypes.object.isRequired,
+    onCallScheduleModalVisble: PropTypes.bool.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

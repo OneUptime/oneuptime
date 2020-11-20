@@ -22,7 +22,6 @@ class OnCallScheduleModal extends Component {
     };
 
     render() {
-
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -34,7 +33,7 @@ class OnCallScheduleModal extends Component {
                         <div className="bs-Modal bs-Modal--medium">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--default Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             You are currently on-call duty.
                                         </span>
@@ -42,8 +41,11 @@ class OnCallScheduleModal extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                · test: Your duty ends at 11:59 PM and your next
-                                duty begins at 12:00 AM and ends at 11:59 PM.
+                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    · test: Your duty ends at 11:59 PM and your
+                                    next duty begins at 12:00 AM and ends at
+                                    11:59 PM.
+                                </span>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
