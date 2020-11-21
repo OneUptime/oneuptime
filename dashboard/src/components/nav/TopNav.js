@@ -17,10 +17,6 @@ import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import Fade from 'react-reveal/Fade';
-// import {
-//     openOnCallScheduleModal,
-//     closeOnCallScheduleModal,
-// } from '../../actions/onCallSchedule';
 import OnCallScheduleModal from '../onCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -408,13 +404,6 @@ class TopContent extends Component {
                                                 activeSchedules.length > 0
                                             }
                                         >
-                                            {/* <OnCallSchedule
-                                                status="active"
-                                                schedules={activeSchedules}
-                                                currentProjectId={
-                                                    this.props.currentProjectId
-                                                }
-                                            /> */}
                                             {this.renderOnCallSchedule(
                                                 activeSchedules,
                                                 this.props.currentProjectId
@@ -545,8 +534,6 @@ const mapStateToProps = (state, props) => {
     return {
         profilePic,
         feedback: state.feedback,
-        onCallScheduleModalVisble:
-            state.onCallSchedule.onCallScheduleModalVisble,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,

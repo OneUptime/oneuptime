@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { connect } from 'react-redux';
 import moment from 'moment-timezone';
 import { history } from '../store';
 class OnCallScheduleModal extends Component {
@@ -23,7 +22,6 @@ class OnCallScheduleModal extends Component {
     };
 
     render() {
-        console.log(this.props);
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -180,19 +178,10 @@ class OnCallScheduleModal extends Component {
 
 OnCallScheduleModal.displayName = 'OnCallScheduleModal';
 
-const mapStateToProps = state => {
-    return {
-        //
-    };
-};
-
 OnCallScheduleModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
-    status: PropTypes.string,
-    schedules: PropTypes.array,
     currentProjectId: PropTypes.string,
-    // data.status: PropTypes.string,
+    data: PropTypes.object,
 };
 
-export default connect(mapStateToProps)(OnCallScheduleModal);
-// export default OnCallScheduleModal;
+export default OnCallScheduleModal;
