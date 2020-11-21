@@ -17,7 +17,7 @@ import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import Fade from 'react-reveal/Fade';
-import OnCallScheduleModal from '../onCallScheduleModal';
+import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import _ from 'lodash';
