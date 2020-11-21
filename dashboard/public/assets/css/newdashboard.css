@@ -9,6 +9,10 @@
     width: 250px;
     font-size: 14px;
 }
+.db-select-pr-flexible {
+    min-width: 250px;
+    font-size: 14px;
+}
 
 .db-select-ne {
     width: 120px;
@@ -11224,6 +11228,12 @@ table {
 .MuiInputBase-input {
     cursor: pointer;
 }
+@media only screen and (max-width: 500px) {
+    .Navigator-Wrapper {
+        flex-direction: column;
+    }
+  }
+
 .Navigator-Btn-Group {
     display: flex;
 }
@@ -11277,6 +11287,7 @@ table {
 .SubHeader {
     font-size: 16px;
     font-weight: bold;
+    text-transform: uppercase;
 }
 .Stacktrace-Listing {
     border: solid 1px #D8D2DE;
@@ -11293,3 +11304,37 @@ table {
 .animate{
     width:0px; 
 }
+.Timeline-Table {
+    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: scroll;
+    max-height: 300px;
+    border: solid 1px #D8D2DE;
+    border-radius: 3px;
+}
+.Timeline-Table table thead tr td {
+    position: sticky;
+    top: 0;
+    background-color: #f7f7f7;
+}
+.Tag-Detail {
+    padding: 15px;
+    border-top: solid 1px #D8D2DE;
+}
+.Tag-Detail > div {
+    background-color: #F7F8F9;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.Tag-Container {
+    border: solid 1px #D8D2DE;
+    border-radius: 3px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+

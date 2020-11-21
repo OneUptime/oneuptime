@@ -7,6 +7,11 @@ const errorEventSchema = new Schema({
         ref: 'ErrorTracker',
         alias: 'errorTracker',
     }, //which error tracker this error event belongs to.
+    issueId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Issue',
+        alias: 'issue',
+    }, //which issue this error event belongs to.
     content: Object,
     type: {
         type: String,
@@ -23,6 +28,7 @@ const errorEventSchema = new Schema({
             type: Object,
         },
     ],
+    sdk: Object,
     fingerprint: [
         {
             type: String,
@@ -30,18 +36,10 @@ const errorEventSchema = new Schema({
     ],
     fingerprintHash: String,
     device: Object,
-    createdById: { type: String, ref: 'User' }, //userId.
     createdAt: {
         type: Date,
         default: Date.now,
     },
-    deleted: { type: Boolean, default: false },
-
-    deletedAt: {
-        type: Date,
-    },
-
-    deletedById: { type: String, ref: 'User' },
 });
 
 errorEventSchema.virtual('errorTracker', {

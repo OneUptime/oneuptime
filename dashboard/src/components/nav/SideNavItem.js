@@ -53,7 +53,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId);
+            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':errorTrackerId', match.params.errorTrackerId);
     };
 
     subRoute = subRoute => {
@@ -94,7 +95,8 @@ export class SidebarNavItem extends Component {
             .replace(':subProjectId', match.params.subProjectId)
             .replace(':componentId', match.params.componentId)
             .replace(':monitorId', match.params.monitorId)
-            .replace(':applicationLogId', match.params.applicationLogId);
+            .replace(':applicationLogId', match.params.applicationLogId)
+            .replace(':errorTrackerId', match.params.errorTrackerId);
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
@@ -130,9 +132,17 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([0-9]|[a-z])*\/scheduledEvents/
             ) &&
+                route.title === 'Component Settings') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/settings\/basic/
+            ) &&
                 route.title === 'Scheduled Events') ||
             (location.pathname.match(/project\/([0-9]|[a-z])*\/consulting/) &&
-                route.title === 'Consulting & Services');
+                route.title === 'Consulting & Services') ||
+            (location.pathname.match(
+                /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/error-track*/
+            ) &&
+                route.title === 'Error Tracking');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(
@@ -147,6 +157,10 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(
                 /:applicationLogId/,
                 match.params.applicationLogId
+            );
+            newPath = newPath.replace(
+                /:errorTrackerId/,
+                match.params.errorTrackerId
             );
 
             const response =
@@ -171,7 +185,15 @@ export class SidebarNavItem extends Component {
                       (location.pathname.match(
                           /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/security\/container\/([0-9]|[a-z])*/
                       ) &&
-                          link.title === 'Container Detail')
+                          link.title === 'Container Detail') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/advanced/
+                      ) &&
+                          link.title === 'Advanced') ||
+                      (location.pathname.match(
+                          /project\/([0-9]|[a-z])*\/([0-9]|[a-z])*\/settings\/basic/
+                      ) &&
+                          link.title === 'Basic')
                     ? true
                     : false;
             return response;
@@ -188,15 +210,21 @@ export class SidebarNavItem extends Component {
 
         const routeStyle = {
             position: 'relative',
-            marginTop: route.title === 'Back to Dashboard' ? '20px' : 0,
+            marginTop:
+                route.title === 'Back to Dashboard'
+                    ? '20px'
+                    : route.title === 'Component Settings'
+                    ? '10px'
+                    : 0,
         };
 
         const routes = route.shortcut && route.shortcut.split('+');
 
         return (
-            <div id={this.camalize(route.title)} style={routeStyle}>
+            <div style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
                     <Link
+                        id={this.camalize(route.title)}
                         to={path}
                         onClick={() => {
                             setTimeout(() => {
@@ -294,6 +322,8 @@ export class SidebarNavItem extends Component {
                 'Container Detail',
                 'Team Member Profile',
                 'Scheduled Event Detail',
+                'Error Tracking View',
+                'Error Tracking Detail View',
             ];
 
             if (removedLinks.some(link => link === child.title)) return null;

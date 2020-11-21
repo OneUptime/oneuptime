@@ -38,6 +38,9 @@ class Incident extends React.Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = {
+            tabIndex: 0,
+        };
     }
 
     componentWillMount() {
@@ -170,6 +173,9 @@ class Incident extends React.Component {
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
         if (index === 2) {
             this.fetchAllIncidentData();
         }
@@ -271,6 +277,7 @@ class Incident extends React.Component {
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
                             <TabList
@@ -304,6 +311,53 @@ class Incident extends React.Component {
                                 ></div>
                             </TabList>
                         </div>
+                        {this.props.incident &&
+                            this.props.incident.countDown &&
+                            this.props.incident.countDown !== '0:0' && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0, cursor: 'pointer' }}
+                                    onClick={() => this.tabSelected(4)}
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        Alert{' '}
+                                                        {
+                                                            this.props.incident
+                                                                .countDown
+                                                        }{' '}
+                                                        minutes before SLA
+                                                        breaches
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        {this.props.incident &&
+                            this.props.incident.breachedCommunicationSla && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0 }}
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        You&#39;ve breached SLA
+                                                        with this incident
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         <TabPanel>
                             <Fade>
                                 <IncidentStatus

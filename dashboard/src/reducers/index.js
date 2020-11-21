@@ -39,6 +39,7 @@ import incidentPriorities from './incidentPriorities';
 import incidentBasicSettings from './incidentBasicSettings';
 import errorTracker from './errorTracker';
 import animateSidebar from './animateSidebar';
+import incidentCommunicationSla from './incidentCommunicationSla';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -80,6 +81,7 @@ const appReducer = combineReducers({
     incidentBasicSettings,
     errorTracker,
     animateSidebar,
+    incidentSla: incidentCommunicationSla,
 });
 
 export default (state, action) => {

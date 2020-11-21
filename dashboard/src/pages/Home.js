@@ -153,7 +153,14 @@ class Home extends Component {
                     : moment(userSchedule.startTime || dayStart)
                 ).zoneAbbr();
 
-                const tempObj = { ...userSchedule };
+                const isOnDutyAllTheTime =
+                    userSchedule.startTime &&
+                    userSchedule.endTime &&
+                    userSchedule.timezone
+                        ? false
+                        : true;
+
+                const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
                 tempObj.timezone = timezone;

@@ -800,33 +800,30 @@ export function updateProjectBalanceFailure(error) {
     };
 }
 
-export function updateProjectBalance({ projectId, intentId }) {
-    return function(dispatch) {
-        const promise = getApi(`stripe/${projectId}/updateBalance/${intentId}`);
+export const updateProjectBalance = ({
+    projectId,
+    intentId,
+}) => async dispatch => {
+    dispatch(updateProjectBalanceRequest());
 
-        dispatch(updateProjectBalanceRequest());
-
-        promise.then(
-            function(response) {
-                dispatch(updateProjectBalanceSuccess(response.data));
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(updateProjectBalanceFailure(errors(error)));
-            }
+    try {
+        const response = await getApi(
+            `stripe/${projectId}/updateBalance/${intentId}`
         );
-        return promise;
-    };
-}
+
+        dispatch(updateProjectBalanceSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(updateProjectBalanceFailure(errorMsg));
+    }
+};
 
 export function checkCardRequest(promise) {
     return {

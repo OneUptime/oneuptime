@@ -18,6 +18,7 @@ import {
     updatemonitorlogbysocket,
     updatemonitorstatusbysocket,
     updateincidenttimelinebysocket,
+    updateincidentbysocket,
     updatelighthouselogbysocket,
     updateprobebysocket,
     addnotifications,
@@ -28,6 +29,7 @@ import {
     createMonitor,
     deleteincidentbysocket,
     resolvescheduledevent,
+    slacountdown,
 } from '../../actions/socket';
 import DataPathHoC from '../DataPathHoC';
 import {
@@ -73,6 +75,9 @@ class SocketApp extends Component {
                     `updateIncidentTimeline-${this.props.project._id}`
                 );
                 socket.removeListener(
+                    `updateIncident-${this.props.project._id}`
+                );
+                socket.removeListener(
                     `updateLighthouseLog-${this.props.project._id}`
                 );
                 socket.removeListener(`updateProbe-${this.props.project._id}`);
@@ -109,6 +114,7 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `resolveScheduledEvent-${this.props.project._id}`
                 );
+                socket.removeListener(`slaCountDown-${this.props.project._id}`);
             }
             return true;
         } else {
@@ -574,6 +580,10 @@ class SocketApp extends Component {
                 thisObj.props.updateScheduledEventSuccess(event)
             );
 
+            socket.on(`updateIncident-${this.props.project._id}`, incident => {
+                thisObj.props.updateincidentbysocket(incident);
+            });
+
             socket.on(`deleteIncident-${this.props.project._id}`, incident => {
                 thisObj.props.deleteincidentbysocket(incident);
             });
@@ -581,6 +591,13 @@ class SocketApp extends Component {
             socket.on(
                 `resolveScheduledEvent-${this.props.project._id}`,
                 event => thisObj.props.resolvescheduledevent(event)
+            );
+
+            socket.on(`slaCountDown-${this.props.project._id}`, event =>
+                thisObj.props.slacountdown({
+                    incident: event.incident,
+                    countDown: event.countDown,
+                })
             );
         }
         return null;
@@ -618,6 +635,7 @@ const mapDispatchToProps = dispatch =>
             updatemonitorlogbysocket,
             updatemonitorstatusbysocket,
             updateincidenttimelinebysocket,
+            updateincidentbysocket,
             updatelighthouselogbysocket,
             updateprobebysocket,
             addnotifications,
@@ -633,6 +651,7 @@ const mapDispatchToProps = dispatch =>
             deleteScheduledEventSuccess,
             deleteincidentbysocket,
             resolvescheduledevent,
+            slacountdown,
         },
         dispatch
     );

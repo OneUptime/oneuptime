@@ -25,6 +25,7 @@ const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
 const ErrorEventService = require('../services/errorEventService');
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const IssueService = require('../services/issueService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -271,8 +272,21 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
     try {
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
-
         data.errorTrackerId = errorTrackerId;
+
+        // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
+        let issue = await IssueService.findOneByHashAndErrorTracker(
+            data.fingerprint,
+            errorTrackerId
+        );
+
+        // if it doesnt exist, create the issue and use its details
+        if (!issue) {
+            issue = await IssueService.create(data);
+        }
+        // if it exist, use the issue details
+        data.issueId = issue._id;
+        data.fingerprintHash = issue.fingerprintHash;
 
         const errorEvent = await ErrorEventService.create(data);
         await RealTimeService.sendErrorEventCreated(errorEvent);
@@ -289,7 +303,7 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const { skip, limit, startDate, endDate } = req.body;
+            const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
@@ -309,13 +323,22 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
+            if (filters) {
+                for (const [key, value] of Object.entries(filters)) {
+                    query[key] = value;
+                }
+            }
             const errorTrackerIssues = await ErrorEventService.findDistinct(
                 query,
                 limit || 10,
                 skip || 0
             );
 
-            return sendListResponse(req, res, { errorTrackerIssues });
+            return sendListResponse(req, res, {
+                errorTrackerIssues: errorTrackerIssues.totalErrorEvents,
+                dateRange: errorTrackerIssues.dateRange,
+                count: errorTrackerIssues.count,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -337,13 +360,14 @@ router.post(
             }
             const errorTrackerId = req.params.errorTrackerId;
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+            const currentErrorEvent = await ErrorEventService.findOneBy({
+                _id: errorEventId,
+                errorTrackerId,
             });
-            if (!currentErrorTracker) {
+            if (!currentErrorEvent) {
                 return sendErrorResponse(req, res, {
                     code: 404,
-                    message: 'Error Tracker not found',
+                    message: 'Error Event not found',
                 });
             }
 
@@ -354,6 +378,167 @@ router.post(
             );
 
             return sendItemResponse(req, res, errorEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Get issue by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/issues/:issueId/details',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Event ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+
+            const issue = await IssueService.findOneBy({
+                _id: issueId,
+                errorTrackerId,
+            });
+            if (!issue) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
+
+            return sendItemResponse(req, res, issue);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Ignore, Resolve and Unresolve an issue by _id and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/issues/action',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { issueId, action } = req.body;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID is required',
+                });
+            }
+            if (!Array.isArray(issueId)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID has to be of type array',
+                });
+            }
+            if (issueId.length < 1) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Atleast one Issue ID is required',
+                });
+            }
+            if (!action) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is required',
+                });
+            }
+            const allowedActions = ['ignore', 'unresolve', 'resolve'];
+            if (!allowedActions.includes(action)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Action is not allowed',
+                });
+            }
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            let updateData = {};
+
+            switch (action) {
+                case 'ignore':
+                    updateData = {
+                        ignored: true,
+                        ignoredAt: new Date(),
+                        ignoredById: req.user.id,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    break;
+                case 'unresolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    break;
+                case 'resolve':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: true,
+                        resolvedAt: new Date(),
+                        resolvedById: req.user.id,
+                    };
+                    break;
+
+                default:
+                    break;
+            }
+
+            const issues = [];
+            for (let index = 0; index < issueId.length; index++) {
+                const currentIssueId = issueId[index];
+                const query = {
+                    _id: currentIssueId,
+                    errorTrackerId,
+                };
+                const currentIssue = await IssueService.findOneBy(query);
+                if (currentIssue) {
+                    const issue = await IssueService.updateOneBy(
+                        query,
+                        updateData
+                    );
+                    issues.push(issue);
+
+                    // TODO update a timeline object
+                }
+            }
+
+            return sendItemResponse(req, res, { issues });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

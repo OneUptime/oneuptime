@@ -4,7 +4,6 @@ class Util {
             INFO: 'info',
             WARNING: 'warning',
             ERROR: 'error',
-            HTTP: 'http',
         };
     }
     _getErrorStackTrace(errorEvent) {

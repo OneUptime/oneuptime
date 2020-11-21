@@ -122,7 +122,12 @@ export class AlertChargesList extends Component {
                                 alertCharges.map(alertCharge => (
                                     <tr
                                         className="Table-row db-ListViewItem bs-ActionsParent"
-                                        key={alertCharge.alertId._id}
+                                        key={
+                                            alertCharge.alertId
+                                                ? alertCharge.alertId._id
+                                                : alertCharge.subscriberAlertId
+                                                      ._id
+                                        }
                                     >
                                         <td
                                             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink"
@@ -213,11 +218,13 @@ export class AlertChargesList extends Component {
                                                 <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
                                                         <span>
-                                                            {
-                                                                alertCharge
-                                                                    .alertId
-                                                                    .alertVia
-                                                            }
+                                                            {alertCharge.alertId
+                                                                ? alertCharge
+                                                                      .alertId
+                                                                      .alertVia
+                                                                : alertCharge
+                                                                      .subscriberAlertId
+                                                                      .alertVia}
                                                         </span>
                                                     </div>
                                                 </span>
@@ -253,9 +260,9 @@ export class AlertChargesList extends Component {
                                                 <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
                                                         <span>
-                                                            {
+                                                            {Number.parseFloat(
                                                                 alertCharge.closingAccountBalance
-                                                            }
+                                                            ).toFixed(2)}
                                                         </span>
                                                     </div>
                                                 </span>

@@ -1,8 +1,8 @@
 import pages from './pages';
 import { IS_SAAS_SERVICE } from './config';
-// import ErrorTracking from './pages/ErrorTracking';
-// import ErrorTrackingView from './pages/ErrorTrackingView';
-// import ErrorEventView from './pages/ErrorEventView';
+import ErrorTracking from './pages/ErrorTracking';
+import ErrorTrackingView from './pages/ErrorTrackingView';
+import ErrorEventView from './pages/ErrorEventView';
 
 const {
     Home,
@@ -45,6 +45,8 @@ const {
     ScheduledEventDetail,
     Consulting,
     Advanced,
+    ComponentSettings,
+    ComponentSettingsAdvanced,
 } = pages;
 
 export const groups = [
@@ -53,16 +55,6 @@ export const groups = [
         visible: true,
         visibleOnComponentDetail: true,
         routes: [
-            {
-                title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
-                icon: 'back',
-                component: Component,
-                visible: true,
-                subRoutes: [],
-                index: 6,
-                shortcut: 'c+d',
-            },
             {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
@@ -94,43 +86,43 @@ export const groups = [
                         index: 2,
                     },
                 ],
-                index: 3,
+                index: 2,
             },
-            // {
-            //     title: 'Error Tracking',
-            //     path:
-            //         '/dashboard/project/:projectId/:componentId/error-tracker',
-            //     icon: 'errorTracking',
-            //     visible: true,
-            //     exact: true,
-            //     component: ErrorTracking,
-            //     index: 4,
-            //     shortcut: 'c+l',
-            //     subRoutes: [
-            //         {
-            //             title: 'Error Tracking View',
-            //             path:
-            //                 '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
-            //             icon: 'radar',
-            //             visible: true,
-            //             exact: true,
-            //             subRoutes: [],
-            //             component: ErrorTrackingView,
-            //             index: 1,
-            //         },
-            //         {
-            //             title: 'Error Tracking Detail View',
-            //             path:
-            //                 '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
-            //             icon: 'radar',
-            //             visible: true,
-            //             exact: true,
-            //             subRoutes: [],
-            //             component: ErrorEventView,
-            //             index: 2,
-            //         },
-            //     ],
-            // },
+            {
+                title: 'Error Tracking',
+                path:
+                    '/dashboard/project/:projectId/:componentId/error-tracker',
+                icon: 'errorTracking',
+                visible: true,
+                exact: true,
+                component: ErrorTracking,
+                index: 7,
+                shortcut: 'c+t',
+                subRoutes: [
+                    {
+                        title: 'Error Tracking View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
+                        icon: 'radar',
+                        visible: true,
+                        exact: true,
+                        subRoutes: [],
+                        component: ErrorTrackingView,
+                        index: 1,
+                    },
+                    {
+                        title: 'Error Tracking Detail View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                        icon: 'radar',
+                        visible: true,
+                        exact: true,
+                        subRoutes: [],
+                        component: ErrorEventView,
+                        index: 2,
+                    },
+                ],
+            },
             {
                 title: 'Incident Log',
                 path: '/dashboard/project/:projectId/:componentId/incident-log',
@@ -150,7 +142,7 @@ export const groups = [
                         index: 1,
                     },
                 ],
-                index: 4,
+                index: 3,
             },
             {
                 title: 'Logs',
@@ -160,7 +152,7 @@ export const groups = [
                 visible: true,
                 exact: true,
                 component: ApplicationLog,
-                index: 5,
+                index: 4,
                 shortcut: 'c+l',
                 subRoutes: [
                     {
@@ -232,7 +224,53 @@ export const groups = [
                         exact: true,
                     },
                 ],
+                index: 5,
+            },
+            {
+                title: 'Component Settings',
+                path:
+                    '/dashboard/project/:projectId/:componentId/settings/basic',
+                icon: 'businessSettings',
+                visible: true,
+                exact: true,
+                component: ComponentSettings,
+                shortcut: 'c+e',
+                subRoutes: [
+                    {
+                        title: 'Basic',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/settings/basic',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: ComponentSettings,
+                        index: 1,
+                        shortcut: 'c+b',
+                        exact: true,
+                    },
+                    {
+                        title: 'Advanced',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/settings/advanced',
+                        icon: 'businessSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: ComponentSettingsAdvanced,
+                        index: 2,
+                        shortcut: 'c+d',
+                        exact: true,
+                    },
+                ],
+            },
+            {
+                title: 'Back to Dashboard',
+                path: '/dashboard/project/:projectId/components',
+                icon: 'back',
+                component: Component,
+                visible: true,
+                subRoutes: [],
                 index: 6,
+                shortcut: 'c+d',
             },
         ],
     },
