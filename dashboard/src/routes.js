@@ -47,6 +47,7 @@ const {
     Advanced,
     ComponentSettings,
     ComponentSettingsAdvanced,
+    MonitorSettings,
 } = pages;
 
 export const groups = [
@@ -440,6 +441,15 @@ export const groups = [
                         shortcut: 'f+m',
                     },
                     {
+                        title: 'Monitor',
+                        path: '/dashboard/project/:projectId/settings/monitor',
+                        icon: 'incidentSettings',
+                        visible: true,
+                        subRoutes: [],
+                        component: MonitorSettings,
+                        index: 3,
+                    },
+                    {
                         title: 'Incident Settings',
                         path:
                             '/dashboard/project/:projectId/settings/incidents',
@@ -447,7 +457,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: IncidentSettings,
-                        index: 3,
+                        index: 4,
                     },
                     {
                         title: 'Integrations',
@@ -457,7 +467,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Integrations,
-                        index: 4,
+                        index: 5,
                         shortcut: 'f+i',
                     },
                     {
@@ -467,7 +477,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: EmailTemplates,
-                        index: 5,
+                        index: 6,
                         shortcut: 'f+e',
                     },
                     {
@@ -477,7 +487,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: SmsTemplates,
-                        index: 6,
+                        index: 7,
                         shortcut: 'f+s',
                     },
                     {
@@ -487,7 +497,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Probe,
-                        index: 7,
+                        index: 8,
                         shortcut: 'f+x',
                     },
                     {
@@ -498,7 +508,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: GitCredential,
-                        index: 8,
+                        index: 9,
                         shortcut: 'f+g',
                     },
                     {
@@ -509,7 +519,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: DockerCredential,
-                        index: 9,
+                        index: 10,
                         shortcut: 'f+d',
                     },
                     {
@@ -519,7 +529,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: FyipeApi,
-                        index: 10,
+                        index: 11,
                         shortcut: 'f+w',
                     },
                     {
@@ -529,7 +539,7 @@ export const groups = [
                         visible: true,
                         subRoutes: [],
                         component: Advanced,
-                        index: 11,
+                        index: 12,
                         shortcut: 'f+n',
                     },
                 ],
