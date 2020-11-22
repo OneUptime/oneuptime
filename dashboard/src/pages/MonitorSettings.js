@@ -17,13 +17,13 @@ class MonitorSettings extends React.Component {
         } = this.props;
 
         return (
-            <Dashboard ready={() => this.ready()}>
+            <Dashboard>
                 <Fade>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="Monitor Settings" />
+                    <BreadCrumbItem route={pathname} name="Monitors" />
                     <MonitorSla projectId={match.params.projectId} />
                 </Fade>
             </Dashboard>
