@@ -240,7 +240,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla');
+                .populate('incidentCommunicationSla')
+                .populate('monitorSla');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -259,7 +260,8 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla');
+                .populate('incidentCommunicationSla')
+                .populate('monitorSla');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
