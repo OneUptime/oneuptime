@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import formatNumber from '../../utils/formatNumber';
 import { history } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
+import ShouldRender from '../basic/ShouldRender';
 
 function getComponentBadge(componentName) {
     return (
@@ -62,12 +63,10 @@ function ErrorTrackerIssue({
                     ></div>
                     <input
                         type="checkbox"
-                        onChange={() =>
-                            selectErrorEvent(errorTrackerIssue.latestId)
-                        }
+                        onChange={() => selectErrorEvent(errorTrackerIssue._id)}
                         checked={isSelected(
                             selectedErrorEvents,
-                            errorTrackerIssue.latestId
+                            errorTrackerIssue._id
                         )}
                     />
                 </div>
@@ -95,16 +94,31 @@ function ErrorTrackerIssue({
                                 cursor: 'pointer',
                             }}
                         >
-                            <span className="Text-color--gray">
-                                <p>
-                                    <span className="Text-color--slate Text-fontSize--16 Padding-right--4">
-                                        {errorTrackerIssue.content.type
-                                            ? errorTrackerIssue.content.type
-                                            : errorTrackerIssue.content.message
-                                            ? errorTrackerIssue.content.message
-                                            : 'Unknown Error Event'}
-                                    </span>{' '}
-                                </p>
+                            <span className="Text-color--gray Flex-flex">
+                                <ShouldRender if={errorTrackerIssue.ignored}>
+                                    <img
+                                        src="/dashboard/assets/img/mute.svg"
+                                        alt=""
+                                        style={{
+                                            marginBottom: '-5px',
+                                            height: '20px',
+                                            width: '20px',
+                                            marginRight: '10px',
+                                        }}
+                                    />
+                                </ShouldRender>
+                                <span
+                                    className="Text-color--slate Text-fontSize--16 Padding-right--4"
+                                    style={{
+                                        textDecoration: errorTrackerIssue.resolved
+                                            ? 'line-through'
+                                            : 'none',
+                                    }}
+                                >
+                                    {errorTrackerIssue.name
+                                        ? errorTrackerIssue.name
+                                        : 'Unknown Error Event'}
+                                </span>{' '}
                             </span>
                         </div>
                     </span>
@@ -116,14 +130,13 @@ function ErrorTrackerIssue({
                             }}
                         >
                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                {errorTrackerIssue.content.message
-                                    ? errorTrackerIssue.content.message.length >
-                                      100
-                                        ? `${errorTrackerIssue.content.message.substr(
+                                {errorTrackerIssue.description
+                                    ? errorTrackerIssue.description.length > 100
+                                        ? `${errorTrackerIssue.description.substr(
                                               0,
                                               100
                                           )} ...`
-                                        : errorTrackerIssue.content.message
+                                        : errorTrackerIssue.description
                                     : ''}
                             </div>
                         </div>

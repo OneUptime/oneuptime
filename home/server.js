@@ -73,6 +73,34 @@ app.get('/status-page', function(req, res) {
     res.redirect('/product/status-page');
 });
 
+app.get('/product/public-status-page', function(req, res) {
+    res.render('public-status-page', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/public-status-page', function(req, res) {
+    res.redirect('/product/public-status-page');
+});
+
+app.get('/product/private-status-page', function(req, res) {
+    res.render('private-status-page', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/private-status-page', function(req, res) {
+    res.redirect('/product/private-status-page');
+});
+
 app.get('/status', function(req, res) {
     res.redirect('https://status.fyipe.com');
 });
@@ -103,6 +131,20 @@ app.get('/product/logs-management', function(req, res) {
 
 app.get('/logs-management', function(req, res) {
     res.redirect('/product/logs-management');
+});
+
+app.get('/product/error-tracking', function(req, res) {
+    res.render('error-tracking', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/error-tracking', function(req, res) {
+    res.redirect('/product/error-tracking');
 });
 
 app.get('/product/docker-container-security', function(req, res) {
@@ -159,6 +201,34 @@ app.get('/product/server-monitoring', function(req, res) {
 
 app.get('/server-monitoring', function(req, res) {
     res.redirect('/product/server-monitoring');
+});
+
+app.get('/product/website-monitoring', function(req, res) {
+    res.render('website-monitoring', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/website-monitoring', function(req, res) {
+    res.redirect('/product/website-monitoring');
+});
+
+app.get('/product/iot-device-monitoring', function(req, res) {
+    res.render('iot-device-monitoring', {
+        support: false,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+    });
+});
+
+app.get('/iot-device-monitoring', function(req, res) {
+    res.redirect('/product/iot-device-monitoring');
 });
 
 app.get('/product/incident-management', function(req, res) {
