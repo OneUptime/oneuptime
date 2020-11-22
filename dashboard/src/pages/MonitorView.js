@@ -499,6 +499,9 @@ const mapStateToProps = (state, props) => {
             initialValues.incidentCommunicationSla =
                 monitor.incidentCommunicationSla._id;
         }
+        if (monitor.monitorSla && monitor.monitorSla._id) {
+            initialValues.monitorSla = monitor.monitorSla._id;
+        }
         if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
