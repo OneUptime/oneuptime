@@ -357,6 +357,8 @@ class NewMonitor extends Component {
             this.props.category,
             this.props.subProject,
             this.props.schedule,
+            this.props.monitorSla,
+            this.props.incidentCommunicationSla,
             value
         );
     };

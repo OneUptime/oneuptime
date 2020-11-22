@@ -1078,6 +1078,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                         resourceCategory_1000: action.payload.category,
                         subProject_1000: action.payload.subProject,
                         callSchedule_1000: action.payload.schedule,
+                        monitorSla: action.payload.monitorSla,
+                        incidentCommunicationSla:
+                            action.payload.incidentCommunicationSla,
                     },
                 },
             });
