@@ -84,6 +84,9 @@ module.exports = {
                     let monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
+                    monitor.monitorSla = data.monitorSla;
+                    monitor.incidentCommunicationSla =
+                        data.incidentCommunicationSla;
                     monitor.createdById = data.createdById;
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
