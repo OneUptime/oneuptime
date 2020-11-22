@@ -72,6 +72,7 @@ export function createMonitor(projectId, values) {
         promise.then(
             function(monitor) {
                 dispatch(createMonitorSuccess(monitor.data));
+                return monitor.data;
             },
             function(error) {
                 if (error && error.response && error.response.data) {
