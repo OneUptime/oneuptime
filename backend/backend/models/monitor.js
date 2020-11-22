@@ -61,6 +61,10 @@ const monitorSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'IncidentCommunicationSla',
     },
+    monitorSla: {
+        type: Schema.Types.ObjectId,
+        ref: 'MonitorSla',
+    },
 });
 
 monitorSchema.virtual('project', {
