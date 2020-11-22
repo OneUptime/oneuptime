@@ -7,12 +7,16 @@ import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import { fetchErrorEvent } from '../actions/errorTracker';
+import {
+    fetchErrorTrackers,
+    fetchErrorEvent,
+    setCurrentErrorEvent,
+} from '../actions/errorTracker';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
-
+import { history } from '../store';
 class ErrorEventView extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -35,11 +39,41 @@ class ErrorEventView extends Component {
             ? this.props.match.params.errorEventId
             : null;
 
+        // fetching error trackers is necessary incase a reload is done on error event details page
+        this.props.fetchErrorTrackers(projectId, componentId);
+
+        // TODO fetch the current issues based on the limit and skip in the redux
         this.props.fetchErrorEvent(
             projectId,
             componentId,
             errorTrackerId,
             errorEventId
+        );
+        setCurrentErrorEvent(errorEventId);
+    };
+    navigationLink = errorEventId => {
+        const {
+            currentProject,
+            component,
+            errorTracker,
+            setCurrentErrorEvent,
+        } = this.props;
+        this.props.fetchErrorEvent(
+            currentProject._id,
+            component._id,
+            errorTracker[0]._id,
+            errorEventId
+        );
+        setCurrentErrorEvent(errorEventId);
+        history.push(
+            '/dashboard/project/' +
+                currentProject._id +
+                '/' +
+                component._id +
+                '/error-trackers/' +
+                errorTracker[0]._id +
+                '/events/' +
+                errorEventId
         );
     };
     render() {
@@ -47,6 +81,8 @@ class ErrorEventView extends Component {
             location: { pathname },
             component,
             errorTracker,
+            errorEvent,
+            currentProject,
         } = this.props;
 
         const componentName = component ? component.name : '';
@@ -69,16 +105,30 @@ class ErrorEventView extends Component {
                     />
                     <BreadCrumbItem
                         route={pathname}
-                        name={`Type Error`}
+                        name={
+                            errorEvent &&
+                            errorEvent.errorEvent &&
+                            errorEvent.errorEvent.content
+                                ? errorEvent.errorEvent.content.type
+                                : ''
+                        }
                         pageTitle="Error Tracking"
                         containerType="Error Tracker Container"
                     />
-                    <ShouldRender if={!errorTracker[0]}>
+                    <ShouldRender if={!errorEvent}>
                         <LoadingState />
                     </ShouldRender>
-                    <ShouldRender if={errorTracker && errorTracker[0]}>
+                    <ShouldRender if={errorEvent}>
                         <div>
-                            <ErrorEventDetail />
+                            <ErrorEventDetail
+                                errorEvent={errorEvent}
+                                componentId={component && component._id}
+                                projectId={currentProject && currentProject._id}
+                                errorTrackerId={
+                                    errorTracker[0] && errorTracker[0]._id
+                                }
+                                navigationLink={this.navigationLink}
+                            />
                         </div>
                     </ShouldRender>
                 </Fade>
@@ -92,12 +142,17 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchErrorEvent,
+            fetchErrorTrackers,
+            setCurrentErrorEvent,
         },
         dispatch
     );
 };
 const mapStateToProps = (state, ownProps) => {
     const { componentId, errorTrackerId, errorEventId } = ownProps.match.params;
+    const currentErrorEvent = state.errorTracker.currentErrorEvent;
+    const currentErrorEventId =
+        currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;
     const currentProject = state.project.currentProject;
     let component;
     state.component.componentList.components.forEach(item => {
@@ -114,7 +169,10 @@ const mapStateToProps = (state, ownProps) => {
     const errorEvents = state.errorTracker.errorEvents;
     if (errorEvents) {
         for (const errorEventKey in errorEvents) {
-            if (errorEventKey === errorEventId && errorEvents[errorEventKey]) {
+            if (
+                errorEventKey === currentErrorEventId &&
+                errorEvents[errorEventKey]
+            ) {
                 errorEvent = errorEvents[errorEventKey];
             }
         }
@@ -124,6 +182,7 @@ const mapStateToProps = (state, ownProps) => {
         component,
         errorTracker,
         errorEvent,
+        currentErrorEvent,
     };
 };
 ErrorEventView.propTypes = {
@@ -133,5 +192,8 @@ ErrorEventView.propTypes = {
     match: PropsType.object,
     fetchErrorEvent: PropsType.func,
     errorTracker: PropsType.array,
+    fetchErrorTrackers: PropsType.func,
+    errorEvent: PropsType.object,
+    setCurrentErrorEvent: PropsType.func,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventView);

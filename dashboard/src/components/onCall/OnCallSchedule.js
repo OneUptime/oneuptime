@@ -7,7 +7,7 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
     let color;
     switch (status) {
         case 'active':
-            color = 'red';
+            color = 'cyan5';
             break;
         case 'upcoming':
             color = 'yellow';
@@ -87,9 +87,45 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 .name}
                                                         :
                                                     </b>{' '}
-                                                    {status === 'active' ? (
+                                                    {!schedule.isOnDutyAllTheTime ? (
                                                         <span>
-                                                            Your duty ends at{' '}
+                                                            {status ===
+                                                            'active' ? (
+                                                                <span>
+                                                                    Your duty
+                                                                    ends at{' '}
+                                                                    <b>
+                                                                        {moment(
+                                                                            schedule.endTime,
+                                                                            'HH:mm'
+                                                                        ).format(
+                                                                            'hh:mm A'
+                                                                        )}
+                                                                        {schedule.timezone &&
+                                                                            ` (${schedule.timezone})`}
+                                                                    </b>{' '}
+                                                                    and your
+                                                                    next duty
+                                                                    begins at
+                                                                </span>
+                                                            ) : (
+                                                                <span>
+                                                                    Your next
+                                                                    duty begins
+                                                                    at
+                                                                </span>
+                                                            )}{' '}
+                                                            <b>
+                                                                {moment(
+                                                                    schedule.startTime,
+                                                                    'HH:mm'
+                                                                ).format(
+                                                                    'hh:mm A'
+                                                                )}
+                                                                {schedule.timezone &&
+                                                                    ` (${schedule.timezone})`}
+                                                            </b>{' '}
+                                                            and ends at{' '}
                                                             <b>
                                                                 {moment(
                                                                     schedule.endTime,
@@ -99,34 +135,15 @@ const OnCallSchedule = ({ status, schedules, currentProjectId }) => {
                                                                 )}
                                                                 {schedule.timezone &&
                                                                     ` (${schedule.timezone})`}
-                                                            </b>{' '}
-                                                            and your next duty
-                                                            begins at
+                                                                .
+                                                            </b>
                                                         </span>
                                                     ) : (
                                                         <span>
-                                                            Your next duty
-                                                            begins at
+                                                            You&#39;re on duty
+                                                            all the time
                                                         </span>
-                                                    )}{' '}
-                                                    <b>
-                                                        {moment(
-                                                            schedule.startTime,
-                                                            'HH:mm'
-                                                        ).format('hh:mm A')}
-                                                        {schedule.timezone &&
-                                                            ` (${schedule.timezone})`}
-                                                    </b>{' '}
-                                                    and ends at{' '}
-                                                    <b>
-                                                        {moment(
-                                                            schedule.endTime,
-                                                            'HH:mm'
-                                                        ).format('hh:mm A')}
-                                                        {schedule.timezone &&
-                                                            ` (${schedule.timezone})`}
-                                                        .
-                                                    </b>
+                                                    )}
                                                 </li>
                                             );
                                         })}

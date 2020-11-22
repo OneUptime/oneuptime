@@ -1026,10 +1026,7 @@ export class IncidentStatus extends Component {
                                                                                         showResolveButton
                                                                                     }
                                                                                 >
-                                                                                    <label
-                                                                                        id={`btnResolve_${this.props.count}`}
-                                                                                        className="Bs-btn-no bs-flex-display bs-margin-left"
-                                                                                    >
+                                                                                    <label className="Bs-btn-no bs-flex-display bs-margin-left">
                                                                                         <div className="bs-circle-span"></div>
                                                                                         <div className="bs-margin-right">
                                                                                             Not

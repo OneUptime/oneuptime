@@ -15,6 +15,31 @@ import {
     FETCH_ERROR_EVENT_REQUEST,
     FETCH_ERROR_EVENT_RESET,
     FETCH_ERROR_EVENT_SUCCESS,
+    SET_CURRENT_ERROR_EVENT,
+    DELETE_ERROR_TRACKER_FAILURE,
+    DELETE_ERROR_TRACKER_REQUEST,
+    DELETE_ERROR_TRACKER_SUCCESS,
+    EDIT_ERROR_TRACKER_SWITCH,
+    EDIT_ERROR_TRACKER_FAILURE,
+    EDIT_ERROR_TRACKER_REQUEST,
+    EDIT_ERROR_TRACKER_RESET,
+    EDIT_ERROR_TRACKER_SUCCESS,
+    RESET_ERROR_TRACKER_KEY_FAILURE,
+    RESET_ERROR_TRACKER_KEY_REQUEST,
+    RESET_ERROR_TRACKER_KEY_RESET,
+    RESET_ERROR_TRACKER_KEY_SUCCESS,
+    IGNORE_ERROR_EVENT_FAILURE,
+    IGNORE_ERROR_EVENT_REQUEST,
+    IGNORE_ERROR_EVENT_RESET,
+    IGNORE_ERROR_EVENT_SUCCESS,
+    UNRESOLVE_ERROR_EVENT_FAILURE,
+    UNRESOLVE_ERROR_EVENT_REQUEST,
+    UNRESOLVE_ERROR_EVENT_RESET,
+    UNRESOLVE_ERROR_EVENT_SUCCESS,
+    RESOLVE_ERROR_EVENT_FAILURE,
+    RESOLVE_ERROR_EVENT_REQUEST,
+    RESOLVE_ERROR_EVENT_RESET,
+    RESOLVE_ERROR_EVENT_SUCCESS,
 } from '../constants/errorTracker';
 
 const INITIAL_STATE = {
@@ -33,9 +58,20 @@ const INITIAL_STATE = {
     },
     errorTrackerIssues: {},
     errorEvents: {},
+    currentErrorEvent: '',
+    editErrorTracker: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
+    errorTrackerStatus: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 export default function errorTracker(state = INITIAL_STATE, action) {
-    let temporaryIssues, temporaryErrorEvents;
+    let temporaryIssues, temporaryErrorEvents, temporaryErrorTrackers;
     switch (action.type) {
         case CREATE_ERROR_TRACKER_SUCCESS:
             return Object.assign({}, state, {
@@ -116,6 +152,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         skip: action.payload.skip,
                         limit: action.payload.limit,
                         count: action.payload.count,
+                        dateRange: action.payload.dateRange,
                     },
                 },
             });
@@ -140,6 +177,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           skip: 0,
                           limit: 10,
                           count: null,
+                          dateRange: null,
                       },
             };
             return Object.assign({}, state, {
@@ -171,6 +209,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           skip: 0,
                           limit: 10,
                           count: null,
+                          dateRange: null,
                       },
             };
             return Object.assign({}, state, {
@@ -190,12 +229,13 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           requesting: true,
                       }
                     : {
-                          errorEvent: null,
+                          errorEvent: undefined,
                           error: null,
                           requesting: true,
                           success: false,
-                          previous: null,
-                          next: null,
+                          previous: undefined,
+                          next: undefined,
+                          totalEvents: 0,
                       },
             };
             return Object.assign({}, state, {
@@ -212,6 +252,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                         success: true,
                         previous: action.payload.previous,
                         next: action.payload.next,
+                        totalEvents: action.payload.totalEvents,
                     },
                 },
             });
@@ -226,12 +267,13 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                           error: action.payload.error,
                       }
                     : {
-                          errorEvent: null,
+                          errorEvent: undefined,
                           error: action.payload.error,
                           requesting: false,
                           success: false,
-                          previous: null,
-                          next: null,
+                          previous: undefined,
+                          next: undefined,
+                          totalEvents: 0,
                       },
             };
             return Object.assign({}, state, {
@@ -240,6 +282,313 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ERROR_EVENT_RESET:
             return Object.assign({}, state, {
                 errorEvents: INITIAL_STATE.errorEvents,
+            });
+        case SET_CURRENT_ERROR_EVENT:
+            return Object.assign({}, state, {
+                currentErrorEvent: action.payload.errorEventId,
+            });
+        case DELETE_ERROR_TRACKER_SUCCESS:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: state.errorTrackersList.errorTrackers.filter(
+                        ({ _id }) => _id !== action.payload
+                    ),
+                },
+                deleteErrorTracker: false,
+            });
+
+        case DELETE_ERROR_TRACKER_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                deleteErrorTracker: false,
+            });
+
+        case DELETE_ERROR_TRACKER_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+                deleteErrorTracker: action.payload,
+            });
+        case EDIT_ERROR_TRACKER_SWITCH:
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload) {
+                        if (!errorTracker.editMode)
+                            errorTracker.editMode = true;
+                        else errorTracker.editMode = false;
+                    } else {
+                        errorTracker.editMode = false;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: false,
+                    errorTrackers: temporaryErrorTrackers,
+                },
+                editErrorTracker: {
+                    requesting: false,
+                    error: null,
+                    success: false,
+                },
+            });
+        case EDIT_ERROR_TRACKER_SUCCESS:
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload._id) {
+                        errorTracker = action.payload;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: temporaryErrorTrackers,
+                },
+            });
+        case EDIT_ERROR_TRACKER_FAILURE:
+            return Object.assign({}, state, {
+                editErrorTracker: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case EDIT_ERROR_TRACKER_RESET:
+            return Object.assign({}, state, {
+                editErrorTracker: INITIAL_STATE.editErrorTracker,
+            });
+
+        case EDIT_ERROR_TRACKER_REQUEST:
+            return Object.assign({}, state, {
+                editErrorTracker: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESET_ERROR_TRACKER_KEY_SUCCESS:
+            temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
+                errorTracker => {
+                    if (errorTracker._id === action.payload._id) {
+                        errorTracker = action.payload;
+                    }
+                    return errorTracker;
+                }
+            );
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    errorTrackers: temporaryErrorTrackers,
+                },
+            });
+
+        case RESET_ERROR_TRACKER_KEY_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESET_ERROR_TRACKER_KEY_RESET:
+            return Object.assign({}, state, {
+                errorTrackersList: INITIAL_STATE.errorTrackersList,
+            });
+
+        case RESET_ERROR_TRACKER_KEY_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackersList: {
+                    ...state.errorTrackersList,
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case IGNORE_ERROR_EVENT_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                      .errorTrackerIssues
+                : [...action.payload.ignoredIssues];
+            temporaryIssues.map(errorTrackerIssues => {
+                const issue = action.payload.ignoredIssues.filter(
+                    ignoredIssue => ignoredIssue._id === errorTrackerIssues._id
+                );
+
+                if (issue && issue.length > 0) {
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case IGNORE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case IGNORE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case IGNORE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
+            });
+        case UNRESOLVE_ERROR_EVENT_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                      .errorTrackerIssues
+                : [...action.payload.unresolvedIssues];
+            temporaryIssues.map(errorTrackerIssues => {
+                const issue = action.payload.unresolvedIssues.filter(
+                    unresolvedIssue =>
+                        unresolvedIssue._id === errorTrackerIssues._id
+                );
+
+                if (issue && issue.length > 0) {
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case UNRESOLVE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case UNRESOLVE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case UNRESOLVE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
+            });
+        case RESOLVE_ERROR_EVENT_SUCCESS:
+            temporaryIssues = state.errorTrackerIssues[
+                action.payload.errorTrackerId
+            ]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                      .errorTrackerIssues
+                : [...action.payload.resolvedIssues];
+            temporaryIssues.map(errorTrackerIssues => {
+                const issue = action.payload.resolvedIssues.filter(
+                    resolvedIssue =>
+                        resolvedIssue._id === errorTrackerIssues._id
+                );
+
+                if (issue && issue.length > 0) {
+                    errorTrackerIssues.ignored = issue[0].ignored;
+                    errorTrackerIssues.resolved = issue[0].resolved;
+                }
+
+                return errorTrackerIssues;
+            });
+            return Object.assign({}, state, {
+                errorTrackerIssues: {
+                    ...state.errorTrackerIssues,
+                    [action.payload.errorTrackerId]: {
+                        ...state.errorTrackerIssues[
+                            action.payload.errorTrackerId
+                        ],
+                        errorTrackerIssues: temporaryIssues,
+                    },
+                },
+            });
+
+        case RESOLVE_ERROR_EVENT_REQUEST:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+        case RESOLVE_ERROR_EVENT_FAILURE:
+            return Object.assign({}, state, {
+                errorTrackerStatus: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case RESOLVE_ERROR_EVENT_RESET:
+            return Object.assign({}, state, {
+                errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         default:
             return state;
