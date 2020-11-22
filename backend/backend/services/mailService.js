@@ -1102,6 +1102,12 @@ const _this = {
     sendIncidentCreatedMail: async function({
         incidentTime,
         monitorName,
+        monitorUrl,
+        incidentId,
+        reason,
+        view_url,
+        method,
+        componentName,
         email,
         userId,
         firstName,
@@ -1115,15 +1121,35 @@ const _this = {
         let mailOptions = {};
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
+            let iconColor = '#94c800';
+            let incidentShow = 'Offline';
+            if (incidentType && incidentType === 'online') {
+                iconColor = '#75d380';
+                incidentShow = 'Online';
+            } else if (incidentType && incidentType === 'offline') {
+                iconColor = '#e25950';
+                incidentShow = 'Offline';
+            } else if (incidentType && incidentType === 'degraded') {
+                iconColor = '#ffde24';
+                incidentShow = 'Degraded';
+            }
+            const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
-                subject: `${projectName}/${monitorName} is ${incidentType}`,
+                subject: `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`,
                 template: 'new_incident_created',
                 context: {
                     homeURL: global.homeHost,
                     incidentTime: incidentTime,
                     monitorName: monitorName,
+                    monitorUrl,
+                    incidentId,
+                    reason,
+                    view_url,
+                    method,
+                    iconStyle,
+                    componentName,
                     accessToken,
                     firstName,
                     userId,
@@ -1835,6 +1861,109 @@ const _this = {
         return Object.keys(smtpConfigurations).length
             ? smtpConfigurations
             : false;
+    },
+
+    sendSlaNotification: async function({ userEmail, name, projectId }) {
+        const smtpSettings = await _this.getProjectSmtpSettings(projectId);
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                to: userEmail,
+                subject: 'About to Breach Incident SLA',
+                template: 'sla_notification',
+                context: {
+                    name: name ? name.split(' ')[0].toString() : '',
+                    currentYear: new Date().getFullYear(),
+                },
+            };
+
+            const mailer = await _this.createMailer(smtpSettings);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendSlaNotification', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
+    },
+    sendSlaBreachNotification: async function({ userEmail, name, projectId }) {
+        const smtpSettings = await _this.getProjectSmtpSettings(projectId);
+        let mailOptions = {};
+        try {
+            mailOptions = {
+                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                to: userEmail,
+                subject: 'Breach of Incident SLA',
+                template: 'breack_sla_notification',
+                context: {
+                    name: name ? name.split(' ')[0].toString() : '',
+                    currentYear: new Date().getFullYear(),
+                },
+            };
+
+            const mailer = await _this.createMailer(smtpSettings);
+
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendSlaBreachNotification', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+            });
+            throw error;
+        }
     },
 };
 

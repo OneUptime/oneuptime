@@ -1,33 +1,30 @@
 module.exports = {
     create: async function(data) {
         try {
-            const _this = this;
-
             // prepare error event model
-            let errorEvent = new ErrorEventModel();
+            const errorEvent = new ErrorEventModel();
 
             errorEvent.content = data.exception;
             errorEvent.device = data.deviceDetails;
             errorEvent.tags = data.tags;
-            errorEvent.createdById = data.createdById;
             errorEvent.type = data.type;
+            errorEvent.sdk = data.sdk;
 
-            // generate hash from fingerprint
-            const hash = sha256(data.fingerprint.join(''));
-            errorEvent.fingerprintHash = hash;
+            errorEvent.fingerprintHash = data.fingerprintHash;
             errorEvent.fingerprint = data.fingerprint;
 
             // set error trackerid
             errorEvent.errorTrackerId = data.errorTrackerId;
 
+            // set issueId
+            errorEvent.issueId = data.issueId;
+
             // set timeline
             errorEvent.timeline = data.timeline;
 
             const savedErrorEvent = await errorEvent.save();
-            errorEvent = await _this.findOneBy({
-                _id: savedErrorEvent._id,
-            });
-            return errorEvent;
+
+            return savedErrorEvent;
         } catch (error) {
             ErrorService.log('errorEventService.create', error);
             throw error;
@@ -39,11 +36,19 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
-            const errorEvent = await ErrorEventModel.findOne(query).populate(
-                'errorTrackerId',
-                'name'
-            );
+            if (!query.deleted) delete query.deleted;
+            const errorEvent = await ErrorEventModel.findOne(query)
+                .populate('errorTrackerId', 'name')
+                .populate('issueId', [
+                    '_id',
+                    'name',
+                    'description',
+                    'type',
+                    'ignored',
+                    'resolved',
+                ])
+                .populate('resolvedById', 'name')
+                .populate('ignoredById', 'name');
             return errorEvent;
         } catch (error) {
             ErrorService.log('errorEventService.findOneBy', error);
@@ -69,7 +74,7 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted) delete query.deleted;
             const errorEvents = await ErrorEventModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
@@ -100,67 +105,97 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
-            // get all unique hashes
-            const uniqueHashes = await this.getUniqueHashes();
+            if (!query.deleted) delete query.deleted;
+            // get all unique hashes by error tracker Id
+            const errorTrackerIssues = await IssueService.findBy(
+                {
+                    errorTrackerId: query.errorTrackerId,
+                },
+                limit,
+                skip
+            );
 
             const totalErrorEvents = [];
-            let index = skip; // set the skip as the starting index
+            let index = 0;
 
-            // if total unique error events length is less than limit and the next index is available in the hash, proceed
-            while (totalErrorEvents.length < limit && uniqueHashes[index]) {
-                const fingerprintHash = uniqueHashes[index];
-                // update query with the current hash
-                query.fingerprintHash = fingerprintHash._id;
-                // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                // todo update query to exclude resolved error events
-                const earliestErrorEvent = await ErrorEventModel.findOne(
-                    query
-                ).sort({ createdAt: 1 });
-                const latestErrorEvent = await ErrorEventModel.findOne(
-                    query
-                ).sort({ createdAt: -1 });
-                // if we have an earliest and latest error event
-                if (earliestErrorEvent && latestErrorEvent) {
-                    // get total number of events for that hash
-                    const totalNumberOfEvents = await this.countBy(query);
-                    // fill in its biodata with the latest error event details
-                    const errorEvent = {
-                        name: latestErrorEvent.name,
-                        earliestOccurennce: earliestErrorEvent.createdAt,
-                        earliestId: earliestErrorEvent._id,
-                        latestOccurennce: latestErrorEvent.createdAt,
-                        latestId: latestErrorEvent._id,
-                        totalNumberOfEvents,
-                        content: {
-                            type:
-                                latestErrorEvent.content &&
-                                latestErrorEvent.content.type,
-                            message:
-                                latestErrorEvent.content &&
-                                latestErrorEvent.content.message,
-                        },
-                        type: latestErrorEvent.type,
-                        fingerprintHash: fingerprintHash._id,
-                    };
-                    // add it to the list of error events
-                    totalErrorEvents.push(errorEvent);
+            // if the next index is available in the issue tracker, proceed
+            while (errorTrackerIssues[index]) {
+                const issue = errorTrackerIssues[index];
+
+                if (issue) {
+                    // update query with the current issue ID
+                    query.issueId = issue._id;
+                    // run a query to get the first and last error event that has current error tracker id and fingerprint hash
+                    const earliestErrorEvent = await ErrorEventModel.findOne(
+                        query
+                    ).sort({ createdAt: 1 });
+                    const latestErrorEvent = await ErrorEventModel.findOne(
+                        query
+                    ).sort({ createdAt: -1 });
+                    // if we have an earliest and latest error event
+                    if (earliestErrorEvent && latestErrorEvent) {
+                        // get total number of events for that hash
+                        const totalNumberOfEvents = await this.countBy(query);
+                        // fill in its biodata with the latest error event details
+                        const errorEvent = {
+                            _id: issue._id,
+                            name: issue.name,
+                            description: issue.description,
+                            type: issue.type,
+                            fingerprintHash: issue.fingerprintHash,
+                            ignored: issue.ignored,
+                            earliestOccurennce: earliestErrorEvent.createdAt,
+                            earliestId: earliestErrorEvent._id,
+                            latestOccurennce: latestErrorEvent.createdAt,
+                            latestId: latestErrorEvent._id,
+                            totalNumberOfEvents,
+                        };
+                        // add it to the list of error events
+                        totalErrorEvents.push(errorEvent);
+                    }
                 }
                 // increment index
                 index = index + 1;
             }
-            return totalErrorEvents;
+            let dateRange = { startDate: '', endDate: '' };
+            // set the date time range
+            if (query.createdAt) {
+                dateRange = {
+                    startDate: query.createdAt.$gte,
+                    endDate: query.createdAt.$lte,
+                };
+            } else {
+                totalErrorEvents.length > 0
+                    ? (dateRange = {
+                          startDate:
+                              totalErrorEvents[totalErrorEvents.length - 1]
+                                  .earliestOccurennce,
+                          endDate: totalErrorEvents[0].latestOccurennce,
+                      })
+                    : null;
+            }
+
+            return {
+                totalErrorEvents,
+                dateRange,
+                count: errorTrackerIssues.length,
+            };
         } catch (error) {
-            ErrorService.log('errorEventService.findBy', error);
+            ErrorService.log('errorEventService.findDistinct', error);
             throw error;
         }
     },
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
+            const errorEvent = await this.findOneBy({
+                _id: errorEventId,
+                errorTrackerId: errorTrackerId,
+            });
             const previousErrorEvent = await ErrorEventModel.find({
                 _id: { $lt: errorEventId },
-                errorTrackerId: errorTrackerId,
+                errorTrackerId: errorEvent.errorTrackerId,
+                issueId: errorEvent.issueId,
             })
                 .sort({ _id: -1 })
                 .limit(1);
@@ -170,15 +205,23 @@ module.exports = {
                     createdAt: previousErrorEvent[0].createdAt,
                 };
             }
-            const errorEvent = await ErrorEventModel.findOne({
-                _id: errorEventId,
-                errorTrackerId: errorTrackerId,
-            });
+            const oldestErrorEvent = await ErrorEventModel.find({
+                _id: { $lt: errorEventId },
+                errorTrackerId: errorEvent.errorTrackerId,
+                issueId: errorEvent.issueId,
+            })
+                .sort({ _id: 1 })
+                .limit(1);
+            if (oldestErrorEvent.length > 0) {
+                previous.oldest = oldestErrorEvent[0]._id;
+            }
+
             const nextErrorEvent = await ErrorEventModel.find({
                 _id: { $gt: errorEventId },
-                errorTrackerId: errorTrackerId,
+                errorTrackerId: errorEvent.errorTrackerId,
+                issueId: errorEvent.issueId,
             })
-                .sort({ _id: -1 })
+                .sort({ _id: 1 })
                 .limit(1);
             if (nextErrorEvent.length > 0) {
                 next = {
@@ -186,29 +229,30 @@ module.exports = {
                     createdAt: nextErrorEvent[0].createdAt,
                 };
             }
+            const latestErrorEvent = await ErrorEventModel.find({
+                _id: { $gt: errorEventId },
+                errorTrackerId: errorEvent.errorTrackerId,
+                issueId: errorEvent.issueId,
+            })
+                .sort({ _id: -1 })
+                .limit(1);
+            if (latestErrorEvent.length > 0) {
+                next.latest = latestErrorEvent[0]._id;
+            }
+
+            const totalEvents = await this.countBy({
+                errorTrackerId: errorEvent.errorTrackerId,
+                issueId: errorEvent.issueId,
+            });
 
             return {
                 previous: previous || null,
                 errorEvent,
                 next: next || null,
+                totalEvents: totalEvents,
             };
         } catch (error) {
             ErrorService.log('errorEventService.findOneWithPrevAndNext', error);
-            throw error;
-        }
-    },
-    async getUniqueHashes() {
-        try {
-            const uniqueHashes = await ErrorEventModel.aggregate([
-                {
-                    $group: {
-                        _id: '$fingerprintHash',
-                    },
-                },
-            ]);
-            return uniqueHashes;
-        } catch (error) {
-            ErrorService.log('errorEventService.uniqueHashes', error);
             throw error;
         }
     },
@@ -226,8 +270,48 @@ module.exports = {
             throw error;
         }
     },
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            let errorEvent = await ErrorEventModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            errorEvent = await this.findOneBy(query);
+
+            return errorEvent;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.updateOneBy', error);
+            throw error;
+        }
+    },
+    updateBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const updateProcess = await ErrorEventModel.updateMany(query, {
+                $set: data,
+            });
+
+            return updateProcess;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.updateBy', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorEventModel = require('../models/errorEvent');
 const ErrorService = require('./errorService');
-const sha256 = require('crypto-js/sha256');
+const IssueService = require('./issueService');

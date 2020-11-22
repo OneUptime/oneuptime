@@ -130,7 +130,7 @@ function getParentRoute(childRoute, projectId = null, type) {
         urlParts.splice(urlParts.indexOf('container') + 1, urlParts.length);
         return urlParts.join('/');
     }
-    if(type === 'basic') {
+    if (type === 'basic') {
         const urlParts = childRoute.split('/');
         urlParts.splice(
             urlParts.indexOf('settings'),

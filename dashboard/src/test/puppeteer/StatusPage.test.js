@@ -15,7 +15,7 @@ const monitorName1 = 'testFyipe';
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL);
     await page.waitForSelector('#statusPages');
-    await page.$eval('#statusPages', e=> e.click());
+    await page.$eval('#statusPages', e => e.click());
     const rowItem = await page.waitForSelector(
         '#statusPagesListContainer > tr',
         { visible: true }

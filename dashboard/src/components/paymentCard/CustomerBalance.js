@@ -81,20 +81,33 @@ export class CustomerBalance extends Component {
         }
     };
     sendPayment = values => {
-        const { addBalance, projectId, openModal } = this.props;
+        const {
+            addBalance,
+            projectId,
+            openModal,
+            balance,
+            getProjects,
+        } = this.props;
         const { MessageBoxId } = this.state;
         return addBalance(projectId, values)
-            .then(() => {
-                const { paymentIntent, balance, getProjects } = this.props;
-                const creditedBalance = paymentIntent.amount / 100;
-                openModal({
-                    id: MessageBoxId,
-                    content: MessageBox,
-                    title: 'Message',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
-                });
-                getProjects();
+            .then(response => {
+                const { status, amount_received } = response.data;
+                const { paymentIntent } = this.props;
+
+                if (status === 'succeeded') {
+                    const creditedBalance = amount_received / 100;
+                    getProjects();
+
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message: `Transaction successful, your balance is now ${balance +
+                            creditedBalance}$`,
+                    });
+                } else {
+                    this.handlePaymentIntent(paymentIntent.client_secret);
+                }
             })
             .catch(err => {
                 openModal({
@@ -103,6 +116,50 @@ export class CustomerBalance extends Component {
                     title: 'Message',
                     message: err.message,
                 });
+            });
+    };
+    handlePaymentIntent = paymentIntentClientSecret => {
+        const {
+            stripe,
+            openModal,
+            getProjects,
+            balance,
+            updateProjectBalance,
+            projectId,
+        } = this.props;
+        const { MessageBoxId } = this.state;
+        stripe
+            .handleCardPayment(paymentIntentClientSecret)
+            .then(async result => {
+                if (
+                    result.paymentIntent &&
+                    result.paymentIntent.status === 'succeeded'
+                ) {
+                    const creditedBalance = result.paymentIntent.amount / 100;
+
+                    // update the project balance at this point
+                    await updateProjectBalance({
+                        projectId,
+                        intentId: result.paymentIntent.id,
+                    }).then(function() {
+                        openModal({
+                            id: MessageBoxId,
+                            content: MessageBox,
+                            title: 'Message',
+                            message: `Transaction successful, your balance is now ${balance +
+                                creditedBalance}$`,
+                        });
+                        getProjects();
+                    });
+                } else {
+                    openModal({
+                        id: MessageBoxId,
+                        content: MessageBox,
+                        title: 'Message',
+                        message:
+                            'Transaction failed, try again later or use a different card.',
+                    });
+                }
             });
     };
 

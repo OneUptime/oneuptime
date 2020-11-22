@@ -493,6 +493,13 @@ const mapStateToProps = (state, props) => {
         initialValues[`resourceCategory_${monitor._id}`] =
             monitor.resourceCategory && monitor.resourceCategory._id;
         if (
+            monitor.incidentCommunicationSla &&
+            monitor.incidentCommunicationSla._id
+        ) {
+            initialValues.incidentCommunicationSla =
+                monitor.incidentCommunicationSla._id;
+        }
+        if (
             monitor.type === 'url' ||
             monitor.type === 'api' ||
             monitor.type === 'server-monitor'

@@ -21,6 +21,31 @@ module.exports = {
         }
     },
 
+    sendSlaCountDown: async (incident, countDown) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            const project = await ProjectService.findOneBy({
+                _id: incident.projectId,
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id
+                    : project._id
+                : incident.projectId;
+
+            global.io.emit(`slaCountDown-${projectId}`, {
+                incident,
+                countDown,
+            });
+        } catch (error) {
+            ErrorService.log('realTimeService.sendSlaCountDown', error);
+            throw error;
+        }
+    },
+
     deleteIncident: async incident => {
         try {
             if (!global || !global.io) {

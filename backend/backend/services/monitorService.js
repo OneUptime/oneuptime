@@ -236,7 +236,8 @@ module.exports = {
                 .skip(skip)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
+                .populate('resourceCategory', 'name')
+                .populate('incidentCommunicationSla');
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -254,7 +255,8 @@ module.exports = {
             const monitor = await MonitorModel.findOne(query)
                 .populate('projectId', 'name')
                 .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
+                .populate('resourceCategory', 'name')
+                .populate('incidentCommunicationSla');
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);

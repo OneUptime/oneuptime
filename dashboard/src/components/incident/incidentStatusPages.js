@@ -58,21 +58,20 @@ const IncidentStatusPages = ({
                         <table className="Table">
                             <thead className="Table-body">
                                 <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                    {[
-                                        'Status Page Name',
-                                        'Status Page Link',
-                                    ].map(headerName => (
-                                        <td
-                                            key={headerName}
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    {headerName}
-                                                </span>
-                                            </div>
-                                        </td>
-                                    ))}
+                                    {['Status Page Name', 'ACTIONS'].map(
+                                        headerName => (
+                                            <td
+                                                key={headerName}
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        {headerName}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        )
+                                    )}
                                 </tr>
                             </thead>
                             <tbody id="statusPagesListContainer">

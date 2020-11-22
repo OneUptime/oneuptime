@@ -264,10 +264,10 @@ const Services = {
                         .populate('userId', 'name')
                         .populate('parentProjectId', 'name')
                         .execPopulate();
-                    // if (updatedProject.balance === newbalance) {
-                    //     return true;
-                    // }
-                    return updatedProject;
+                    if (updatedProject.balance === newbalance) {
+                        // return true;
+                        return updatedProject;
+                    }
                 }
             }
             return false;
@@ -382,7 +382,10 @@ const Services = {
             const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
                 paymentIntent.id
             );
-            await this.updateBalance(confirmedPaymentIntent);
+
+            if (confirmedPaymentIntent.status === 'succeeded') {
+                await this.updateBalance(confirmedPaymentIntent);
+            }
             return confirmedPaymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.confirmPayment', error);

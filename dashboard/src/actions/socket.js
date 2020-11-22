@@ -166,6 +166,15 @@ export function createMonitor(data) {
     };
 }
 
+export function updateincidentbysocket(incident) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_INCIDENT',
+            payload: incident,
+        });
+    };
+}
+
 export function deleteincidentbysocket(incident) {
     return function(dispatch) {
         dispatch({
@@ -180,6 +189,15 @@ export function resolvescheduledevent(event) {
         dispatch({
             type: 'RESOLVE_SCHEDULED_EVENT_SUCCESS',
             payload: event,
+        });
+    };
+}
+
+export function slacountdown({ incident, countDown }) {
+    return function(dispatch) {
+        dispatch({
+            type: 'SLA_COUNT_DOWN',
+            payload: { incident, countDown },
         });
     };
 }
