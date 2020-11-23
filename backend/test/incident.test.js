@@ -27,6 +27,8 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
 const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
+const SubscriberService = require('../backend/services/subscriberService');
+const AlertVia = require('../backend/config/alertType');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -114,6 +116,17 @@ describe('Incident API', function() {
                 incidentAcknowledged: true,
             }
         );
+
+        // create an external webhook subscriber
+        await SubscriberService.create({
+            projectId,
+            monitorId,
+            alertVia: AlertVia.Webhook,
+            contactWebhook:
+                'http://127.0.0.1:3010/api/webhooks/external_subscriber',
+            webhookMethod: 'post',
+        });
+
         expect(res2).to.have.status(200);
         expect(res2.body.name).to.be.equal(monitor.name);
     });
@@ -139,6 +152,12 @@ describe('Incident API', function() {
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
+        // no external subscriber's webhook notification shall be sent when there's no incident
+        const webhookTest = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/external_subscriber');
+        expect(webhookTest).to.have.status(404);
+
         const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -156,6 +175,12 @@ describe('Incident API', function() {
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
+
+        // a webhook notification shall be received after an incident
+        const webhookTestAfterIncident = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/external_subscriber');
+        expect(webhookTestAfterIncident).to.have.status(200);
     });
 
     it('should create an incident with multi-probes and add to incident timeline', async function() {

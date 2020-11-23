@@ -447,7 +447,7 @@ module.exports = {
                 });
                 incident = await _this.findOneBy({ _id: incident._id });
 
-                IncidentTimelineService.create({
+                await IncidentTimelineService.create({
                     incidentId: incidentId,
                     createdById: userId,
                     probeId: probeId,
@@ -566,7 +566,7 @@ module.exports = {
                 incident_state: 'Resolved',
             });
 
-            IncidentTimelineService.create({
+            await IncidentTimelineService.create({
                 incidentId: incidentId,
                 createdById: userId,
                 probeId: probeId,

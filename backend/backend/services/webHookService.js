@@ -112,10 +112,8 @@ module.exports = {
             const yellow = '#fedc56';
             const green = '#028A0F';
             let payload;
-            // let webhook url default to external subscriber's webhook url but
-            // could later change if the agent is a project webhook
-            let webHookURL = webhookAgent.contactWebhook;
-            let httpMethod = webhookAgent.webhookMethod || 'post';
+            let webHookURL;
+            let httpMethod;
 
             if (incident.resolved) {
                 payload = {
@@ -260,24 +258,31 @@ module.exports = {
                     ErrorService.log('WebHookService.notify', 'error');
                     throw error;
                 }
+            } else if (webHookType === EXTERNAL_SUBSCRIBER_WEBHOOK) {
+                webHookURL = webhookAgent.contactWebhook;
+                httpMethod = webhookAgent.webhookMethod || 'post';
             }
 
-            const response = await axios
-                .request({
-                    method: httpMethod,
-                    url: webHookURL,
-                    data: httpMethod === 'post' ? payload : null,
-                    params: httpMethod === 'get' ? data : null,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.status)
-                .catch(error => {
-                    ErrorService.log('WebHookService.notify', error);
-                    return 500;
-                });
-            return response === 200;
+            if (webHookURL && httpMethod) {
+                const response = await axios
+                    .request({
+                        method: httpMethod,
+                        url: webHookURL,
+                        data: httpMethod === 'post' ? payload : null,
+                        params: httpMethod === 'get' ? data : null,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.status)
+                    .catch(error => {
+                        ErrorService.log('WebHookService.notify', error);
+                        return 500;
+                    });
+                return response === 200;
+            } else {
+                return false;
+            }
         } catch (error) {
             ErrorService.log('WebHookService.notify', 'error');
             throw error;
