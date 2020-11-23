@@ -67,12 +67,12 @@ export function resetFetchMonitors() {
 export function createMonitor(projectId, values) {
     values.projectId = values.projectId._id || values.projectId;
     return function(dispatch) {
-        const promise = postApi(`monitor/${projectId}`, values);
         dispatch(createMonitorRequest());
-
+        const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
             function(monitor) {
                 dispatch(createMonitorSuccess(monitor.data));
+                return monitor.data;
             },
             function(error) {
                 if (error && error.response && error.response.data) {
