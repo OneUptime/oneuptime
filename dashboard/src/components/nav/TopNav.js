@@ -17,10 +17,14 @@ import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import Fade from 'react-reveal/Fade';
-import {
-    openOnCallScheduleModal,
-    closeOnCallScheduleModal,
-} from '../../actions/onCallSchedule';
+import OnCallScheduleModal from '../OnCallScheduleModal';
+import DataPathHoC from '../DataPathHoC';
+import { openModal } from '../../actions/modal';
+import _ from 'lodash';
+import moment from 'moment-timezone';
+import flattenArray from '../../utils/flattenArray';
+import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
+import OngoingScheduledEvent from '../scheduledEvent/OngoingScheduledEvent';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -167,18 +171,25 @@ class TopContent extends Component {
         ) : null;
     };
 
-    renderOnCallSchedule = () => {
+    renderOnCallSchedule = (activeSchedules, currentProjectId) => {
         return (
             <div
                 className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-right--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                onClick={() => this.props.openOnCallScheduleModal()}
                 id="onCallSchedule"
+                onClick={() =>
+                    this.props.openModal({
+                        content: DataPathHoC(OnCallScheduleModal, {
+                            status: 'active',
+                            schedules: activeSchedules,
+                            currentProjectId: currentProjectId,
+                        }),
+                    })
+                }
             >
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
-                
             </div>
         );
     };
@@ -220,6 +231,139 @@ class TopContent extends Component {
             ? this.props.monitors.count
             : 0;
 
+        const { escalations } = this.props;
+
+        const userSchedules = _.flattenDeep(
+            escalations.map(escalation => {
+                return escalation.teams
+                    .map(team => {
+                        const schedule = team.teamMembers
+                            .map(teamMember => teamMember)
+                            .filter(user => user.userId === this.props.user.id)
+                            .pop();
+                        if (schedule) {
+                            schedule.projectId = escalation.projectId;
+                            schedule.scheduleId = escalation.scheduleId;
+                        }
+                        return schedule;
+                    })
+                    .filter(escalation => escalation);
+            })
+        );
+
+        const activeSchedules = [];
+        const upcomingSchedules = [];
+        const inactiveSchedules = [];
+
+        if (userSchedules && userSchedules.length > 0) {
+            userSchedules.forEach(userSchedule => {
+                const now = (userSchedule && userSchedule.timezone
+                    ? moment().tz(userSchedule.timezone)
+                    : moment()
+                ).format('HH:mm');
+                const dayStart = moment().startOf('day');
+                const dayEnd = moment().endOf('day');
+
+                const startTime = (userSchedule && userSchedule.timezone
+                    ? moment(userSchedule.startTime || dayStart).tz(
+                          userSchedule.timezone
+                      )
+                    : moment(userSchedule.startTime || dayStart)
+                ).format('HH:mm');
+                const endTime = (userSchedule && userSchedule.timezone
+                    ? moment(userSchedule.endTime || dayEnd).tz(
+                          userSchedule.timezone
+                      )
+                    : moment(userSchedule.endTime || dayEnd)
+                ).format('HH:mm');
+
+                let hours = Math.ceil(
+                    moment(endTime, 'HH:mm').diff(
+                        moment(startTime, 'HH:mm'),
+                        'minutes'
+                    ) / 60
+                );
+                hours = hours < 0 ? hours + 24 : hours;
+
+                let hoursToStart = Math.ceil(
+                    moment(startTime, 'HH:mm').diff(
+                        moment(now, 'HH:mm'),
+                        'minutes'
+                    ) / 60
+                );
+                hoursToStart =
+                    hoursToStart < 0 ? hoursToStart + 24 : hoursToStart;
+
+                const hoursToEnd = hours + hoursToStart;
+
+                let nowToEnd = Math.ceil(
+                    moment(endTime, 'HH:mm').diff(
+                        moment(now, 'HH:mm'),
+                        'minutes'
+                    ) / 60
+                );
+                nowToEnd = nowToEnd < 0 ? nowToEnd + 24 : nowToEnd;
+
+                const isUserActive =
+                    (hoursToEnd !== nowToEnd || hoursToStart <= 0) &&
+                    nowToEnd > 0;
+
+                const timezone = (userSchedule && userSchedule.timezone
+                    ? moment(userSchedule.startTime || dayStart).tz(
+                          userSchedule.timezone
+                      )
+                    : moment(userSchedule.startTime || dayStart)
+                ).zoneAbbr();
+
+                const isOnDutyAllTheTime =
+                    userSchedule.startTime &&
+                    userSchedule.endTime &&
+                    userSchedule.timezone
+                        ? false
+                        : true;
+
+                const tempObj = { ...userSchedule, isOnDutyAllTheTime };
+                tempObj.startTime = startTime;
+                tempObj.endTime = endTime;
+                tempObj.timezone = timezone;
+
+                if (isUserActive) {
+                    activeSchedules.push(tempObj);
+                } else {
+                    hoursToStart =
+                        hoursToStart <= 0 ? hoursToStart + 24 : hoursToStart;
+                    if (hoursToStart < 24) {
+                        upcomingSchedules.push(tempObj);
+                    } else {
+                        inactiveSchedules.push(tempObj);
+                    }
+                }
+            });
+        }
+
+        let ongoingEventList;
+        if (
+            this.props.subProjectOngoingScheduledEvents &&
+            this.props.subProjectOngoingScheduledEvents.length > 0
+        ) {
+            let ongoingScheduledEvents = this.props.subProjectOngoingScheduledEvents.map(
+                eventData => eventData.ongoingScheduledEvents
+            );
+            ongoingScheduledEvents = flattenArray(ongoingScheduledEvents);
+            ongoingEventList = ongoingScheduledEvents.map(event => (
+                <RenderIfUserInSubProject
+                    key={event._id}
+                    subProjectId={event.projectId._id || event.projectId}
+                >
+                    <OngoingScheduledEvent
+                        event={event}
+                        monitorList={this.props.monitorList}
+                        projectId={this.props.currentProjectId}
+                    />
+                </RenderIfUserInSubProject>
+            ));
+        }
+
         return (
             <div
                 tabIndex="0"
@@ -245,7 +389,33 @@ class TopContent extends Component {
                     </ClickOutside>
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                        {this.renderOnCallSchedule()}
+                        <span>
+                            <ShouldRender
+                                if={!this.props.escalation.requesting}
+                            >
+                                {userSchedules ? (
+                                    <>
+                                        {ongoingEventList &&
+                                            ongoingEventList.length > 0 &&
+                                            ongoingEventList}
+                                        <ShouldRender
+                                            if={
+                                                activeSchedules &&
+                                                activeSchedules.length > 0
+                                            }
+                                        >
+                                            {this.renderOnCallSchedule(
+                                                activeSchedules,
+                                                this.props.currentProjectId
+                                            )}
+                                        </ShouldRender>
+                                    </>
+                                ) : (
+                                    ''
+                                )}
+                            </ShouldRender>
+                        </span>
+
                         {monitorCount > 0
                             ? this.renderActiveIncidents(incidentCounter)
                             : null}
@@ -364,11 +534,14 @@ const mapStateToProps = (state, props) => {
     return {
         profilePic,
         feedback: state.feedback,
-        onCallSchedule: state.onCallScheduleModalVisble,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
         monitors,
+        escalation: state.schedule.escalation,
+        escalations: state.schedule.escalations,
+        monitorList: state.monitor.monitorsList.monitors,
+        user: state.profileSettings.profileSetting.data,
         subProjectOngoingScheduledEvents:
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
     };
@@ -385,8 +558,7 @@ const mapDispatchToProps = dispatch =>
             getVersion,
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
-            openOnCallScheduleModal,
-            closeOnCallScheduleModal,
+            openModal,
         },
         dispatch
     );
@@ -415,9 +587,12 @@ TopContent.propTypes = {
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
-    openOnCallScheduleModal: PropTypes.func.isRequired,
-    closeOnCallScheduleModal: PropTypes.func.isRequired,
-    onCallScheduleModalVisble: PropTypes.object.isRequired,
+    openModal: PropTypes.func.isRequired,
+    escalation: PropTypes.object,
+    escalations: PropTypes.array,
+    monitorList: PropTypes.array,
+    user: PropTypes.object.isRequired,
+    currentProjectId: PropTypes.string.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

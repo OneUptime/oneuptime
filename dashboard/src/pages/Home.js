@@ -259,7 +259,7 @@ class Home extends Component {
                                                                     ongoingEventList.length >
                                                                         0 &&
                                                                     ongoingEventList}
-                                                                <ShouldRender
+                                                                {/* <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
                                                                         activeSchedules.length >
@@ -277,7 +277,8 @@ class Home extends Component {
                                                                                 .currentProjectId
                                                                         }
                                                                     />
-                                                                </ShouldRender>
+                                                                    
+                                                                </ShouldRender> */}
 
                                                                 <ShouldRender
                                                                     if={
