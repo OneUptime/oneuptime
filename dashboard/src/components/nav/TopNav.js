@@ -178,7 +178,6 @@ class TopContent extends Component {
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
-                
             </div>
         );
     };
@@ -416,8 +415,6 @@ TopContent.propTypes = {
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
     openOnCallScheduleModal: PropTypes.func.isRequired,
-    closeOnCallScheduleModal: PropTypes.func.isRequired,
-    onCallScheduleModalVisble: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
