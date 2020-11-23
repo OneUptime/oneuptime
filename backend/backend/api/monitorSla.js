@@ -32,10 +32,16 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
-        const { name, alertTime, frequency } = req.body;
+        const { name, frequency, monitorUptime } = req.body;
 
         if (!name || !name.trim()) {
             const error = new Error('SLA name is required');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (!monitorUptime || !monitorUptime.trim()) {
+            const error = new Error('Monitor uptime is required');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -46,21 +52,9 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             return sendErrorResponse(req, res, error);
         }
 
-        if (!alertTime || !alertTime.trim()) {
-            const error = new Error('Please set alert time for this SLA');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (isNaN(alertTime)) {
-            const error = new Error('Please use numeric values for alert time');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (Number(alertTime) >= Number(frequency)) {
+        if (monitorUptime && isNaN(monitorUptime)) {
             const error = new Error(
-                'Alert time should always be less than frequency'
+                'Please use numeric values for monitor uptime'
             );
             error.code = 400;
             return sendErrorResponse(req, res, error);
@@ -81,10 +75,16 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
 ) {
     try {
         const { projectId, monitorSlaId } = req.params;
-        const { name, handleDefault, alertTime, frequency } = req.body;
+        const { name, handleDefault, frequency, monitorUptime } = req.body;
 
         if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (!handleDefault && (!monitorUptime || !monitorUptime.trim())) {
+            const error = new Error('Monitor uptime is required');
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -95,21 +95,9 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             return sendErrorResponse(req, res, error);
         }
 
-        if (!handleDefault && (!alertTime || !alertTime.trim())) {
-            const error = new Error('Please set alert time for this SLA');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && isNaN(alertTime)) {
-            const error = new Error('Please use numeric values for alert time');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && Number(alertTime) >= Number(frequency)) {
+        if (!handleDefault && monitorUptime && isNaN(monitorUptime)) {
             const error = new Error(
-                'Alert time should be always less than frequency'
+                'Please use numeric values for monitor uptime'
             );
             error.code = 400;
             return sendErrorResponse(req, res, error);
