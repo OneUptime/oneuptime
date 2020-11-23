@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { connect } from 'react-redux';
-
+import moment from 'moment-timezone';
+import { history } from '../store';
 class OnCallScheduleModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -22,7 +22,6 @@ class OnCallScheduleModal extends Component {
     };
 
     render() {
-
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -34,7 +33,7 @@ class OnCallScheduleModal extends Component {
                         <div className="bs-Modal bs-Modal--medium">
                             <div className="bs-Modal-header">
                                 <div className="bs-Modal-header-copy">
-                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <span className="Text-color--default Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>
                                             You are currently on-call duty.
                                         </span>
@@ -42,8 +41,117 @@ class OnCallScheduleModal extends Component {
                                 </div>
                             </div>
                             <div className="bs-Modal-content">
-                                · test: Your duty ends at 11:59 PM and your next
-                                duty begins at 12:00 AM and ends at 11:59 PM.
+                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                    <ul>
+                                        {this.props.data.schedules.map(
+                                            (schedule, i) => {
+                                                return (
+                                                    <li key={i}>
+                                                        <b
+                                                            onClick={() =>
+                                                                history.push(
+                                                                    `/dashboard/project/${
+                                                                        this
+                                                                            .props
+                                                                            .currentProjectId
+                                                                    }/sub-project/${schedule.projectId &&
+                                                                        schedule
+                                                                            .projectId
+                                                                            ._id}/schedule/${schedule.scheduleId &&
+                                                                        schedule
+                                                                            .scheduleId
+                                                                            ._id}`
+                                                                )
+                                                            }
+                                                            style={{
+                                                                cursor:
+                                                                    'pointer',
+                                                            }}
+                                                        >
+                                                            <span
+                                                                style={{
+                                                                    fontSize:
+                                                                        '20px',
+                                                                }}
+                                                            >
+                                                                &middot;
+                                                            </span>{' '}
+                                                            {schedule.scheduleId &&
+                                                                schedule
+                                                                    .scheduleId
+                                                                    .name}
+                                                            :
+                                                        </b>{' '}
+                                                        {!schedule.isOnDutyAllTheTime ? (
+                                                            <span>
+                                                                {this.props.data
+                                                                    .status ===
+                                                                'active' ? (
+                                                                    <span>
+                                                                        Your
+                                                                        duty
+                                                                        ends at{' '}
+                                                                        <b>
+                                                                            {moment(
+                                                                                schedule.endTime,
+                                                                                'HH:mm'
+                                                                            ).format(
+                                                                                'hh:mm A'
+                                                                            )}
+                                                                            {schedule.timezone &&
+                                                                                ` (${schedule.timezone})`}
+                                                                        </b>{' '}
+                                                                        and your
+                                                                        next
+                                                                        duty
+                                                                        begins
+                                                                        at
+                                                                    </span>
+                                                                ) : (
+                                                                    <span>
+                                                                        Your
+                                                                        next
+                                                                        duty
+                                                                        begins
+                                                                        at
+                                                                    </span>
+                                                                )}{' '}
+                                                                <b>
+                                                                    {moment(
+                                                                        schedule.startTime,
+                                                                        'HH:mm'
+                                                                    ).format(
+                                                                        'hh:mm A'
+                                                                    )}
+                                                                    {schedule.timezone &&
+                                                                        ` (${schedule.timezone})`}
+                                                                </b>{' '}
+                                                                and ends at{' '}
+                                                                <b>
+                                                                    {moment(
+                                                                        schedule.endTime,
+                                                                        'HH:mm'
+                                                                    ).format(
+                                                                        'hh:mm A'
+                                                                    )}
+                                                                    {schedule.timezone &&
+                                                                        ` (${schedule.timezone})`}
+                                                                    .
+                                                                </b>
+                                                            </span>
+                                                        ) : (
+                                                            <span>
+                                                                You&#39;re on
+                                                                duty all the
+                                                                time
+                                                            </span>
+                                                        )}
+                                                    </li>
+                                                );
+                                            }
+                                        )}
+                                    </ul>
+                                </span>
                             </div>
                             <div className="bs-Modal-footer">
                                 <div className="bs-Modal-footer-actions">
@@ -70,14 +178,10 @@ class OnCallScheduleModal extends Component {
 
 OnCallScheduleModal.displayName = 'OnCallScheduleModal';
 
-const mapStateToProps = state => {
-    return {
-        // versions: state.version.versions,
-    };
-};
-
 OnCallScheduleModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
+    currentProjectId: PropTypes.string,
+    data: PropTypes.object,
 };
 
-export default connect(mapStateToProps)(OnCallScheduleModal);
+export default OnCallScheduleModal;
