@@ -23,14 +23,11 @@ function validate(values) {
         errors.frequency = 'Only numeric values are allowed';
     }
     if (
-        values.alertTime &&
-        values.alertTime.trim() &&
-        isNaN(values.alertTime)
+        values.monitorUptime &&
+        values.monitorUptime &&
+        isNaN(values.monitorUptime)
     ) {
-        errors.alertTime = 'Only numeric values are allowed';
-    }
-    if (Number(values.alertTime) >= Number(values.frequency)) {
-        errors.alertTime = 'Alert time should be less than frequency';
+        errors.monitorUptime = 'Only numeric values are allowed';
     }
     return errors;
 }
@@ -49,7 +46,6 @@ class EditMonitorSlaModal extends React.Component {
             closeModal,
             editMonitorSlaModalId,
             currentProject,
-            slaError,
             initialValues,
             updateMonitorSla,
         } = this.props;
@@ -59,11 +55,11 @@ class EditMonitorSlaModal extends React.Component {
 
         postObj.name = values.name;
         postObj.frequency = values.frequency;
+        postObj.monitorUptime = values.monitorUptime;
         postObj.isDefault = values.isDefault;
-        postObj.alertTime = values.alertTime;
 
         updateMonitorSla(projectId, monitorSlaId, postObj).then(() => {
-            if (!slaError) {
+            if (!this.props.slaError) {
                 closeModal({
                     id: editMonitorSlaModalId,
                 });
@@ -167,7 +163,7 @@ class EditMonitorSlaModal extends React.Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="duration"
+                                                    htmlFor="frequency"
                                                 >
                                                     <span>
                                                         Frequency (days)
@@ -207,28 +203,24 @@ class EditMonitorSlaModal extends React.Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="alertTime"
+                                                    htmlFor="monitorUptime"
                                                 >
-                                                    <span>
-                                                        Alert Team (days)
-                                                    </span>
+                                                    <span>Monitor Uptime</span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
                                                         className="bs-Fieldset-field"
                                                         style={{
                                                             width: '100%',
-                                                            flexDirection:
-                                                                'column',
                                                         }}
                                                     >
                                                         <Field
                                                             component={
                                                                 RenderField
                                                             }
-                                                            name="alertTime"
+                                                            name="monitorUptime"
                                                             placeholder="60"
-                                                            id="alertTime"
+                                                            id="monitorUptime"
                                                             className="bs-TextInput"
                                                             style={{
                                                                 width: '100%',
@@ -236,13 +228,6 @@ class EditMonitorSlaModal extends React.Component {
                                                                     '3px 5px',
                                                             }}
                                                         />
-                                                        <p className="bs-Fieldset-explanation">
-                                                            <span>
-                                                                Alert X days
-                                                                before SLA is
-                                                                breached.
-                                                            </span>
-                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -394,7 +379,7 @@ const mapStateToProps = state => {
         initialValues.name = monitorSlaToBeUpdated.name;
         initialValues.isDefault = monitorSlaToBeUpdated.isDefault;
         initialValues.frequency = monitorSlaToBeUpdated.frequency;
-        initialValues.alertTime = monitorSlaToBeUpdated.alertTime;
+        initialValues.monitorUptime = monitorSlaToBeUpdated.monitorUptime;
         initialValues._id = monitorSlaToBeUpdated._id;
     }
 

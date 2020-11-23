@@ -8,7 +8,7 @@ import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
-// import { RenderSelect } from '../basic/RenderSelect';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
     const errors = {};
@@ -16,29 +16,20 @@ function validate(values) {
     if (!values.name) {
         errors.name = 'Communication SLA name is required';
     }
-    if (values.customDuration && isNaN(values.customDuration)) {
-        errors.customDuration = 'Only numeric values are allowed';
+    if (values.customFrequency && isNaN(values.customFrequency)) {
+        errors.customFrequency = 'Only numeric values are allowed';
     }
-    if (
-        values.alertTime &&
-        values.alertTime.trim() &&
-        isNaN(values.alertTime)
-    ) {
-        errors.alertTime = 'Only numeric values are allowed';
-    }
-    if (
-        Number(values.alertTime) >= Number(values.customDuration) ||
-        Number(values.alertTime) >= Number(values.durationOption)
-    ) {
-        errors.alertTime = 'Alert time should be less than duration';
+    if (values.customMonitorUptime && isNaN(values.customMonitorUptime)) {
+        errors.customMonitorUptime = 'Only numeric values are allowed';
     }
     return errors;
 }
 
 class MonitorSlaModal extends React.Component {
-    // state = {
-    //     setCustom: false,
-    // };
+    state = {
+        setCustomFrequency: false,
+        setCustomMonitorUptime: false,
+    };
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -56,20 +47,24 @@ class MonitorSlaModal extends React.Component {
             fetchMonitorSlas,
             data,
         } = this.props;
-        // const { setCustom } = this.state;
+        const { setCustomFrequency, setCustomMonitorUptime } = this.state;
         const projectId = data.projectId;
         const postObj = {};
 
         postObj.name = values.name;
         postObj.isDefault = values.isDefault;
-        postObj.alertTime = values.alertTime;
-        postObj.frequency = values.frequency;
 
-        // if (setCustom) {
-        //     postObj.duration = values.customDuration;
-        // } else {
-        //     postObj.duration = values.durationOption;
-        // }
+        if (setCustomFrequency) {
+            postObj.frequency = values.customFrequency;
+        } else {
+            postObj.frequency = values.frequencyOption;
+        }
+
+        if (setCustomMonitorUptime) {
+            postObj.monitorUptime = values.customMonitorUptime;
+        } else {
+            postObj.monitorUptime = values.monitorUptimeOption;
+        }
 
         createMonitorSla(projectId, postObj).then(() => {
             if (!this.props.slaError) {
@@ -102,7 +97,7 @@ class MonitorSlaModal extends React.Component {
             handleSubmit,
             createMonitorSlaModalId,
         } = this.props;
-        // const { setCustom } = this.state;
+        const { setCustomFrequency, setCustomMonitorUptime } = this.state;
 
         return (
             <div
@@ -179,10 +174,9 @@ class MonitorSlaModal extends React.Component {
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
                                                     htmlFor={
-                                                        // setCustom
-                                                        //     ? 'customDuration'
-                                                        //     : 'durationOption'
-                                                        'frequency'
+                                                        setCustomFrequency
+                                                            ? 'customFrequency'
+                                                            : 'frequencyOption'
                                                     }
                                                 >
                                                     <span>
@@ -196,28 +190,14 @@ class MonitorSlaModal extends React.Component {
                                                             width: '100%',
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="frequency"
-                                                            placeholder="30"
-                                                            id="frequency"
-                                                            className="bs-TextInput"
-                                                            style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
-                                                            }}
-                                                        />
-                                                        {/* {setCustom && (
+                                                        {setCustomFrequency && (
                                                             <Field
                                                                 component={
                                                                     RenderField
                                                                 }
-                                                                name="customDuration"
+                                                                name="customFrequency"
                                                                 placeholder="60"
-                                                                id="customDuration"
+                                                                id="customFrequency"
                                                                 className="bs-TextInput"
                                                                 style={{
                                                                     width:
@@ -227,11 +207,11 @@ class MonitorSlaModal extends React.Component {
                                                                 }}
                                                             />
                                                         )}
-                                                        {!setCustom && (
+                                                        {!setCustomFrequency && (
                                                             <Field
                                                                 className="db-select-nw Table-cell--width--maximized"
-                                                                name="durationOption"
-                                                                id="durationOption"
+                                                                name="frequencyOption"
+                                                                id="frequencyOption"
                                                                 style={{
                                                                     width:
                                                                         '100%',
@@ -245,25 +225,31 @@ class MonitorSlaModal extends React.Component {
                                                                         value:
                                                                             '',
                                                                         label:
-                                                                            'Select a Duration',
-                                                                    },
-                                                                    {
-                                                                        value:
-                                                                            '15',
-                                                                        label:
-                                                                            '15 minutes',
+                                                                            'Select a Frequency',
                                                                     },
                                                                     {
                                                                         value:
                                                                             '30',
                                                                         label:
-                                                                            '30 minutes',
+                                                                            'Every month',
                                                                     },
                                                                     {
                                                                         value:
-                                                                            '60',
+                                                                            '90',
                                                                         label:
-                                                                            '1 hour',
+                                                                            'Every 3 months',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '180',
+                                                                        label:
+                                                                            'Every 6 months',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '365',
+                                                                        label:
+                                                                            'Every year',
                                                                     },
                                                                     {
                                                                         value:
@@ -280,12 +266,12 @@ class MonitorSlaModal extends React.Component {
                                                                         'custom' &&
                                                                         this.setState(
                                                                             {
-                                                                                setCustom: true,
+                                                                                setCustomFrequency: true,
                                                                             }
                                                                         );
                                                                 }}
                                                             />
-                                                        )} */}
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -299,11 +285,13 @@ class MonitorSlaModal extends React.Component {
                                             >
                                                 <label
                                                     className="bs-Fieldset-label Text-align--left"
-                                                    htmlFor="alertTime"
+                                                    htmlFor={
+                                                        setCustomFrequency
+                                                            ? 'customMonitorUptime'
+                                                            : 'monitorUptimeOption'
+                                                    }
                                                 >
-                                                    <span>
-                                                        Alert Team (days)
-                                                    </span>
+                                                    <span>Monitor Uptime</span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -314,27 +302,82 @@ class MonitorSlaModal extends React.Component {
                                                                 'column',
                                                         }}
                                                     >
-                                                        <Field
-                                                            component={
-                                                                RenderField
-                                                            }
-                                                            name="alertTime"
-                                                            placeholder="60"
-                                                            id="alertTime"
-                                                            className="bs-TextInput"
-                                                            style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '3px 5px',
-                                                            }}
-                                                        />
-                                                        <p className="bs-Fieldset-explanation">
-                                                            <span>
-                                                                Alert X days
-                                                                before SLA is
-                                                                breached.
-                                                            </span>
-                                                        </p>
+                                                        {setCustomMonitorUptime && (
+                                                            <Field
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="customMonitorUptime"
+                                                                placeholder="60"
+                                                                id="customMonitorUptime"
+                                                                className="bs-TextInput"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '3px 5px',
+                                                                }}
+                                                            />
+                                                        )}
+                                                        {!setCustomMonitorUptime && (
+                                                            <Field
+                                                                className="db-select-nw Table-cell--width--maximized"
+                                                                name="monitorUptimeOption"
+                                                                id="monitorUptimeOption"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                    height: 28,
+                                                                }}
+                                                                component={
+                                                                    RenderSelect
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            'Select monitor uptime',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '99.90',
+                                                                        label:
+                                                                            '99.90%',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '99.95',
+                                                                        label:
+                                                                            '99.95%',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            '99.99',
+                                                                        label:
+                                                                            '99.99%',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'custom',
+                                                                        label:
+                                                                            'Custom',
+                                                                    },
+                                                                ]}
+                                                                onChange={(
+                                                                    event,
+                                                                    value
+                                                                ) => {
+                                                                    value ===
+                                                                        'custom' &&
+                                                                        this.setState(
+                                                                            {
+                                                                                setCustomMonitorUptime: true,
+                                                                            }
+                                                                        );
+                                                                }}
+                                                            />
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -482,7 +525,7 @@ const mapStateToProps = state => {
     return {
         createMonitorSlaModalId: state.modal.modals[0].id,
         initialValues: {
-            durationOption: '30',
+            frequencyOption: '30',
         },
         requesting: state.monitorSla.monitorSla.requesting,
         slaError: state.monitorSla.monitorSla.error,

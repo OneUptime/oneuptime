@@ -131,7 +131,7 @@ class MonitorSla extends Component {
                                         Frequency (days)
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Alert Time (days)
+                                        Monitor Uptime
                                     </div>
                                     <div
                                         className="bs-ObjectList-cell"
@@ -201,7 +201,7 @@ class MonitorSla extends Component {
                                                 style={{ width: '20vw' }}
                                             >
                                                 <div className="bs-ObjectList-cell-row">
-                                                    {monitorSla.alertTime}
+                                                    {monitorSla.monitorUptime}
                                                 </div>
                                             </div>
                                             <div
