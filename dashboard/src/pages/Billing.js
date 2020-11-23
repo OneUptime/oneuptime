@@ -14,6 +14,8 @@ import getParentRoute from '../utils/getParentRoute';
 import { PropTypes } from 'prop-types';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
+import { getSmtpConfig } from '../actions/smsTemplates';
+import { bindActionCreators } from 'redux';
 
 class Billing extends Component {
     constructor(props) {
@@ -25,6 +27,7 @@ class Billing extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > BILLING');
         }
+        this.props.getSmtpConfig(this.props.currentProjectId);
     }
 
     render() {
@@ -63,13 +66,24 @@ class Billing extends Component {
 
 Billing.displayName = 'Billing';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props)=> {
+    const { projectId } = props.match.params;
     return {
+        currentProjectId: projectId,
         alertEnable:
             state.form.AlertAdvanceOption &&
             state.form.AlertAdvanceOption.values.alertEnable,
         currentProject: state.project.currentProject,
     };
+};
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            getSmtpConfig,
+        },
+        dispatch
+    );
 };
 
 Billing.propTypes = {
@@ -80,4 +94,4 @@ Billing.propTypes = {
     currentProject: PropTypes.object,
 };
 
-export default withRouter(connect(mapStateToProps, null)(Billing));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Billing));
