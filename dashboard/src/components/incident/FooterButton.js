@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
 const FooterButton = props => {
+    const [loading, setLoading] = useState(false);
     return (
         <>
-            <button className={props.className} onClick={props.onClick}>
+            <button
+                className={props.className}
+                onClick={() => {
+                    setLoading(true);
+                    props.onClick(setLoading);
+                }}
+            >
                 {props.acknowledged &&
                     props.resolved &&
                     (!props.route ||
@@ -53,7 +60,8 @@ const FooterButton = props => {
                                 (props.multipleIncidentRequest &&
                                     props.multipleIncidentRequest.resolving)) &&
                             !props.state.value &&
-                            !props.state.stats
+                            !props.state.stats &&
+                            loading
                         }
                     >
                         <Spinner

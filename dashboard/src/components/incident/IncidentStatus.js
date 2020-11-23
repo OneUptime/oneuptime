@@ -39,7 +39,7 @@ export class IncidentStatus extends Component {
             stats: false,
         };
     }
-    acknowledge = () => {
+    acknowledge = setLoading => {
         const userId = User.getUserId();
         this.props
             .acknowledgeIncident(
@@ -50,6 +50,7 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
+                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -73,7 +74,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    resolve = () => {
+    resolve = setLoading => {
         const userId = User.getUserId();
         this.props
             .resolveIncident(
@@ -84,6 +85,7 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false, value: '', stats: false });
+                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -114,16 +116,16 @@ export class IncidentStatus extends Component {
         );
     };
 
-    handleIncident = (value, stats) => {
+    handleIncident = (value, stats, setLoading) => {
         if (!this.props.incident.acknowledged) {
             this.setState({ resolveLoad: true, value, stats });
-            this.acknowledge();
+            this.acknowledge(setLoading);
         } else if (
             this.props.incident.acknowledged &&
             !this.props.incident.resolved
         ) {
             this.setState({ resolveLoad: true, value, stats });
-            this.resolve();
+            this.resolve(setLoading);
         }
     };
 
@@ -1449,8 +1451,12 @@ export class IncidentStatus extends Component {
                                 }
                                 id={`${monitorName}_EditIncidentDetails_${this.props.count}`}
                                 type="button"
-                                onClick={() =>
-                                    this.handleIncident(undefined, false)
+                                onClick={setLoading =>
+                                    this.handleIncident(
+                                        undefined,
+                                        false,
+                                        setLoading
+                                    )
                                 }
                                 acknowledged={this.props.incident.acknowledged}
                                 resolved={this.props.incident.resolved}
