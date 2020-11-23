@@ -20,7 +20,7 @@ import Fade from 'react-reveal/Fade';
 import {
     openOnCallScheduleModal,
     closeOnCallScheduleModal,
-} from '../../actions/OnCallSchedule';
+} from '../../actions/onCallSchedule';
 
 class TopContent extends Component {
     componentDidMount() {
