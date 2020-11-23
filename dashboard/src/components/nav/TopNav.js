@@ -17,6 +17,10 @@ import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import Fade from 'react-reveal/Fade';
+import {
+    openOnCallScheduleModal,
+    closeOnCallScheduleModal,
+} from '../../actions/onCallSchedule';
 
 class TopContent extends Component {
     componentDidMount() {
@@ -163,6 +167,22 @@ class TopContent extends Component {
         ) : null;
     };
 
+    renderOnCallSchedule = () => {
+        return (
+            <div
+                className="Box-root box__cyan5 Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--8 pointer Margin-right--20"
+                style={{ paddingBottom: '6px', paddingTop: '6px' }}
+                onClick={() => this.props.openOnCallScheduleModal()}
+                id="onCallSchedule"
+            >
+                <span id="onCallScheduleText">
+                    {`You're currently on-call duty.`}
+                </span>
+                
+            </div>
+        );
+    };
+
     render() {
         const IMG_URL =
             this.props.profilePic &&
@@ -225,10 +245,12 @@ class TopContent extends Component {
                     </ClickOutside>
 
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                        {this.renderOnCallSchedule()}
                         {monitorCount > 0
                             ? this.renderActiveIncidents(incidentCounter)
                             : null}
                         {this.renderOngoingScheduledEvents()}
+
                         <div className="Box-root Margin-right--16">
                             <div
                                 id="feedback-div"
@@ -342,6 +364,7 @@ const mapStateToProps = (state, props) => {
     return {
         profilePic,
         feedback: state.feedback,
+        onCallSchedule: state.onCallScheduleModalVisble,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
@@ -362,6 +385,8 @@ const mapDispatchToProps = dispatch =>
             getVersion,
             openSideNav,
             fetchSubProjectOngoingScheduledEvents,
+            openOnCallScheduleModal,
+            closeOnCallScheduleModal,
         },
         dispatch
     );
@@ -390,6 +415,9 @@ TopContent.propTypes = {
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
+    openOnCallScheduleModal: PropTypes.func.isRequired,
+    closeOnCallScheduleModal: PropTypes.func.isRequired,
+    onCallScheduleModalVisble: PropTypes.object.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
