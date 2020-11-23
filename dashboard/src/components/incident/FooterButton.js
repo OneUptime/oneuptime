@@ -4,7 +4,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
 const FooterButton = props => {
-    console.log(props);
     return (
         <>
             <button className={props.className} onClick={props.onClick}>
