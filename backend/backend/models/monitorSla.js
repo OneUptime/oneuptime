@@ -7,7 +7,7 @@ const monitorSlaSchema = new Schema(
         projectId: { ref: 'Project', type: Schema.Types.ObjectId },
         isDefault: { type: Boolean, default: false },
         frequency: { type: String, default: '30' }, // measured in days
-        alertTime: String, // measured in days
+        monitorUptime: String,
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
     },
