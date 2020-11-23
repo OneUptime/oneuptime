@@ -70,16 +70,19 @@ AlertDisabledWarning.propTypes = {
 };
 
 const mapStateToProps = state => {
-    const areAlertsEnabledInCustomTwilioSettings = state.smsTemplates &&
+    const areAlertsEnabledInCustomTwilioSettings =
+        state.smsTemplates &&
         state.smsTemplates.smsSmtpConfiguration &&
         state.smsTemplates.smsSmtpConfiguration.config &&
         state.smsTemplates.smsSmtpConfiguration.config.enabled;
-    
-    const areAlertsEnabledInBillingPage = state.project &&
+
+    const areAlertsEnabledInBillingPage =
+        state.project &&
         state.project.currentProject &&
         state.project.currentProject.alertEnable;
     return {
-        alertEnable: areAlertsEnabledInCustomTwilioSettings ||
+        alertEnable:
+            areAlertsEnabledInCustomTwilioSettings ||
             areAlertsEnabledInBillingPage,
         currentProject: state.project.currentProject,
     };

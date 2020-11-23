@@ -467,6 +467,7 @@ Home.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
     tutorialStat: PropTypes.object,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state, props) => {

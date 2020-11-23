@@ -66,7 +66,7 @@ class Billing extends Component {
 
 Billing.displayName = 'Billing';
 
-const mapStateToProps = (state, props)=> {
+const mapStateToProps = (state, props) => {
     const { projectId } = props.match.params;
     return {
         currentProjectId: projectId,
@@ -92,6 +92,10 @@ Billing.propTypes = {
     }),
     alertEnable: PropTypes.bool,
     currentProject: PropTypes.object,
+    currentProjectId: PropTypes.string.isRequired,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Billing));
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(Billing)
+);

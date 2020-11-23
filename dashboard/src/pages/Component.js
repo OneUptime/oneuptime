@@ -431,6 +431,7 @@ DashboardView.propTypes = {
     endDate: PropTypes.object,
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
 DashboardView.displayName = 'DashboardView';
