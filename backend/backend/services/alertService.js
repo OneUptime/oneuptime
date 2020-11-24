@@ -1270,7 +1270,25 @@ module.exports = {
                 }
             }
 
-            if (subscriber.alertVia == AlertType.Email) {
+            let webhookNotificationSent = true;
+
+            if (subscriber.alertVia === AlertType.Webhook) {
+                const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
+                webhookNotificationSent = await WebHookService.sendSubscriberNotification(
+                    subscriber,
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    component,
+                    downTimeString
+                );
+            }
+            if (
+                !webhookNotificationSent ||
+                subscriber.alertVia === AlertType.Email
+            ) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'smtp',
@@ -1755,14 +1773,6 @@ module.exports = {
                     );
                     throw error;
                 }
-            } else if (subscriber.alertVia == AlertType.Webhook) {
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
-                );
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
@@ -1941,4 +1951,9 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
+const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
+const {
+    ACKNOWLEDGED_MAIL_TEMPLATE,
+    RESOLVED_MAIL_TEMPLATE,
+} = require('../constants/incidentMailTemplateTypes');
