@@ -49,6 +49,10 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
+                this.props.markAsRead(
+                    this.props.incident.projectId,
+                    this.props.incident.notificationId
+                );
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,

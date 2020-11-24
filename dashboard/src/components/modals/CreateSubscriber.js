@@ -55,6 +55,12 @@ function validate(values) {
                     errors.email = 'Please enter a valid email address.';
                 }
             }
+            if (
+                !Validate.text(values.webhookMethod) ||
+                !['get', 'post'].includes(values.webhookMethod)
+            ) {
+                errors.webhookMethod = 'Please choose an http method';
+            }
         }
     }
 
@@ -189,6 +195,49 @@ class CreateSubscriber extends Component {
                                                     </div>
                                                 </div>
                                             )}
+                                            <ShouldRender
+                                                if={
+                                                    this.props.type ===
+                                                    'webhook'
+                                                }
+                                            >
+                                                <div className="bs-Fieldset-row Margin-bottom--8">
+                                                    <label className="bs-Fieldset-label">
+                                                        Http Method
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            component={
+                                                                RenderSelect
+                                                            }
+                                                            name="webhookMethod"
+                                                            id="webhookMethod"
+                                                            required="required"
+                                                            options={[
+                                                                {
+                                                                    value: '',
+                                                                    label:
+                                                                        'Select http method',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'get',
+                                                                    label:
+                                                                        'GET',
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'post',
+                                                                    label:
+                                                                        'POST',
+                                                                },
+                                                            ]}
+                                                            autoFocus={true}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ShouldRender>
                                             {(this.props.type === 'email' ||
                                                 this.props.type ===
                                                     'webhook') && (
@@ -211,6 +260,7 @@ class CreateSubscriber extends Component {
                                                             />
                                                         </div>
                                                     </div>
+
                                                     <ShouldRender
                                                         if={
                                                             this.props.type ===
