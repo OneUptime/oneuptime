@@ -110,7 +110,7 @@ const pingfetch = async url => {
         try {
             response = await fetch(url, {
                 timeout: 120000,
-                ...(url.startsWith('https') && {agent: httpsAgent}),
+                ...(url.startsWith('https') && { agent: httpsAgent }),
                 headers: {
                     'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',

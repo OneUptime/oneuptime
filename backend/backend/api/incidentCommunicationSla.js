@@ -1,5 +1,4 @@
 const express = require('express');
-const { debug } = require('winston');
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -12,9 +11,14 @@ const router = express.Router();
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
-        const incidentSlas = await IncidentCommunicationSlaService.findBy({
-            projectId,
-        });
+        const { limit, skip } = req.query;
+        const incidentSlas = await IncidentCommunicationSlaService.findBy(
+            {
+                projectId,
+            },
+            limit,
+            skip
+        );
         const count = await IncidentCommunicationSlaService.countBy({
             projectId,
         });
@@ -28,18 +32,10 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
-        const { name, monitors, alertTime, duration } = req.body;
+        const { name, alertTime, duration } = req.body;
 
         if (!name || !name.trim()) {
             const error = new Error('SLA name is required');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!monitors || monitors.length === 0) {
-            const error = new Error(
-                'You need at least one monitor to create an incident SLA'
-            );
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -85,18 +81,10 @@ router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
 ) {
     try {
         const { projectId, incidentSlaId } = req.params;
-        const { name, monitors, handleDefault, alertTime, duration } = req.body;
+        const { name, handleDefault, alertTime, duration } = req.body;
 
         if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && (!monitors || monitors.length === 0)) {
-            const error = new Error(
-                'You need at least one monitor to update an incident SLA'
-            );
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }

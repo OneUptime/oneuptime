@@ -389,7 +389,9 @@ describe('Incident Timeline API', () => {
             );
             for (let i = 0; i < 10; i++) {
                 // add internal note
-                await page.waitForSelector(`#add-${type}-message`, { visible: true });
+                await page.waitForSelector(`#add-${type}-message`, {
+                    visible: true,
+                });
                 await page.click(`#add-${type}-message`);
                 await page.waitForSelector(
                     `#form-new-incident-${type}-message`

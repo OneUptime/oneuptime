@@ -14,9 +14,13 @@ class IncidentCreated extends Component {
         const {
             projectId,
             _id: notificationId,
-            meta: { componentId, incidentId: {_id} },
+            meta: {
+                componentId,
+                incidentId: { _id },
+            },
         } = notification;
-        const project_Id = typeof projectId === 'object' ? projectId._id : projectId
+        const project_Id =
+            typeof projectId === 'object' ? projectId._id : projectId;
         this.props.markAsRead(project_Id, notificationId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
@@ -28,7 +32,8 @@ class IncidentCreated extends Component {
 
     handleCloseNotification = notification => {
         const { projectId, _id: notificationId } = notification;
-        const project_Id = typeof projectId === 'object' ? projectId._id : projectId
+        const project_Id =
+            typeof projectId === 'object' ? projectId._id : projectId;
         this.props.closeNotification(project_Id, notificationId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});

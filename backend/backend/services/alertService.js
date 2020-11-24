@@ -570,9 +570,11 @@ module.exports = {
             userId: user._id,
             expiresIn: 12 * 60 * 60 * 1000,
         });
+
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -619,9 +621,29 @@ module.exports = {
                             : 'Error.',
                 });
             }
+            const incidentcreatedBy =
+                incident.createdById && incident.createdById.name
+                    ? incident.createdById.name
+                    : 'fyipe';
             await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
+                monitorUrl:
+                    monitor && monitor.data && monitor.data.url
+                        ? monitor.data.url
+                        : null,
+                incidentId: `#${incident.idNumber}`,
+                reason: incident.reason
+                    ? incident.reason
+                    : `This incident was created by ${incidentcreatedBy}`,
+                view_url,
+                method:
+                    monitor.data && monitor.data.url
+                        ? monitor.method
+                            ? monitor.method.toUpperCase()
+                            : 'GET'
+                        : null,
+                componentName: monitor.componentId.name,
                 email: user.email,
                 userId: user._id,
                 firstName: firstName.split(' ')[0],
@@ -1698,6 +1720,29 @@ module.exports = {
                                 alertStatus,
                             }
                         );
+                        if (
+                            alertStatus === 'Success' &&
+                            IS_SAAS_SERVICE &&
+                            !hasCustomTwilioSettings
+                        ) {
+                            const balanceStatus = await _this.getBalanceStatus(
+                                incident.projectId,
+                                contactPhone,
+                                AlertType.SMS
+                            );
+                            await AlertChargeService.create(
+                                incident.projectId,
+                                balanceStatus.chargeAmount,
+                                balanceStatus.closingBalance,
+                                null,
+                                incident.monitorId._id
+                                    ? incident.monitorId._id
+                                    : incident.monitorId,
+                                incident._id,
+                                contactPhone,
+                                alertId
+                            );
+                        }
                     }
                 } catch (error) {
                     await SubscriberAlertService.updateBy(

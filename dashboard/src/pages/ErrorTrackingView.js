@@ -12,6 +12,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorTrackerDetail from '../components/errorTracker/ErrorTrackerDetail';
+import ErrorTrackerViewDeleteBox from '../components/errorTracker/ErrorTrackerViewDeleteBox';
 
 class ErrorTrackingView extends Component {
     componentDidMount() {
@@ -71,11 +72,10 @@ class ErrorTrackingView extends Component {
                         </div>
 
                         <div className="Box-root Margin-bottom--12">
-                            delete to be here
-                            {/* <ApplicationLogViewDeleteBox
-                                componentId={this.props.componentId}
-                                applicationLog={this.props.applicationLog[0]}
-                            /> */}
+                            <ErrorTrackerViewDeleteBox
+                                componentId={component?._id}
+                                errorTracker={errorTracker[0]}
+                            />
                         </div>
                     </ShouldRender>
                 </Fade>

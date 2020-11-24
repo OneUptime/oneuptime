@@ -49,6 +49,10 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
+                this.props.markAsRead(
+                    this.props.incident.projectId,
+                    this.props.incident.notificationId
+                );
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -1026,9 +1030,7 @@ export class IncidentStatus extends Component {
                                                                                         showResolveButton
                                                                                     }
                                                                                 >
-                                                                                    <label
-                                                                                        className="Bs-btn-no bs-flex-display bs-margin-left"
-                                                                                    >
+                                                                                    <label className="Bs-btn-no bs-flex-display bs-margin-left">
                                                                                         <div className="bs-circle-span"></div>
                                                                                         <div className="bs-margin-right">
                                                                                             Not

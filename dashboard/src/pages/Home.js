@@ -153,7 +153,14 @@ class Home extends Component {
                     : moment(userSchedule.startTime || dayStart)
                 ).zoneAbbr();
 
-                const tempObj = { ...userSchedule };
+                const isOnDutyAllTheTime =
+                    userSchedule.startTime &&
+                    userSchedule.endTime &&
+                    userSchedule.timezone
+                        ? false
+                        : true;
+
+                const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
                 tempObj.timezone = timezone;
@@ -252,7 +259,7 @@ class Home extends Component {
                                                                     ongoingEventList.length >
                                                                         0 &&
                                                                     ongoingEventList}
-                                                                <ShouldRender
+                                                                {/* <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
                                                                         activeSchedules.length >
@@ -270,7 +277,8 @@ class Home extends Component {
                                                                                 .currentProjectId
                                                                         }
                                                                     />
-                                                                </ShouldRender>
+                                                                    
+                                                                </ShouldRender> */}
 
                                                                 <ShouldRender
                                                                     if={
