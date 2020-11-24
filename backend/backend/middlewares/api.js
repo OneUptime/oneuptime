@@ -80,29 +80,14 @@ module.exports = {
         }
     },
 
-    hasProjectIdAndApiKey: function(req, res) {
-        //get project id
-        let projectId, apiKey;
-
-        if (req.params.projectId) {
-            projectId = req.params.projectId;
-        } else if (req.query.projectId) {
-            projectId = req.query.projectId;
-        } else if (req.headers['projectId']) {
-            projectId = req.headers['projectId'];
-        } else if (req.body.projectId) {
-            projectId = req.body.projectId;
-        } else {
+    hasValidProjectId: function(projectId) {
+        if (!ObjectID.isValid(projectId)) {
             return false;
         }
-
-        if (!ObjectID.isValid(projectId)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is not valid.',
-            });
-        }
-
+        return true;
+    },
+    hasAPIKey: function(req) {
+        let apiKey;
         if (req.query.apiKey) {
             apiKey = req.query.apiKey;
         } else if (req.headers.apikey || req.headers.apiKey) {
