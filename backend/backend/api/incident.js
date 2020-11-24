@@ -472,7 +472,7 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
-                    AlertService.sendStatusPageToSubscribers(incident)
+                    AlertService.sendStatusPageToSubscribers(incident, data, "created")
                 } else {
                     const updatedMessage = {
                         content: data.content,
@@ -482,6 +482,7 @@ router.post(
                         { _id: data.id },
                         updatedMessage
                     );
+                    AlertService.sendStatusPageToSubscribers(incident, data, "updated")
                 }
                 const status = `${incidentMessage.type} notes ${
                     data.id ? 'updated' : 'added'
