@@ -17,12 +17,10 @@ import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import Fade from 'react-reveal/Fade';
-<<<<<<< HEAD
 import {
     openOnCallScheduleModal,
     closeOnCallScheduleModal,
 } from '../../actions/OnCallSchedule';
-=======
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
@@ -31,7 +29,6 @@ import moment from 'moment-timezone';
 import flattenArray from '../../utils/flattenArray';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import OngoingScheduledEvent from '../scheduledEvent/OngoingScheduledEvent';
->>>>>>> 95d036061517c0b551c7372fd2a8423b8c715fe6
 
 class TopContent extends Component {
     componentDidMount() {
