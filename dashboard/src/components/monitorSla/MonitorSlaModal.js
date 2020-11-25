@@ -13,14 +13,23 @@ import { RenderSelect } from '../basic/RenderSelect';
 function validate(values) {
     const errors = {};
 
-    if (!values.name) {
-        errors.name = 'Communication SLA name is required';
+    if (!values.name || !values.name.trim()) {
+        errors.name = 'Monitor SLA name is required';
     }
     if (values.customFrequency && isNaN(values.customFrequency)) {
         errors.customFrequency = 'Only numeric values are allowed';
     }
     if (values.customMonitorUptime && isNaN(values.customMonitorUptime)) {
         errors.customMonitorUptime = 'Only numeric values are allowed';
+    }
+    if (
+        values.customMonitorUptime &&
+        Number(values.customMonitorUptime) > 100
+    ) {
+        errors.customMonitorUptime = 'Uptime greater than 100 is not allowed';
+    }
+    if (values.customMonitorUptime && Number(values.customMonitorUptime) < 1) {
+        errors.customMonitorUptime = 'Uptime less than 1 is not allowed';
     }
     return errors;
 }

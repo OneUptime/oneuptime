@@ -13,7 +13,7 @@ function validate(values) {
     const errors = {};
 
     if (!values.name || !values.name.trim()) {
-        errors.name = 'Communication SLA name is required';
+        errors.name = 'Monitor SLA name is required';
     }
     if (
         values.frequency &&
@@ -24,10 +24,24 @@ function validate(values) {
     }
     if (
         values.monitorUptime &&
-        values.monitorUptime &&
+        values.monitorUptime.trim() &&
         isNaN(values.monitorUptime)
     ) {
         errors.monitorUptime = 'Only numeric values are allowed';
+    }
+    if (
+        values.monitorUptime &&
+        values.monitorUptime.trim() &&
+        Number(values.monitorUptime) > 100
+    ) {
+        errors.monitorUptime = 'Uptime greater than 100 is not allowed';
+    }
+    if (
+        values.monitorUptime &&
+        values.monitorUptime.trim() &&
+        Number(values.monitorUptime) < 1
+    ) {
+        errors.monitorUptime = 'Uptime less than 1 is not allowed';
     }
     return errors;
 }

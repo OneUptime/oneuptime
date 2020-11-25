@@ -52,9 +52,31 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             return sendErrorResponse(req, res, error);
         }
 
+        if (frequency && Number(frequency) < 1) {
+            const error = new Error('At lease a single day is needed');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
         if (monitorUptime && isNaN(monitorUptime)) {
             const error = new Error(
                 'Please use numeric values for monitor uptime'
+            );
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (monitorUptime && Number(monitorUptime) < 1) {
+            const error = new Error(
+                'Monitor Uptime less than 1 is not allowed'
+            );
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (monitorUptime && Number(monitorUptime) > 100) {
+            const error = new Error(
+                'Monitor Uptime greater than 100 is not allowed'
             );
             error.code = 400;
             return sendErrorResponse(req, res, error);
@@ -95,9 +117,31 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             return sendErrorResponse(req, res, error);
         }
 
+        if (!handleDefault && frequency && Number(frequency) < 1) {
+            const error = new Error('At lease a single day is needed');
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
         if (!handleDefault && monitorUptime && isNaN(monitorUptime)) {
             const error = new Error(
                 'Please use numeric values for monitor uptime'
+            );
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (!handleDefault && monitorUptime && Number(monitorUptime) < 1) {
+            const error = new Error(
+                'Monitor Uptime less than 1 is not allowed'
+            );
+            error.code = 400;
+            return sendErrorResponse(req, res, error);
+        }
+
+        if (!handleDefault && monitorUptime && Number(monitorUptime) > 100) {
+            const error = new Error(
+                'Monitor Uptime greater than 100 is not allowed'
             );
             error.code = 400;
             return sendErrorResponse(req, res, error);
