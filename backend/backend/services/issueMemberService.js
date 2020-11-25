@@ -28,7 +28,6 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
             const issues = await IssueMemberModel.find(query)
                 .populate('issueId', 'name')
                 .populate('userId', 'name');
@@ -44,13 +43,44 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
             const issueMember = await IssueMemberModel.findOne(query)
                 .populate('issueId', 'name')
                 .populate('userId', 'name');
             return issueMember;
         } catch (error) {
             ErrorService.log('issueMemberService.findOneBy', error);
+            throw error;
+        }
+    },
+    updateOneBy: async function(query, data, unsetData = null) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            let issueMember = await IssueMemberModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
+
+            if (unsetData) {
+                issueMember = await IssueMemberModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
+            }
+
+            issueMember = await this.findOneBy(query);
+
+            return issueMember;
+        } catch (error) {
+            ErrorService.log('issueMemberService.updateOneBy', error);
             throw error;
         }
     },
