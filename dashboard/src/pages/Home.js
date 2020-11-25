@@ -22,6 +22,7 @@ import { subProjectTeamLoading } from '../actions/team';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
+import ComponentIssue from '../components/component/ComponentIssue';
 
 class Home extends Component {
     componentDidMount() {
@@ -64,13 +65,30 @@ class Home extends Component {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
+    renderComponentIssues = () => {
+        const { components, currentProjectId } = this.props;
+
+        let componentIssueslist;
+        if (components) {
+            componentIssueslist = components.map((component, i) => {
+                return (
+                    <div key={i}>
+                        <ComponentIssue
+                            component={component}
+                            currentProjectId={currentProjectId}
+                        />
+                    </div>
+                );
+            });
+        }
+        return componentIssueslist;
+    };
 
     render() {
         const {
             escalations,
             location: { pathname },
         } = this.props;
-
         const userSchedules = _.flattenDeep(
             escalations.map(escalation => {
                 return escalation.teams
@@ -246,6 +264,7 @@ class Home extends Component {
                                         <div>
                                             <div>
                                                 <span>
+                                                    {this.renderComponentIssues()}
                                                     <ShouldRender
                                                         if={
                                                             !this.props
