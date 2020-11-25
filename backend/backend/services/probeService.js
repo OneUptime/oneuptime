@@ -826,6 +826,7 @@ module.exports = {
                         TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
                         TRIVY_USERNAME: dockerCredential.dockerUsername,
                         TRIVY_PASSWORD: dockerCredential.dockerPassword,
+                        PATH: process.env.PATH,
                     },
                     shell: true,
                 });
