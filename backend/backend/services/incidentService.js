@@ -456,6 +456,7 @@ module.exports = {
                 });
 
                 AlertService.sendAcknowledgedIncidentToSubscribers(incident);
+                AlertService.sendAcknowledgedIncidentMail(incident);
 
                 WebHookService.sendIntegrationNotification(
                     incident.projectId,
@@ -697,11 +698,87 @@ module.exports = {
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     resolvedincident.resolvedBy.name}`;
+
+                await NotificationService.create(
+                    incident.projectId,
+                    msg,
+                    resolvedincident.resolvedBy._id,
+                    'success'
+                );
+                // send slack notification
+                await SlackService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+                // Ping webhook
+                await WebHookService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    resolvedincident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
+                AlertService.sendResolveIncidentMail(incident);
             } else {
                 msg = `${
                     resolvedincident.monitorId.name
                 } monitor was down for ${downtimestring} and is now resolved by ${name ||
                     'fyipe'}`;
+
+                await NotificationService.create(
+                    incident.projectId,
+                    msg,
+                    'fyipe',
+                    'success'
+                );
+                // send slack notification
+                await SlackService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+                // Ping webhook
+                await WebHookService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    resolvedincident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+                // Ms Teams
+                await MsTeamsService.sendNotification(
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    'resolved',
+                    component,
+                    downtimestring
+                );
+
+                // handle asynchronous operation in the background
+                AlertService.sendResolvedIncidentToSubscribers(incident);
+                AlertService.sendResolveIncidentMail(incident);
             }
             NotificationService.create(
                 incident.projectId,
