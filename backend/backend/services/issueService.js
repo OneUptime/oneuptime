@@ -56,7 +56,7 @@ module.exports = {
                 .populate('ignoredById', 'name');
             return issues;
         } catch (error) {
-            ErrorService.log('errorTrackerService.findBy', error);
+            ErrorService.log('issueService.findBy', error);
             throw error;
         }
     },
