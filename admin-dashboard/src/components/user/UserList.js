@@ -8,8 +8,8 @@ const UserList = ({ users }) =>
             <Link
                 id={
                     user.deleted
-                        ? `deleted__${user.email.split('@')[0]}`
-                        : `${user.email.split('@')[0]}`
+                        ? `deleted__${user.email && user.email.split('@')[0]}`
+                        : `${user.email && user.email.split('@')[0]}`
                 }
                 to={`/admin/users/${user._id}`}
                 key={k}
@@ -20,7 +20,11 @@ const UserList = ({ users }) =>
                         {user.name}
                     </div>
                     <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                        {user.email}
+                        {user.email || (
+                            <span className="db-ListViewItem-text Text-color--red Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20  Text-wrap--wrap">
+                                <span>Email Not Found</span>
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
