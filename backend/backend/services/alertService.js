@@ -2364,7 +2364,3 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
-const {
-    ACKNOWLEDGED_MAIL_TEMPLATE,
-    RESOLVED_MAIL_TEMPLATE,
-} = require('../constants/incidentMailTemplateTypes');
