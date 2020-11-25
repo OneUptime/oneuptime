@@ -5933,7 +5933,8 @@ footer#main-footer div.country-selector ul a.selected:after{
     color:black;
 }
 
-
-
-
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
 
