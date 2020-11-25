@@ -2,8 +2,6 @@ const mongoose = require('../config/db');
 
 const Schema = mongoose.Schema;
 const issueMemberSchema = new Schema({
-    name: String,
-    description: String,
     issueId: {
         type: Schema.Types.ObjectId,
         ref: 'Issue',
