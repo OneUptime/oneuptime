@@ -504,7 +504,7 @@ export default function component(state = INITIAL_STATE, action) {
                           error: action.payload.error,
                       }
                     : {
-                          componentIssueList: [],
+                          componentIssues: [],
                           error: action.payload.error,
                           requesting: false,
                           success: false,
@@ -532,7 +532,7 @@ export default function component(state = INITIAL_STATE, action) {
                           requesting: true,
                       }
                     : {
-                          componentIssueList: [],
+                          componentIssues: [],
                           error: null,
                           requesting: true,
                           success: false,
