@@ -87,7 +87,7 @@ describe('Incident Created test', () => {
     );
 
     test(
-        'Should not show incident popup for resolved incidents',
+        'Should not show incident popup for acknowledged incidents',
         async () => {
             const projectName = 'Project1';
             const role = 'Member';
@@ -97,9 +97,7 @@ describe('Incident Created test', () => {
                 await page.$eval('button[id=viewIncident-0]', e => e.click());
                 await page.waitForSelector('#btnAcknowledge_0');
                 await page.$eval('#btnAcknowledge_0', e => e.click());
-                await page.waitForSelector('#btnResolve_0');
-                await page.$eval('#btnResolve_0', e => e.click());
-                await page.waitForSelector('#ResolveText_0', { visible: true });
+                // await page.waitForSelector('#ResolveText_0', { visible: true });
                 await page.goto(utils.DASHBOARD_URL);
 
                 // Invite member on the project
@@ -115,6 +113,39 @@ describe('Incident Created test', () => {
                 await page.waitForSelector(`#btn_modal_${projectName}`, {
                     hidden: true,
                 });
+
+                await init.logout(page);
+                await init.loginUser(user1, page);
+                // Switch projects
+                await init.switchProject(projectName, page);
+                const viewIncidentButton = await page.$(
+                    'button[id=viewIncident-0]'
+                );
+                expect(viewIncidentButton).toBe(null);
+                await init.logout(page);
+                await init.loginUser(user, page);
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('#btnResolve_0');
+                await page.$eval('#btnResolve_0', e => e.click());
+            });
+        },
+        operationTimeOut
+    );
+    test(
+        'Should not show incident popup for resolved incidents',
+        async () => {
+            const projectName = 'Project1';
+            return await cluster.execute(null, async ({ page }) => {
+                await init.addIncident(monitorName, 'Degraded', page, 'Low');
+                await page.goto(utils.DASHBOARD_URL);
+                await page.waitForSelector('button[id=viewIncident-0]');
+                await page.$eval('button[id=viewIncident-0]', e => e.click());
+                await page.waitForSelector('#btnAcknowledge_0');
+                await page.$eval('#btnAcknowledge_0', e => e.click());
+                await page.waitForSelector('#btnResolve_0');
+                await page.$eval('#btnResolve_0', e => e.click());
+                await page.waitForSelector('#ResolveText_0', { visible: true });
+                await page.goto(utils.DASHBOARD_URL);
 
                 await init.logout(page);
                 await init.loginUser(user1, page);
@@ -397,7 +428,7 @@ describe('Incident Created test', () => {
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
 
-                expect(filteredIncidentsCount).toEqual(4);
+                expect(filteredIncidentsCount).toEqual(5);
             });
         },
         operationTimeOut
@@ -424,7 +455,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(5);
+                expect(filteredIncidentsCount).toEqual(6);
             });
         },
         operationTimeOut
@@ -451,7 +482,7 @@ describe('Incident Created test', () => {
                 await page.waitForSelector('tr.incidentListItem');
                 const filteredIncidents = await page.$$('tr.incidentListItem');
                 const filteredIncidentsCount = filteredIncidents.length;
-                expect(filteredIncidentsCount).toEqual(6);
+                expect(filteredIncidentsCount).toEqual(7);
             });
         },
         operationTimeOut

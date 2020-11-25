@@ -41,6 +41,8 @@ import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
+import { history } from '../../store';
+
 import {
     fetchCommunicationSlas
 } from '../../actions/incidentCommunicationSla';
@@ -303,15 +305,17 @@ class NewMonitor extends Component {
             });
         } else {
             this.props.createMonitor(postObj.projectId, postObj).then(
-                () => {
+                (data) => {
                     thisObj.props.reset();
-                    thisObj.props.closeCreateMonitorModal();
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
                             'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
                             values
                         );
                     }
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring/${data.data._id}`
+                    );
                 },
                 error => {
                     if (error && error.message) {

@@ -574,7 +574,7 @@ module.exports = {
         const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}`;
+        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
         const firstName = user.name;
         const projectId = incident.projectId;
 
@@ -1133,6 +1133,417 @@ module.exports = {
         }
     },
 
+    sendAcknowledgedIncidentMail: async function(incident) {
+        try {
+            const _this = this;
+            if (incident) {
+                const monitorId = incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId;
+
+                const projectId = incident.projectId._id
+                    ? incident.projectId._id
+                    : incident.projectId;
+
+                const schedules = await ScheduleService.findBy({
+                    monitorIds: monitorId,
+                });
+                const monitor = await MonitorService.findOneBy({
+                    _id: monitorId,
+                });
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
+                for (const schedule of schedules) {
+                    if (!schedule || !incident) {
+                        continue;
+                    }
+
+                    //scheudle has no escalations. Skip.
+                    if (
+                        !schedule.escalationIds ||
+                        schedule.escalationIds.length === 0
+                    ) {
+                        continue;
+                    }
+
+                    const callScheduleStatuses = await OnCallScheduleStatusService.findBy(
+                        {
+                            query: {
+                                incident: incident._id,
+                                schedule: schedule,
+                            },
+                        }
+                    );
+                    let escalationId = null;
+
+                    if (callScheduleStatuses.length === 0) {
+                        escalationId = schedule.escalationIds[0];
+
+                        if (escalationId && escalationId._id) {
+                            escalationId = escalationId._id;
+                        }
+                    } else {
+                        escalationId =
+                            callScheduleStatuses[0].escalations[
+                                callScheduleStatuses[0].escalations.length - 1
+                            ].escalation._id;
+                    }
+                    const escalation = await EscalationService.findOneBy({
+                        _id: escalationId,
+                    });
+
+                    if (!escalation) {
+                        continue;
+                    }
+                    const activeTeam = escalation.activeTeam;
+                    if (
+                        !activeTeam.teamMembers ||
+                        activeTeam.teamMembers.length === 0
+                    ) {
+                        continue;
+                    }
+                    for (const teamMember of activeTeam.teamMembers) {
+                        const isOnDuty = await _this.isOnDuty(
+                            teamMember.timezone,
+                            teamMember.startTime,
+                            teamMember.endTime
+                        );
+                        if (!isOnDuty) {
+                            continue;
+                        }
+                        const user = await UserService.findOneBy({
+                            _id: teamMember.userId,
+                        });
+
+                        if (!user) {
+                            continue;
+                        }
+
+                        if (escalation.email) {
+                            _this.sendAcknowledgeEmailAlert({
+                                incident,
+                                user,
+                                project,
+                                monitor,
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendAcknowledgedIncidentMail',
+                error
+            );
+            throw error;
+        }
+    },
+
+    sendAcknowledgeEmailAlert: async function({
+        incident,
+        user,
+        project,
+        monitor,
+    }) {
+        let date = new Date();
+        const accessToken = UserService.getAccessToken({
+            userId: user._id,
+            expiresIn: 12 * 60 * 60 * 1000,
+        });
+
+        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
+        const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const firstName = user.name;
+        const projectId = incident.projectId;
+
+        if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+            date = moment(date)
+                .tz(user.timezone)
+                .format();
+        }
+
+        try {
+            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
+                name: 'smtp',
+            });
+            const areEmailAlertsEnabledInGlobalSettings =
+                hasGlobalSmtpSettings &&
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
+                    ? true
+                    : false;
+            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                projectId
+            );
+            if (
+                !areEmailAlertsEnabledInGlobalSettings &&
+                !hasCustomSmtpSettings
+            ) {
+                return;
+            }
+            const incidentcreatedBy =
+                incident.createdById && incident.createdById.name
+                    ? incident.createdById.name
+                    : 'fyipe';
+            const downtime = moment(incident.acknowledgedAt).diff(
+                moment(incident.createdAt),
+                'minutes'
+            );
+            let downtimestring = `${Math.ceil(downtime)} minutes`;
+            if (downtime < 1) {
+                downtimestring = 'less than a minute';
+            } else if (downtime > 24 * 60) {
+                downtimestring = `${Math.floor(
+                    downtime / (24 * 60)
+                )} days ${Math.floor(
+                    (downtime % (24 * 60)) / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            } else if (downtime > 60) {
+                downtimestring = `${Math.floor(
+                    downtime / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            }
+            await MailService.sendIncidentAcknowledgedMail({
+                incidentTime: date,
+                monitorName: monitor.name,
+                monitorUrl:
+                    monitor && monitor.data && monitor.data.url
+                        ? monitor.data.url
+                        : null,
+                incidentId: `#${incident.idNumber}`,
+                reason: incident.reason
+                    ? incident.reason
+                    : `This incident was created by ${incidentcreatedBy}`,
+                view_url,
+                method:
+                    monitor.data && monitor.data.url
+                        ? monitor.method
+                            ? monitor.method.toUpperCase()
+                            : 'GET'
+                        : null,
+                componentName: monitor.componentId.name,
+                email: user.email,
+                userId: user._id,
+                firstName: firstName.split(' ')[0],
+                projectId: incident.projectId,
+                resolveUrl: resolve_url,
+                accessToken,
+                incidentType: incident.incidentType,
+                projectName: project.name,
+                acknowledgeTime: incident.acknowledgedAt,
+                length: downtimestring,
+            });
+            return;
+        } catch (e) {
+            return e;
+        }
+    },
+
+    sendResolveIncidentMail: async function(incident) {
+        try {
+            const _this = this;
+            if (incident) {
+                const monitorId = incident.monitorId._id
+                    ? incident.monitorId._id
+                    : incident.monitorId;
+
+                const projectId = incident.projectId._id
+                    ? incident.projectId._id
+                    : incident.projectId;
+
+                const schedules = await ScheduleService.findBy({
+                    monitorIds: monitorId,
+                });
+                const monitor = await MonitorService.findOneBy({
+                    _id: monitorId,
+                });
+                const project = await ProjectService.findOneBy({
+                    _id: projectId,
+                });
+                for (const schedule of schedules) {
+                    if (!schedule || !incident) {
+                        continue;
+                    }
+
+                    //scheudle has no escalations. Skip.
+                    if (
+                        !schedule.escalationIds ||
+                        schedule.escalationIds.length === 0
+                    ) {
+                        continue;
+                    }
+
+                    const callScheduleStatuses = await OnCallScheduleStatusService.findBy(
+                        {
+                            query: {
+                                incident: incident._id,
+                                schedule: schedule,
+                            },
+                        }
+                    );
+                    let escalationId = null;
+
+                    if (callScheduleStatuses.length === 0) {
+                        escalationId = schedule.escalationIds[0];
+
+                        if (escalationId && escalationId._id) {
+                            escalationId = escalationId._id;
+                        }
+                    } else {
+                        escalationId =
+                            callScheduleStatuses[0].escalations[
+                                callScheduleStatuses[0].escalations.length - 1
+                            ].escalation._id;
+                    }
+                    const escalation = await EscalationService.findOneBy({
+                        _id: escalationId,
+                    });
+
+                    if (!escalation) {
+                        continue;
+                    }
+                    const activeTeam = escalation.activeTeam;
+                    if (
+                        !activeTeam.teamMembers ||
+                        activeTeam.teamMembers.length === 0
+                    ) {
+                        continue;
+                    }
+                    for (const teamMember of activeTeam.teamMembers) {
+                        const isOnDuty = await _this.isOnDuty(
+                            teamMember.timezone,
+                            teamMember.startTime,
+                            teamMember.endTime
+                        );
+                        if (!isOnDuty) {
+                            continue;
+                        }
+                        const user = await UserService.findOneBy({
+                            _id: teamMember.userId,
+                        });
+
+                        if (!user) {
+                            continue;
+                        }
+
+                        if (escalation.email) {
+                            _this.sendResolveEmailAlert({
+                                incident,
+                                user,
+                                project,
+                                monitor,
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendResolveIncidentMail', error);
+            throw error;
+        }
+    },
+
+    sendResolveEmailAlert: async function({
+        incident,
+        user,
+        project,
+        monitor,
+    }) {
+        let date = new Date();
+        const accessToken = UserService.getAccessToken({
+            userId: user._id,
+            expiresIn: 12 * 60 * 60 * 1000,
+        });
+
+        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
+        const view_url = `${global.dashboardHost}/project/${incident.projectId}/${monitor.componentId._id}/incidents/${incident._id}?${queryString}`;
+        const firstName = user.name;
+        const projectId = incident.projectId;
+
+        if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+            date = moment(date)
+                .tz(user.timezone)
+                .format();
+        }
+
+        try {
+            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
+                name: 'smtp',
+            });
+            const areEmailAlertsEnabledInGlobalSettings =
+                hasGlobalSmtpSettings &&
+                hasGlobalSmtpSettings.value &&
+                hasGlobalSmtpSettings.value['email-enabled']
+                    ? true
+                    : false;
+            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
+                projectId
+            );
+            if (
+                !areEmailAlertsEnabledInGlobalSettings &&
+                !hasCustomSmtpSettings
+            ) {
+                return;
+            }
+            const incidentcreatedBy =
+                incident.createdById && incident.createdById.name
+                    ? incident.createdById.name
+                    : 'fyipe';
+            const downtime = moment(incident.resolvedAt).diff(
+                moment(incident.createdAt),
+                'minutes'
+            );
+            let downtimestring = `${Math.ceil(downtime)} minutes`;
+            if (downtime < 1) {
+                downtimestring = 'less than a minute';
+            } else if (downtime > 24 * 60) {
+                downtimestring = `${Math.floor(
+                    downtime / (24 * 60)
+                )} days ${Math.floor(
+                    (downtime % (24 * 60)) / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            } else if (downtime > 60) {
+                downtimestring = `${Math.floor(
+                    downtime / 60
+                )} hours ${Math.floor(downtime % 60)} minutes`;
+            }
+            await MailService.sendIncidentResolvedMail({
+                incidentTime: date,
+                monitorName: monitor.name,
+                monitorUrl:
+                    monitor && monitor.data && monitor.data.url
+                        ? monitor.data.url
+                        : null,
+                incidentId: `#${incident.idNumber}`,
+                reason: incident.reason
+                    ? incident.reason
+                    : `This incident was created by ${incidentcreatedBy}`,
+                view_url,
+                method:
+                    monitor.data && monitor.data.url
+                        ? monitor.method
+                            ? monitor.method.toUpperCase()
+                            : 'GET'
+                        : null,
+                componentName: monitor.componentId.name,
+                email: user.email,
+                userId: user._id,
+                firstName: firstName.split(' ')[0],
+                projectId: incident.projectId,
+                accessToken,
+                incidentType: incident.incidentType,
+                projectName: project.name,
+                resolveTime: incident.resolvedAt,
+                length: downtimestring,
+            });
+            return;
+        } catch (e) {
+            return e;
+        }
+    },
+
     sendAcknowledgedIncidentToSubscribers: async function(incident) {
         try {
             const _this = this;
@@ -1270,7 +1681,25 @@ module.exports = {
                 }
             }
 
-            if (subscriber.alertVia == AlertType.Email) {
+            let webhookNotificationSent = true;
+
+            if (subscriber.alertVia === AlertType.Webhook) {
+                const downTimeString = IncidentUtility.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
+                webhookNotificationSent = await WebHookService.sendSubscriberNotification(
+                    subscriber,
+                    incident.projectId,
+                    incident,
+                    incident.monitorId,
+                    component,
+                    downTimeString
+                );
+            }
+            if (
+                !webhookNotificationSent ||
+                subscriber.alertVia === AlertType.Email
+            ) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
                     {
                         name: 'smtp',
@@ -1755,14 +2184,6 @@ module.exports = {
                     );
                     throw error;
                 }
-            } else if (subscriber.alertVia == AlertType.Webhook) {
-                await WebHookService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
-                );
             }
         } catch (error) {
             ErrorService.log('alertService.sendSubscriberAlert', error);
@@ -1941,4 +2362,9 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ComponentService = require('./componentService');
 const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
+const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
+const {
+    ACKNOWLEDGED_MAIL_TEMPLATE,
+    RESOLVED_MAIL_TEMPLATE,
+} = require('../constants/incidentMailTemplateTypes');
