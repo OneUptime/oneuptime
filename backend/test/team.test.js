@@ -19,8 +19,21 @@ const payment = require('../backend/config/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
+const stringUtils = require('./utils/string');
+
 // eslint-disable-next-line
 let token, userId, projectId, anotherUser;
+
+describe('Generate Bulk Emails', function() {
+    it('should return string', function() {
+        const emails = stringUtils.generateBulkEmails(5);
+        expect(emails).to.be.a('string');
+    });
+    it('should return the amount of emails as demanded', function() {
+        const emails = stringUtils.generateBulkEmails(10);
+        expect(emails.split(',')).to.have.length(10);
+    });
+});
 
 describe('Team API', function() {
     this.timeout(20000);
