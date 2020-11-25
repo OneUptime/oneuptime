@@ -17,12 +17,12 @@ const issueMemberSchema = new Schema({
         default: Date.now,
     },
     createdById: { type: String, ref: 'User' },
-    deleted: { type: Boolean, default: false },
+    removed: { type: Boolean, default: false }, // this removed is the flag to be used to know if the member has been unassigned from the issue
 
-    deletedAt: {
+    removedAt: {
         type: Date,
     },
-    deletedById: { type: String, ref: 'User' },
+    removedById: { type: String, ref: 'User' },
 });
 issueMemberSchema.virtual('issue', {
     localField: '_id',
