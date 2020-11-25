@@ -1330,15 +1330,6 @@ const _this = {
         let mailOptions = {};
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
-            let iconColor = '#94c800';
-            if (incidentType && incidentType === 'online') {
-                iconColor = '#75d380';
-            } else if (incidentType && incidentType === 'offline') {
-                iconColor = '#e25950';
-            } else if (incidentType && incidentType === 'degraded') {
-                iconColor = '#ffde24';
-            }
-            const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1355,7 +1346,6 @@ const _this = {
                     reason,
                     view_url,
                     method,
-                    iconStyle,
                     componentName,
                     accessToken,
                     firstName,
@@ -1423,15 +1413,6 @@ const _this = {
         let mailOptions = {};
         try {
             const accountMail = await _this.getProjectSmtpSettings(projectId);
-            let iconColor = '#94c800';
-            if (incidentType && incidentType === 'online') {
-                iconColor = '#75d380';
-            } else if (incidentType && incidentType === 'offline') {
-                iconColor = '#e25950';
-            } else if (incidentType && incidentType === 'degraded') {
-                iconColor = '#ffde24';
-            }
-            const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
             mailOptions = {
                 from: `"${accountMail.name}" <${accountMail.from}>`,
                 to: email,
@@ -1448,7 +1429,6 @@ const _this = {
                     reason,
                     view_url,
                     method,
-                    iconStyle,
                     componentName,
                     accessToken,
                     firstName,
