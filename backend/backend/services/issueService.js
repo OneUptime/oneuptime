@@ -123,7 +123,7 @@ module.exports = {
 
             return issue;
         } catch (error) {
-            ErrorService.log('applicationLogService.updateOneBy', error);
+            ErrorService.log('issueService.updateOneBy', error);
             throw error;
         }
     },
