@@ -26,6 +26,8 @@ const isErrorTrackerValid = require('../middlewares/errorTracker')
 const ErrorEventService = require('../services/errorEventService');
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const IssueService = require('../services/issueService');
+const TeamService = require('../services/teamService');
+const IssueMemberService = require('../services/issueMemberService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -592,6 +594,123 @@ router.post(
             );
 
             return sendItemResponse(req, res, errorEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+// Description: Assign an issue to team member(s) using IssueId and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/assign/:issueId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { teamMemberId } = req.body;
+            if (!teamMemberId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Team Member ID is required',
+                });
+            }
+            if (!Array.isArray(teamMemberId)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Team Member ID has to be of type array',
+                });
+            }
+            if (teamMemberId.length < 1) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Atleast one Team Member ID is required',
+                });
+            }
+
+            const projectId = req.params.projectId;
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID is required',
+                });
+            }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            let currentIssue = await IssueService.findOneBy({
+                _id: issueId,
+                errorTrackerId,
+            });
+            if (!currentIssue) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
+
+            // get the list of team members
+            await Promise.all(
+                teamMemberId.map(async teamMemberUserId => {
+                    // check if in organization
+                    let member;
+                    try {
+                        member = await TeamService.getTeamMemberBy(
+                            projectId,
+                            teamMemberUserId
+                        );
+                    } catch (e) {
+                        // Member doest exist
+                    }
+
+                    if (member) {
+                        // set up the data
+                        const data = {
+                            issueId,
+                            userId: teamMemberUserId,
+                            createdById: req.user ? req.user.id : null,
+                        };
+                        // find if the issue member exist in the project
+                        let issueMember = await IssueMemberService.findOneBy({
+                            issueId,
+                            userId: teamMemberUserId,
+                        });
+                        if (!issueMember) {
+                            // if it doesnt, create it
+                            issueMember = await IssueMemberService.create(data);
+                        } // request is ignored if it exist already.
+                    }
+                })
+            );
+
+            currentIssue = await IssueService.findOneBy({
+                _id: issueId,
+                errorTrackerId,
+            });
+            const issueMembers = await IssueMemberService.findBy({ issueId });
+            return sendItemResponse(req, res, { currentIssue, issueMembers });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
