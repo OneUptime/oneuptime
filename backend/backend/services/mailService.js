@@ -1237,6 +1237,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: new Date().getFullYear(),
             };
             template = template(data);
             subject = subject(data);
@@ -1533,6 +1534,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: new Date().getFullYear(),
             };
             template = template(data);
             subject = subject(data);
@@ -1642,6 +1644,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: new Date().getFullYear(),
             };
             template = template(data);
             subject = subject(data);
