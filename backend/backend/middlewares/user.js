@@ -23,29 +23,21 @@ const _this = {
             const projectId = apiMiddleware.getProjectId(req);
 
             if (projectId) {
-                if (apiMiddleware.hasValidProjectId(projectId)) {
-                    if (apiMiddleware.hasAPIKey(req)) {
-                        return apiMiddleware.isValidProjectIdAndApiKey(
-                            req,
-                            res,
-                            next
-                        );
-                    }
-                } else {
+                if (!apiMiddleware.isValidProjectId(projectId)) {
                     return sendErrorResponse(req, res, {
                         message: 'Project Id is not valid',
                         code: 400,
                     });
                 }
-            }
 
-            // if (apiMiddleware.hasProjectIdAndApiKey(req, res)) {
-            //     return await apiMiddleware.isValidProjectIdAndApiKey(
-            //         req,
-            //         res,
-            //         next
-            //     );
-            // }
+                if (apiMiddleware.hasAPIKey(req)) {
+                    return apiMiddleware.isValidProjectIdAndApiKey(
+                        req,
+                        res,
+                        next
+                    );
+                }
+            }
 
             const accessToken =
                 req.headers['authorization'] ||

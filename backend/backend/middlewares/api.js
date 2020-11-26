@@ -80,7 +80,7 @@ module.exports = {
         }
     },
 
-    hasValidProjectId: function(projectId) {
+    isValidProjectId: function(projectId) {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }

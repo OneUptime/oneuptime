@@ -98,19 +98,19 @@ module.exports = {
             const projectId = apiMiddleware.getProjectId(req);
 
             if (projectId) {
-                if (apiMiddleware.hasValidProjectId(projectId)) {
-                    if (apiMiddleware.hasAPIKey(req)) {
-                        return apiMiddleware.isValidProjectIdAndApiKey(
-                            req,
-                            res,
-                            next
-                        );
-                    }
-                } else {
+                if (!apiMiddleware.isValidProjectId(projectId)) {
                     return sendErrorResponse(req, res, {
                         message: 'Project Id is not valid',
                         code: 400,
                     });
+                }
+
+                if (apiMiddleware.hasAPIKey(req)) {
+                    return apiMiddleware.isValidProjectIdAndApiKey(
+                        req,
+                        res,
+                        next
+                    );
                 }
             }
             // authorize if user is master-admin
