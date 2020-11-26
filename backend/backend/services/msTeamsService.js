@@ -190,7 +190,7 @@ module.exports = {
 
             return 'Webhook successfully pinged';
         } catch (error) {
-            ErrorService.log('WebHookService.notify', error);
+            ErrorService.log('msTeams.notify', error);
             throw error;
         }
     },
