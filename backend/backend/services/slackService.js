@@ -52,7 +52,7 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('msTeamsService.sendNotification', error);
+            ErrorService.log('slackService.sendNotification', error);
             throw error;
         }
     },
@@ -191,7 +191,7 @@ module.exports = {
 
             return 'Webhook successfully pinged';
         } catch (error) {
-            ErrorService.log('WebHookService.notify', error);
+            ErrorService.log('slackService.notify', error);
             throw error;
         }
     },
