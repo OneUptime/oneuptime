@@ -1,5 +1,6 @@
 try {
     require('./adminCredentials.test');
+    require('./incidentCommunicationSla.test');
     require('./alert.test');
     require('./applicationLog.test');
     require('./applicationSecurity.test');
