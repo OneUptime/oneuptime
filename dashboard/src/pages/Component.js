@@ -18,6 +18,7 @@ import {
     fetchMonitorLogs,
 } from '../actions/monitor';
 import { loadPage } from '../actions/page';
+import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 import { logEvent } from '../analytics';
 import { IS_SAAS_SERVICE } from '../config';
@@ -41,6 +42,7 @@ class DashboardView extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
+        this.props.getSmtpConfig(projectId);
         this.props.fetchMonitors(projectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
@@ -346,6 +348,7 @@ const mapDispatchToProps = dispatch => {
             loadPage,
             fetchMonitorsIncidents,
             fetchMonitorLogs,
+            getSmtpConfig,
         },
         dispatch
     );
@@ -428,6 +431,7 @@ DashboardView.propTypes = {
     endDate: PropTypes.object,
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
 DashboardView.displayName = 'DashboardView';

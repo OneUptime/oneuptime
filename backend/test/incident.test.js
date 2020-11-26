@@ -21,12 +21,16 @@ const IncidentService = require('../backend/services/incidentService');
 const MonitorService = require('../backend/services/monitorService');
 const NotificationService = require('../backend/services/notificationService');
 const IntegrationService = require('../backend/services/integrationService');
+const EmailStatusService = require('../backend/services/emailStatusService');
 const AirtableService = require('../backend/services/airtableService');
 const Config = require('./utils/config');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AlertModel = require('../backend/models/alert');
 const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
+const moment = require('moment');
+const SubscriberService = require('../backend/services/subscriberService');
+const AlertVia = require('../backend/config/alertType');
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -114,6 +118,17 @@ describe('Incident API', function() {
                 incidentAcknowledged: true,
             }
         );
+
+        // create an external webhook subscriber
+        await SubscriberService.create({
+            projectId,
+            monitorId,
+            alertVia: AlertVia.Webhook,
+            contactWebhook:
+                'http://127.0.0.1:3010/api/webhooks/external_subscriber',
+            webhookMethod: 'post',
+        });
+
         expect(res2).to.have.status(200);
         expect(res2.body.name).to.be.equal(monitor.name);
     });
@@ -139,6 +154,12 @@ describe('Incident API', function() {
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
+        // no external subscriber's webhook notification shall be sent when there's no incident
+        const webhookTest = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/external_subscriber');
+        expect(webhookTest).to.have.status(404);
+
         const res = await request
             .post(`/incident/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -156,6 +177,12 @@ describe('Incident API', function() {
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
+
+        // a webhook notification shall be received after an incident
+        const webhookTestAfterIncident = await chai
+            .request('http://127.0.0.1:3010')
+            .get('/api/webhooks/external_subscriber');
+        expect(webhookTestAfterIncident).to.have.status(200);
     });
 
     it('should create an incident with multi-probes and add to incident timeline', async function() {
@@ -258,26 +285,38 @@ describe('Incident API', function() {
         expect(res.body._id).to.be.equal(incidentId);
     });
 
-    it('should acknowledge an incident', async function() {
+    it('should acknowledge an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/acknowledge/${incidentId}`)
             .set('Authorization', authorization)
             .send({});
+        const date = moment().subtract(1, 'minutes');
+        const emailStatus = await EmailStatusService.findBy({
+            template: 'incident_acknowledged',
+            createdAt: { $gt: date },
+        });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.acknowledged).to.be.equal(true);
+        expect(emailStatus.length).toBeGreaterThan(0);
     });
 
-    it('should resolve an incident', async function() {
+    it('should resolve an incident and send email to users', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/resolve/${incidentId}`)
             .set('Authorization', authorization)
             .send({});
+        const date = moment().subtract(1, 'minutes');
+        const emailStatus = await EmailStatusService.findBy({
+            template: 'incident_resolved',
+            createdAt: { $gt: date },
+        });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         expect(res.body.resolved).to.be.equal(true);
+        expect(emailStatus.length).toBeGreaterThan(0);
     });
 
     it('should update incident details.', async function() {

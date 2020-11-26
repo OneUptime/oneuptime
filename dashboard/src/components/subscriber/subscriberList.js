@@ -131,6 +131,7 @@ export class SubscriberList extends Component {
                                         </span>
                                     </div>
                                 </td>
+
                                 <td
                                     id="placeholder-right"
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -265,15 +266,28 @@ export class SubscriberList extends Component {
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="Box-root Flex-flex">
                                                                     <div className="contact db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
-                                                                        {subscriber.contactWebhook ||
+                                                                        {(subscriber.contactWebhook && (
+                                                                            <div className="db-ListViewItem-link">
+                                                                                <div className="Badge Badge--color--yellow Box-background--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-right--4">
+                                                                                    <span className="Badge-text Text-color--white Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                        <span>
+                                                                                            {` ${subscriber.webhookMethod ||
+                                                                                                'POST'} `.toUpperCase()}
+                                                                                        </span>
+                                                                                    </span>
+                                                                                </div>
+                                                                                {
+                                                                                    subscriber.contactWebhook
+                                                                                }
+                                                                            </div>
+                                                                        )) ||
                                                                             subscriber.contactEmail ||
                                                                             (subscriber.contactPhone &&
                                                                                 `+${countryTelephoneCode(
                                                                                     subscriber.countryCode.toUpperCase()
                                                                                 )}${
                                                                                     subscriber.contactPhone
-                                                                                }`) ||
-                                                                            ''}
+                                                                                }`)}
                                                                     </div>
                                                                 </div>
                                                             </div>
