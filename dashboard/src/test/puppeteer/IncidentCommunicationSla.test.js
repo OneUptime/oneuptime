@@ -11,6 +11,8 @@ const password = '1234567890';
 let slaName = 'fxPro';
 const duration = '15';
 const alertTime = '10';
+const component = 'sampleComponent';
+const monitor = 'sampleMonitor';
 
 describe('Incident Communication SLA', () => {
     const operationTimeOut = 500000;
@@ -197,6 +199,7 @@ describe('Incident Communication SLA', () => {
                 await init.selectByText('#durationOption', duration, page);
                 await page.click('#alertTime');
                 await page.type('#alertTime', alertTime);
+                await page.$eval('#isDefault', elem => elem.click());
                 await page.click('#createSlaBtn');
                 await page.waitForSelector('.ball-beat', { visible: true });
                 await page.waitForSelector('.ball-beat', { hidden: true });
@@ -284,6 +287,73 @@ describe('Incident Communication SLA', () => {
                     { visible: true }
                 );
                 expect(sla).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should show incident communication SLA notification when an incident is created',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await init.addMonitorToComponent(component, monitor, page);
+                await page.waitForSelector(`#createIncident_${monitor}`, {
+                    visible: true,
+                });
+                await page.click(`#createIncident_${monitor}`);
+
+                await page.waitForSelector('#createIncident');
+                await init.selectByText('#incidentType', 'offline', page);
+                await page.click('#createIncident');
+                await page.waitForSelector('.ball-beat', { visible: true });
+                await page.waitForSelector('.ball-beat', { hidden: true });
+
+                await page.waitForSelector(`#incident_${monitor}_0`, {
+                    visible: true,
+                });
+                await page.click(`#incident_${monitor}_0`);
+                const slaIndicator = await page.waitForSelector(
+                    '#slaIndicatorAlert',
+                    { visible: true }
+                );
+
+                await page.waitForSelector('#btnAcknowledge_0', {
+                    visible: true,
+                });
+                await page.click('#btnAcknowledge_0');
+                await page.waitForSelector('#btnResolve_0', { visible: true });
+                await page.click('#btnResolve_0');
+
+                expect(slaIndicator).toBeDefined();
+            });
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should hide incident communication SLA notification when an incident is acknowledged',
+        async done => {
+            await cluster.execute(null, async ({ page }) => {
+                await init.addIncident(monitor, 'offline', page);
+                await page.waitForSelector(`#incident_${monitor}_0`, {
+                    visible: true,
+                });
+                await page.click(`#incident_${monitor}_0`);
+
+                await page.waitForSelector('#btnAcknowledge_0', {
+                    visible: true,
+                });
+                await page.click('#btnAcknowledge_0');
+                await page.waitForSelector('#btnResolve_0', { visible: true });
+                await page.click('#btnResolve_0');
+
+                const slaIndicator = await page.waitForSelector(
+                    '#slaIndicatorAlert',
+                    { hidden: true }
+                );
+                expect(slaIndicator).toBeNull();
             });
             done();
         },

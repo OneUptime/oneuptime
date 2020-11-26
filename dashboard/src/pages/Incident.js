@@ -318,6 +318,7 @@ class Incident extends React.Component {
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
                                     onClick={() => this.tabSelected(4)}
+                                    id="slaIndicatorAlert"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
@@ -343,6 +344,7 @@ class Incident extends React.Component {
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0 }}
+                                    id="slaBreachedIndicator"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
