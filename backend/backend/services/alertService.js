@@ -1117,7 +1117,7 @@ module.exports = {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            null,
+                            'Subscriber Incident Created',
                             null,
                             component
                         );

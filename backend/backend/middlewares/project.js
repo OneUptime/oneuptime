@@ -95,8 +95,23 @@ module.exports = {
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
     isUserAdmin: async function(req, res, next) {
         try {
-            if (apiMiddleware.hasProjectIdAndApiKey(req)) {
-                return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
+            const projectId = apiMiddleware.getProjectId(req);
+
+            if (projectId) {
+                if (!apiMiddleware.isValidProjectId(projectId)) {
+                    return sendErrorResponse(req, res, {
+                        message: 'Project Id is not valid',
+                        code: 400,
+                    });
+                }
+
+                if (apiMiddleware.hasAPIKey(req)) {
+                    return apiMiddleware.isValidProjectIdAndApiKey(
+                        req,
+                        res,
+                        next
+                    );
+                }
             }
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
