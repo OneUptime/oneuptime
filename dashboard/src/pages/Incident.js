@@ -322,7 +322,16 @@ class Incident extends React.Component {
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
-                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
                                                         Alert{' '}
@@ -348,7 +357,16 @@ class Incident extends React.Component {
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
-                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
                                                         You&#39;ve breached SLA
