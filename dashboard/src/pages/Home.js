@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import { loadPage } from '../actions/page';
+import { closeIncident } from '../actions/incident';
 import { logEvent } from '../analytics';
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
 import { IS_SAAS_SERVICE } from '../config';
@@ -19,6 +20,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent';
 import { subProjectTeamLoading } from '../actions/team';
+import { getSmtpConfig } from '../actions/smsTemplates';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -30,6 +32,7 @@ class Home extends Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > HOME');
         }
         this.props.userScheduleRequest();
+        this.props.getSmtpConfig(this.props.currentProjectId);
         if (this.props.currentProjectId && this.props.user.id) {
             this.props.fetchUserSchedule(
                 this.props.currentProjectId,
@@ -65,11 +68,23 @@ class Home extends Component {
         }
     }
 
+    closeAllIncidents = async () => {
+        const incidence = this.props.incidents;
+        for (const incident of incidence) {
+            if (incident.resolved) {
+                this.props.closeIncident(incident.projectId, incident._id);
+            }
+        }
+    };
     render() {
         const {
             escalations,
             location: { pathname },
         } = this.props;
+
+        const showDeleteBtn = this.props.incidents.some(
+            incident => incident.resolved
+        );
 
         const userSchedules = _.flattenDeep(
             escalations.map(escalation => {
@@ -227,7 +242,11 @@ class Home extends Component {
         }
 
         return (
-            <Dashboard>
+            <Dashboard
+                showDeleteBtn={showDeleteBtn}
+                close={this.closeAllIncidents}
+                name="Home"
+            >
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Home" />
                     <ShouldRender
@@ -452,6 +471,7 @@ Home.propTypes = {
     fetchUserSchedule: PropTypes.func,
     escalation: PropTypes.object,
     escalations: PropTypes.array,
+    closeIncident: PropTypes.func,
     incidents: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
@@ -465,6 +485,7 @@ Home.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
     tutorialStat: PropTypes.object,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state, props) => {
@@ -526,6 +547,8 @@ const mapDispatchToProps = dispatch => {
             fetchUserSchedule,
             subProjectTeamLoading,
             fetchSubProjectOngoingScheduledEvents,
+            getSmtpConfig,
+            closeIncident,
         },
         dispatch
     );

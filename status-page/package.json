@@ -45,7 +45,7 @@
     "scripts": {
         "start": "npm run build && node index.js",
         "build": "react-scripts build",
-        "dev": "set PORT=3006 && react-scripts start",
+        "dev": "export PORT=3006 && react-scripts start",
         "test": "mocha --exit ./src/test/statusPage.test.js",
         "eject": "react-scripts eject",
         "snapshots": "cross-env CI=true react-scripts test --env=jsdom --coverage --coverage",
