@@ -599,6 +599,67 @@ router.post(
         }
     }
 );
+// Description: Get Members assigned to an issue using IssueId and errorTrackerId.
+router.post(
+    '/:projectId/:componentId/:errorTrackerId/members/:issueId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component ID is required',
+                });
+            }
+            const errorTrackerId = req.params.errorTrackerId;
+            if (!errorTrackerId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Error Tracker ID is required',
+                });
+            }
+            const issueId = req.params.issueId;
+            if (!issueId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Issue ID is required',
+                });
+            }
+
+            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+                _id: errorTrackerId,
+                componentId,
+            });
+            if (!currentErrorTracker) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Error Tracker not found',
+                });
+            }
+
+            const currentIssue = await IssueService.findOneBy({
+                _id: issueId,
+                errorTrackerId,
+            });
+            if (!currentIssue) {
+                return sendErrorResponse(req, res, {
+                    code: 404,
+                    message: 'Issue not found',
+                });
+            }
+
+            const issueMembers = await IssueMemberService.findBy({
+                issueId,
+                removed: false,
+            });
+            return sendItemResponse(req, res, { issueId, issueMembers });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 // Description: Assign an issue to team member(s) using IssueId and errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/assign/:issueId',
@@ -726,7 +787,10 @@ router.post(
                 _id: issueId,
                 errorTrackerId,
             });
-            const issueMembers = await IssueMemberService.findBy({ issueId });
+            const issueMembers = await IssueMemberService.findBy({
+                issueId,
+                removed: false,
+            });
             return sendItemResponse(req, res, { currentIssue, issueMembers });
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -843,7 +907,10 @@ router.post(
                 _id: issueId,
                 errorTrackerId,
             });
-            const issueMembers = await IssueMemberService.findBy({ issueId });
+            const issueMembers = await IssueMemberService.findBy({
+                issueId,
+                removed: false,
+            });
             return sendItemResponse(req, res, { currentIssue, issueMembers });
         } catch (error) {
             return sendErrorResponse(req, res, error);
