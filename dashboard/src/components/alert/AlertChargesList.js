@@ -44,6 +44,7 @@ export class AlertChargesList extends Component {
             skip,
             limit,
             projectId,
+            componentId
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
         const canPrev = parseInt(skip) <= 0 ? false : true;
@@ -139,11 +140,11 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                    projectId +
-                                                                    '/monitors/' +
-                                                                    alertCharge
-                                                                        .monitorId
-                                                                        ._id
+                                                                projectId +
+                                                                '/' +
+                                                                    componentId +
+                                                                '/monitoring/' +
+                                                                alertCharge.monitorId._id
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"
@@ -395,6 +396,7 @@ AlertChargesList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     projectId: PropTypes.string,
+    componentId: PropTypes.string,
     skip: PropTypes.number,
     limit: PropTypes.number,
     count: PropTypes.number,

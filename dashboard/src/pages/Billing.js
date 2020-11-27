@@ -35,8 +35,19 @@ class Billing extends Component {
             location: { pathname },
             alertEnable,
             currentProject,
+            component
         } = this.props;
 
+        // Passing component Id from Billing to Alert Charges Component
+       let myComponentId;
+        for (const id in component){
+            myComponentId = component[id].components
+        }
+        let componentId;
+        for (const id in myComponentId){
+            componentId = myComponentId[id]._id
+        }
+        
         return (
             <Dashboard>
                 <Fade>
@@ -53,7 +64,7 @@ class Billing extends Component {
                             <AlertAdvanceOption />
                         </ShouldRender>
                         <CustomerBalance />
-                        <AlertCharges />
+                        <AlertCharges componentId={componentId}  />
                         <ShouldRender if={currentProject}>
                             <ChangePlan />
                         </ShouldRender>
@@ -67,6 +78,8 @@ class Billing extends Component {
 Billing.displayName = 'Billing';
 
 const mapStateToProps = (state, props) => {
+    const component = state.component.componentList.components
+
     const { projectId } = props.match.params;
     return {
         currentProjectId: projectId,
@@ -74,6 +87,7 @@ const mapStateToProps = (state, props) => {
             state.form.AlertAdvanceOption &&
             state.form.AlertAdvanceOption.values.alertEnable,
         currentProject: state.project.currentProject,
+        component : component
     };
 };
 

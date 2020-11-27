@@ -197,7 +197,6 @@ export class MonitorDetail extends Component {
             activeIncident,
             componentId,
         } = this.props;
-
         const probe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
