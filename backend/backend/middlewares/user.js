@@ -20,12 +20,23 @@ const _this = {
     // Returns: 400: User is unauthorized since unauthorized token was present.
     getUser: async function(req, res, next) {
         try {
-            if (apiMiddleware.hasProjectIdAndApiKey(req, res)) {
-                return await apiMiddleware.isValidProjectIdAndApiKey(
-                    req,
-                    res,
-                    next
-                );
+            const projectId = apiMiddleware.getProjectId(req);
+
+            if (projectId) {
+                if (!apiMiddleware.isValidProjectId(projectId)) {
+                    return sendErrorResponse(req, res, {
+                        message: 'Project Id is not valid',
+                        code: 400,
+                    });
+                }
+
+                if (apiMiddleware.hasAPIKey(req)) {
+                    return apiMiddleware.isValidProjectIdAndApiKey(
+                        req,
+                        res,
+                        next
+                    );
+                }
             }
 
             const accessToken =

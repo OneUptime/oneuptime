@@ -715,7 +715,8 @@ module.exports = {
                     downtimestring
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
+                // use sendIntegrationNotificatoin for project integration webhooks
+                await WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
@@ -758,7 +759,8 @@ module.exports = {
                     downtimestring
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
+                // use sendIntegrationNotificatoin for project integration webhooks
+                await WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
