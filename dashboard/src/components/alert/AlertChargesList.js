@@ -139,8 +139,9 @@ export class AlertChargesList extends Component {
                                                         onClick={() => {
                                                             history.push(
                                                                 '/dashboard/project/' +
-                                                                projectId +
-                                                                '/monitors/' +
+                                                                projectId + '/' 
+                                                                +alertCharge.monitorId.componentId +
+                                                                '/monitoring/' +
                                                                 alertCharge
                                                                     .monitorId
                                                                     ._id
