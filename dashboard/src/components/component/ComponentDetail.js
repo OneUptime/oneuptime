@@ -129,7 +129,6 @@ export class ComponentDetail extends Component {
 
     render() {
         const { component, componentState, currentProject } = this.props;
-
         component.error = null;
         if (
             componentState.componentList.error &&
