@@ -192,6 +192,7 @@ class MonitorView extends React.Component {
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
+                                    id="noMonitorSlaBreached"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--green Card-shadow--medium Border-radius--4">
@@ -238,6 +239,7 @@ class MonitorView extends React.Component {
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0 }}
+                                    id="monitorSlaBreached"
                                 >
                                     <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
                                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">

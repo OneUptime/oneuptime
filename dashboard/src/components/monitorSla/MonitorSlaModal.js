@@ -19,6 +19,9 @@ function validate(values) {
     if (values.customFrequency && isNaN(values.customFrequency)) {
         errors.customFrequency = 'Only numeric values are allowed';
     }
+    if (values.customFrequency && Number(values.customFrequency) < 1) {
+        errors.customFrequency = 'You need atleast a single day';
+    }
     if (values.customMonitorUptime && isNaN(values.customMonitorUptime)) {
         errors.customMonitorUptime = 'Only numeric values are allowed';
     }
@@ -439,6 +442,7 @@ class MonitorSlaModal extends React.Component {
                                         <div
                                             className="bs-Tail-copy"
                                             style={{ width: 200 }}
+                                            id="slaError"
                                         >
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"

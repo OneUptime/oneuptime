@@ -152,6 +152,7 @@ class MonitorSla extends Component {
                                                 backgroundColor: 'white',
                                                 cursor: 'pointer',
                                             }}
+                                            id={`monitorSla_${monitorSla.name}`}
                                         >
                                             {monitorSla.isDefault ? (
                                                 <div
