@@ -303,7 +303,6 @@ function mapStateToProps(state, props) {
         currentProject: state.project.currentProject,
         subProject: state.subProject,
         componentResources: state.component.componentResourceList,
-        animateSidebar: state.animateSidebar,
     };
 }
 

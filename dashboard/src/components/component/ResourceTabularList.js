@@ -11,6 +11,7 @@ import StatusIndicator from '../monitor/StatusIndicator';
 import moment from 'moment';
 import IssueIndicator from '../security/IssueIndicator';
 import sortByName from '../../utils/sortByName';
+import { animateSidebar } from '../../actions/animateSidebar';
 
 class ResourceTabularList extends Component {
     constructor(props) {
@@ -256,10 +257,18 @@ class ResourceTabularList extends Component {
                                                     height: '50px',
                                                 }}
                                                 onClick={() => {
-                                                    history.push(
-                                                        this.generateUrlLink(
-                                                            componentResource
-                                                        )
+                                                    setTimeout(() => {
+                                                        history.push(
+                                                            this.generateUrlLink(
+                                                                componentResource
+                                                            )
+                                                        );
+                                                        this.props.animateSidebar(
+                                                            false
+                                                        );
+                                                    }, 500);
+                                                    this.props.animateSidebar(
+                                                        true
                                                     );
                                                 }}
                                             >
@@ -422,6 +431,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             fetchComponentResources,
+            animateSidebar,
         },
         dispatch
     );
@@ -452,6 +462,7 @@ ResourceTabularList.propTypes = {
     componentId: PropTypes.string,
     monitors: PropTypes.array,
     probes: PropTypes.array,
+    animateSidebar: PropTypes.func,
     activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,
