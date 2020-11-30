@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
 import uuid from 'uuid';
+import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 
 class ErrorTrackerDetailView extends Component {
     constructor(props) {
@@ -14,6 +15,7 @@ class ErrorTrackerDetailView extends Component {
         this.state = {
             selectedErrorEvents: [],
             ignoreModalId: uuid.v4(),
+            memberModalId: uuid.v4(),
         };
     }
     selectErrorEvent = errorEventId => {
@@ -78,6 +80,38 @@ class ErrorTrackerDetailView extends Component {
     nextClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
+    };
+    openEventMemberModal = errorTrackerIssue => {
+        const { openModal, updateErrorEventMember } = this.props;
+        const { memberModalId } = this.state;
+
+        const memberNotAssignedToIssue = this.filterMembersNotAssignedToIssue(
+            errorTrackerIssue
+        );
+        openModal({
+            id: memberModalId,
+            onClose: () => '',
+            onConfirm: () => this.resolveErrorEvent(),
+            content: DataPathHoC(ErrorEventIssueMember, {
+                errorTrackerIssue,
+                updateErrorEventMember,
+                memberNotAssignedToIssue,
+            }),
+        });
+    };
+    filterMembersNotAssignedToIssue = errorTrackerIssue => {
+        const issueMembers = errorTrackerIssue.members;
+        const { teamMembers } = this.props;
+        const differentialTeamMember = [];
+        teamMembers.forEach(teamMember => {
+            const exist = issueMembers.filter(
+                issueMember => issueMember.userId._id === teamMember._id
+            );
+            if (exist.length < 1) {
+                differentialTeamMember.push(teamMember);
+            }
+        });
+        return differentialTeamMember;
     };
     render() {
         const { selectedErrorEvents, ignoreModalId } = this.state;
@@ -324,6 +358,9 @@ class ErrorTrackerDetailView extends Component {
                                                     this.state
                                                         .selectedErrorEvents
                                                 }
+                                                openEventMemberModal={
+                                                    this.openEventMemberModal
+                                                }
                                             />
                                         );
                                     }
@@ -439,6 +476,8 @@ ErrorTrackerDetailView.propTypes = {
     ignoreErrorEvent: PropTypes.string,
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
+    updateErrorEventMember: PropTypes.func,
+    teamMembers: PropTypes.array,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);
