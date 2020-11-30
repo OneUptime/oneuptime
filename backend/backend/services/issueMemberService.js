@@ -30,7 +30,7 @@ module.exports = {
 
             const issues = await IssueMemberModel.find(query)
                 .populate('issueId', 'name')
-                .populate('userId', 'name');
+                .populate('userId', ['name', 'email']);
             return issues;
         } catch (error) {
             ErrorService.log('issueMemberService.findBy', error);
@@ -45,7 +45,7 @@ module.exports = {
 
             const issueMember = await IssueMemberModel.findOne(query)
                 .populate('issueId', 'name')
-                .populate('userId', 'name', 'email');
+                .populate('userId', ['name', 'email']);
             return issueMember;
         } catch (error) {
             ErrorService.log('issueMemberService.findOneBy', error);
