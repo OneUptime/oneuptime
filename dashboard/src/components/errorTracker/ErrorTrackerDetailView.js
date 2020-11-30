@@ -101,17 +101,21 @@ class ErrorTrackerDetailView extends Component {
     };
     filterMembersNotAssignedToIssue = errorTrackerIssue => {
         const issueMembers = errorTrackerIssue.members;
+        console.log(issueMembers);
         const { teamMembers } = this.props;
         const differentialTeamMember = [];
         teamMembers.forEach(teamMember => {
             const exist = issueMembers.filter(
-                issueMember => issueMember.userId._id === teamMember._id
+                issueMember => issueMember.userId._id === teamMember.userId
             );
             if (exist.length < 1) {
                 differentialTeamMember.push(teamMember);
             }
         });
         return differentialTeamMember;
+    };
+    componentDidUpdate = props => {
+        console.log(props);
     };
     render() {
         const { selectedErrorEvents, ignoreModalId } = this.state;
@@ -463,6 +467,25 @@ function mapStateToProps(state, ownProps) {
     // get its list of error tracker issues
     const errorTrackerIssues =
         state.errorTracker.errorTrackerIssues[errorTracker._id];
+    // const { teamMembers } = ownProps;
+
+    // if (errorTrackerIssues) {
+    //     errorTrackerIssues.errorTrackerIssues.map(errorTrackerIssue => {
+    //         const issueMembers = errorTrackerIssue.members;
+    //         const differentialTeamMember = [];
+    //         teamMembers.forEach(teamMember => {
+    //             const exist = issueMembers.filter(
+    //                 issueMember => issueMember.userId._id === teamMember.userId
+    //             );
+    //             console.log({ teamMember, issueMembers, exist });
+    //             if (exist.length < 1) {
+    //                 differentialTeamMember.push(teamMember);
+    //             }
+    //         });
+    //         errorTrackerIssue.memberNotAssignedToIssue = differentialTeamMember;
+    //         return errorTrackerIssue;
+    //     });
+    // }
     return {
         errorTrackerIssues,
     };
