@@ -721,7 +721,7 @@ router.post(
                 });
             }
 
-            let currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.findOneBy({
                 _id: issueId,
                 errorTrackerId,
             });
@@ -757,7 +757,6 @@ router.post(
                         let issueMember = await IssueMemberService.findOneBy({
                             issueId,
                             userId: teamMemberUserId,
-                            removed: true,
                         });
                         if (!issueMember) {
                             // if it doesnt, create it
@@ -774,7 +773,6 @@ router.post(
                                 {
                                     issueId,
                                     userId: teamMemberUserId,
-                                    removed: true,
                                 },
                                 data
                             );
@@ -783,15 +781,11 @@ router.post(
                 })
             );
 
-            currentIssue = await IssueService.findOneBy({
-                _id: issueId,
-                errorTrackerId,
-            });
-            const issueMembers = await IssueMemberService.findBy({
+            const members = await IssueMemberService.findBy({
                 issueId,
                 removed: false,
             });
-            return sendItemResponse(req, res, { currentIssue, issueMembers });
+            return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -858,7 +852,7 @@ router.post(
                 });
             }
 
-            let currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.findOneBy({
                 _id: issueId,
                 errorTrackerId,
             });
@@ -903,15 +897,11 @@ router.post(
                 })
             );
 
-            currentIssue = await IssueService.findOneBy({
-                _id: issueId,
-                errorTrackerId,
-            });
-            const issueMembers = await IssueMemberService.findBy({
+            const members = await IssueMemberService.findBy({
                 issueId,
                 removed: false,
             });
-            return sendItemResponse(req, res, { currentIssue, issueMembers });
+            return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

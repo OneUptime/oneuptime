@@ -45,7 +45,7 @@ module.exports = {
 
             const issueMember = await IssueMemberModel.findOne(query)
                 .populate('issueId', 'name')
-                .populate('userId', 'name');
+                .populate('userId', 'name', 'email');
             return issueMember;
         } catch (error) {
             ErrorService.log('issueMemberService.findOneBy', error);
