@@ -85,9 +85,6 @@ class ErrorTrackerDetailView extends Component {
         const { openModal, updateErrorEventMember } = this.props;
         const { memberModalId } = this.state;
 
-        const memberNotAssignedToIssue = this.filterMembersNotAssignedToIssue(
-            errorTrackerIssue
-        );
         openModal({
             id: memberModalId,
             onClose: () => '',
@@ -95,24 +92,8 @@ class ErrorTrackerDetailView extends Component {
             content: DataPathHoC(ErrorEventIssueMember, {
                 errorTrackerIssue,
                 updateErrorEventMember,
-                memberNotAssignedToIssue,
             }),
         });
-    };
-    filterMembersNotAssignedToIssue = errorTrackerIssue => {
-        const issueMembers = errorTrackerIssue.members;
-        console.log(issueMembers);
-        const { teamMembers } = this.props;
-        const differentialTeamMember = [];
-        teamMembers.forEach(teamMember => {
-            const exist = issueMembers.filter(
-                issueMember => issueMember.userId._id === teamMember.userId
-            );
-            if (exist.length < 1) {
-                differentialTeamMember.push(teamMember);
-            }
-        });
-        return differentialTeamMember;
     };
     render() {
         const { selectedErrorEvents, ignoreModalId } = this.state;
@@ -464,25 +445,25 @@ function mapStateToProps(state, ownProps) {
     // get its list of error tracker issues
     const errorTrackerIssues =
         state.errorTracker.errorTrackerIssues[errorTracker._id];
-    // const { teamMembers } = ownProps;
+    const { teamMembers } = ownProps;
 
-    // if (errorTrackerIssues) {
-    //     errorTrackerIssues.errorTrackerIssues.map(errorTrackerIssue => {
-    //         const issueMembers = errorTrackerIssue.members;
-    //         const differentialTeamMember = [];
-    //         teamMembers.forEach(teamMember => {
-    //             const exist = issueMembers.filter(
-    //                 issueMember => issueMember.userId._id === teamMember.userId
-    //             );
-    //             console.log({ teamMember, issueMembers, exist });
-    //             if (exist.length < 1) {
-    //                 differentialTeamMember.push(teamMember);
-    //             }
-    //         });
-    //         errorTrackerIssue.memberNotAssignedToIssue = differentialTeamMember;
-    //         return errorTrackerIssue;
-    //     });
-    // }
+    if (errorTrackerIssues) {
+        errorTrackerIssues.errorTrackerIssues.map(errorTrackerIssue => {
+            const issueMembers = errorTrackerIssue.members;
+            const differentialTeamMember = [];
+            teamMembers.forEach(teamMember => {
+                const exist = issueMembers.filter(
+                    issueMember => issueMember.userId._id === teamMember.userId
+                );
+                // console.log({ teamMember, issueMembers, exist });
+                if (exist.length < 1) {
+                    differentialTeamMember.push(teamMember);
+                }
+            });
+            errorTrackerIssue.memberNotAssignedToIssue = differentialTeamMember;
+            return errorTrackerIssue;
+        });
+    }
     return {
         errorTrackerIssues,
     };
@@ -497,7 +478,6 @@ ErrorTrackerDetailView.propTypes = {
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
     updateErrorEventMember: PropTypes.func,
-    teamMembers: PropTypes.array,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

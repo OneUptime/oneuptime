@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 
 class ErrorEventIssueMember extends Component {
     constructor(props) {
@@ -383,11 +383,15 @@ class ErrorEventIssueMember extends Component {
                                                                     Action
                                                                 </div>
                                                             </header>
-                                                            {data.memberNotAssignedToIssue &&
+                                                            {data.errorTrackerIssue &&
                                                             data
+                                                                .errorTrackerIssue
+                                                                .memberNotAssignedToIssue &&
+                                                            data
+                                                                .errorTrackerIssue
                                                                 .memberNotAssignedToIssue
                                                                 .length > 0 ? (
-                                                                data.memberNotAssignedToIssue.map(
+                                                                data.errorTrackerIssue.memberNotAssignedToIssue.map(
                                                                     (
                                                                         member,
                                                                         i
@@ -512,9 +516,15 @@ class ErrorEventIssueMember extends Component {
         );
     }
 }
+const mapStateToProp = state => {
+    return {
+        errorTrackerIssueMembers: state.errorTracker.errorTrackerIssueMembers,
+    };
+};
 ErrorEventIssueMember.displayName = 'ErrorEventIssueMember';
 ErrorEventIssueMember.propTypes = {
     data: PropTypes.object,
     closeThisDialog: PropTypes.func,
+    deleting: PropTypes.bool,
 };
-export default ErrorEventIssueMember;
+export default connect(mapStateToProp)(ErrorEventIssueMember);
