@@ -248,15 +248,6 @@ function ErrorTrackerIssue({
                                 marginRight: '10px',
                             }}
                         />
-                        <img
-                            src="/dashboard/assets/img/down.svg"
-                            alt=""
-                            style={{
-                                marginBottom: '-5px',
-                                height: '10px',
-                                width: '10px',
-                            }}
-                        />
                     </div>
                 </div>
             </td>

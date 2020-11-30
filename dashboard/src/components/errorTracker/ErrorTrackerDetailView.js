@@ -114,9 +114,6 @@ class ErrorTrackerDetailView extends Component {
         });
         return differentialTeamMember;
     };
-    componentDidUpdate = props => {
-        console.log(props);
-    };
     render() {
         const { selectedErrorEvents, ignoreModalId } = this.state;
         const {
