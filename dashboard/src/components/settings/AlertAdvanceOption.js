@@ -16,6 +16,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -99,6 +100,7 @@ export class AlertAdvanceOption extends Component {
     }
 
     render() {
+        console.log(this.props)
         const { alertEnable, formValues } = this.props;
 
         return (
@@ -332,6 +334,7 @@ export class AlertAdvanceOption extends Component {
                                                             to{' '}
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                        <span className="flex">
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -404,7 +407,180 @@ export class AlertAdvanceOption extends Component {
                                                                     },
                                                                 ]}
                                                             />
-                                                        </div>
+                                                            <Tooltip title="SMS and Call Alert Charges">
+                                                                    <div>
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                The following country codes are considered risky:
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>+53, </b>
+                                                                            <b>+371, </b>
+                                                                            <b>+252, </b>
+                                                                            <b>+370, </b>
+                                                                            <b>+224, </b>
+                                                                            <b>+220, </b>
+                                                                            <b>+960, </b>
+                                                                            <b>+372, </b>
+                                                                            <b>+263, </b>
+                                                                            <b>+216</b>
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            THE SUMMARY OF SMS ALERT CHARGES IS GIVEN BELOW:
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            USA & Canada
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            SMS - $0.05 <br></br>
+                                                                            Minimum Account Balance - $5
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            Non-USA
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            SMS - $1 <br></br>
+                                                                            Minimum Account Balance - $10
+                                                                            {' '}                                                                      
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Risky Countries
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            SMS - $1 <br></br>
+                                                                            Minimum Account Balance - $20
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            THE SUMMARY OF CALL ALERT CHARGES IS GIVEN BELOW:
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            USA & Canada
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Call - $1 <br></br>
+                                                                            Minimum Account Balance - $10
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            Non-USA
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Call - $2 <br></br>
+                                                                            Minimum Account Balance - $20
+                                                                            {' '}                                                                      
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                Risky Countries
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Call - $5 <br></br>
+                                                                            Minimum Account Balance - $50
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
+                                                            </span>
+                                                        </div>               
+                                                
                                                     </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label
