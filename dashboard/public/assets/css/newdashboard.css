@@ -11306,7 +11306,7 @@ table {
 }
 .animate-out {
     width:240px;
-    transition: width 400ms linear;
+    transition: width 350ms linear;
 }
 .Timeline-Table {
     overflow: hidden;
