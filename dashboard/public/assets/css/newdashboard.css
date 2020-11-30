@@ -10158,8 +10158,7 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     position: absolute;
     top: 0;
     width: 240px;
-    z-index: 1;
-    transition: width 500ms linear;
+    z-index: 1;    
 }
 .db-World-topContent {
     height: 68px;
@@ -11301,8 +11300,13 @@ table {
 .Stacktrace-Listing:first-child {
     border-top: none;
 }
-.animate{
+.animate-in{
+    transition: width 500ms linear;
     width:0px; 
+}
+.animate-out {
+    width:240px;
+    transition: width 400ms linear;
 }
 .Timeline-Table {
     overflow: hidden;

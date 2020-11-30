@@ -198,7 +198,10 @@ class SideNav extends Component {
                     className={`db-World-sideNavContainer${(this.props
                         .sidenavopen
                         ? ' open'
-                        : '') + (this.props.animateSidebar ? ' animate' : '')}`}
+                        : '') +
+                        (this.props.animateSidebar
+                            ? ' animate-in'
+                            : ' animate-out')}`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
