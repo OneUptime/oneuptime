@@ -1,4 +1,5 @@
 try {
+    require('./monitorSla.test');
     require('./adminCredentials.test');
     require('./alert.test');
     require('./applicationLog.test');
