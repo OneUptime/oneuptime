@@ -1,5 +1,5 @@
 import { createStore, applyMiddleware, compose } from 'redux';
-const createLogger  = require('redux-logger');
+import { createLogger } from 'redux-logger';
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
 import { createBrowserHistory, createMemoryHistory } from 'history';
@@ -34,6 +34,6 @@ if (process.env.NODE_ENV === 'development') {
     }
 }
 
-const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
+const composedEnhancers = compose(applyMiddleware(...middleware,logger), ...enhancers);
 
 export default createStore(rootReducer, initialState, composedEnhancers);
