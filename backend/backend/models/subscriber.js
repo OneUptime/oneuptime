@@ -14,6 +14,11 @@ const subscriberSchema = new Schema({
     contactPhone: { type: String },
     countryCode: { type: String },
     contactWebhook: { type: String },
+    webhookMethod: {
+        type: String,
+        enum: ['get', 'post'],
+        required: true,
+    },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
 

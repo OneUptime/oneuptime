@@ -6,7 +6,7 @@ import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { deleteSchedule } from '../../actions/schedule';
+import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal } from '../../actions/modal';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
@@ -25,6 +25,7 @@ export class DeleteScheduleBox extends Component {
             deleteSchedule,
             scheduleId,
             history,
+            userId,
         } = this.props;
         const { deleteModalId } = this.state;
         this.props.openModal({
@@ -40,6 +41,7 @@ export class DeleteScheduleBox extends Component {
                             }
                         );
                     }
+                    this.props.fetchUserSchedule(projectId, userId);
                     history.push(`/dashboard/project/${projectId}/on-call`);
                 });
             },
@@ -95,10 +97,17 @@ export class DeleteScheduleBox extends Component {
 DeleteScheduleBox.displayName = 'DeleteScheduleBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ deleteSchedule, openModal }, dispatch);
+    bindActionCreators(
+        {
+            deleteSchedule,
+            openModal,
+            fetchUserSchedule,
+        },
+        dispatch
+    );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, projectId, subProjectId } = props.match.params;
+    const { scheduleId, projectId, subProjectId, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
@@ -119,6 +128,7 @@ const mapStateToProps = (state, props) => {
         projectId,
         subProjectId,
         scheduleId,
+        userId,
         isRequesting: state.schedule.deleteSchedule.requesting,
     };
 };
@@ -140,6 +150,8 @@ DeleteScheduleBox.propTypes = {
     ]),
     deleteSchedule: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
+    fetchUserSchedule: PropTypes.func.isRequired,
+    userId: PropTypes.object.isRequired,
 };
 
 export default withRouter(

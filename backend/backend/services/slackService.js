@@ -20,17 +20,17 @@ module.exports = {
                 integrationType: 'slack',
                 monitorId: monitor._id,
             };
-            if (incidentStatus === 'resolved') {
+            if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentResolved': true,
                 };
-            } else if (incidentStatus === 'created') {
+            } else if (incidentStatus === INCIDENT_CREATED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentCreated': true,
                 };
-            } else if (incidentStatus === 'acknowledged') {
+            } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentAcknowledged': true,
@@ -52,7 +52,7 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('msTeamsService.sendNotification', error);
+            ErrorService.log('slackService.sendNotification', error);
             throw error;
         }
     },
@@ -191,7 +191,7 @@ module.exports = {
 
             return 'Webhook successfully pinged';
         } catch (error) {
-            ErrorService.log('WebHookService.notify', error);
+            ErrorService.log('slackService.notify', error);
             throw error;
         }
     },
@@ -201,3 +201,8 @@ const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
+const {
+    INCIDENT_RESOLVED,
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+} = require('../constants/incidentEvents');

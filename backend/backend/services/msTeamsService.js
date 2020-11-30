@@ -20,17 +20,17 @@ module.exports = {
                 integrationType: 'msteams',
                 monitorId: monitor._id,
             };
-            if (incidentStatus === 'resolved') {
+            if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentResolved': true,
                 };
-            } else if (incidentStatus === 'created') {
+            } else if (incidentStatus === INCIDENT_CREATED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentCreated': true,
                 };
-            } else if (incidentStatus === 'acknowledged') {
+            } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentAcknowledged': true,
@@ -190,7 +190,7 @@ module.exports = {
 
             return 'Webhook successfully pinged';
         } catch (error) {
-            ErrorService.log('WebHookService.notify', error);
+            ErrorService.log('msTeams.notify', error);
             throw error;
         }
     },
@@ -200,3 +200,8 @@ const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
+const {
+    INCIDENT_RESOLVED,
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+} = require('../constants/incidentEvents');

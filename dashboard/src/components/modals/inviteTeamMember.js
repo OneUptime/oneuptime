@@ -49,6 +49,8 @@ export class FormModal extends Component {
     }
 
     submitForm = values => {
+        // replace the first and last commas, if available
+        values.emails = values.emails.replace(/^,*|,*$/g, '');
         const {
             teamCreate,
             closeThisDialog,

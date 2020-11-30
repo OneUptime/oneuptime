@@ -185,6 +185,12 @@
     cursor: pointer;
 }
 
+.box__cyan5{
+    background: #45b2e8;
+    color: white;
+    cursor: pointer;
+}
+
 .ongoing__schedulebox {
     padding-top: 25px;
     padding-bottom: 25px;

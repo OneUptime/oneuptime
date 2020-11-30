@@ -16,7 +16,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 function validate(values) {
     const errors = {};
 
-    if (!values.name) {
+    if (!values.name || !values.name.trim()) {
         errors.name = 'Communication SLA name is required';
     }
     if (values.customDuration && isNaN(values.customDuration)) {
@@ -375,6 +375,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                         <div
                                             className="bs-Tail-copy"
                                             style={{ width: 200 }}
+                                            id="slaError"
                                         >
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"

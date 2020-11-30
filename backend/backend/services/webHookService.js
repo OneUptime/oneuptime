@@ -1,6 +1,41 @@
 module.exports = {
+    // process external subscriber webhook
+    sendSubscriberNotification: async function(
+        subscriber,
+        projectId,
+        incident,
+        monitor,
+        component,
+        duration
+    ) {
+        try {
+            const project = await ProjectService.findOneBy({ _id: projectId });
+            if (project && project.parentProjectId) {
+                projectId = project.parentProjectId._id;
+            }
+            const monitorStatus = await MonitorStatusService.findOneBy({
+                monitorId: monitor._id,
+            });
+
+            return await this.notify(
+                project,
+                monitor,
+                incident,
+                subscriber,
+                monitorStatus ? monitorStatus.status : null,
+                component,
+                duration,
+                EXTERNAL_SUBSCRIBER_WEBHOOK
+            );
+        } catch (error) {
+            ErrorService.log(
+                'webHookService.sendSubscriberNotification',
+                error
+            );
+        }
+    },
     // process messages to be sent to slack workspace channels
-    sendNotification: async function(
+    sendIntegrationNotification: async function(
         projectId,
         incident,
         monitor,
@@ -20,17 +55,17 @@ module.exports = {
                 integrationType: 'webhook',
                 monitorId: monitor._id,
             };
-            if (incidentStatus === 'resolved') {
+            if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentResolved': true,
                 };
-            } else if (incidentStatus === 'created') {
+            } else if (incidentStatus === INCIDENT_CREATED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentCreated': true,
                 };
-            } else if (incidentStatus === 'acknowledged') {
+            } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
                 query = {
                     ...query,
                     'notificationOptions.incidentAcknowledged': true,
@@ -56,7 +91,10 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('WebHookService.sendNotification', error);
+            ErrorService.log(
+                'WebHookService.sendIntegrationNotification',
+                error
+            );
             throw error;
         }
     },
@@ -66,16 +104,20 @@ module.exports = {
         project,
         monitor,
         incident,
-        integration,
+        webhookAgent,
         monitorStatus,
         component,
-        duration
+        duration,
+        webHookType = PROJECT_WEBHOOK
     ) {
         try {
             const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
             const yellow = '#fedc56';
             const green = '#028A0F';
             let payload;
+            let webHookURL;
+            let httpMethod;
+
             if (incident.resolved) {
                 payload = {
                     attachments: [
@@ -195,7 +237,9 @@ module.exports = {
                 projectId: project._id,
                 projectName: project.name,
                 createdAt: incident.createdAt,
-                createdBy: incident.createdById.name,
+                createdBy: incident.createdById
+                    ? incident.createdById.name
+                    : 'Fyipe',
                 incidentStatus: incident.incidentType,
                 monitorStatus,
             };
@@ -207,39 +251,40 @@ module.exports = {
                 data.resolvedBy = incident.resolvedBy.name;
                 data.resolvedAt = incident.resolvedAt;
             }
-            if (integration.data.endpointType === 'get') {
-                await axios.get(
-                    integration.data.endpoint,
-                    {
-                        params: { ...data },
-                    },
-                    {
+
+            if (webHookType === PROJECT_WEBHOOK) {
+                webHookURL = webhookAgent.data.endpoint;
+                httpMethod = webhookAgent.data.endpointType;
+                if (httpMethod === undefined) {
+                    const error = new Error('Webhook endpoint type missing');
+                    error.code = 400;
+                    ErrorService.log('WebHookService.notify', 'error');
+                    throw error;
+                }
+            } else if (webHookType === EXTERNAL_SUBSCRIBER_WEBHOOK) {
+                webHookURL = webhookAgent.contactWebhook;
+                httpMethod = webhookAgent.webhookMethod || 'post';
+            }
+
+            if (webHookURL && httpMethod) {
+                const response = await axios
+                    .request({
+                        method: httpMethod,
+                        url: webHookURL,
+                        data: httpMethod === 'post' ? payload : null,
+                        params: httpMethod === 'get' ? data : null,
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                    }
-                );
-
-                return 'Webhook successfully pinged';
-            } else if (integration.data.endpointType === 'post') {
-                await axios.post(
-                    integration.data.endpoint,
-                    {
-                        ...payload,
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
-
-                return 'Webhook successfully pinged';
+                    })
+                    .then(response => response.status)
+                    .catch(error => {
+                        ErrorService.log('WebHookService.notify', error);
+                        return 500;
+                    });
+                return response === 200;
             } else {
-                const error = new Error('Webhook endpoint type missing');
-                error.code = 400;
-                ErrorService.log('WebHookService.notify', 'error');
-                throw error;
+                return false;
             }
         } catch (error) {
             ErrorService.log('WebHookService.notify', 'error');
@@ -253,3 +298,12 @@ const axios = require('axios');
 const ProjectService = require('./projectService');
 const MonitorStatusService = require('./monitorStatusService');
 const ErrorService = require('./errorService');
+const {
+    PROJECT_WEBHOOK,
+    EXTERNAL_SUBSCRIBER_WEBHOOK,
+} = require('../constants/webHookTypes');
+const {
+    INCIDENT_RESOLVED,
+    INCIDENT_ACKNOWLEDGED,
+    INCIDENT_CREATED,
+} = require('../constants/incidentEvents');

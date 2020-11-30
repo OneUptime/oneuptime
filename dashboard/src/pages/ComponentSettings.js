@@ -195,17 +195,10 @@ const mapStateToProps = (state, ownProps) => {
             }
         });
     });
-    const initialData = state.component.componentList.components.map(
-        components => {
-            return components.components.filter(
-                component => component._id === ownProps.match.params.componentId
-            );
-        }
-    )[0];
 
     return {
         component,
-        initialValues: initialData && initialData[0],
+        initialValues: component,
         editingComponent: state.component.editComponent,
         projectId:
             state.project.currentProject !== null &&
