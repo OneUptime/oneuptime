@@ -40,6 +40,7 @@ function ErrorTrackerIssue({
     errorTracker,
     selectErrorEvent,
     selectedErrorEvents,
+    openEventMemberModal,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -232,7 +233,10 @@ function ErrorTrackerIssue({
                     height: '1px',
                 }}
             >
-                <div className="db-ListViewItem-link">
+                <div
+                    className="db-ListViewItem-link"
+                    onClick={() => openEventMemberModal(errorTrackerIssue)}
+                >
                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
                         <img
                             src="/dashboard/assets/img/user.svg"
@@ -266,6 +270,7 @@ ErrorTrackerIssue.propTypes = {
     componentId: PropTypes.string,
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
+    openEventMemberModal: PropTypes.func,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;
