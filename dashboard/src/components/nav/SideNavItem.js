@@ -226,16 +226,7 @@ export class SidebarNavItem extends Component {
                     <Link
                         id={this.camalize(route.title)}
                         to={path}
-                        onClick={() => {
-                            setTimeout(() => {
-                                loadPage(route.title);
-                                this.props.animateSidebar(true) ;
-                            }, 500);
-                            // if (routes.title === 'Components') {
-                            //     this.props.animateSidebar(false);
-                            // }
-                            this.props.animateSidebar(true);
-                        }}
+                        onClick={() => loadPage(route.title)}
                         {...(route.disabled
                             ? { style: { pointerEvents: 'none' } }
                             : {})}
