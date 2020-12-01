@@ -148,9 +148,11 @@ class OnCallScheduleModal extends Component {
                                                             </span>
                                                         ) : (
                                                             <span>
-                                                                You&#39;re on
-                                                                duty all the
-                                                                time
+                                                                You&#39;re
+                                                                currently on
+                                                                call duty for
+                                                                these call
+                                                                schedules.
                                                             </span>
                                                         )}
                                                     </li>
