@@ -87,6 +87,7 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    ipWhitelist: { type: Array, default: [] },
     deleted: { type: Boolean, default: false },
 
     deletedAt: {
