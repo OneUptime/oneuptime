@@ -1,7 +1,7 @@
 {
-    "name": "fyipe-log-js-tracker",
+    "name": "fyipe",
     "version": "3.0.0",
-    "description": "A fyipe JS package that send logs from your applications to your fyipe dashboard.",
+    "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
     "main": "dist/logger.js",
     "scripts": {
         "build-dev": "npm run build && npm link",
@@ -45,6 +45,6 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Fyipe/log-js"
+        "url": "https://github.com/Fyipe/js-sdk"
     }
 }
