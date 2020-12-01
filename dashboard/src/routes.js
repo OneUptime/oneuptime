@@ -102,43 +102,6 @@ export const groups = [
                 index: 3,
             },
             {
-                title: 'Error Tracking',
-                path:
-                    '/dashboard/project/:projectId/:componentId/error-tracker',
-                icon: 'errorTracking',
-                visible: true,
-                exact: true,
-                component: ErrorTracking,
-                index: 4,
-                shortcut: 'c+t',
-                subRoutes: [
-                    {
-                        title: 'Error Tracking View',
-                        path:
-                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
-                        icon: 'radar',
-                        visible: true,
-                        exact: true,
-                        subRoutes: [],
-                        component: ErrorTrackingView,
-                        index: 1,
-                        shortcut: 'e+v',
-                    },
-                    {
-                        title: 'Error Tracking Detail View',
-                        path:
-                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
-                        icon: 'radar',
-                        visible: true,
-                        exact: true,
-                        subRoutes: [],
-                        component: ErrorEventView,
-                        index: 2,
-                        shortcut: 'e+d',
-                    },
-                ],
-            },
-            {
                 title: 'Incident Log',
                 path: '/dashboard/project/:projectId/:componentId/incident-log',
                 icon: 'info',
@@ -181,6 +144,41 @@ export const groups = [
                         component: ApplicationLogView,
                         index: 1,
                         shortcut: 'l+c',
+                    },
+                ],
+            },
+            {
+                title: 'Error Tracking',
+                path:
+                    '/dashboard/project/:projectId/:componentId/error-tracker',
+                icon: 'errorTracking',
+                visible: true,
+                exact: true,
+                component: ErrorTracking,
+                index: 7,
+                shortcut: 'c+t',
+                subRoutes: [
+                    {
+                        title: 'Error Tracking View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId',
+                        icon: 'radar',
+                        visible: true,
+                        exact: true,
+                        subRoutes: [],
+                        component: ErrorTrackingView,
+                        index: 1,
+                    },
+                    {
+                        title: 'Error Tracking Detail View',
+                        path:
+                            '/dashboard/project/:projectId/:componentId/error-trackers/:errorTrackerId/events/:errorEventId',
+                        icon: 'radar',
+                        visible: true,
+                        exact: true,
+                        subRoutes: [],
+                        component: ErrorEventView,
+                        index: 2,
                     },
                 ],
             },
