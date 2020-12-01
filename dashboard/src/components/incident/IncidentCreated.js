@@ -148,6 +148,8 @@ class IncidentCreated extends Component {
                                                                           'right',
                                                                       marginRight:
                                                                           '5px',
+                                                                      marginTop:
+                                                                          '10px',
                                                                   }}
                                                                   onClick={() =>
                                                                       this.markAsRead(
