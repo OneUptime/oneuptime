@@ -48,7 +48,7 @@ class OnCallScheduleModal extends Component {
                                                 return (
                                                     <li key={i}>
                                                         <b
-                                                            onClick={() =>
+                                                            onClick={() => {
                                                                 history.push(
                                                                     `/dashboard/project/${
                                                                         this
@@ -61,8 +61,9 @@ class OnCallScheduleModal extends Component {
                                                                         schedule
                                                                             .scheduleId
                                                                             ._id}`
-                                                                )
-                                                            }
+                                                                );
+                                                                this.props.closeThisDialog();
+                                                            }}
                                                             style={{
                                                                 cursor:
                                                                     'pointer',
