@@ -57,16 +57,6 @@ export const groups = [
         visibleOnComponentDetail: true,
         routes: [
             {
-                title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
-                icon: 'back',
-                component: Component,
-                visible: true,
-                subRoutes: [],
-                index: 2,
-                shortcut: 'c+d',
-            },
-            {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
                 icon: 'monitor',
@@ -99,7 +89,7 @@ export const groups = [
                         shortcut: 'm+w',
                     },
                 ],
-                index: 3,
+                index: 2,
             },
             {
                 title: 'Error Tracking',
@@ -109,7 +99,7 @@ export const groups = [
                 visible: true,
                 exact: true,
                 component: ErrorTracking,
-                index: 7,
+                index: 3,
                 shortcut: 'c+t',
                 subRoutes: [
                     {
@@ -254,6 +244,7 @@ export const groups = [
                 exact: true,
                 component: ComponentSettings,
                 shortcut: 'c+s',
+                index: 7,
                 subRoutes: [
                     {
                         title: 'Basic',
@@ -280,6 +271,16 @@ export const groups = [
                         exact: true,
                     },
                 ],
+            },
+            {
+                title: 'Back to Dashboard',
+                path: '/dashboard/project/:projectId/components',
+                icon: 'back',
+                component: Component,
+                visible: true,
+                subRoutes: [],
+                index: 8,
+                shortcut: 'c+d',
             },
         ],
     },
