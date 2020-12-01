@@ -408,29 +408,6 @@ export class AlertAdvanceOption extends Component {
                                                                 ]}
                                                             />
                                                             <Tooltip title="SMS and Call Alert Charges">
-                                                                    <div>
-                                                                        <p>
-                                                                            {' '}
-                                                                            <b>
-                                                                                The following country codes are considered risky:
-                                                                            </b>
-                                                                        </p>
-                                                                        <p>
-                                                                            {' '}
-                                                                            <b>+53, </b>
-                                                                            <b>+371, </b>
-                                                                            <b>+252, </b>
-                                                                            <b>+370, </b>
-                                                                            <b>+224, </b>
-                                                                            <b>+220, </b>
-                                                                            <b>+960, </b>
-                                                                            <b>+372, </b>
-                                                                            <b>+263, </b>
-                                                                            <b>+216</b>
-                                                                            {' '}
-                                                                        </p>
-                                                                    </div>
-
                                                                     <div
                                                                         style={{
                                                                             marginTop:
@@ -494,7 +471,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                                Risky Countries
+                                                                                High Risk Countries
                                                                             </b>
                                                                         </p>
                                                                         <p>
@@ -567,7 +544,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                                Risky Countries
+                                                                                High Risk Countries
                                                                             </b>
                                                                         </p>
                                                                         <p>
