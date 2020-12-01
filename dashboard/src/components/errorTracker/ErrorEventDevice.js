@@ -16,7 +16,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: '#F968BC',
                             borderRadius: '50%',
@@ -45,7 +45,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: '#488CE0',
                             borderRadius: '50%',
@@ -84,7 +84,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: 'grey',
                             borderRadius: '50%',

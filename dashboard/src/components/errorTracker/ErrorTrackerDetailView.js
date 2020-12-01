@@ -300,18 +300,6 @@ class ErrorTrackerDetailView extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Users</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td
-                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{
-                                        height: '1px',
-                                    }}
-                                >
-                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center">
-                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                             <span>Assigned To</span>
                                         </span>
                                     </div>
@@ -455,7 +443,6 @@ function mapStateToProps(state, ownProps) {
                 const exist = issueMembers.filter(
                     issueMember => issueMember.userId._id === teamMember.userId
                 );
-                // console.log({ teamMember, issueMembers, exist });
                 if (exist.length < 1) {
                     differentialTeamMember.push(teamMember);
                 }

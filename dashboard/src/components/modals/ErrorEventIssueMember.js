@@ -32,15 +32,11 @@ class ErrorEventIssueMember extends Component {
             errorTrackerIssue._id,
             member.userId._id,
             'unassign'
-        ).then(() => this.toggleBoxState());
+        );
     };
     addMemberToIssue = member => {
         const { updateErrorEventMember, errorTrackerIssue } = this.props.data;
-        updateErrorEventMember(
-            errorTrackerIssue._id,
-            member.userId,
-            'assign'
-        ).then(() => this.toggleBoxState());
+        updateErrorEventMember(errorTrackerIssue._id, member.userId, 'assign');
     };
     toggleBoxState = () => {
         this.setState(state => ({
@@ -49,7 +45,8 @@ class ErrorEventIssueMember extends Component {
     };
     render() {
         const { isViewAssigned } = this.state;
-        const { data, closeThisDialog } = this.props;
+        const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
+        console.log(errorTrackerIssueMembers);
         return (
             <div
                 className="ModalLayer-contents"
@@ -86,20 +83,20 @@ class ErrorEventIssueMember extends Component {
                                                         </span>
                                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
-                                                                instruction on
-                                                                how to add or
-                                                                remove member
-                                                                from the error
-                                                                issue{' '}
+                                                                List on team
+                                                                members assigned
+                                                                to error event{' '}
                                                                 <span
                                                                     style={{
-                                                                        textTransform:
-                                                                            'lowercase',
+                                                                        fontWeight:
+                                                                            'bold',
                                                                     }}
                                                                 >
-                                                                    error event
-                                                                    description
-                                                                    .
+                                                                    {
+                                                                        data
+                                                                            .errorTrackerIssue
+                                                                            .name
+                                                                    }
                                                                 </span>
                                                             </span>
                                                         </span>
@@ -143,7 +140,7 @@ class ErrorEventIssueMember extends Component {
                                                         <div className="bs-ObjectList-rows">
                                                             <header className="bs-ObjectList-row bs-ObjectList-row--header">
                                                                 <div className="bs-ObjectList-cell">
-                                                                    Team Member
+                                                                    Member
                                                                 </div>
                                                                 <div className="bs-ObjectList-cell">
                                                                     Status
@@ -242,9 +239,20 @@ class ErrorEventIssueMember extends Component {
                                                                                                     )
                                                                                                 }
                                                                                             >
-                                                                                                {!this
-                                                                                                    .props
-                                                                                                    .deleting && (
+                                                                                                {!(
+                                                                                                    errorTrackerIssueMembers &&
+                                                                                                    errorTrackerIssueMembers[
+                                                                                                        member
+                                                                                                            .userId
+                                                                                                            ._id
+                                                                                                    ] &&
+                                                                                                    errorTrackerIssueMembers[
+                                                                                                        member
+                                                                                                            .userId
+                                                                                                            ._id
+                                                                                                    ]
+                                                                                                        .requesting
+                                                                                                ) && (
                                                                                                     <span>
                                                                                                         Remove
                                                                                                     </span>
@@ -503,7 +511,7 @@ class ErrorEventIssueMember extends Component {
                                     type="button"
                                     onClick={closeThisDialog}
                                 >
-                                    <span>Cancel</span>
+                                    <span>Close</span>
                                     <span className="cancel-btn__keycode">
                                         Esc
                                     </span>
@@ -516,9 +524,13 @@ class ErrorEventIssueMember extends Component {
         );
     }
 }
-const mapStateToProp = state => {
+const mapStateToProp = (state, ownProps) => {
+    const errorTrackerIssueMembers =
+        state.errorTracker.errorTrackerIssueMembers[
+            ownProps.data.errorTrackerIssue._id
+        ];
     return {
-        errorTrackerIssueMembers: state.errorTracker.errorTrackerIssueMembers,
+        errorTrackerIssueMembers,
     };
 };
 ErrorEventIssueMember.displayName = 'ErrorEventIssueMember';
