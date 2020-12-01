@@ -260,6 +260,15 @@ class Incident extends Component {
         return timelineStatus;
     };
 
+    renderError = () => {
+        const { error } = this.props.status;
+        if (error === 'Input data schema mismatch.') {
+            return 'Page Not Found';
+        } else if (error === 'Project Not present') {
+            return 'Invalid Project.';
+        } else return error;
+    };
+
     render() {
         const {
             count,
@@ -270,6 +279,7 @@ class Incident extends Component {
             incidentNotes,
             lastIncidentTimeline,
         } = this.props;
+        const error = this.renderError();
 
         let downtimeColor, uptimeColor, degradedColor;
         if (
@@ -635,6 +645,11 @@ class Incident extends Component {
                             </a>
                         </p>
                     </div>
+                    <ShouldRender if={error}>
+                        <div id="app-loading">
+                            <div>{error}</div>
+                        </div>
+                    </ShouldRender>
                 </div>
             </div>
         );
@@ -662,6 +677,7 @@ Incident.propTypes = {
     fetchLastIncidentTimeline: PropTypes.func,
     requestingTimeline: PropTypes.bool,
     lastIncidentTimeline: PropTypes.object,
+    status: PropTypes.object,
 };
 
 const mapStateToProps = state => {
@@ -677,6 +693,7 @@ const mapStateToProps = state => {
         requestingStatus: state.status.requesting,
         requestingTimeline: state.status.lastIncidentTimeline.requesting,
         lastIncidentTimeline: state.status.lastIncidentTimeline.timeline,
+        status: state.status,
     };
 };
 
