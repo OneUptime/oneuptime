@@ -417,7 +417,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            THE SUMMARY OF SMS ALERT CHARGES IS GIVEN BELOW:
+                                                                            SMS Alert Charges:
                                                                             </b>
                                                                         </p>
                                                                     </div>
@@ -490,7 +490,7 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            THE SUMMARY OF CALL ALERT CHARGES IS GIVEN BELOW:
+                                                                            Call Alert Charges:
                                                                             </b>
                                                                         </p>
                                                                     </div>
