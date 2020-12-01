@@ -57,6 +57,16 @@ export const groups = [
         visibleOnComponentDetail: true,
         routes: [
             {
+                title: 'Back to Dashboard',
+                path: '/dashboard/project/:projectId/components',
+                icon: 'back',
+                component: Component,
+                visible: true,
+                subRoutes: [],
+                index: 2,
+                shortcut: 'c+d',
+            },
+            {
                 title: 'Monitors',
                 path: '/dashboard/project/:projectId/:componentId/monitoring',
                 icon: 'monitor',
@@ -75,6 +85,7 @@ export const groups = [
                         component: MonitorView,
                         exact: true,
                         index: 1,
+                        shortcut: 'm+v',
                     },
                     {
                         title: 'Website Issues',
@@ -85,9 +96,10 @@ export const groups = [
                         subRoutes: [],
                         component: WebsiteMonitorIssues,
                         index: 2,
+                        shortcut: 'm+w',
                     },
                 ],
-                index: 2,
+                index: 3,
             },
             {
                 title: 'Error Tracking',
@@ -110,6 +122,7 @@ export const groups = [
                         subRoutes: [],
                         component: ErrorTrackingView,
                         index: 1,
+                        shortcut: 'e+v',
                     },
                     {
                         title: 'Error Tracking Detail View',
@@ -121,6 +134,7 @@ export const groups = [
                         subRoutes: [],
                         component: ErrorEventView,
                         index: 2,
+                        shortcut: 'e+d',
                     },
                 ],
             },
@@ -141,9 +155,10 @@ export const groups = [
                         subRoutes: [],
                         component: Incident,
                         index: 1,
+                        shortcut: 'i+i',
                     },
                 ],
-                index: 3,
+                index: 4,
             },
             {
                 title: 'Logs',
@@ -153,7 +168,7 @@ export const groups = [
                 visible: true,
                 exact: true,
                 component: ApplicationLog,
-                index: 4,
+                index: 5,
                 shortcut: 'c+l',
                 subRoutes: [
                     {
@@ -165,6 +180,7 @@ export const groups = [
                         subRoutes: [],
                         component: ApplicationLogView,
                         index: 1,
+                        shortcut: 'l+c',
                     },
                 ],
             },
@@ -200,6 +216,7 @@ export const groups = [
                         index: 2,
                         component: ContainerDetail,
                         exact: true,
+                        shortcut: 'c+c',
                     },
                     {
                         title: 'Application',
@@ -223,9 +240,10 @@ export const groups = [
                         index: 4,
                         subRoute: [],
                         exact: true,
+                        shortcut: 'c+d',
                     },
                 ],
-                index: 5,
+                index: 6,
             },
             {
                 title: 'Component Settings',
@@ -263,16 +281,6 @@ export const groups = [
                     },
                 ],
             },
-            {
-                title: 'Back to Dashboard',
-                path: '/dashboard/project/:projectId/components',
-                icon: 'back',
-                component: Component,
-                visible: true,
-                subRoutes: [],
-                index: 6,
-                shortcut: 'c+d',
-            },
         ],
     },
     {
@@ -309,14 +317,14 @@ export const groups = [
                 subRoutes: [],
                 component: IncidentLog,
                 index: 6,
-                shortcut: 'f+l',
+                shortcut: 'f+i',
             },
             {
                 title: 'Status Pages',
                 path: '/dashboard/project/:projectId/status-pages',
                 icon: 'radar',
                 visible: true,
-                shortcut: 'f+u',
+                shortcut: 'f+s',
                 subRoutes: [
                     {
                         title: 'Status Page',
@@ -327,6 +335,7 @@ export const groups = [
                         subRoutes: [],
                         component: StatusPage,
                         index: 1,
+                        shortcut: 'f+p',
                     },
                 ],
                 component: StatusPages,
@@ -358,6 +367,7 @@ export const groups = [
                         subRoutes: [],
                         component: Schedule,
                         index: 1,
+                        shortcut: 'f+s',
                     },
                 ],
                 component: OnCall,
@@ -380,10 +390,11 @@ export const groups = [
                         component: ScheduledEventDetail,
                         subRoutes: [],
                         index: 1,
+                        shortcut: 'f+d',
                     },
                 ],
                 index: 5,
-                shortcut: 'f+v',
+                shortcut: 'f+e',
             },
             {
                 title: 'Reports',
@@ -438,7 +449,7 @@ export const groups = [
                         subRoutes: [],
                         component: Resources,
                         index: 2,
-                        shortcut: 'f+m',
+                        shortcut: 'f+r',
                     },
                     {
                         title: 'Monitor',
@@ -448,6 +459,7 @@ export const groups = [
                         subRoutes: [],
                         component: MonitorSettings,
                         index: 3,
+                        shortcut: 'f+m',
                     },
                     {
                         title: 'Incident Settings',
@@ -458,6 +470,7 @@ export const groups = [
                         subRoutes: [],
                         component: IncidentSettings,
                         index: 4,
+                        shortcut: 'f+c',
                     },
                     {
                         title: 'Integrations',
@@ -601,6 +614,7 @@ export const groups = [
                 component: TeamMemberProfile,
                 subRoutes: [],
                 index: 5,
+                shortcut: 'p+t',
             },
             {
                 title: 'Back to Dashboard',
