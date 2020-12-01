@@ -7,7 +7,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
-
 export class SidebarNavItem extends Component {
     constructor(props) {
         super(props);
@@ -226,7 +225,17 @@ export class SidebarNavItem extends Component {
                     <Link
                         id={this.camalize(route.title)}
                         to={path}
-                        onClick={() => loadPage(route.title)}
+                        onClick={() => {
+                            if (route.title === 'Back to Dashboard') {
+                                this.props.animateSidebar(true);
+                                setTimeout(() => {
+                                    loadPage(route.title);
+                                    this.props.animateSidebar(false);
+                                }, 500);
+                            } else {
+                                loadPage(route.title);
+                            }
+                        }}
                         {...(route.disabled
                             ? { style: { pointerEvents: 'none' } }
                             : {})}
@@ -427,7 +436,6 @@ SidebarNavItem.displayName = 'SidebarNavItem';
 const mapStateToProps = state => ({
     component: state.component,
     currentProject: state.project.currentProject,
-    animateSidebar: state.animateSidebar,
     schedule:
         state.schedule &&
         state.schedule.schedules &&
@@ -436,7 +444,7 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ loadPage }, dispatch);
+    bindActionCreators({ loadPage, animateSidebar }, dispatch);
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
