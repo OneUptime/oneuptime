@@ -76,10 +76,17 @@ class OnCallScheduleModal extends Component {
                                                             >
                                                                 &middot;
                                                             </span>{' '}
-                                                            {schedule.scheduleId &&
-                                                                schedule
-                                                                    .scheduleId
-                                                                    .name}
+                                                            <span
+                                                                style={{
+                                                                    textDecoration:
+                                                                        'underline',
+                                                                }}
+                                                            >
+                                                                {schedule.scheduleId &&
+                                                                    schedule
+                                                                        .scheduleId
+                                                                        .name}
+                                                            </span>
                                                             :
                                                         </b>{' '}
                                                         {!schedule.isOnDutyAllTheTime ? (
