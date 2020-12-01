@@ -16,7 +16,21 @@ module.exports = {
         const countryType = getCountryType(alertPhoneNumber);
         const alertChargeAmount = getAlertChargeAmount(alertType, countryType);
 
-        return balance > alertChargeAmount.minimumBalance;
+        const customThresholdAmount = project.alertOptions
+            ? project.alertOptions.rechargeToBalance
+            : null;
+
+        const isBalanceMoreThanMinimum =
+            balance > alertChargeAmount.minimumBalance;
+        if (customThresholdAmount) {
+            const isBalanceMoreThanCustomThresholdAmount =
+                balance > customThresholdAmount;
+            return (
+                isBalanceMoreThanMinimum &&
+                isBalanceMoreThanCustomThresholdAmount
+            );
+        }
+        return isBalanceMoreThanMinimum;
     },
 
     doesPhoneNumberComplyWithHighRiskConfig: async function(
@@ -895,10 +909,10 @@ module.exports = {
                     incident._id,
                     user.alertPhoneNumber
                 );
-                // cut payment for sms notification
+                // cut payment for call notification
                 const countryType = getCountryType(user.alertPhoneNumber);
                 const alertChargeAmount = getAlertChargeAmount(
-                    AlertType.SMS,
+                    AlertType.Call,
                     countryType
                 );
                 await PaymentService.chargeAlert(
@@ -2186,7 +2200,7 @@ module.exports = {
                                 contactPhone,
                                 alertId
                             );
-                            // cut payment for sms notification
+                            // cut payment for subscriber sms notification
                             const countryType = getCountryType(contactPhone);
                             const alertChargeAmount = getAlertChargeAmount(
                                 AlertType.SMS,
