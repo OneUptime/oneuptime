@@ -436,8 +436,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $0.05/SMS <br></br>
-                                                                            Minimum Account Balance - $5
+                                                                            Charge : $0.05/SMS <br></br>
+                                                                            Minimum Account Balance : $5
                                                                             {' '}
                                                                         </p>
                                                                     </div>
@@ -456,8 +456,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $1/SMS <br></br>
-                                                                            Minimum Account Balance - $10
+                                                                            Charge : $1/SMS <br></br>
+                                                                            Minimum Account Balance : $10
                                                                             {' '}                                                                      
                                                                         </p>
                                                                     </div>
@@ -476,8 +476,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $1/SMS <br></br>
-                                                                            Minimum Account Balance - $20
+                                                                            Charge : $1/SMS <br></br>
+                                                                            Minimum Account Balance : $20
                                                                             {' '}
                                                                         </p>
                                                                     </div>
@@ -509,8 +509,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $1 <br></br>
-                                                                            Minimum Account Balance - $10
+                                                                            Charge : $1 <br></br>
+                                                                            Minimum Account Balance : $10
                                                                             {' '}
                                                                         </p>
                                                                     </div>
@@ -529,8 +529,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $2 <br></br>
-                                                                            Minimum Account Balance - $20
+                                                                            Charge : $2 <br></br>
+                                                                            Minimum Account Balance : $20
                                                                             {' '}                                                                      
                                                                         </p>
                                                                     </div>
@@ -549,8 +549,8 @@ export class AlertAdvanceOption extends Component {
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Charge - $5 <br></br>
-                                                                            Minimum Account Balance - $50
+                                                                            Charge : $5 <br></br>
+                                                                            Minimum Account Balance : $50
                                                                             {' '}
                                                                         </p>
                                                                     </div>
