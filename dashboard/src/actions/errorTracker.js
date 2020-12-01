@@ -643,3 +643,77 @@ export function resolveErrorEventSuccess(errorEvents) {
         payload: errorEvents,
     };
 }
+
+export function updateErrorEventMember(
+    projectId,
+    componentId,
+    errorTrackerId,
+    issueId,
+    teamMemberId,
+    type = 'assign'
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `error-tracker/${projectId}/${componentId}/${errorTrackerId}/${type}/${issueId}`,
+            { teamMemberId }
+        );
+        dispatch(
+            updateErrorEventMemberRequest({
+                issueId,
+                memberId: teamMemberId[0],
+            })
+        );
+
+        promise.then(
+            function(response) {
+                dispatch(
+                    updateErrorEventMemberSuccess({
+                        errorTrackerId,
+                        issueId,
+                        members: response.data.members,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateErrorEventMemberFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function updateErrorEventMemberReset() {
+    return {
+        type: types.UPDATE_ERROR_EVENT_MEMBER_RESET,
+    };
+}
+
+export function updateErrorEventMemberRequest(errorTrackerIssueMembers) {
+    return {
+        type: types.UPDATE_ERROR_EVENT_MEMBER_REQUEST,
+        payload: errorTrackerIssueMembers,
+    };
+}
+export function updateErrorEventMemberFailure(error) {
+    return {
+        type: types.UPDATE_ERROR_EVENT_MEMBER_FAILURE,
+        payload: error,
+    };
+}
+export function updateErrorEventMemberSuccess(errorTrackerIssueMembers) {
+    return {
+        type: types.UPDATE_ERROR_EVENT_MEMBER_SUCCESS,
+        payload: errorTrackerIssueMembers,
+    };
+}

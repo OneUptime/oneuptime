@@ -8,7 +8,9 @@ import {
     resetErrorTrackerKey,
     ignoreErrorEvent,
     resolveErrorEvent,
+    updateErrorEventMember,
 } from '../../actions/errorTracker';
+import { subProjectTeamLoading } from '../../actions/team';
 import { bindActionCreators } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
@@ -105,6 +107,22 @@ class ErrorTrackerDetail extends Component {
             componentId,
             errorTracker._id,
             issues
+        );
+    };
+    updateErrorEventMember = (issueId, userId, type) => {
+        const {
+            currentProject,
+            componentId,
+            errorTracker,
+            updateErrorEventMember,
+        } = this.props;
+        return updateErrorEventMember(
+            currentProject._id,
+            componentId,
+            errorTracker._id,
+            issueId,
+            [userId],
+            type
         );
     };
     resolveErrorEvent = issues => {
@@ -206,6 +224,14 @@ class ErrorTrackerDetail extends Component {
             startDate,
             endDate
         );
+        if (!this.props.currentProject) {
+            const projectId = history.location.pathname
+                .split('project/')[1]
+                .split('/')[0];
+            this.props.subProjectTeamLoading(projectId);
+        } else {
+            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        }
     }
     render() {
         const {
@@ -215,6 +241,7 @@ class ErrorTrackerDetail extends Component {
             componentId,
             currentProject,
             openModal,
+            teamMembers,
         } = this.props;
         const { deleteModalId, trackerKeyModalId } = this.state;
         if (errorTracker) {
@@ -282,6 +309,10 @@ class ErrorTrackerDetail extends Component {
                                                 this.resolveErrorEvent
                                             }
                                             openModal={openModal}
+                                            updateErrorEventMember={
+                                                this.updateErrorEventMember
+                                            }
+                                            teamMembers={teamMembers}
                                         />
                                     </div>
                                 </div>
@@ -312,6 +343,9 @@ ErrorTrackerDetail.propTypes = {
     endDate: PropTypes.string,
     ignoreErrorEvent: PropTypes.func,
     resolveErrorEvent: PropTypes.func,
+    updateErrorEventMember: PropTypes.func,
+    subProjectTeamLoading: PropTypes.func,
+    teamMembers: PropTypes.array,
 };
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -324,6 +358,8 @@ const mapDispatchToProps = dispatch => {
             closeModal,
             ignoreErrorEvent,
             resolveErrorEvent,
+            updateErrorEventMember,
+            subProjectTeamLoading,
         },
         dispatch
     );
@@ -346,6 +382,10 @@ function mapStateToProps(state, ownProps) {
             ? state.form.errorTrackerDateTimeForm.values.endDate
             : ''
         : '';
+    const teamMembers = state.team.subProjectTeamMembers.find(
+        subProjectTeamMember =>
+            subProjectTeamMember._id === state.project.currentProject._id
+    );
     return {
         errorTracker: currentErrorTracker[0],
         currentProject: state.project.currentProject,
@@ -353,6 +393,7 @@ function mapStateToProps(state, ownProps) {
         editMode: currentErrorTracker[0].editMode,
         startDate,
         endDate,
+        teamMembers: teamMembers ? teamMembers.teamMembers : [],
     };
 }
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackerDetail);

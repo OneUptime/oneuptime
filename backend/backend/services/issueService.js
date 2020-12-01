@@ -56,7 +56,7 @@ module.exports = {
                 .populate('ignoredById', 'name');
             return issues;
         } catch (error) {
-            ErrorService.log('errorTrackerService.findBy', error);
+            ErrorService.log('issueService.findBy', error);
             throw error;
         }
     },
@@ -123,7 +123,7 @@ module.exports = {
 
             return issue;
         } catch (error) {
-            ErrorService.log('applicationLogService.updateOneBy', error);
+            ErrorService.log('issueService.updateOneBy', error);
             throw error;
         }
     },
