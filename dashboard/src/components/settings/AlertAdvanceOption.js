@@ -16,6 +16,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
     state = {
@@ -99,6 +100,7 @@ export class AlertAdvanceOption extends Component {
     }
 
     render() {
+        console.log(this.props)
         const { alertEnable, formValues } = this.props;
 
         return (
@@ -332,6 +334,7 @@ export class AlertAdvanceOption extends Component {
                                                             to{' '}
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                        <span className="flex">
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -404,7 +407,160 @@ export class AlertAdvanceOption extends Component {
                                                                     },
                                                                 ]}
                                                             />
-                                                        </div>
+                                                            <Tooltip title="SMS and Call Alert Charges">
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                            fontSize: '18px'
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            SMS Alert Charges
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            US or Canadian Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $0.05/SMS <br></br>
+                                                                            Minimum Account Balance: $5
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            Non-US Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $1/SMS <br></br>
+                                                                            Minimum Account Balance: $10
+                                                                            {' '}                                                                      
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                High Risk Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $1/SMS <br></br>
+                                                                            Minimum Account Balance: $20
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+                                                                    <br></br>
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                            fontSize: '18px'
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            Call Alert Charges
+                                                                            </b>
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            US or Canadian Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $1 <br></br>
+                                                                            Minimum Account Balance: $10
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                            Non-US Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $2 <br></br>
+                                                                            Minimum Account Balance: $20
+                                                                            {' '}                                                                      
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <p>
+                                                                            {' '}
+                                                                            <b>
+                                                                                High Risk Numbers
+                                                                            </b>
+                                                                        </p>
+                                                                        <p>
+                                                                            {' '}
+                                                                            Charge: $5 <br></br>
+                                                                            Minimum Account Balance: $50
+                                                                            {' '}
+                                                                        </p>
+                                                                    </div>
+                                                                </Tooltip>
+                                                            </span>
+                                                        </div>               
+                                                
                                                     </div>
                                                     <div className="bs-Fieldset-row">
                                                         <label
