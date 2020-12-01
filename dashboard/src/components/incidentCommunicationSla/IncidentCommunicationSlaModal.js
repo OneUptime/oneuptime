@@ -289,7 +289,8 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                     htmlFor="alertTime"
                                                 >
                                                     <span>
-                                                        Alert Team (minutes)
+                                                        Alert Team before SLA is
+                                                        breached.
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
