@@ -25,6 +25,7 @@ import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
+import FooterButton from './FooterButton';
 
 export class IncidentStatus extends Component {
     constructor(props) {
@@ -38,7 +39,7 @@ export class IncidentStatus extends Component {
             stats: false,
         };
     }
-    acknowledge = () => {
+    acknowledge = setLoading => {
         const userId = User.getUserId();
         this.props
             .acknowledgeIncident(
@@ -49,6 +50,11 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false });
+                setLoading(false);
+                this.props.markAsRead(
+                    this.props.incident.projectId,
+                    this.props.incident.notificationId
+                );
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
                     this.props.incident._id,
@@ -68,7 +74,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    resolve = () => {
+    resolve = setLoading => {
         const userId = User.getUserId();
         this.props
             .resolveIncident(
@@ -79,6 +85,7 @@ export class IncidentStatus extends Component {
             )
             .then(() => {
                 this.setState({ resolveLoad: false, value: '', stats: false });
+                setLoading(false);
                 this.props.markAsRead(
                     this.props.incident.projectId,
                     this.props.incident.notificationId
@@ -109,16 +116,16 @@ export class IncidentStatus extends Component {
         );
     };
 
-    handleIncident = (value, stats) => {
+    handleIncident = (value, stats, setLoading) => {
         if (!this.props.incident.acknowledged) {
             this.setState({ resolveLoad: true, value, stats });
-            this.acknowledge();
+            this.acknowledge(setLoading);
         } else if (
             this.props.incident.acknowledged &&
             !this.props.incident.resolved
         ) {
             this.setState({ resolveLoad: true, value, stats });
-            this.resolve();
+            this.resolve(setLoading);
         }
     };
 
@@ -1435,7 +1442,7 @@ export class IncidentStatus extends Component {
                                     <span>View Incident</span>
                                 </button>
                             </ShouldRender>
-                            <button
+                            <FooterButton
                                 className={
                                     this.props.incident.acknowledged &&
                                     this.props.incident.resolved
@@ -1444,97 +1451,24 @@ export class IncidentStatus extends Component {
                                 }
                                 id={`${monitorName}_EditIncidentDetails_${this.props.count}`}
                                 type="button"
-                                onClick={() =>
-                                    this.handleIncident(undefined, false)
+                                onClick={setLoading =>
+                                    this.handleIncident(
+                                        undefined,
+                                        false,
+                                        setLoading
+                                    )
                                 }
-                            >
-                                {this.props.incident.acknowledged &&
-                                    this.props.incident.resolved &&
-                                    (!this.props.route ||
-                                        (this.props.route &&
-                                            !(
-                                                this.props.route ===
-                                                    homeRoute ||
-                                                this.props.route ===
-                                                    monitorRoute
-                                            ))) && (
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            className="bs-g"
-                                            width="18"
-                                            height="18"
-                                        >
-                                            <path
-                                                fill="none"
-                                                d="M0 0h24v24H0z"
-                                            />
-                                            <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-.997-4L6.76 11.757l1.414-1.414 2.829 2.829 5.656-5.657 1.415 1.414L11.003 16z" />
-                                        </svg>
-                                    )}
-                                {this.state.resolveLoad ? null : !this.props
-                                      .incident.acknowledged &&
-                                  !this.state.resolveLoad ? (
-                                    <div className="bs-circle"></div>
-                                ) : null}
-                                {this.state.resolveLoad ? null : this.props
-                                      .incident.acknowledged &&
-                                  !this.props.incident.resolved &&
-                                  !this.state.resolveLoad ? (
-                                    <div className="bs-ticks"></div>
-                                ) : null}
-                                <div
-                                    className={
-                                        this.props.incident.acknowledged &&
-                                        this.props.incident.resolved &&
-                                        'bs-resolved-green'
-                                    }
-                                >
-                                    <ShouldRender
-                                        if={
-                                            ((this.props.incidentRequest &&
-                                                this.props.incidentRequest
-                                                    .requesting) ||
-                                                (this.props
-                                                    .multipleIncidentRequest &&
-                                                    this.props
-                                                        .multipleIncidentRequest
-                                                        .requesting) ||
-                                                (this.props.incidentRequest &&
-                                                    this.props.incidentRequest
-                                                        .resolving) ||
-                                                (this.props
-                                                    .multipleIncidentRequest &&
-                                                    this.props
-                                                        .multipleIncidentRequest
-                                                        .resolving)) &&
-                                            !this.state.value &&
-                                            !this.state.stats
-                                        }
-                                    >
-                                        <Spinner
-                                            style={{
-                                                stroke: '#000000',
-                                            }}
-                                        />
-                                    </ShouldRender>
-                                    {!this.props.incident.acknowledged
-                                        ? 'Acknowledge Incident'
-                                        : this.props.incident.acknowledged &&
-                                          !this.props.incident.resolved
-                                        ? 'Resolve Incident'
-                                        : !this.props.route ||
-                                          (this.props.route &&
-                                              !(
-                                                  this.props.route ===
-                                                      homeRoute ||
-                                                  this.props.route ===
-                                                      monitorRoute
-                                              ))
-                                        ? 'The Incident is Resolved'
-                                        : null}
-                                </div>
-                            </button>
+                                acknowledged={this.props.incident.acknowledged}
+                                resolved={this.props.incident.resolved}
+                                route={this.props.route}
+                                homeRoute={homeRoute}
+                                monitorRoute={monitorRoute}
+                                state={this.state}
+                                incidentRequest={this.props.incidentRequest}
+                                multipleIncidentRequest={
+                                    this.props.multipleIncidentRequest
+                                }
+                            />
                             <ShouldRender
                                 if={
                                     this.props.multiple &&

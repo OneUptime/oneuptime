@@ -19,6 +19,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import IncidentStatus from '../components/incident/IncidentStatus';
 import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent';
 import { subProjectTeamLoading } from '../actions/team';
+import { getSmtpConfig } from '../actions/smsTemplates';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
 import flattenArray from '../utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -31,6 +32,7 @@ class Home extends Component {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > HOME');
         }
         this.props.userScheduleRequest();
+        this.props.getSmtpConfig(this.props.currentProjectId);
         if (this.props.currentProjectId && this.props.user.id) {
             this.props.fetchUserSchedule(
                 this.props.currentProjectId,
@@ -278,7 +280,7 @@ class Home extends Component {
                                                                     ongoingEventList.length >
                                                                         0 &&
                                                                     ongoingEventList}
-                                                                <ShouldRender
+                                                                {/* <ShouldRender
                                                                     if={
                                                                         activeSchedules &&
                                                                         activeSchedules.length >
@@ -296,7 +298,8 @@ class Home extends Component {
                                                                                 .currentProjectId
                                                                         }
                                                                     />
-                                                                </ShouldRender>
+                                                                    
+                                                                </ShouldRender> */}
 
                                                                 <ShouldRender
                                                                     if={
@@ -483,6 +486,7 @@ Home.propTypes = {
     subProjectOngoingScheduledEvents: PropTypes.array,
     multipleIncidentRequest: PropTypes.object,
     tutorialStat: PropTypes.object,
+    getSmtpConfig: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state, props) => {
@@ -544,6 +548,7 @@ const mapDispatchToProps = dispatch => {
             fetchUserSchedule,
             subProjectTeamLoading,
             fetchSubProjectOngoingScheduledEvents,
+            getSmtpConfig,
         },
         dispatch
     );

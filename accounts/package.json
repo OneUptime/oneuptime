@@ -33,6 +33,7 @@
         "react-stripe-elements": "^1.6.0",
         "redux": "^3.7.2",
         "redux-form": "^7.3.0",
+        "redux-logger": "^3.0.6",
         "redux-thunk": "^2.2.0",
         "sane-email-validation": "^1.1.0",
         "universal-cookie": "^4.0.0",
@@ -57,7 +58,6 @@
         "lighthouse": "^6.2.0",
         "npm-audit-ci-wrapper": "^2.5.1",
         "ora": "^4.0.3",
-        "redux-logger": "^3.0.6",
         "should": "^13.2.3",
         "workbox-build": "^4.3.1"
     },

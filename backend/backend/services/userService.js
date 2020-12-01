@@ -26,6 +26,11 @@ module.exports = {
 
     create: async function(data) {
         try {
+            if (!data.email) {
+                const error = new Error('Email address can not be empty');
+                error.code = 400;
+                throw error;
+            }
             const userModel = new UserModel();
             userModel.name = data.name || null;
             userModel.email = data.email || null;

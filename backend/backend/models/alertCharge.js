@@ -14,7 +14,7 @@ const alertChargeSchema = new Schema({
     createdAt: { type: Date, default: Date.now },
     alertId: { type: String, ref: 'Alert' },
     subscriberAlertId: { type: String, ref: 'SubscriberAlert' },
-    monitorId: { type: String, ref: 'Monitor' },
+    monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor' },
     incidentId: { type: String, ref: 'Incident' },
     sentTo: { type: String },
 });

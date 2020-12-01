@@ -334,6 +334,31 @@ module.exports = {
             };
             let notification = {};
 
+            // send slack notification
+            SlackService.sendNotification(
+                incident.projectId,
+                incident,
+                incident.monitorId,
+                INCIDENT_CREATED,
+                component
+            );
+            // send webhook notification
+            WebHookService.sendIntegrationNotification(
+                incident.projectId,
+                incident,
+                incident.monitorId,
+                INCIDENT_CREATED,
+                component
+            );
+            // send Ms Teams notification
+            MsTeamsService.sendNotification(
+                incident.projectId,
+                incident,
+                incident.monitorId,
+                INCIDENT_CREATED,
+                component
+            );
+
             if (!incident.createdById) {
                 const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
                 notification = await NotificationService.create(
@@ -343,29 +368,6 @@ module.exports = {
                     'warning',
                     meta
                 );
-                // send slack notification
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
-                );
-                // Ping webhook
-                // await WebHookService.sendNotification(
-                //     incident.projectId,
-                //     incident,
-                //     incident.monitorId,
-                //     'created'
-                // );
-                // Ms Teams
-                await MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
-                );
             } else {
                 const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
                 notification = await NotificationService.create(
@@ -374,29 +376,6 @@ module.exports = {
                     incident.createdById.name,
                     'warning',
                     meta
-                );
-                // send slack notification
-                await SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
-                );
-                // Ping webhook
-                // await WebHookService.sendNotification(
-                //     incident.projectId,
-                //     incident,
-                //     incident.monitorId,
-                //     'created'
-                // );
-                // Ms Teams
-                await MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    'created',
-                    component
                 );
             }
             return notification;
@@ -438,7 +417,7 @@ module.exports = {
                 _this.refreshInterval(incidentId);
 
                 // automatically create acknowledgement incident note
-                await IncidentMessageService.create({
+                IncidentMessageService.create({
                     content: 'This incident has been acknowledged',
                     incidentId,
                     createdById: userId,
@@ -446,26 +425,11 @@ module.exports = {
                     incident_state: 'Acknowledged',
                 });
 
-                const downtime =
-                    (new Date().getTime() -
-                        new Date(incident.createdAt).getTime()) /
-                    (1000 * 60);
-                let downtimestring = `${Math.ceil(downtime)} minutes`;
-                if (downtime < 1) {
-                    downtimestring = 'less than a minute';
-                } else if (downtime > 24 * 60) {
-                    downtimestring = `${Math.floor(
-                        downtime / (24 * 60)
-                    )} days ${Math.floor(
-                        (downtime % (24 * 60)) / 60
-                    )} hours ${Math.floor(downtime % 60)} minutes`;
-                } else if (downtime > 60) {
-                    downtimestring = `${Math.floor(
-                        downtime / 60
-                    )} hours ${Math.floor(downtime % 60)} minutes`;
-                }
+                const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
 
-                await NotificationService.create(
+                NotificationService.create(
                     incident.projectId,
                     `An Incident was acknowledged by ${name}`,
                     userId,
@@ -492,39 +456,37 @@ module.exports = {
                 });
 
                 AlertService.sendAcknowledgedIncidentToSubscribers(incident);
+                AlertService.sendAcknowledgedIncidentMail(incident);
 
-                await WebHookService.sendNotification(
+                WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     monitor,
-                    'acknowledged',
+                    INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
                 );
 
-                await SlackService.sendNotification(
+                SlackService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'acknowledged',
+                    INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
                 );
 
-                await MsTeamsService.sendNotification(
+                MsTeamsService.sendNotification(
                     incident.projectId,
                     incident,
                     incident.monitorId,
-                    'acknowledged',
+                    INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
                 );
 
-                await RealTimeService.incidentAcknowledged(incident);
-                await ZapierService.pushToZapier(
-                    'incident_acknowledge',
-                    incident
-                );
+                RealTimeService.incidentAcknowledged(incident);
+                ZapierService.pushToZapier('incident_acknowledge', incident);
             } else {
                 incident = await _this.findOneBy({
                     _id: incidentId,
@@ -588,7 +550,7 @@ module.exports = {
                     });
                 });
             } else {
-                await MonitorStatusService.create({
+                MonitorStatusService.create({
                     monitorId: incident.monitorId._id,
                     probeId,
                     manuallyCreated: userId ? true : false,
@@ -597,7 +559,7 @@ module.exports = {
             }
 
             // automatically create resolved incident note
-            await IncidentMessageService.create({
+            IncidentMessageService.create({
                 content: 'This incident has been resolved',
                 incidentId,
                 createdById: userId,
@@ -614,8 +576,8 @@ module.exports = {
             });
 
             _this.sendIncidentResolvedNotification(incident, name);
-            await RealTimeService.incidentResolved(incident);
-            await ZapierService.pushToZapier('incident_resolve', incident);
+            RealTimeService.incidentResolved(incident);
+            ZapierService.pushToZapier('incident_resolve', incident);
 
             return incident;
         } catch (error) {
@@ -695,25 +657,42 @@ module.exports = {
             const resolvedincident = await _this.findOneBy({
                 _id: incident._id,
             });
-            const downtime =
-                (new Date().getTime() -
-                    new Date(resolvedincident.createdAt).getTime()) /
-                (1000 * 60);
-            let downtimestring = `${Math.ceil(downtime)} minutes`;
             let msg;
-            if (downtime < 1) {
-                downtimestring = 'less than a minute';
-            } else if (downtime > 24 * 60) {
-                downtimestring = `${Math.floor(
-                    downtime / (24 * 60)
-                )} days ${Math.floor(
-                    (downtime % (24 * 60)) / 60
-                )} hours ${Math.floor(downtime % 60)} minutes`;
-            } else if (downtime > 60) {
-                downtimestring = `${Math.floor(
-                    downtime / 60
-                )} hours ${Math.floor(downtime % 60)} minutes`;
-            }
+            const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
+                resolvedincident.createdAt
+            );
+
+            // send slack notification
+            SlackService.sendNotification(
+                incident.projectId,
+                incident,
+                incident.monitorId,
+                INCIDENT_RESOLVED,
+                component,
+                downtimestring
+            );
+            // Ping webhook
+            WebHookService.sendIntegrationNotification(
+                incident.projectId,
+                incident,
+                resolvedincident.monitorId,
+                INCIDENT_RESOLVED,
+                component,
+                downtimestring
+            );
+            // Ms Teams
+            MsTeamsService.sendNotification(
+                incident.projectId,
+                incident,
+                incident.monitorId,
+                INCIDENT_RESOLVED,
+                component,
+                downtimestring
+            );
+
+            // send notificaton to subscribers
+            AlertService.sendResolvedIncidentToSubscribers(incident);
+
             if (resolvedincident.resolvedBy) {
                 msg = `${
                     resolvedincident.monitorId.name
@@ -736,7 +715,8 @@ module.exports = {
                     downtimestring
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
+                // use sendIntegrationNotificatoin for project integration webhooks
+                await WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
@@ -756,6 +736,7 @@ module.exports = {
 
                 // handle asynchronous operation in the background
                 AlertService.sendResolvedIncidentToSubscribers(incident);
+                AlertService.sendResolveIncidentMail(incident);
             } else {
                 msg = `${
                     resolvedincident.monitorId.name
@@ -778,7 +759,8 @@ module.exports = {
                     downtimestring
                 );
                 // Ping webhook
-                await WebHookService.sendNotification(
+                // use sendIntegrationNotificatoin for project integration webhooks
+                await WebHookService.sendIntegrationNotification(
                     incident.projectId,
                     incident,
                     resolvedincident.monitorId,
@@ -798,7 +780,16 @@ module.exports = {
 
                 // handle asynchronous operation in the background
                 AlertService.sendResolvedIncidentToSubscribers(incident);
+                AlertService.sendResolveIncidentMail(incident);
             }
+            NotificationService.create(
+                incident.projectId,
+                msg,
+                resolvedincident.resolvedBy
+                    ? resolvedincident.resolvedBy._id
+                    : 'fyipe',
+                'success'
+            );
         } catch (error) {
             ErrorService.log(
                 'incidentService.sendIncidentResolvedNotification',
@@ -894,21 +885,23 @@ module.exports = {
 
     startInterval: async function(projectId, monitorId, incident) {
         const _this = this;
-        let incidentSla = await IncidentCommunicationSlaService.findOneBy({
-            projectId: projectId,
-            'monitors.monitorId': { $in: [monitorId] },
+        const monitor = await MonitorService.findOneBy({
+            _id: monitorId,
         });
+        let incidentCommunicationSla = monitor.incidentCommunicationSla;
 
-        if (!incidentSla) {
-            incidentSla = await IncidentCommunicationSlaService.findOneBy({
-                projectId: projectId,
-                isDefault: true,
-            });
+        if (!incidentCommunicationSla) {
+            incidentCommunicationSla = await IncidentCommunicationSlaService.findOneBy(
+                {
+                    projectId: projectId,
+                    isDefault: true,
+                }
+            );
         }
 
-        if (incidentSla) {
-            let countDown = incidentSla.duration * 60;
-            const alertTime = incidentSla.alertTime * 60;
+        if (incidentCommunicationSla) {
+            let countDown = incidentCommunicationSla.duration * 60;
+            const alertTime = incidentCommunicationSla.alertTime * 60;
 
             // count down every second
             const intervalId = setInterval(async () => {
@@ -999,4 +992,10 @@ const IncidentSettingsService = require('./incidentSettingsService');
 const Handlebars = require('handlebars');
 const Moment = require('moment');
 const IncidentMessageService = require('./incidentMessageService');
+const {
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+    INCIDENT_RESOLVED,
+} = require('../constants/incidentEvents');
+const IncidentUtilitiy = require('../utils/incident');
 const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');

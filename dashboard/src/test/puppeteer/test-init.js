@@ -677,7 +677,8 @@ module.exports = {
             );
         }
         await page.click('#createIncident');
-        await page.waitForSelector('#ball-beat', { hidden: true });
+        await page.waitForSelector('.ball-beat', { visible: true });
+        await page.waitForSelector('.ball-beat', { hidden: true });
     },
     addTwilioSettings: async function(
         enableSms,

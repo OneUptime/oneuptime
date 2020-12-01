@@ -41,6 +41,12 @@ import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
+import { history } from '../../store';
+
+import {
+    fetchCommunicationSlas
+} from '../../actions/incidentCommunicationSla';
+import { fetchMonitorSlas } from '../../actions/monitorSla';
 
 class NewMonitor extends Component {
     constructor(props) {
@@ -58,8 +64,11 @@ class NewMonitor extends Component {
             user => user.userId === userId
         );
         //load call schedules
-        if (projectMember)
+        if (projectMember) {
+            this.props.fetchMonitorSlas(this.props.currentProject._id)
+            this.props.fetchCommunicationSlas(this.props.currentProject._id)
             this.props.fetchSchedules(this.props.currentProject._id);
+        }
         this.props.fetchMonitorCriteria();
     }
 
@@ -109,6 +118,8 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
+        postObj.incidentCommunicationSla = values.incidentCommunicationSla;
+        postObj.monitorSla = values.monitorSla;
         postObj.name = values[`name_${this.props.index}`];
         postObj.type = values[`type_${this.props.index}`]
             ? values[`type_${this.props.index}`]
@@ -294,15 +305,17 @@ class NewMonitor extends Component {
             });
         } else {
             this.props.createMonitor(postObj.projectId, postObj).then(
-                () => {
+                (data) => {
                     thisObj.props.reset();
-                    thisObj.props.closeCreateMonitorModal();
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
                             'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
                             values
                         );
                     }
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject._id}/${this.props.componentId}/monitoring/${data.data._id}`
+                    );
                 },
                 error => {
                     if (error && error.message) {
@@ -351,6 +364,8 @@ class NewMonitor extends Component {
             this.props.category,
             this.props.subProject,
             this.props.schedule,
+            this.props.monitorSla,
+            this.props.incidentCommunicationSla,
             value
         );
     };
@@ -436,7 +451,8 @@ class NewMonitor extends Component {
     render() {
         const requesting =
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
-            (this.props.monitor.editMonitor.requesting && this.props.edit);
+            (this.props.monitor.editMonitor.requesting && this.props.edit) ||
+            this.props.requestingSla || this.props.requestingMonitorSla;
 
         const {
             handleSubmit,
@@ -542,6 +558,82 @@ class NewMonitor extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                <ShouldRender
+                                                    if={this.props.incidentSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Monitor SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorSla"
+                                                                    id="monitorSla"
+                                                                    placeholder="Monitor SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Monitor SLA',
+                                                                        },
+                                                                        ...this.props.monitorSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                               </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.incidentSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident Communication SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="incidentCommunicationSla"
+                                                                    id="incidentCommunicationSla"
+                                                                    placeholder="Incident Communication SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Incident Communication SLA',
+                                                                        },
+                                                                        ...this.props.incidentSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                               </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
                                                 <ShouldRender
                                                     if={
                                                         resourceCategoryList &&
@@ -946,7 +1038,7 @@ class NewMonitor extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
-
+                                
                                                 <ShouldRender
                                                     if={type === 'api'}
                                                 >
@@ -1390,7 +1482,9 @@ const mapDispatchToProps = dispatch =>
             fetchSchedules,
             scheduleSuccess,
             showUpgradeForm,
-            toggleEdit
+            toggleEdit,
+            fetchCommunicationSlas,
+            fetchMonitorSlas,
         },
         dispatch
     );
@@ -1400,6 +1494,8 @@ const mapStateToProps = (state, ownProps) => {
     const type = selector(state, 'type_1000');
     const category = selector(state, 'resourceCategory_1000');
     const schedule = selector(state, 'callSchedule_1000');
+    const monitorSla = selector(state, 'monitorSla')
+    const incidentCommunicationSla = selector(state, 'incidentCommunicationSla')
     let projectId = null;
 
     for (const project of state.component.componentList.components) {
@@ -1433,6 +1529,8 @@ const mapStateToProps = (state, ownProps) => {
             type,
             category,
             schedule,
+            monitorSla,
+            incidentCommunicationSla,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             resourceCategoryList:
@@ -1444,6 +1542,12 @@ const mapStateToProps = (state, ownProps) => {
                 : {},
             currentPlanId,
             projectId,
+            incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
+            requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
+            fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
+            monitorSlas: state.monitorSla.monitorSlas.slas,
+            requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+            fetchSlaError: state.monitorSla.monitorSlas.error,
         };
     } else {
         return {
@@ -1454,6 +1558,8 @@ const mapStateToProps = (state, ownProps) => {
             type,
             category,
             schedule,
+            monitorSla,
+            incidentCommunicationSla,
             resourceCategoryList:
                 state.resourceCategories.resourceCategoryListForNewResource
                     .resourceCategories,
@@ -1464,6 +1570,12 @@ const mapStateToProps = (state, ownProps) => {
                 : {},
             currentPlanId,
             projectId,
+            incidentSlas: state.incidentSla.incidentCommunicationSlas.incidentSlas,
+            requestingSla: state.incidentSla.incidentCommunicationSlas.requesting,
+            fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
+            monitorSlas: state.monitorSla.monitorSlas.slas,
+            requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
+            fetchSlaError: state.monitorSla.monitorSlas.error,
         };
     }
 };
@@ -1489,6 +1601,8 @@ NewMonitor.propTypes = {
     category: PropTypes.string,
     subProject: PropTypes.string,
     schedule: PropTypes.string,
+    monitorSla: PropTypes.string,
+    incidentCommunicationSla: PropTypes.string,
     resourceCategoryList: PropTypes.array,
     schedules: PropTypes.array,
     monitorId: PropTypes.string,
@@ -1499,7 +1613,21 @@ NewMonitor.propTypes = {
     currentPlanId: PropTypes.string,
     projectId: PropTypes.string,
     subProjects: PropTypes.array,
-    toggleEdit: PropTypes.func
+    toggleEdit: PropTypes.func,
+    fetchCommunicationSlas: PropTypes.func,
+    incidentSlas: PropTypes.array,
+    fetchSlaError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    requestingSla: PropTypes.bool,
+    fetchMonitorSlas: PropTypes.func,
+    monitorSlas: PropTypes.array,
+    fetchMonitorSlaError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    requestingMonitorSla: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

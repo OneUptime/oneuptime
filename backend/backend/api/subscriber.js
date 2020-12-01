@@ -242,6 +242,18 @@ router.post('/:projectId/subscribe/:monitorId', async function(req, res) {
                     message: 'Email address is not in string format.',
                 });
             }
+            if (!data.webhookMethod) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Webhook http method must be present',
+                });
+            }
+            if (!['get', 'post'].includes(data.webhookMethod)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Webhook http method must be a valid method',
+                });
+            }
         }
         const hasSubscribed = await SubscriberService.subscriberCheck(data);
         if (hasSubscribed) {

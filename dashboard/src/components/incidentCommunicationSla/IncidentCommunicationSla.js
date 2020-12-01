@@ -4,10 +4,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
-import { fetchMonitors } from '../../actions/monitor';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader } from '../basic/Loader';
-import { Link } from 'react-router-dom';
 import {
     fetchCommunicationSlas,
     updateCommunicationSla,
@@ -24,29 +22,9 @@ class IncidentCommunicationSla extends Component {
     }
 
     componentDidMount() {
-        const { projectId, fetchCommunicationSlas, fetchMonitors } = this.props;
+        const { projectId, fetchCommunicationSlas } = this.props;
         fetchCommunicationSlas(projectId, 0, this.limit);
-        fetchMonitors(projectId);
     }
-
-    handleMonitorList = monitors => {
-        if (monitors.length === 0) {
-            return 'No monitor in this event';
-        }
-        if (monitors.length === 1) {
-            return monitors[0].monitorId.name;
-        }
-        if (monitors.length === 2) {
-            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
-        }
-        if (monitors.length === 3) {
-            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
-        }
-
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
-    };
 
     prevClicked = (skip, limit) => {
         const { projectId, fetchCommunicationSlas } = this.props;
@@ -78,9 +56,7 @@ class IncidentCommunicationSla extends Component {
             skip,
             requesting,
             projectId,
-            fetchingMonitors,
             fetchSlaError,
-            monitors,
             currentProject,
             incidentSlas,
             openModal,
@@ -109,39 +85,33 @@ class IncidentCommunicationSla extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
-                                <ShouldRender
-                                    if={
-                                        !fetchingMonitors && monitors.length > 0
-                                    }
+                                <button
+                                    id="addIncidentSlaBtn"
+                                    onClick={() => {
+                                        this.props.openModal({
+                                            id: projectId,
+                                            content: DataPathHoC(
+                                                IncidentCommunicationSlaModal,
+                                                {
+                                                    projectId,
+                                                }
+                                            ),
+                                        });
+                                    }}
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    type="button"
                                 >
-                                    <button
-                                        id="addIncidentSlaBtn"
-                                        onClick={() => {
-                                            this.props.openModal({
-                                                id: projectId,
-                                                content: DataPathHoC(
-                                                    IncidentCommunicationSlaModal,
-                                                    {
-                                                        projectId,
-                                                    }
-                                                ),
-                                            });
-                                        }}
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                    >
-                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                            </div>
-                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>
-                                                    Create Communication SLA
-                                                </span>
-                                            </span>
+                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <div className="Box-root Margin-right--8">
+                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                         </div>
-                                    </button>
-                                </ShouldRender>
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                            <span>
+                                                Create Communication SLA
+                                            </span>
+                                        </span>
+                                    </div>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -163,9 +133,6 @@ class IncidentCommunicationSla extends Component {
                                         Name
                                     </div>
                                     <div className="bs-ObjectList-cell">
-                                        Monitor(s)
-                                    </div>
-                                    <div className="bs-ObjectList-cell">
                                         Duration (minutes)
                                     </div>
                                     <div className="bs-ObjectList-cell">
@@ -182,9 +149,10 @@ class IncidentCommunicationSla extends Component {
                                     </div>
                                 </header>
                                 {incidentSlas.length > 0 &&
-                                    incidentSlas.map((incidentSla, index) => (
+                                    incidentSlas.map(incidentSla => (
                                         <div
                                             key={incidentSla._id}
+                                            id={`incidentSla_${incidentSla.name}`}
                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                             style={{
                                                 backgroundColor: 'white',
@@ -196,7 +164,7 @@ class IncidentCommunicationSla extends Component {
                                                     className="bs-ObjectList-cell bs-u-v-middle"
                                                     style={{
                                                         display: 'flex',
-                                                        width: '15vw',
+                                                        width: '20vw',
                                                     }}
                                                 >
                                                     <div className="bs-ObjectList-cell-row">
@@ -218,7 +186,7 @@ class IncidentCommunicationSla extends Component {
                                                     className="bs-ObjectList-cell bs-u-v-middle"
                                                     style={{
                                                         display: 'flex',
-                                                        width: '15vw',
+                                                        width: '20vw',
                                                     }}
                                                 >
                                                     <div className="bs-ObjectList-cell-row">
@@ -228,18 +196,7 @@ class IncidentCommunicationSla extends Component {
                                             )}
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '30vw' }}
-                                            >
-                                                <div className="bs-ObjectList-cell-row">
-                                                    {incidentSla.monitors &&
-                                                        this.handleMonitorList(
-                                                            incidentSla.monitors
-                                                        )}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '10vw' }}
+                                                style={{ width: '20vw' }}
                                             >
                                                 <div className="bs-ObjectList-cell-row">
                                                     {incidentSla.duration}
@@ -247,7 +204,7 @@ class IncidentCommunicationSla extends Component {
                                             </div>
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '10vw' }}
+                                                style={{ width: '20vw' }}
                                             >
                                                 <div className="bs-ObjectList-cell-row">
                                                     {incidentSla.alertTime}
@@ -255,7 +212,7 @@ class IncidentCommunicationSla extends Component {
                                             </div>
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
-                                                style={{ width: '20vw' }}
+                                                style={{ width: '40vw' }}
                                             >
                                                 <div
                                                     className="bs-ObjectList-cell-row"
@@ -272,8 +229,8 @@ class IncidentCommunicationSla extends Component {
                                                         }
                                                     >
                                                         <button
-                                                            id={`defaultIncidentSlaBtn_${index}`}
-                                                            title="edit"
+                                                            id={`defaultIncidentSlaBtn_${incidentSla.name}`}
+                                                            title="set default"
                                                             className="bs-Button bs-DeprecatedButton"
                                                             style={{
                                                                 marginLeft: 20,
@@ -329,7 +286,7 @@ class IncidentCommunicationSla extends Component {
                                                         </button>
                                                     </ShouldRender>
                                                     <button
-                                                        id={`editIncidentSlaBtn_${index}`}
+                                                        id={`editIncidentSlaBtn_${incidentSla.name}`}
                                                         title="edit"
                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                                         style={{
@@ -349,7 +306,7 @@ class IncidentCommunicationSla extends Component {
                                                         <span>Edit</span>
                                                     </button>
                                                     <button
-                                                        id={`deleteIncidentSlaBtn_${index}`}
+                                                        id={`deleteIncidentSlaBtn_${incidentSla.name}`}
                                                         title="delete"
                                                         className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
                                                         style={{
@@ -391,40 +348,14 @@ class IncidentCommunicationSla extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
-                        <ShouldRender if={fetchingMonitors || requesting}>
+                        <ShouldRender if={requesting}>
                             <ListLoader />
-                        </ShouldRender>
-                        <ShouldRender
-                            if={!fetchingMonitors && monitors.length === 0}
-                        >
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                                style={{
-                                    textAlign: 'center',
-                                    backgroundColor: 'white',
-                                    padding: '20px 10px 0',
-                                }}
-                            >
-                                <span>
-                                    No monitors was added to this project.{' '}
-                                    <Link
-                                        to={`/dashboard/project/${projectId}/components`}
-                                        style={{
-                                            textDecoration: 'underline',
-                                        }}
-                                    >
-                                        Please create one.
-                                    </Link>
-                                </span>
-                            </div>
                         </ShouldRender>
                         <ShouldRender
                             if={
                                 (!incidentSlas || incidentSlas.length === 0) &&
                                 !requesting &&
-                                !fetchSlaError &&
-                                !fetchingMonitors &&
-                                monitors.length > 0
+                                !fetchSlaError
                             }
                         >
                             <div
@@ -534,12 +465,9 @@ IncidentCommunicationSla.propTypes = {
     count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
-    fetchingMonitors: PropTypes.bool,
-    monitors: PropTypes.array,
     fetchCommunicationSlas: PropTypes.func,
     currentProject: PropTypes.object,
     incidentSlas: PropTypes.array,
-    fetchMonitors: PropTypes.func,
     fetchSlaError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -554,22 +482,14 @@ const mapDispatchToProps = dispatch =>
         {
             openModal,
             fetchCommunicationSlas,
-            fetchMonitors,
             updateCommunicationSla,
             setActiveSla,
         },
         dispatch
     );
 
-const mapStateToProps = (state, ownProps) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(ownProps.projectId)
-    );
-    const monitors = monitorData ? monitorData.monitors : [];
-
+const mapStateToProps = state => {
     return {
-        monitors,
-        fetchingMonitors: state.monitor.monitorsList.requesting,
         requesting: state.incidentSla.incidentCommunicationSlas.requesting,
         fetchSlaError: state.incidentSla.incidentCommunicationSlas.error,
         skip: state.incidentSla.incidentCommunicationSlas.skip,
