@@ -840,7 +840,7 @@ module.exports = {
             );
             if (!hasEnoughBalance) {
                 // try to recharge amount
-                const projectBalanceRecharged = StripeService.rechargeProjectBalance(
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
                     user._id,
                     project
                 );
@@ -1020,7 +1020,7 @@ module.exports = {
             );
             if (!hasEnoughBalance) {
                 // try to recharge amount
-                const projectBalanceRecharged = StripeService.rechargeProjectBalance(
+                const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
                     user._id,
                     project
                 );
@@ -2004,7 +2004,7 @@ module.exports = {
 
                     if (!hasEnoughBalance) {
                         // try to recharge amount
-                        const projectBalanceRecharged = StripeService.rechargeProjectBalance(
+                        const projectBalanceRecharged = PaymentService.rechargeProjectBalance(
                             owner.userId,
                             project
                         );
@@ -2387,4 +2387,3 @@ const GlobalConfigService = require('./globalConfigService');
 const WebHookService = require('../services/webHookService');
 const IncidentUtility = require('../utils/incident');
 const TeamService = require('./teamService');
-const StripeService = require('./stripeService');

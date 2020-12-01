@@ -1,4 +1,28 @@
 module.exports = {
+    /**
+     * rechargest the project with the amount set in the project's alert options
+     * @param {*} userId
+     * @param {*} project
+     * @returns {boolean} whether the balance is recharged to the project
+     */
+    rechargeProjectBalance: async function(userId, project) {
+        let balanceRecharged;
+
+        const rechargeAmount = project.alertOptions
+            ? project.alertOptions.rechargeToBalance
+            : null;
+        if (rechargeAmount) {
+            balanceRecharged = await this.addBalance(
+                userId,
+                rechargeAmount,
+                project._id
+            );
+
+            return balanceRecharged;
+        }
+
+        return false;
+    },
     //Description: Retrieve payment intent.
     //Params:
     //Param 1: paymentIntent: Payment Intent
