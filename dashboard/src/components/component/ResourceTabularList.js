@@ -364,7 +364,7 @@ class ResourceTabularList extends Component {
                                                         className="bs-Button"
                                                         type="button"
                                                     >
-                                                        <span>View</span>
+                                                        <span>View Resource</span>
                                                     </button>
                                                 </td>
                                             </tr>

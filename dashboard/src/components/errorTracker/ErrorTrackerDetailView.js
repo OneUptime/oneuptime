@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
 import uuid from 'uuid';
+import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 
 class ErrorTrackerDetailView extends Component {
     constructor(props) {
@@ -14,6 +15,7 @@ class ErrorTrackerDetailView extends Component {
         this.state = {
             selectedErrorEvents: [],
             ignoreModalId: uuid.v4(),
+            memberModalId: uuid.v4(),
         };
     }
     selectErrorEvent = errorEventId => {
@@ -78,6 +80,20 @@ class ErrorTrackerDetailView extends Component {
     nextClicked = (skip, limit) => {
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
+    };
+    openEventMemberModal = errorTrackerIssue => {
+        const { openModal, updateErrorEventMember } = this.props;
+        const { memberModalId } = this.state;
+
+        openModal({
+            id: memberModalId,
+            onClose: () => '',
+            onConfirm: () => this.resolveErrorEvent(),
+            content: DataPathHoC(ErrorEventIssueMember, {
+                errorTrackerIssue,
+                updateErrorEventMember,
+            }),
+        });
     };
     render() {
         const { selectedErrorEvents, ignoreModalId } = this.state;
@@ -324,6 +340,9 @@ class ErrorTrackerDetailView extends Component {
                                                     this.state
                                                         .selectedErrorEvents
                                                 }
+                                                openEventMemberModal={
+                                                    this.openEventMemberModal
+                                                }
                                             />
                                         );
                                     }
@@ -426,6 +445,25 @@ function mapStateToProps(state, ownProps) {
     // get its list of error tracker issues
     const errorTrackerIssues =
         state.errorTracker.errorTrackerIssues[errorTracker._id];
+    const { teamMembers } = ownProps;
+
+    if (errorTrackerIssues) {
+        errorTrackerIssues.errorTrackerIssues.map(errorTrackerIssue => {
+            const issueMembers = errorTrackerIssue.members;
+            const differentialTeamMember = [];
+            teamMembers.forEach(teamMember => {
+                const exist = issueMembers.filter(
+                    issueMember => issueMember.userId._id === teamMember.userId
+                );
+                // console.log({ teamMember, issueMembers, exist });
+                if (exist.length < 1) {
+                    differentialTeamMember.push(teamMember);
+                }
+            });
+            errorTrackerIssue.memberNotAssignedToIssue = differentialTeamMember;
+            return errorTrackerIssue;
+        });
+    }
     return {
         errorTrackerIssues,
     };
@@ -439,6 +477,7 @@ ErrorTrackerDetailView.propTypes = {
     ignoreErrorEvent: PropTypes.string,
     resolveErrorEvent: PropTypes.string,
     openModal: PropTypes.func,
+    updateErrorEventMember: PropTypes.func,
 };
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

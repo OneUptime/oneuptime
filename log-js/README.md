@@ -107,7 +107,7 @@ const tracker = new FyipeTracker(
 );
 
 // capturing a timeline manually
-tracker.addTimeline(
+tracker.addToTimeline(
     'payment',
     { account: 'debit', amount: '6000.00', userId: 401 },
     'info'
@@ -157,9 +157,9 @@ Main API to send logs to the server.
             -   [tracker.setTag(key, value)](#trackersettagkey-value)
             -   [tracker.setTags([{key, value}])](#trackersettagskey-value)
             -   [tracker.setFingerprint(fingerprint)](#trackersetfingerprintfingerprint)
-            -   [tracker.addTimeline(category, content, type)](#trackeraddtimelinecategory-content-type)
+            -   [tracker.addToTimeline(category, content, type)](#trackeraddtotimelinecategory-content-type)
             -   [tracker.captureMessage(message)](#trackercapturemessagemessage)
-            -   [tracker.captureExceptio(error)](#trackercaptureexceptioerror)
+            -   [tracker.captureException(error)](#trackercaptureexceptionerror)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
@@ -262,7 +262,7 @@ Set fingerprint for the next error to be captured.
 | ----------- | ---------------------------------------------------- | ------------------------------------------------------------- |
 | fingerprint | <code>string</code> \| <code>array of strings</code> | The set of string used to group error messages on the server. |
 
-#### tracker.addTimeline(category, content, type)
+#### tracker.addToTimeline(category, content, type)
 
 Add a custom timeline element to the next error to be sent to the server
 
@@ -286,7 +286,7 @@ Capture a custom error message to be sent to the server
 | ------- | ------------------- | ------------------------------------- |
 | message | <code>string</code> | The message to be sent to the server. |
 
-#### tracker.captureExceptio(error)
+#### tracker.captureException(error)
 
 Capture a custom error object to be sent to the server
 

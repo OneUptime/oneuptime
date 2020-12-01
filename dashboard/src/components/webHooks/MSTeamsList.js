@@ -126,6 +126,13 @@ class MSTeamsList extends React.Component {
                                         key={`${hook._id}`}
                                         data={hook}
                                         monitorId={monitorId}
+                                        currentMonitorName={
+                                            !monitorId &&
+                                            hook.monitorId &&
+                                            hook.monitorId.componentId
+                                                ? `${hook.monitorId.componentId.name} / ${hook.monitorId.name}`
+                                                : ''
+                                        }
                                     />
                                 ))}
                             </ShouldRender>
