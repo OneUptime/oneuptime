@@ -431,12 +431,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            USA & Canada
+                                                                            US or Canadian Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            SMS - $0.05 <br></br>
+                                                                            Charge - $0.05/SMS <br></br>
                                                                             Minimum Account Balance - $5
                                                                             {' '}
                                                                         </p>
@@ -451,12 +451,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            Non-USA
+                                                                            Non-US Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            SMS - $1 <br></br>
+                                                                            Charge - $1/SMS <br></br>
                                                                             Minimum Account Balance - $10
                                                                             {' '}                                                                      
                                                                         </p>
@@ -471,12 +471,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                                High Risk Countries
+                                                                                High Risk Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            SMS - $1 <br></br>
+                                                                            Charge - $1/SMS <br></br>
                                                                             Minimum Account Balance - $20
                                                                             {' '}
                                                                         </p>
@@ -504,12 +504,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            USA & Canada
+                                                                            US or Canadian Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Call - $1 <br></br>
+                                                                            Charge - $1 <br></br>
                                                                             Minimum Account Balance - $10
                                                                             {' '}
                                                                         </p>
@@ -524,12 +524,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                            Non-USA
+                                                                            Non-US Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Call - $2 <br></br>
+                                                                            Charge - $2 <br></br>
                                                                             Minimum Account Balance - $20
                                                                             {' '}                                                                      
                                                                         </p>
@@ -544,12 +544,12 @@ export class AlertAdvanceOption extends Component {
                                                                         <p>
                                                                             {' '}
                                                                             <b>
-                                                                                High Risk Countries
+                                                                                High Risk Numbers
                                                                             </b>
                                                                         </p>
                                                                         <p>
                                                                             {' '}
-                                                                            Call - $5 <br></br>
+                                                                            Charge - $5 <br></br>
                                                                             Minimum Account Balance - $50
                                                                             {' '}
                                                                         </p>
