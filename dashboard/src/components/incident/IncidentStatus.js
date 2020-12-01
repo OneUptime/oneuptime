@@ -26,7 +26,7 @@ import { markAsRead } from '../../actions/notification';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
-
+import { animateSidebar } from '../../actions/animateSidebar';
 export class IncidentStatus extends Component {
     constructor(props) {
         super(props);
@@ -1432,11 +1432,13 @@ export class IncidentStatus extends Component {
                                             history.push(
                                                 `/dashboard/project/${projectId}/${componentId}/incidents/${incidentId}`
                                             );
-                                        }, 100);
+                                            this.props.animateSidebar(false);
+                                        }, 500);
                                         this.props.markAsRead(
                                             projectId,
                                             this.props.incident.notificationId
                                         );
+                                        this.props.animateSidebar(true);
                                     }}
                                 >
                                     <span>View Incident</span>
@@ -1572,6 +1574,7 @@ const mapDispatchToProps = dispatch => {
             openModal,
             markAsRead,
             getIncidentTimeline,
+            animateSidebar,
         },
         dispatch
     );
@@ -1596,6 +1599,7 @@ IncidentStatus.propTypes = {
     multipleIncidentRequest: PropTypes.object,
     markAsRead: PropTypes.func,
     getIncidentTimeline: PropTypes.func,
+    animateSidebar: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentStatus);
