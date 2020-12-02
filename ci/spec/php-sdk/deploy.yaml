@@ -49,6 +49,8 @@ deploy_production_php-sdk:
         - cd php-sdk
         - git status
         - git checkout -f master
+        - git status
+        - git pull https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/php-sdk.git master --force
         - composer-version patch
         - json -I -f composer.json -e 'this.name="fyipe/php-sdk"'
         - git init
