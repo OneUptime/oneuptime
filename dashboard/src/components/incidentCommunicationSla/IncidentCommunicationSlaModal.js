@@ -125,6 +125,17 @@ class IncidentCommunicationSlaModal extends React.Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Add Incident Communication SLA</span>
                                 </span>
+                                <br />
+                                <br />
+                                <span>
+                                    Incident communication SLA is used to make
+                                    sure you keep you customers updated every
+                                    few minutes on an active incident. Your team
+                                    will get an email reminder when you forget
+                                    to update an incident status, this will help
+                                    you to communicate with your customers on
+                                    time and keep them updated.
+                                </span>
                             </div>
                         </div>
                         <form
