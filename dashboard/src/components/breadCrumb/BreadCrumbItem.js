@@ -29,6 +29,7 @@ function BreadCrumbItem({
     };
 
     const titleElement = document.querySelector('#page-title-wrapper');
+
     if (titleElement) {
         const titleIcon = titleElement.querySelector('#titleIcon');
         const titleText = titleElement.querySelector('#titleText');
