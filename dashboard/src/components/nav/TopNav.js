@@ -187,6 +187,14 @@ class TopContent extends Component {
                     })
                 }
             >
+                <span
+                    className={`db-SideNav-icon db-SideNav-icon--phone db-SideNav-icon--selected`}
+                    style={{
+                        filter: 'brightness(0) invert(1)',
+                        marginTop: '1px',
+                        marginRight: '5px',
+                    }}
+                />
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
