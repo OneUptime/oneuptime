@@ -88,9 +88,9 @@ class ResolveTime extends Component {
         });
 
         // calculate each columns' width in the chart
-        // for 5 or more columns, use 90%
-        // for less, subtract 15% for each step-down
-        const barGroupWidth = `${90 - (5 - resolveTime.length) * 15}%`;
+        // for 9 or more columns, use 90%
+        // for less, subtract 10% for each step-down
+        const barGroupWidth = `${90 - (9 - resolveTime.length) * 10}%`;
 
         if (resolveTime && resolveTime.length > 0) {
             return (
@@ -107,7 +107,7 @@ class ResolveTime extends Component {
                         bar: {
                             groupWidth: barGroupWidth,
                         },
-                        chartArea: { left: '5%' },
+                        chartArea: { left: '5%', width: '100%' },
                         hAxis: {
                             textStyle: {
                                 color: '#757575',

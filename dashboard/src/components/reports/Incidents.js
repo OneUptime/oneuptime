@@ -92,9 +92,9 @@ class Incidents extends Component {
         });
 
         // calculate each columns' width in the chart
-        // for 5 or more columns, use 90%
-        // for less, subtract 15% for each step-down
-        const barGroupWidth = `${90 - (5 - incidents.length) * 15}%`;
+        // for 9 or more columns, use 90%
+        // for less, subtract 10% for each step-down
+        const barGroupWidth = `${90 - (9 - incidents.length) * 10}%`;
 
         if (incidents && incidents.length > 0) {
             return (
@@ -112,7 +112,7 @@ class Incidents extends Component {
                             groupWidth: barGroupWidth,
                         },
                         bars: 'vertical',
-                        chartArea: { left: '5%' },
+                        chartArea: { left: '5%', width: '100%' },
                         hAxis: {
                             textStyle: {
                                 color: '#757575',
