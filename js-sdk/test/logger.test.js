@@ -28,6 +28,8 @@ describe('FyipeLogger', function() {
                 .post('/user/signup')
                 .send(user)
                 .end(function(err, res) {
+                    // eslint-disable-next-line no-console
+                    console.log(err);
                     const project = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
