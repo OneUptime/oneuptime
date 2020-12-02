@@ -9,6 +9,9 @@ const _this = {
         const statusPage = await StatusPageService.findOneBy({
             _id: statusPageId,
         });
+        if (!statusPage.enableIpWhitelist) {
+            return next();
+        }
 
         const ipWhitelist = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]

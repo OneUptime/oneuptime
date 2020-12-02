@@ -51,6 +51,7 @@ export class PrivateStatusPage extends Component {
                 showScheduledEvents: values.showScheduledEvents,
                 moveIncidentToTheTop: values.moveIncidentToTheTop,
                 ipWhitelist: values.ipWhitelist,
+                enableIpWhitelist: values.enableIpWhitelist,
             })
             .then(() => {
                 document.querySelector('#removeAllFields').click(); // hack to remove all fields of redux fieldArray
@@ -88,12 +89,6 @@ export class PrivateStatusPage extends Component {
                         <button
                             id="addIpList"
                             className="Button bs-ButtonLegacy ActionIconParent"
-                            style={{
-                                position: 'absolute',
-                                zIndex: 1,
-                                right: 0,
-                                top: 0,
-                            }}
                             type="button"
                             onClick={() => {
                                 fields.push();
@@ -109,6 +104,7 @@ export class PrivateStatusPage extends Component {
                                     style={{
                                         width: '65%',
                                         marginBottom: 10,
+                                        marginTop: 10,
                                     }}
                                     key={index}
                                 >
@@ -116,7 +112,7 @@ export class PrivateStatusPage extends Component {
                                         component={RenderField}
                                         name={field}
                                         id={`ipWhitelist_${index}`}
-                                        placeholder="IP"
+                                        placeholder="127.0.0.1"
                                         className="bs-TextInput"
                                         style={{
                                             width: '100%',
@@ -611,12 +607,7 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{
-                                                            paddingTop: 0,
-                                                        }}
-                                                    >
+                                                    <div className="bs-Fieldset-row">
                                                         <label
                                                             className="bs-Fieldset-label"
                                                             style={{
@@ -640,79 +631,105 @@ export class PrivateStatusPage extends Component {
                                                                         '100%',
                                                                 }}
                                                             >
-                                                                <div className="Checkbox">
+                                                                <div className="Flex-flex">
+                                                                    <label
+                                                                        style={{
+                                                                            height: 15,
+                                                                            display:
+                                                                                'inline-block',
+                                                                        }}
+                                                                        className="Checkbox"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="checkbox"
+                                                                            name="enableIpWhitelist"
+                                                                            data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                            className="Checkbox-source"
+                                                                            id="enableIpWhitelist"
+                                                                        />
+                                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                            <div className="Checkbox-target Box-root">
+                                                                                <div className="Checkbox-color Box-root"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </label>
                                                                     <div
                                                                         className="Box-root"
                                                                         style={{
                                                                             paddingLeft:
                                                                                 '5px',
-                                                                            width:
-                                                                                '100%',
                                                                             position:
                                                                                 'relative',
+                                                                            width:
+                                                                                '100%',
                                                                         }}
                                                                     >
-                                                                        <span>
-                                                                            List
-                                                                            of
-                                                                            Whitelisted
-                                                                            IPs
-                                                                        </span>
                                                                         <label
-                                                                            className="bs-Fieldset-explanation"
-                                                                            style={{
-                                                                                marginBottom: 10,
-                                                                                marginTop: 25,
-                                                                                fontSize: 14,
-                                                                            }}
+                                                                            className="Checkbox"
+                                                                            htmlFor="enableIpWhitelist"
                                                                         >
-                                                                            {status.ipWhitelist &&
-                                                                            status
-                                                                                .ipWhitelist
-                                                                                .length >
-                                                                                0 ? (
-                                                                                <span>
-                                                                                    {status.ipWhitelist.reduce(
-                                                                                        (
-                                                                                            text,
-                                                                                            value,
-                                                                                            i,
-                                                                                            array
-                                                                                        ) =>
-                                                                                            text +
-                                                                                            (i <
-                                                                                            array.length -
-                                                                                                1
-                                                                                                ? ', '
-                                                                                                : ' and ') +
-                                                                                            value
-                                                                                    )}
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span>
-                                                                                    No
-                                                                                    IP
-                                                                                    is
-                                                                                    added
-                                                                                    yet
-                                                                                </span>
-                                                                            )}
+                                                                            Enable
+                                                                            IP
+                                                                            Whitelist
                                                                         </label>
+                                                                        <div>
+                                                                            <label
+                                                                                className="bs-Fieldset-explanation"
+                                                                                style={{
+                                                                                    marginBottom: 10,
+                                                                                    fontSize: 14,
+                                                                                }}
+                                                                            >
+                                                                                {status.ipWhitelist &&
+                                                                                status
+                                                                                    .ipWhitelist
+                                                                                    .length >
+                                                                                    0 ? (
+                                                                                    <span>
+                                                                                        {status.ipWhitelist.reduce(
+                                                                                            (
+                                                                                                text,
+                                                                                                value,
+                                                                                                i,
+                                                                                                array
+                                                                                            ) =>
+                                                                                                text +
+                                                                                                (i <
+                                                                                                array.length -
+                                                                                                    1
+                                                                                                    ? ', '
+                                                                                                    : ' and ') +
+                                                                                                value
+                                                                                        )}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span>
+                                                                                        No
+                                                                                        IP
+                                                                                        is
+                                                                                        added
+                                                                                        yet
+                                                                                    </span>
+                                                                                )}
+                                                                            </label>
 
-                                                                        <div
-                                                                            className="bs-Fieldset-field"
-                                                                            style={{
-                                                                                width:
-                                                                                    '100%',
-                                                                            }}
-                                                                        >
-                                                                            <FieldArray
-                                                                                name="ipWhitelist"
-                                                                                component={
-                                                                                    this
-                                                                                        .renderIpWhitelist
-                                                                                }
-                                                                            />
+                                                                            <div
+                                                                                className="bs-Fieldset-field"
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                    marginTop: 10,
+                                                                                }}
+                                                                            >
+                                                                                <FieldArray
+                                                                                    name="ipWhitelist"
+                                                                                    component={
+                                                                                        this
+                                                                                            .renderIpWhitelist
+                                                                                    }
+                                                                                />
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -822,6 +839,7 @@ const mapStateToProps = state => {
             status.isGroupedByMonitorCategory;
         initialValues.showScheduledEvents = status.showScheduledEvents;
         initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
+        initialValues.enableIpWhitelist = status.enableIpWhitelist;
     }
     initialValues.showIpWhitelistInput = true;
 
