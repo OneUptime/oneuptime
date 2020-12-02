@@ -71,5 +71,6 @@ deploy_production_js-sdk:
         refs:
             - release
             - hotfix-release
+            - feature-library-renaming
     environment:
         name: production
