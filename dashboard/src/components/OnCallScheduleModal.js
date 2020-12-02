@@ -53,6 +53,7 @@ class OnCallScheduleModal extends Component {
                                                                     `/dashboard/project/${
                                                                         this
                                                                             .props
+                                                                            .data
                                                                             .currentProjectId
                                                                     }/sub-project/${schedule.projectId &&
                                                                         schedule
@@ -62,6 +63,7 @@ class OnCallScheduleModal extends Component {
                                                                             .scheduleId
                                                                             ._id}`
                                                                 );
+
                                                                 this.props.closeThisDialog();
                                                             }}
                                                             style={{

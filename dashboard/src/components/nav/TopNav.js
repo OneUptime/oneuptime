@@ -530,13 +530,16 @@ const mapStateToProps = (state, props) => {
               return project._id === projectId;
           })
         : [];
-
+    const currentProjectId = state.project.currentProject
+        ? state.project.currentProject._id
+        : '';
     return {
         profilePic,
         feedback: state.feedback,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
+        currentProjectId,
         monitors,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,
