@@ -104,11 +104,10 @@ class ErrorTracking extends Component {
                                         />
                                     </ShouldRender>
                                 </div>
-
+                                {errorTrackersList}
                                 <NewErrorTracker
                                     componentId={this.props.componentId}
                                 />
-                                {errorTrackersList}
                             </ShouldRender>
                         </div>
                     </div>

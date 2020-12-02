@@ -26,7 +26,6 @@ import flattenArray from '../../utils/flattenArray';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import OngoingScheduledEvent from '../scheduledEvent/OngoingScheduledEvent';
 
-
 class TopContent extends Component {
     componentDidMount() {
         const {

@@ -630,6 +630,8 @@ export function setMonitorCriteria(
     monitorCategory,
     monitorSubProject,
     monitorCallSchedule,
+    monitorSla,
+    incidentCommunicationSla,
     monitorType
 ) {
     return function(dispatch) {
@@ -641,6 +643,8 @@ export function setMonitorCriteria(
                 subProject: monitorSubProject,
                 schedule: monitorCallSchedule,
                 type: monitorType,
+                monitorSla,
+                incidentCommunicationSla,
             },
         });
     };

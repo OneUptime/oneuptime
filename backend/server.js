@@ -230,6 +230,10 @@ app.use(
     ['/incidentSla', '/api/incidentSla'],
     require('./backend/api/incidentCommunicationSla')
 );
+app.use(
+    ['/monitorSla', '/api/monitorSla'],
+    require('./backend/api/monitorSla')
+);
 
 app.set('port', process.env.PORT || 3002);
 

@@ -51,14 +51,14 @@ module.exports = {
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
-                    .populate('monitorId', 'name')
+                    .populate('monitorId')
                     .limit(limit)
                     .skip(skip);
             } else {
                 alertCharges = await AlertChargeModel.find(query)
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
-                    .populate('monitorId', 'name');
+                    .populate('monitorId');
             }
             return alertCharges;
         } catch (error) {

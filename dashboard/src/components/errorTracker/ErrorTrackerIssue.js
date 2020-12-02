@@ -40,6 +40,7 @@ function ErrorTrackerIssue({
     errorTracker,
     selectErrorEvent,
     selectedErrorEvents,
+    openEventMemberModal,
 }) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
@@ -218,21 +219,10 @@ function ErrorTrackerIssue({
                     height: '1px',
                 }}
             >
-                <div className="db-ListViewItem-link">
-                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
-                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            0
-                        </span>
-                    </div>
-                </div>
-            </td>
-            <td
-                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                style={{
-                    height: '1px',
-                }}
-            >
-                <div className="db-ListViewItem-link">
+                <div
+                    className="db-ListViewItem-link"
+                    onClick={() => openEventMemberModal(errorTrackerIssue)}
+                >
                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
                         <img
                             src="/dashboard/assets/img/user.svg"
@@ -242,15 +232,6 @@ function ErrorTrackerIssue({
                                 height: '20px',
                                 width: '20px',
                                 marginRight: '10px',
-                            }}
-                        />
-                        <img
-                            src="/dashboard/assets/img/down.svg"
-                            alt=""
-                            style={{
-                                marginBottom: '-5px',
-                                height: '10px',
-                                width: '10px',
                             }}
                         />
                     </div>
@@ -266,6 +247,7 @@ ErrorTrackerIssue.propTypes = {
     componentId: PropTypes.string,
     selectErrorEvent: PropTypes.func,
     selectedErrorEvents: PropTypes.array,
+    openEventMemberModal: PropTypes.func,
 };
 ErrorTrackerIssue.displayName = 'ErrorTrackerIssue';
 export default ErrorTrackerIssue;
