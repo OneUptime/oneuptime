@@ -274,7 +274,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                         'custom' &&
                                                                         this.setState(
                                                                             {
-                                                                                
+                                                                                durationLabel: value,
                                                                             }
                                                                         );
                                                                 }}
