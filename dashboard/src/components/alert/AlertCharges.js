@@ -38,7 +38,7 @@ class AlertCharge extends Component {
             alertCharges,
             error,
             requesting,
-            downloadedAlertCharges
+            downloadedAlertCharges,
         } = this.props;
         const canDownload = alertCharges.length > 0 ? true : false;
         return (
@@ -123,7 +123,7 @@ class AlertCharge extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <AlertChargesList/>
+                                <AlertChargesList />
                                 <ShouldRender if={error}>
                                     <div
                                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween"
