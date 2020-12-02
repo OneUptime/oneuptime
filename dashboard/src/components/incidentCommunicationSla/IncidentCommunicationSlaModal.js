@@ -365,6 +365,14 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                         </span>
                                                     </div>
                                                 </label>
+                                                <p className="bs-Fieldset-explanation">
+                                                    <span>
+                                                        When an SLA is set to
+                                                        default, it is applied
+                                                        to all the incidents
+                                                        from all the monitors.
+                                                    </span>
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
