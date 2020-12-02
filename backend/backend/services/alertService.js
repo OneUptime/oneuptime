@@ -1084,7 +1084,7 @@ module.exports = {
         }
     },
 
-    sendStatusPageToSubscribers: async function(incident, data, statusNoteStatus) {
+    sendInvestigationNoteToSubscriber: async function(incident, data, statusNoteStatus) {
         try {
             const note = data.content
             const _this = this;
@@ -1901,6 +1901,7 @@ module.exports = {
                             statusUrl,
                             statusNoteStatus
                         );
+                        alertStatus = 'Sent';
                     } else {
                         if (project.sendCreatedIncidentNotificationEmail) {
                             if (statusPage) {
@@ -2165,6 +2166,7 @@ module.exports = {
                             component.name,
                             statusUrl
                         );
+                        alertStatus = 'Success';
                     } else {
                         if (project.sendCreatedIncidentNotificationSms) {
                             if (statusPage) {
