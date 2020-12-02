@@ -292,7 +292,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                             '60'
                                                                 ? '1'
                                                                 : this.state
-                                                                      .durationLabel}{' '}
+                                                                      .durationHelpTextTime}{' '}
                                                             {this.state
                                                                 .durationHelpTextTime ===
                                                             '60'
