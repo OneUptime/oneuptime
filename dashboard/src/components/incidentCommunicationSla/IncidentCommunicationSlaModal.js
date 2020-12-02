@@ -41,7 +41,7 @@ function validate(values) {
 class IncidentCommunicationSlaModal extends React.Component {
     state = {
         setCustom: false,
-        durationLabel: '60',
+        durationHelpTextTime: '60',
     };
 
     componentDidMount() {
@@ -274,7 +274,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                         'custom' &&
                                                                         this.setState(
                                                                             {
-                                                                                durationLabel: value,
+                                                                                durationHelpTextTime: value,
                                                                             }
                                                                         );
                                                                 }}
@@ -288,13 +288,13 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                             incident status
                                                             every{' '}
                                                             {this.state
-                                                                .durationLabel ===
+                                                                .durationHelpTextTime ===
                                                             '60'
                                                                 ? '1'
                                                                 : this.state
                                                                       .durationLabel}{' '}
                                                             {this.state
-                                                                .durationLabel ===
+                                                                .durationHelpTextTime ===
                                                             '60'
                                                                 ? 'hour'
                                                                 : 'minutes.'}
