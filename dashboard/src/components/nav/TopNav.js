@@ -187,6 +187,14 @@ class TopContent extends Component {
                     })
                 }
             >
+                <span
+                    className={`db-SideNav-icon db-SideNav-icon--phone db-SideNav-icon--selected`}
+                    style={{
+                        filter: 'brightness(0) invert(1)',
+                        marginTop: '1px',
+                        marginRight: '5px',
+                    }}
+                />
                 <span id="onCallScheduleText">
                     {`You're currently on-call duty.`}
                 </span>
@@ -530,13 +538,16 @@ const mapStateToProps = (state, props) => {
               return project._id === projectId;
           })
         : [];
-
+    const currentProjectId = state.project.currentProject
+        ? state.project.currentProject._id
+        : '';
     return {
         profilePic,
         feedback: state.feedback,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
+        currentProjectId,
         monitors,
         escalation: state.schedule.escalation,
         escalations: state.schedule.escalations,

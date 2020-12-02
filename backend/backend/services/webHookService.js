@@ -91,7 +91,10 @@ module.exports = {
             }
             return response;
         } catch (error) {
-            ErrorService.log('WebHookService.sendNotification', error);
+            ErrorService.log(
+                'WebHookService.sendIntegrationNotification',
+                error
+            );
             throw error;
         }
     },

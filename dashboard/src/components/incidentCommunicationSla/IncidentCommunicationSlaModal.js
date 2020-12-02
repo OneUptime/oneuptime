@@ -16,7 +16,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 function validate(values) {
     const errors = {};
 
-    if (!values.name) {
+    if (!values.name || !values.name.trim()) {
         errors.name = 'Communication SLA name is required';
     }
     if (values.customDuration && isNaN(values.customDuration)) {
@@ -124,6 +124,17 @@ class IncidentCommunicationSlaModal extends React.Component {
                             >
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>Add Incident Communication SLA</span>
+                                </span>
+                                <br />
+                                <br />
+                                <span>
+                                    Incident communication SLA is used to make
+                                    sure you keep you customers updated every
+                                    few minutes on an active incident. Your team
+                                    will get an email reminder when you forget
+                                    to update an incident status, this will help
+                                    you to communicate with your customers on
+                                    time and keep them updated.
                                 </span>
                             </div>
                         </div>
@@ -289,7 +300,8 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                     htmlFor="alertTime"
                                                 >
                                                     <span>
-                                                        Alert Team (minutes)
+                                                        Alert Team before SLA is
+                                                        breached.
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -375,6 +387,7 @@ class IncidentCommunicationSlaModal extends React.Component {
                                         <div
                                             className="bs-Tail-copy"
                                             style={{ width: 200 }}
+                                            id="slaError"
                                         >
                                             <div
                                                 className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"

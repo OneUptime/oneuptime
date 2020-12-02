@@ -1237,6 +1237,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: DateTime.getCurrentYear,
             };
             template = template(data);
             subject = subject(data);
@@ -1307,6 +1308,172 @@ const _this = {
         }
     },
 
+    sendIncidentAcknowledgedMail: async function({
+        incidentTime,
+        monitorName,
+        monitorUrl,
+        incidentId,
+        reason,
+        view_url,
+        method,
+        componentName,
+        email,
+        userId,
+        firstName,
+        projectId,
+        resolveUrl,
+        accessToken,
+        incidentType,
+        projectName,
+        acknowledgeTime,
+        length,
+    }) {
+        let mailOptions = {};
+        try {
+            const accountMail = await _this.getProjectSmtpSettings(projectId);
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: email,
+                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
+                template: 'incident_acknowledged',
+                context: {
+                    homeURL: global.homeHost,
+                    incidentTime: incidentTime,
+                    monitorName: monitorName,
+                    length,
+                    acknowledgeTime,
+                    monitorUrl,
+                    incidentId,
+                    reason,
+                    view_url,
+                    method,
+                    componentName,
+                    accessToken,
+                    firstName,
+                    userId,
+                    projectId,
+                    resolve_url: resolveUrl,
+                    incidentType,
+                    projectName,
+                    dashboardURL: global.dashboardHost,
+                },
+            };
+            const mailer = await _this.createMailer(accountMail);
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendIncidentAcknowledgedMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+            });
+            throw error;
+        }
+    },
+
+    sendIncidentResolvedMail: async function({
+        incidentTime,
+        monitorName,
+        monitorUrl,
+        incidentId,
+        reason,
+        view_url,
+        method,
+        componentName,
+        email,
+        userId,
+        firstName,
+        projectId,
+        accessToken,
+        incidentType,
+        projectName,
+        resolveTime,
+        length,
+    }) {
+        let mailOptions = {};
+        try {
+            const accountMail = await _this.getProjectSmtpSettings(projectId);
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: email,
+                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
+                template: 'incident_resolved',
+                context: {
+                    homeURL: global.homeHost,
+                    incidentTime: incidentTime,
+                    monitorName: monitorName,
+                    length,
+                    resolveTime,
+                    monitorUrl,
+                    incidentId,
+                    reason,
+                    view_url,
+                    method,
+                    componentName,
+                    accessToken,
+                    firstName,
+                    userId,
+                    projectId,
+                    incidentType,
+                    projectName,
+                    dashboardURL: global.dashboardHost,
+                },
+            };
+            const mailer = await _this.createMailer(accountMail);
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                });
+                return;
+            }
+
+            const info = await mailer.sendMail(mailOptions);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Success',
+            });
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendIncidentResolvedMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+            });
+            throw error;
+        }
+    },
+
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
      * @param {string} monitorName Name of monitor with incident.
@@ -1347,6 +1514,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: DateTime.getCurrentYear,
             };
             template = template(data);
             subject = subject(data);
@@ -1541,6 +1709,7 @@ const _this = {
                 incidentType: incident.incidentType,
                 componentName,
                 statusPageUrl,
+                year: DateTime.getCurrentYear,
             };
             template = template(data);
             subject = subject(data);

@@ -16,7 +16,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: '#F968BC',
                             borderRadius: '50%',
@@ -45,7 +45,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: '#488CE0',
                             borderRadius: '50%',
@@ -65,6 +65,7 @@ function ErrorEventDevice({ errorEvent }) {
                             {' '}
                             {errorEventDetails &&
                                 errorEventDetails.device &&
+                                errorEventDetails.device.browser &&
                                 errorEventDetails.device.browser.name}{' '}
                         </p>
                         <p>
@@ -74,6 +75,7 @@ function ErrorEventDevice({ errorEvent }) {
                                 {' '}
                                 {errorEventDetails &&
                                     errorEventDetails.device &&
+                                    errorEventDetails.device.browser &&
                                     errorEventDetails.device.browser.version}
                             </span>{' '}
                         </p>
@@ -82,7 +84,7 @@ function ErrorEventDevice({ errorEvent }) {
                 <div className="Flex-flex">
                     <div
                         style={{
-                            height: '100%',
+                            height: '50px',
                             width: '50px',
                             backgroundColor: 'grey',
                             borderRadius: '50%',
@@ -102,6 +104,7 @@ function ErrorEventDevice({ errorEvent }) {
                         <p>
                             {errorEventDetails &&
                                 errorEventDetails.device &&
+                                errorEventDetails.device.device &&
                                 errorEventDetails.device.device.join(' ')}
                         </p>
                     </div>
