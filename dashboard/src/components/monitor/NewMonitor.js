@@ -1214,7 +1214,7 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
-                                                    if={this.props.incidentSlas.length > 0}
+                                                    if={this.props.monitorSlas.length > 0}
                                                 >
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
