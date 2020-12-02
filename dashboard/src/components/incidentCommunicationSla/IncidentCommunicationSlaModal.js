@@ -41,6 +41,7 @@ function validate(values) {
 class IncidentCommunicationSlaModal extends React.Component {
     state = {
         setCustom: false,
+        durationLabel: '60',
     };
 
     componentDidMount() {
@@ -105,7 +106,6 @@ class IncidentCommunicationSlaModal extends React.Component {
             createIncidentSlaModalId,
         } = this.props;
         const { setCustom } = this.state;
-
         return (
             <div
                 className="ModalLayer-contents"
@@ -270,10 +270,36 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                                 setCustom: true,
                                                                             }
                                                                         );
+                                                                    value !==
+                                                                        'custom' &&
+                                                                        this.setState(
+                                                                            {
+                                                                                
+                                                                            }
+                                                                        );
                                                                 }}
                                                             />
                                                         )}
                                                     </div>
+                                                    <p className="bs-Fieldset-explanation">
+                                                        <span>
+                                                            Make an SLA policy
+                                                            to update an
+                                                            incident status
+                                                            every{' '}
+                                                            {this.state
+                                                                .durationLabel ===
+                                                            '60'
+                                                                ? '1'
+                                                                : this.state
+                                                                      .durationLabel}{' '}
+                                                            {this.state
+                                                                .durationLabel ===
+                                                            '60'
+                                                                ? 'hour'
+                                                                : 'minutes.'}
+                                                        </span>
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
