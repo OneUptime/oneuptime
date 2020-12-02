@@ -177,7 +177,7 @@ class Incident extends React.Component {
             tabIndex: index,
         });
         if (index === 2) {
-            this.fetchAllIncidentData();
+           // this.fetchAllIncidentData();
         }
     };
 
