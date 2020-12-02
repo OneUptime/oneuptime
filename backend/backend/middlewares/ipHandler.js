@@ -1,6 +1,7 @@
 const StatusPageService = require('../services/statusPageService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('./api');
+const ipaddr = require('ipaddr.js');
 
 const _this = {
     ipWhitelist: async function(req, res, next) {
@@ -25,14 +26,20 @@ const _this = {
         if (!clientIp) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'Client does not have an IP',
+                message: 'You are not allowed to view this page',
             });
         }
 
         clientIp = clientIp.trim();
-        const ipFound = ipWhitelist.some(ip => clientIp === ip);
-        //TODO:
-        // handle ip ranges eg: if client's ip fall within the ip range
+        const ipFound = ipWhitelist.some(ip => {
+            if (ip.indexOf('-') !== -1) {
+                const ipRange = ip.split('-').map(ip => ip.trim());
+                return _this.inRange(clientIp, ipRange);
+            }
+
+            return _this.check_single_cidr(clientIp, ip);
+        });
+
         if (ipFound) {
             return next();
         }
@@ -42,6 +49,7 @@ const _this = {
             message: 'You are not allowed to view this page',
         });
     },
+
     /**
      * @description Gets the ip of the client
      * @param {Object} req Object made available by express
@@ -60,6 +68,57 @@ const _this = {
         ip = ip.split(',')[0];
         ip = ip.split(':').slice(-1); //in case the ip returned in a format: "::ffff:146.xxx.xxx.xxx"
         return ip;
+    },
+
+    // https://www.npmjs.com/package/ip-range-check
+    check_single_cidr: function(addr, cidr) {
+        try {
+            const parsed_addr = ipaddr.process(addr);
+            if (cidr.indexOf('/') === -1) {
+                // handle case when ip is not CIDR
+                const parsed_cidr_as_ip = ipaddr.process(cidr);
+                if (
+                    parsed_addr.kind() === 'ipv6' &&
+                    parsed_cidr_as_ip.kind() === 'ipv6'
+                ) {
+                    return (
+                        parsed_addr.toNormalizedString() ===
+                        parsed_cidr_as_ip.toNormalizedString()
+                    );
+                }
+                return parsed_addr.toString() == parsed_cidr_as_ip.toString();
+            } else {
+                const parsed_range = ipaddr.parseCIDR(cidr);
+                return parsed_addr.match(parsed_range);
+            }
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
+     * @description converts an ip to a normal number, for comparison purposes
+     * @param {String} ip a string container an ip address
+     */
+    IPtoNum: function(ip) {
+        return Number(
+            ip
+                .split('.')
+                .map(d => ('000' + d).substr(-3))
+                .join('')
+        );
+    },
+
+    inRange: function(ip, range) {
+        const min = _this.IPtoNum(range[0]);
+        const max = _this.IPtoNum(range[1]);
+        ip = _this.IPtoNum(ip);
+
+        if (isNaN(min) || isNaN(max) || isNaN(ip)) {
+            return false;
+        }
+
+        return min <= ip && max >= ip;
     },
 };
 
