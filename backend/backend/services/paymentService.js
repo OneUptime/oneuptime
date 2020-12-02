@@ -1,8 +1,8 @@
 module.exports = {
     /**
      * rechargest the project with the amount set in the project's alert options
-     * @param {*} userId
-     * @param {*} project
+     * @param {*} userId current user id
+     * @param {*} project project to add blance to
      * @returns {boolean} whether the balance is recharged to the project
      */
     rechargeProjectBalance: async function(userId, project) {
@@ -12,10 +12,10 @@ module.exports = {
             ? project.alertOptions.rechargeToBalance
             : null;
         if (rechargeAmount) {
-            balanceRecharged = await this.addBalance(
+            balanceRecharged = await StripeService.addBalance(
                 userId,
                 rechargeAmount,
-                project._id
+                project._id.toString()
             );
 
             return balanceRecharged;
