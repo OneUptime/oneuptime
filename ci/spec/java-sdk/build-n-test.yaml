@@ -13,7 +13,7 @@ build_n_test_java-sdk:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
-        - sudo docker run --env-file ./backend/.env -e NODE_ENV=staging -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker run --env-file ./backend/.env  -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - sudo apt-get install -y maven
         - sudo apt-get remove -y --purge openjdk* java-common default-jdk
