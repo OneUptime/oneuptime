@@ -559,82 +559,6 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </div>
                                                 <ShouldRender
-                                                    if={this.props.incidentSlas.length > 0}
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Monitor SLA
-                                                        </label>
-
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorSla"
-                                                                    id="monitorSla"
-                                                                    placeholder="Monitor SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Monitor SLA',
-                                                                        },
-                                                                        ...this.props.monitorSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />
-                                                               </span>
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={this.props.incidentSlas.length > 0}
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Incident Communication SLA
-                                                        </label>
-
-                                                        <div className="bs-Fieldset-fields">
-                                                            <span className="flex">
-                                                                <Field
-                                                                    className="db-select-nw"
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="incidentCommunicationSla"
-                                                                    id="incidentCommunicationSla"
-                                                                    placeholder="Incident Communication SLA"
-                                                                    disabled={
-                                                                        requesting
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Incident Communication SLA',
-                                                                        },
-                                                                        ...this.props.incidentSlas.map(sla => ({
-                                                                            value: sla._id,
-                                                                            label: sla.name,
-                                                                        }))
-                                                                    ]}
-                                                                />
-                                                               </span>
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
                                                     if={
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
@@ -1286,6 +1210,82 @@ class NewMonitor extends Component {
                                                                         : []),
                                                                 ]}
                                                             />
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.incidentSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Monitor SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="monitorSla"
+                                                                    id="monitorSla"
+                                                                    placeholder="Monitor SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Monitor SLA',
+                                                                        },
+                                                                        ...this.props.monitorSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                               </span>
+                                                        </div>
+                                                    </div>
+                                                </ShouldRender>
+                                                <ShouldRender
+                                                    if={this.props.incidentSlas.length > 0}
+                                                >
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Incident Communication SLA
+                                                        </label>
+
+                                                        <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="incidentCommunicationSla"
+                                                                    id="incidentCommunicationSla"
+                                                                    placeholder="Incident Communication SLA"
+                                                                    disabled={
+                                                                        requesting
+                                                                    }
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select Incident Communication SLA',
+                                                                        },
+                                                                        ...this.props.incidentSlas.map(sla => ({
+                                                                            value: sla._id,
+                                                                            label: sla.name,
+                                                                        }))
+                                                                    ]}
+                                                                />
+                                                               </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
