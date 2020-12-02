@@ -46,7 +46,7 @@ class ErrorEventIssueMember extends Component {
     render() {
         const { isViewAssigned } = this.state;
         const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
-        console.log(errorTrackerIssueMembers);
+
         return (
             <div
                 className="ModalLayer-contents"
@@ -538,5 +538,6 @@ ErrorEventIssueMember.propTypes = {
     data: PropTypes.object,
     closeThisDialog: PropTypes.func,
     deleting: PropTypes.bool,
+    errorTrackerIssueMembers: PropTypes.object,
 };
 export default connect(mapStateToProp)(ErrorEventIssueMember);

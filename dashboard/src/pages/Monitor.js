@@ -344,7 +344,6 @@ class DashboardView extends Component {
                                                                         .componentId
                                                                 }
                                                             />
-                                                           
                                                         </RenderIfSubProjectAdmin>
                                                         <RenderIfSubProjectMember>
                                                             <ShouldRender
@@ -430,7 +429,7 @@ class DashboardView extends Component {
                                                         }
                                                     >
                                                         <LoadingState />
-                                                    </ShouldRender>                                                
+                                                    </ShouldRender>
                                                 </span>
                                             </div>
                                         </div>
