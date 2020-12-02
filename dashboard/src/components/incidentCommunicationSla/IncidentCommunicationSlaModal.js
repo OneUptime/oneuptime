@@ -187,7 +187,10 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                     }
                                                 >
                                                     <span>
-                                                        Duration (minutes)
+                                                        Duration{' '}
+                                                        {this.state.setCustom
+                                                            ? '(minutes)'
+                                                            : ''}
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
