@@ -231,11 +231,18 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                     event,
                                                                     value
                                                                 ) => {
-                                                                    this.setState(
-                                                                        {
-                                                                            customDurationTime: value,
-                                                                        }
-                                                                    );
+                                                                    value
+                                                                        ? this.setState(
+                                                                              {
+                                                                                  customDurationTime: value,
+                                                                              }
+                                                                          )
+                                                                        : this.setState(
+                                                                              {
+                                                                                  customDurationTime:
+                                                                                      'X',
+                                                                              }
+                                                                          );
                                                                 }}
                                                             />
                                                         )}
