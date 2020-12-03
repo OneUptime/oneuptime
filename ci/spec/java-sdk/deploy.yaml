@@ -27,7 +27,7 @@ deploy_staging_java-sdk:
         - mvn clean deploy
         - git init
         - git add .
-        - git commit -m "staginng deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
+        - git commit -m "staging deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git staging --force
         - cd ..
@@ -62,7 +62,7 @@ deploy_production_java-sdk:
         - cd java-sdk
         - git status
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - git checkout -f master
+        # - git checkout -f master
         - mvn versions:set -DnewVersion="3.0.$CI_PIPELINE_IID"
         - mvn clean deploy -P release
         - git init
