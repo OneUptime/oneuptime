@@ -7,6 +7,12 @@ const initialState = {
         error: null,
         sla: [],
     },
+    defaultMonitorSla: {
+        requesting: false,
+        success: false,
+        error: null,
+        sla: null,
+    },
     monitorSlas: {
         requesting: false,
         success: false,
@@ -123,6 +129,39 @@ export default function monitorSla(state = initialState, action) {
                 ...state,
                 monitorSlas: {
                     ...state.monitorSlas,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case types.FETCH_DEFAULT_MONITOR_SLA_REQUEST:
+            return {
+                ...state,
+                defaultMonitorSla: {
+                    ...state.defaultMonitorSla,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS:
+            return {
+                ...state,
+                defaultMonitorSla: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    sla: action.payload,
+                },
+            };
+
+        case types.FETCH_DEFAULT_MONITOR_SLA_FAILURE:
+            return {
+                ...state,
+                defaultMonitorSla: {
+                    ...state.defaultMonitorSla,
                     requesting: false,
                     success: false,
                     error: action.payload,
