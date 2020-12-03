@@ -733,4 +733,43 @@ router.delete(
     }
 );
 
+router.get(
+    '/:projectId/monitorSlaBreaches',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId } = req.params;
+            const monitors = await MonitorService.findBy({
+                projectId,
+                breachedMonitorSla: true,
+            });
+            return sendItemResponse(req, res, monitors);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/closeSla/:slaId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId, slaId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const monitor = await MonitorService.closeBreachedMonitorSla(
+                projectId,
+                slaId,
+                userId
+            );
+
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;
