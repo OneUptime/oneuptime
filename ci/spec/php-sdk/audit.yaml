@@ -1,10 +1,10 @@
-## LOG PHP
-audit_log-php:
+## PHP SDK
+audit_php-sdk:
     stage: BuildAndTest
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh audit_log-php log-php`
+        - export next_stage=`./ci/scripts/checkhash.sh audit_php-sdk php-sdk`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo lsb_release -a
@@ -14,13 +14,13 @@ audit_log-php:
         - sudo add-apt-repository -y ppa:ondrej/php
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
         - sudo apt-get install -y composer
-        - cd log-php
+        - cd php-sdk
         - composer install
         - composer lint
         - composer analyze
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh audit_log-php log-php
+        - ./ci/scripts/storehash.sh audit_php-sdk php-sdk
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     only:
