@@ -42,6 +42,7 @@ class IncidentCommunicationSlaModal extends React.Component {
     state = {
         setCustom: false,
         durationHelpTextTime: '60',
+        customDurationTime: 'X',
     };
 
     componentDidMount() {
@@ -226,6 +227,16 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
+                                                                onChange={(
+                                                                    event,
+                                                                    value
+                                                                ) => {
+                                                                    this.setState(
+                                                                        {
+                                                                            customDurationTime: value,
+                                                                        }
+                                                                    );
+                                                                }}
                                                             />
                                                         )}
                                                         {!setCustom && (
@@ -296,23 +307,37 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                         )}
                                                     </div>
                                                     <p className="bs-Fieldset-explanation">
-                                                        <span>
-                                                            Make an SLA policy
-                                                            to update an
-                                                            incident status
-                                                            every{' '}
-                                                            {this.state
-                                                                .durationHelpTextTime ===
-                                                            '60'
-                                                                ? '1'
-                                                                : this.state
-                                                                      .durationHelpTextTime}{' '}
-                                                            {this.state
-                                                                .durationHelpTextTime ===
-                                                            '60'
-                                                                ? 'hour'
-                                                                : 'minutes.'}
-                                                        </span>
+                                                        {!setCustom ? (
+                                                            <span>
+                                                                Make an SLA
+                                                                policy to update
+                                                                an incident
+                                                                status every{' '}
+                                                                {this.state
+                                                                    .durationHelpTextTime ===
+                                                                '60'
+                                                                    ? '1'
+                                                                    : this.state
+                                                                          .durationHelpTextTime}{' '}
+                                                                {this.state
+                                                                    .durationHelpTextTime ===
+                                                                '60'
+                                                                    ? 'hour'
+                                                                    : 'minutes.'}
+                                                            </span>
+                                                        ) : (
+                                                            <span>
+                                                                Make an SLA
+                                                                policy to update
+                                                                an incident
+                                                                status every{' '}
+                                                                {
+                                                                    this.state
+                                                                        .customDurationTime
+                                                                }{' '}
+                                                                {'minutes.'}
+                                                            </span>
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
