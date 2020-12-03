@@ -37,7 +37,6 @@ deploy_staging_java-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-library-renaming
     environment:
         name: staging
 
@@ -76,6 +75,5 @@ deploy_production_java-sdk:
         refs:
             - release
             - hotfix-release
-            - feature-library-renaming
     environment:
         name: production
