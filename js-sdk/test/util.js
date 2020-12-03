@@ -31,3 +31,10 @@ export function generateRandomBusinessEmail() {
         .toString(36)
         .substring(5)}.com`;
 }
+export function generateSecondRandomBusinessEmail() {
+    return `${Math.random()
+        .toString(26)
+        .substring(7)}@${Math.random()
+        .toString(36)
+        .substring(5)}.com`;
+}
