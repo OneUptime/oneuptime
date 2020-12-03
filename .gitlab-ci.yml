@@ -109,18 +109,18 @@ include:
   - '/ci/spec/smoke-tests/staging.yaml'
   - '/ci/spec/smoke-tests/production.yaml'
 
-  # LOG-JS
-  - '/ci/spec/log-js/audit.yaml'
-  - '/ci/spec/log-js/build-n-test.yaml'
-  - '/ci/spec/log-js/deploy.yaml'
+  # JS-SDK
+  - '/ci/spec/js-sdk/audit.yaml'
+  - '/ci/spec/js-sdk/build-n-test.yaml'
+  - '/ci/spec/js-sdk/deploy.yaml'
 
-  # LOG-PHP
-  - '/ci/spec/log-php/audit.yaml'
-  - '/ci/spec/log-php/build-n-test.yaml'
-  - '/ci/spec/log-php/deploy.yaml'
+  # PHP-SDK
+  - '/ci/spec/php-sdk/audit.yaml'
+  - '/ci/spec/php-sdk/build-n-test.yaml'
+  - '/ci/spec/php-sdk/deploy.yaml'
 
-  # LOG-JAVA
-  - '/ci/spec/log-java/audit.yaml'
-  - '/ci/spec/log-java/build-n-test.yaml'
-  - '/ci/spec/log-java/deploy.yaml'
+  # JAVA-SDK
+  - '/ci/spec/java-sdk/audit.yaml'
+  - '/ci/spec/java-sdk/build-n-test.yaml'
+  - '/ci/spec/java-sdk/deploy.yaml'
 

@@ -10,7 +10,7 @@ Via Composer
 
 ```
 $ cd project
-$ composer require fyipe/log-php
+$ composer require fyipe/sdk
 ```
 
 <a name="module_api"></a>
