@@ -570,6 +570,7 @@ class NewMonitor extends Component {
                                                             Resource Category
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                            <span className="flex">
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -602,7 +603,15 @@ class NewMonitor extends Component {
                                                                         : []),
                                                                 ]}
                                                             />
-                                                        </div>
+                                                            <Tooltip title="Resource Category">
+                                                                <div>
+                                                                    <p>
+                                                                        Resource Categories lets you group resources by categories on Status Page.
+                                                                    </p>
+                                                                </div>
+                                                            </Tooltip>
+                                                            </span>
+                                                        </div>                                                        
                                                     </div>
                                                 </ShouldRender>
                                                 <ShouldRender
@@ -1174,6 +1183,7 @@ class NewMonitor extends Component {
                                                             Call Schedule
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
+                                                            <span class="flex" >
                                                             <Field
                                                                 className="db-select-nw"
                                                                 component={
@@ -1210,6 +1220,14 @@ class NewMonitor extends Component {
                                                                         : []),
                                                                 ]}
                                                             />
+                                                            <Tooltip title="Call Schedule">
+                                                                <div>
+                                                                    <p>
+                                                                        Call Schedules let's you connect your team members to specific monitors, so only on-duty members who are responsible for certain monitors are alerted when an incident is created.
+                                                                    </p>
+                                                                </div>
+                                                            </Tooltip>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1247,7 +1265,14 @@ class NewMonitor extends Component {
                                                                         }))
                                                                     ]}
                                                                 />
-                                                               </span>
+                                                                <Tooltip title="Monitor SLA">
+                                                                <div>
+                                                                    <p>
+                                                                        SLA is used to make sure your monitors provide a certain reliability of service. We’ll alert your team when a particular monitor is about to breach it’s SLA.
+                                                                    </p>
+                                                                </div>
+                                                                </Tooltip>
+                                                                </span>
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
@@ -1285,6 +1310,13 @@ class NewMonitor extends Component {
                                                                         }))
                                                                     ]}
                                                                 />
+                                                                <Tooltip title="Incident Communication SLA">
+                                                                <div>
+                                                                    <p>
+                                                                        Incident communication SLA is used to make sure you keep you customers updated every few minutes on an active incident. Your team will get an email reminder when you forget to update an incident status, this will help you to communicate with your customers on time and keep them updated.
+                                                                    </p>
+                                                                </div>
+                                                                </Tooltip>
                                                                </span>
                                                         </div>
                                                     </div>
