@@ -5,7 +5,7 @@ import { Spinner } from '../basic/Loader';
 
 function BreadCrumbs({ styles, showDeleteBtn, close, name }) {
     const [loading, setLoading] = useState(false);
-    const closeAllIncidence = async () => {
+    const closeAllIncidents = async () => {
         setLoading(true);
         await close();
         setLoading(false);
@@ -52,13 +52,13 @@ function BreadCrumbs({ styles, showDeleteBtn, close, name }) {
             </div>
             {showDeleteBtn && name === 'Home' && (
                 <div
-                    id="incidence-close-all-btn"
+                    id="incidents-close-all-btn"
                     style={{ height: 'fit-content' }}
-                    onClick={closeAllIncidence}
+                    onClick={closeAllIncidents}
                     className="bs-Button"
                 >
                     <span style={{ display: 'flex', alignItems: 'center' }}>
-                        Close all resolved incidence
+                        Close all Resolved Incidents
                         <span style={{ marginLeft: '5px' }}>
                             {loading && (
                                 <Spinner

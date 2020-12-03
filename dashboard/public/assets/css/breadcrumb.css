@@ -23,7 +23,7 @@
         flex-direction: column;
         align-items: flex-start;
     }
-    #incidence-close-all-btn{
+    #incidents-close-all-btn{
         margin-top: 10px;
     }
 }
