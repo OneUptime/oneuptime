@@ -484,7 +484,10 @@ router.post(
                         { _id: data.id },
                         updatedMessage
                     );
-                    if(data.incident_state === 'investigating') {
+                    const investigation = await IncidentMessageService.findOneBy({
+                        _id: data.id,
+                    });
+                    if (investigation.type === 'investigation') {
                         AlertService.sendInvestigationNoteToSubscriber(incident, data, "updated")
                     }
                 }
