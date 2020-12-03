@@ -255,12 +255,6 @@ class IncidentCommunicationSlaModal extends React.Component {
                                                                 options={[
                                                                     {
                                                                         value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select a Duration',
-                                                                    },
-                                                                    {
-                                                                        value:
                                                                             '15',
                                                                         label:
                                                                             '15 minutes',
