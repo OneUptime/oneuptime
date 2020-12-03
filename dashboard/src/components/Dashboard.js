@@ -195,7 +195,14 @@ export class DashboardApp extends Component {
 
                                     <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                            <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                                            <BreadCrumbs
+                                                styles="breadCrumbContainer Card-shadow--medium db-mb"
+                                                showDeleteBtn={
+                                                    this.props.showDeleteBtn
+                                                }
+                                                close={this.props.close}
+                                                name={this.props.name}
+                                            />
                                             <ShouldRender
                                                 if={
                                                     this.props.profile
@@ -353,6 +360,9 @@ DashboardApp.propTypes = {
     ready: PropTypes.func,
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
+    showDeleteBtn: PropTypes.bool,
+    close: PropTypes.func,
+    name: PropTypes.string,
 };
 
 const mapStateToProps = state => ({
