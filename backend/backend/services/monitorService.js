@@ -1272,6 +1272,27 @@ module.exports = {
 
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
+
+    closeBreachedMonitorSla: async function(projectId, slaId, userId) {
+        try {
+            const monitor = await MonitorModel.findOneAndUpdate(
+                {
+                    projectId,
+                    monitorSla: slaId,
+                    breachedMonitorSla: true,
+                    deleted: false,
+                },
+                {
+                    $push: { breachClosedBy: userId },
+                },
+                { new: true }
+            );
+            return monitor;
+        } catch (error) {
+            ErrorService.log('monitorService.closeBreachedMonitorSla', error);
+            throw error;
+        }
+    },
 };
 
 const MonitorModel = require('../models/monitor');
