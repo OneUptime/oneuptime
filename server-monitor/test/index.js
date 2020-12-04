@@ -136,7 +136,7 @@ describe('Server Monitor', function() {
 
             expect(job).to.be.an('object');
             expect(job).to.haveOwnProperty('message');
-            expect(job.message).to.equal('Project ID is not valid.');
+            expect(job.message).to.equal('Project Id is not valid');
             expect(stopJob).to.equal(undefined);
 
             done();
