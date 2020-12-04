@@ -12,7 +12,7 @@ const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, projectId, componentId, errorTracker;
+let token, userId, projectId, componentId, errorTracker, errorEvent;
 let sampleErrorEvent = {};
 
 describe('Error Tracker API', function() {
@@ -239,19 +239,81 @@ describe('Error Tracker API', function() {
     //             done();
     //         });
     // });
-    it('should request for tags for tracking an error event', function(done) {
+    // it('should request for timeline in array format for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     sampleErrorEvent.type = 'exception';
+    //     sampleErrorEvent.tags = [];
+    //     sampleErrorEvent.timeline = 'done';
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Timeline is to be of type Array.'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should request for exception for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     sampleErrorEvent.type = 'exception';
+    //     sampleErrorEvent.timeline = [];
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal('Exception is required.');
+    //             done();
+    //         });
+    // });
+    // it('should declare Error Tracker not existing for an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     sampleErrorEvent.type = 'exception';
+    //     sampleErrorEvent.timeline = [];
+    //     sampleErrorEvent.tags = [];
+    //     sampleErrorEvent.exception = {};
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Error Tracker does not exist.'
+    //             );
+    //             done();
+    //         });
+    // });
+    it('should create an error event and set a fingerprint hash and issueId', function(done) {
         const authorization = `Basic ${token}`;
         sampleErrorEvent.eventId = 'samplId';
         sampleErrorEvent.fingerprint = ['fingerprint'];
         sampleErrorEvent.type = 'exception';
-        sampleErrorEvent.tags = 'test';
+        sampleErrorEvent.timeline = [];
+        sampleErrorEvent.tags = [];
+        sampleErrorEvent.exception = {};
+        sampleErrorEvent.errorTrackerKey = errorTracker.key;
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
             .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Tags is required.');
+                expect(res).to.have.status(200);
+                errorEvent = res.body;
+                expect(errorEvent.type).to.be.equal(sampleErrorEvent.type);
+                expect(errorEvent).to.have.property('fingerprintHash');
+                expect(errorEvent).to.have.property('issueId');
+                expect(errorEvent.errorTrackerId).to.be.equal(errorTracker._id);
                 done();
             });
     });
