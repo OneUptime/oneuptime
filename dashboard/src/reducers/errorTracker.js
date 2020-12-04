@@ -662,15 +662,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 },
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
-                    [action.payload.issueId]: {
-                        ...state.errorTrackerIssueMembers[
-                            action.payload.issueId
-                        ],
-                        [action.payload.memberId]: {
-                            requesting: false,
-                            error: null,
-                        },
-                    },
+                    [action.payload.issueId]: {},
                 },
             });
         default:

@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import Dashboard from '../components/Dashboard';
 import { loadPage } from '../actions/page';
+import { closeIncident } from '../actions/incident';
 import { logEvent } from '../analytics';
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
 import { IS_SAAS_SERVICE } from '../config';
@@ -86,11 +87,24 @@ class Home extends Component {
         return componentIssueslist;
     };
 
+    closeAllIncidents = async () => {
+        const incidents = this.props.incidents;
+        for (const incident of incidents) {
+            if (incident.resolved) {
+                this.props.closeIncident(incident.projectId, incident._id);
+            }
+        }
+    };
     render() {
         const {
             escalations,
             location: { pathname },
         } = this.props;
+
+        const showDeleteBtn = this.props.incidents.some(
+            incident => incident.resolved
+        );
+
         const userSchedules = _.flattenDeep(
             escalations.map(escalation => {
                 return escalation.teams
@@ -247,7 +261,11 @@ class Home extends Component {
         }
 
         return (
-            <Dashboard>
+            <Dashboard
+                showDeleteBtn={showDeleteBtn}
+                close={this.closeAllIncidents}
+                name="Home"
+            >
                 <Fade>
                     <BreadCrumbItem route={pathname} name="Home" />
                     <ShouldRender
@@ -473,6 +491,7 @@ Home.propTypes = {
     fetchUserSchedule: PropTypes.func,
     escalation: PropTypes.object,
     escalations: PropTypes.array,
+    closeIncident: PropTypes.func,
     incidents: PropTypes.oneOfType([
         PropTypes.array,
         PropTypes.oneOf([null, undefined]),
@@ -549,6 +568,7 @@ const mapDispatchToProps = dispatch => {
             subProjectTeamLoading,
             fetchSubProjectOngoingScheduledEvents,
             getSmtpConfig,
+            closeIncident,
         },
         dispatch
     );

@@ -219,20 +219,6 @@ function ErrorTrackerIssue({
                     height: '1px',
                 }}
             >
-                <div className="db-ListViewItem-link">
-                    <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8 Flex-flex Flex-justifyContent--center Flex-alignItems--center">
-                        <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                            0
-                        </span>
-                    </div>
-                </div>
-            </td>
-            <td
-                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                style={{
-                    height: '1px',
-                }}
-            >
                 <div
                     className="db-ListViewItem-link"
                     onClick={() => openEventMemberModal(errorTrackerIssue)}

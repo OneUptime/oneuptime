@@ -1,4 +1,4 @@
-[![npm](https://img.shields.io/npm/v/fyipe-log-js)](https://www.npmjs.com/package/fyipe-log-js)
+[![npm](https://img.shields.io/npm/v/fyipe)](https://www.npmjs.com/package/fyipe)
 
 # Fyipe Application Logger
 
@@ -12,7 +12,7 @@ You can install to use in your project:
 
 ```
 $ cd project
-$ npm install fyipe-log-js
+$ npm install fyipe
 ```
 
 <a name="module_api"></a>
@@ -22,19 +22,14 @@ $ npm install fyipe-log-js
 ### In a Node.js Project
 
 ```javascript
-import { FyipeLogger } from 'fyipe-log-js';
+import { FyipeLogger } from 'fyipe';
 
 // constructor
 
-// set up tracking configurations
-const options = {
-    maxTimeline: 10,
-};
 const logger = new FyipeLogger(
     'API_URL', // https://fyipe.com/api
     'APPLICATION_LOG_ID',
-    'APPLICATION_LOG_KEY',
-    options // Optional Field
+    'APPLICATION_LOG_KEY'
 );
 
 // Sending a string log to the server
@@ -65,7 +60,7 @@ logger.log(item, tag);
 ### In the Browser
 
 ```javascript
-<script src="https://unpkg.com/fyipe-log-js"></script>
+<script src="https://unpkg.com/fyipe"></script>
 <script>
     function logError() {
         // constructor
@@ -91,7 +86,7 @@ logger.log(item, tag);
 ### Error Tracking APIs
 
 ```javascript
-import { FyipeTracker } from 'fyipe-log-js';
+import { FyipeTracker } from 'fyipe';
 
 // constructor
 

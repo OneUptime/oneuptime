@@ -77,7 +77,7 @@ class SlackItem extends React.Component {
                     </td>
                 )}
 
-                <td className="Table-cell Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
+                <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
                     <div
                         className="db-ListViewItem-cellContent Box-root Padding-all--12 Flex-alignContent--flexEnd"
                         style={{ marginLeft: '-5px' }}

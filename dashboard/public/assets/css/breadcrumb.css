@@ -18,3 +18,12 @@
 .db-mb {
     margin-bottom: 15px;
 }
+@media only screen and (max-width: 768px){
+    .mobile-flex-direction-breadcrumb{
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    #incidents-close-all-btn{
+        margin-top: 10px;
+    }
+}
