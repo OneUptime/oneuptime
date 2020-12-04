@@ -13,6 +13,7 @@ const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
 let token, userId, projectId, componentId, errorTracker;
+let sampleErrorEvent = {};
 
 describe('Error Tracker API', function() {
     this.timeout(80000);
@@ -87,7 +88,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    it('should create ann error tracker', function(done) {
+    it('should create an error tracker', function(done) {
         const authorization = `Basic ${token}`;
         request
             .post(`/error-tracker/${projectId}/${componentId}/create`)
@@ -102,79 +103,170 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    it('should return a list of error trackers under component', function(done) {
+    // it('should return a list of error trackers under component', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .get(`/error-tracker/${projectId}/${componentId}`)
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body).to.be.an('array');
+    //             done();
+    //         });
+    // });
+    // it('should not return a list of error trackers under wrong component', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .get(`/error-tracker/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Component does not exist.'
+    //             );
+    //             done();
+    //         });
+    // });
+    // // reset api key
+    // it('should reset error tracker key', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     const currentKey = errorTracker.key;
+    //     request
+    //         .post(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/reset-key`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
+    //             expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
+    //             errorTracker.key = res.body.key; // update the new key.
+    //             done();
+    //         });
+    // });
+    // // edit error tracker details
+    // it('should update the current error tracker name', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     const appName = 'Python API App';
+    //     request
+    //         .put(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .send({ name: appName })
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             const updatedErrorTracker = res.body;
+    //             expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
+    //             expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // same key
+    //             expect(updatedErrorTracker.name).to.be.equal(appName); // change of name
+    //             errorTracker = updatedErrorTracker; // update the error track
+    //             done();
+    //         });
+    // });
+    // should request for missing fields an error Event
+    // it('should request for eventId for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal('Event ID is required.');
+    //             done();
+    //         });
+    // });
+    // it('should request for fingerprint for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Fingerprint is required.'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should request for fingerprint as an array for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = 'fingerprint';
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Fingerprint is to be of type Array.'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should request for error event type for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal(
+    //                 'Error Event Type must be of the allowed types'
+    //             );
+    //             done();
+    //         });
+    // });
+    // it('should request for tags for tracking an error event', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     sampleErrorEvent.eventId = 'samplId';
+    //     sampleErrorEvent.fingerprint = ['fingerprint'];
+    //     sampleErrorEvent.type = 'exception';
+    //     request
+    //         .post(`/error-tracker/${errorTracker._id}/track`)
+    //         .set('Authorization', authorization)
+    //         .send(sampleErrorEvent)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(400);
+    //             expect(res.body.message).to.be.equal('Tags is required.');
+    //             done();
+    //         });
+    // });
+    it('should request for tags for tracking an error event', function(done) {
         const authorization = `Basic ${token}`;
+        sampleErrorEvent.eventId = 'samplId';
+        sampleErrorEvent.fingerprint = ['fingerprint'];
+        sampleErrorEvent.type = 'exception';
+        sampleErrorEvent.tags = 'test';
         request
-            .get(`/error-tracker/${projectId}/${componentId}`)
+            .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
-                done();
-            });
-    });
-    it('should not return a list of error trackers under wrong component', function(done) {
-        const authorization = `Basic ${token}`;
-        request
-            .get(`/error-tracker/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
-            .set('Authorization', authorization)
+            .send(sampleErrorEvent)
             .end(function(err, res) {
                 expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Component does not exist.'
-                );
-                done();
-            });
-    });
-    // reset api key
-    it('should reset error tracker key', function(done) {
-        const authorization = `Basic ${token}`;
-        const currentKey = errorTracker.key;
-        request
-            .post(
-                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/reset-key`
-            )
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
-                expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
-                errorTracker.key = res.body.key; // update the new key.
-                done();
-            });
-    });
-    // edit error tracker details
-    it('should update the current error tracker name', function(done) {
-        const authorization = `Basic ${token}`;
-        const appName = 'Python API App';
-        request
-            .put(
-                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
-            )
-            .set('Authorization', authorization)
-            .send({ name: appName })
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                const updatedErrorTracker = res.body;
-                expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
-                expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // same key
-                expect(updatedErrorTracker.name).to.be.equal(appName); // change of name
-                errorTracker = updatedErrorTracker; // update the error track
+                expect(res.body.message).to.be.equal('Tags is required.');
                 done();
             });
     });
     // delete error tracker
-    it('should delete the error tracker', function(done) {
-        const authorization = `Basic ${token}`;
-        request
-            .delete(
-                `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
-            )
-            .set('Authorization', authorization)
-            .end(function(err, res) {
-                expect(res).to.have.status(200);
-                expect(res.body.deleted).to.be.equal(true);
-                done();
-            });
-    });
+    // it('should delete the error tracker', function(done) {
+    //     const authorization = `Basic ${token}`;
+    //     request
+    //         .delete(
+    //             `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
+    //         )
+    //         .set('Authorization', authorization)
+    //         .end(function(err, res) {
+    //             expect(res).to.have.status(200);
+    //             expect(res.body.deleted).to.be.equal(true);
+    //             done();
+    //         });
+    // });
 });
