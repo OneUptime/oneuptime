@@ -1,4 +1,4 @@
-// const ApiService = require('../utils/apiService');
+const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fs = require('fs');
 const util = require('util');
@@ -24,46 +24,43 @@ module.exports = {
                         port,
                         username,
                         privateKey: fs.readFileSync(identityFile, 'utf8'),
-                    }).then(async function() {
-                        let os;
-                        try {
-                            const {
-                                stdout: osLine,
-                                stderr,
-                            } = await ssh.execCommand('uname -a');
+                    })
+                        .then(async function() {
+                            let os;
+                            try {
+                                const {
+                                    stdout: osLine,
+                                    stderr,
+                                } = await ssh.execCommand('uname -a');
 
-                            if (stderr) throw stderr;
+                                if (stderr) throw stderr;
 
-                            os = osLine.split(' ')[0];
-                        } catch (e) {
-                            const { stdout: osLine } = await ssh.execCommand(
-                                'wmic os get name'
+                                os = osLine.split(' ')[0];
+                            } catch (e) {
+                                const {
+                                    stdout: osLine,
+                                } = await ssh.execCommand('wmic os get name');
+
+                                os = osLine.split(' ')[1];
+                            }
+
+                            const serverData = await execCommands(ssh, os);
+
+                            ssh.dispose();
+
+                            await ApiService.ping(monitor._id, {
+                                monitor,
+                                serverData,
+                                type: monitor.type,
+                            });
+                        })
+                        .catch(error => {
+                            ErrorService.log(
+                                'serverMonitors.run.ssh.connect',
+                                error
                             );
-
-                            os = osLine.split(' ')[1];
-                        }
-
-                        const data = await execCommands(ssh, os);
-                        // eslint-disable-next-line no-console
-                        console.log(data);
-                        ssh.dispose();
-
-                        // post(
-                        //     apiUrl,
-                        //     `monitor/${projectId}/log/${monitorId}`,
-                        //     data,
-                        //     apiKey,
-                        //     log => {
-                        //         logger.debug(log.data);
-                        //         logger.info(
-                        //             `${monitorId} - System Information uploaded`
-                        //         );
-                        //     }
-                        // );
-                    });
-                    // .catch(error => {
-                    //     logger.error(error);
-                    // });
+                            throw error;
+                        });
                 } else {
                     let os;
                     try {
@@ -84,23 +81,13 @@ module.exports = {
                             .map(line => line.split(' '))[1][1];
                     }
 
-                    const data = await execCommands(exec, os);
-                    // eslint-disable-next-line no-console
-                    console.log(data);
-                    // post(
-                    //     apiUrl,
-                    //     `monitor/${projectId}/log/${monitorId}`,
-                    //     data,
-                    //     apiKey,
-                    //     log => {
-                    //         logger.debug(log.data);
-                    //         logger.info(
-                    //             `${monitorId} - System Information uploaded`
-                    //         );
-                    //     }
-                    // ).catch(error => {
-                    //     logger.error(error);
-                    // });
+                    const serverData = await execCommands(exec, os);
+
+                    await ApiService.ping(monitor._id, {
+                        monitor,
+                        serverData,
+                        type: monitor.type,
+                    });
                 }
             }
         } catch (error) {
@@ -281,18 +268,18 @@ const execCommands = async (exec, os) => {
 
             cpuLoad = loadLines[1][2];
             avgCpuLoad = loadLines[0][3];
-            cpuCores = cpu;
+            cpuCores = cpu.replace('\n', '');
             memoryUsed =
                 (parseFloat(memLines[1]) - parseFloat(memLines[3])) *
                 1024 *
                 1024;
-            totalMemory = totalMem;
+            totalMemory = totalMem.replace('\n', '');
             swapUsed = swapLines[3] * 1024 * 1024;
             storageUsed = diskLines.storageUsed * 1024 * 1024 * 1024;
             totalStorage = diskLines.totalStorage * 1024 * 1024 * 1024;
             storageUsage = diskLines.storageUsage;
-            mainTemp = temp;
-            maxTemp = temp;
+            mainTemp = temp.replace('\n', '');
+            maxTemp = temp.replace('\n', '');
         } else if (os === 'Windows') {
             const { stdout: load } = await (isSSH
                 ? exec.execCommand(COMMAND.win.load)
