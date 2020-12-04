@@ -44,6 +44,8 @@ const program = require('commander');
 const Promise = require('promise');
 const { version } = require('../package.json');
 const { prompt } = require('inquirer');
+const { Monitor } = require('forever-monitor');
+const logger = require('../lib/logger');
 const { API_URL } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
@@ -60,9 +62,18 @@ program
         '-m, --monitor-id [monitorId]',
         'Use Monitor ID from monitor details'
     )
+    .option('-d, --daemon [daemon]', 'Run shell as a daemon')
+    .option('-A, --agentless [agentless]', 'Run shell as agentless')
+    .option('-H, --host [host]', 'Remote server host')
+    .option('-P, --port [port]', 'Remote server SSH port')
+    .option('-U, --username [username]', 'Remote server username')
+    .option(
+        '-i, --identity-file [identityFile]',
+        'Remote server private key file path'
+    )
     .parse(process.argv);
 
-/** The questions to get project id, api key and monitor id. */
+/** The questions to get project id, api url, api key and monitor id. */
 const questions = [
     {
         type: 'input',
@@ -81,12 +92,43 @@ const questions = [
         type: 'input',
         name: 'apiKey',
         message:
-            'What is your API key (You can find this by going to Project Settings > API)?',
+            'What is your API Key (You can find this by going to Project Settings > API)?',
     },
     {
         type: 'list',
         name: 'monitorId',
         message: 'What is your Monitor ID?',
+    },
+    {
+        type: 'confirm',
+        name: 'daemon',
+        message: 'Want to run as a daemon?',
+    },
+    {
+        type: 'confirm',
+        name: 'agentless',
+        message: 'Want to run as agentless?',
+    },
+    {
+        type: 'input',
+        name: 'host',
+        message: 'What is your remote server host?',
+    },
+    {
+        type: 'number',
+        name: 'port',
+        message: 'What is your remote server SSH port?',
+        default: 22,
+    },
+    {
+        type: 'input',
+        name: 'username',
+        message: 'What is your remote server username?',
+    },
+    {
+        type: 'input',
+        name: 'identityFile',
+        message: 'What is your remote server private key file path?',
     },
 ];
 
@@ -124,8 +166,15 @@ const checkParams = params => {
 const getParamValue = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
-            if (name === 'monitorId') {
+            if (
+                name === 'monitorId' ||
+                (['host', 'port', 'username', 'identityFile'].includes(name) &amp;&amp;
+                    (program['agentless'] === false ||
+                        program['agentless'] === undefined))
+            ) {
                 resolve(null);
+            } else if (name === 'daemon' || name === 'agentless') {
+                resolve(program[name] === true ? true : false);
             } else {
                 prompt(params.filter(param => param.name === name)).then(
                     values => {
@@ -141,35 +190,79 @@ const getParamValue = (params, name) => {
 
 /** Init server monitor cli. */
 checkParams(questions).then(values => {
-    const [projectId, apiUrl, apiKey, monitorId] = values;
-
-    serverMonitor({
+    const [
         projectId,
         apiUrl,
         apiKey,
-        monitorId:
-            monitorId ||
-            (data => {
-                return new Promise(resolve => {
-                    const question = questions.filter(
-                        param => param.name === 'monitorId'
-                    );
-                    question[0].choices = data.map(
-                        monitor =>
-                            `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
-                    );
+        monitorId,
+        daemon,
+        agentless,
+        host,
+        port,
+        username,
+        identityFIle,
+    ] = values;
 
-                    prompt(question).then(({ monitorId }) => {
-                        resolve(
-                            monitorId
-                                .replace(/\/|\(|\)$/gi, '')
-                                .split(' ')
-                                .pop()
+    if (projectId &amp;&amp; apiUrl &amp;&amp; apiKey &amp;&amp; monitorId &amp;&amp; daemon) {
+        process.argv.splice(process.argv.indexOf('-d'), 1);
+
+        const child = new Monitor(`${__dirname}/server-monitor.js`, {
+            uid: 'fsm',
+            silent: true,
+            args: process.argv,
+        });
+
+        child.on('restart', function() {
+            logger.warn('Fyipe Server Monitor restarted');
+        });
+
+        child.on('exit', function() {
+            logger.error('Fyipe Server Monitor exited');
+        });
+
+        child.start();
+
+        process.nextTick(() => {
+            process.exit();
+        });
+    } else {
+        serverMonitor({
+            projectId,
+            apiUrl,
+            apiKey,
+            monitorId:
+                monitorId ||
+                (data => {
+                    return new Promise(resolve => {
+                        const question = questions.filter(
+                            param => param.name === 'monitorId'
                         );
+                        question[0].choices = data.map(
+                            monitor =>
+                                `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
+                        );
+
+                        prompt(question).then(({ monitorId }) => {
+                            resolve(
+                                monitorId
+                                    .replace(/\/|\(|\)$/gi, '')
+                                    .split(' ')
+                                    .pop()
+                            );
+                        });
                     });
-                });
-            }),
-    }).start();
+                }),
+            agentless:
+                host &amp;&amp; port &amp;&amp; username &amp;&amp; identityFIle &amp;&amp; agentless
+                    ? {
+                          host,
+                          port,
+                          username,
+                          identityFIle,
+                      }
+                    : null,
+        }).start();
+    }
 });
 
 module.exports = {
@@ -192,7 +285,7 @@ module.exports = {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Sep 04 2020 11:57:48 GMT+0100 (West Africa Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Sun Nov 22 2020 14:57:45 GMT+0100 (West Africa Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

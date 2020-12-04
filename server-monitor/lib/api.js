@@ -14,13 +14,17 @@ dotenv.config();
 const Promise = require('promise');
 const cron = require('cron');
 const si = require('systeminformation');
-const { get, post } = require('./helpers');
+const fs = require('fs');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const { NodeSSH } = require('node-ssh');
+const { get, post, execCommands } = require('./helpers');
 const logger = require('./logger');
 const {
     onlineTestData,
     degradedTestData,
     offlineTestData,
-} = require('../lib/config');
+} = require('./config');
 
 /**
  * Get system information at interval and upload to server.
@@ -28,6 +32,7 @@ const {
  * @param {string} monitorId - The monitor id of the server monitor.
  * @param {string} apiUrl - The url of the api.
  * @param {string} apiKey - The api key of the project.
+ * @param {Object} agentless - The agentless config.
  * @param {string} interval - The interval of the cron job, must ba a valid cron format.
  * @return {Object} The ping server cron job.
  */
@@ -36,13 +41,14 @@ const ping = (
     monitorId,
     apiUrl,
     apiKey,
+    agentless,
     interval = '* * * * *',
     simulate,
     simulateData
 ) => {
     return new cron.CronJob(
         interval,
-        () => {
+        async () => {
             if (typeof simulateData !== 'object') simulateData = null;
 
             switch (simulate) {
@@ -101,55 +107,88 @@ const ping = (
                     }
                     break;
                 default:
-                    Promise.all([
-                        si.currentLoad(),
-                        si.mem(),
-                        si.fsSize(),
-                        si.cpuTemperature(),
-                        si.cpu(),
-                    ])
-                        .then(data => {
-                            const storage =
-                                data[2] && data[2].length > 0
-                                    ? data[2].filter(
-                                          partition =>
-                                              partition.size === data[2][0].size
-                                      )
-                                    : data[2];
-                            return {
-                                cpuLoad: data[0].currentload,
-                                avgCpuLoad: data[0].avgload * 100,
-                                cpuCores: data[4].physicalCores,
-                                memoryUsed: data[1].active,
-                                totalMemory: data[1].total,
-                                swapUsed: data[1].swapused,
-                                storageUsed:
-                                    storage && storage.length > 0
-                                        ? storage
-                                              .map(partition => partition.used)
-                                              .reduce(
-                                                  (used, partitionUsed) =>
-                                                      used + partitionUsed
-                                              )
-                                        : storage.used,
-                                totalStorage:
-                                    storage && storage.length > 0
-                                        ? storage[0].size
-                                        : storage.size,
-                                storageUsage:
-                                    storage && storage.length > 0
-                                        ? storage
-                                              .map(partition => partition.use)
-                                              .reduce(
-                                                  (use, partitionUse) =>
-                                                      use + partitionUse
-                                              )
-                                        : storage.use,
-                                mainTemp: data[3].main,
-                                maxTemp: data[3].max,
-                            };
-                        })
-                        .then(data => {
+                    if (agentless) {
+                        if (typeof agentless === 'object') {
+                            const {
+                                host,
+                                port,
+                                username,
+                                identityFile,
+                            } = agentless;
+                            const ssh = new NodeSSH();
+
+                            ssh.connect({
+                                host,
+                                port,
+                                username,
+                                privateKey: fs.readFileSync(
+                                    identityFile,
+                                    'utf8'
+                                ),
+                            })
+                                .then(async function() {
+                                    let os;
+                                    try {
+                                        const {
+                                            stdout: osLine,
+                                            stderr,
+                                        } = await ssh.execCommand('uname -a');
+
+                                        if (stderr) throw stderr;
+
+                                        os = osLine.split(' ')[0];
+                                    } catch (e) {
+                                        const {
+                                            stdout: osLine,
+                                        } = await ssh.execCommand(
+                                            'wmic os get name'
+                                        );
+
+                                        os = osLine.split(' ')[1];
+                                    }
+
+                                    const data = await execCommands(ssh, os);
+
+                                    ssh.dispose();
+
+                                    post(
+                                        apiUrl,
+                                        `monitor/${projectId}/log/${monitorId}`,
+                                        data,
+                                        apiKey,
+                                        log => {
+                                            logger.debug(log.data);
+                                            logger.info(
+                                                `${monitorId} - System Information uploaded`
+                                            );
+                                        }
+                                    );
+                                })
+                                .catch(error => {
+                                    logger.error(error);
+                                });
+                        } else {
+                            let os;
+                            try {
+                                const { stdout: osLine, stderr } = await exec(
+                                    'uname -a'
+                                );
+
+                                if (stderr) throw stderr;
+
+                                os = osLine.split(' ')[0];
+                            } catch (e) {
+                                const { stdout: osLine } = await exec(
+                                    'wmic os get name'
+                                );
+
+                                os = osLine
+                                    .split('\n')
+                                    .map(line => line.split(' '))[1][1];
+                            }
+
+                            const data = await execCommands(exec, os);
+
                             post(
                                 apiUrl,
                                 `monitor/${projectId}/log/${monitorId}`,
@@ -161,11 +200,83 @@ const ping = (
                                         `${monitorId} - System Information uploaded`
                                     );
                                 }
-                            );
-                        })
-                        .catch(error => {
-                            logger.error(error);
-                        });
+                            ).catch(error => {
+                                logger.error(error);
+                            });
+                        }
+                    } else {
+                        Promise.all([
+                            si.currentLoad(),
+                            si.mem(),
+                            si.fsSize(),
+                            si.cpuTemperature(),
+                            si.cpu(),
+                        ])
+                            .then(data => {
+                                const storage =
+                                    data[2] && data[2].length > 0
+                                        ? data[2].filter(
+                                              partition =>
+                                                  partition.size ===
+                                                  data[2][0].size
+                                          )
+                                        : data[2];
+                                return {
+                                    cpuLoad: data[0].currentload,
+                                    avgCpuLoad: data[0].avgload * 100,
+                                    cpuCores: data[4].physicalCores,
+                                    memoryUsed: data[1].active,
+                                    totalMemory: data[1].total,
+                                    swapUsed: data[1].swapused,
+                                    storageUsed:
+                                        storage && storage.length > 0
+                                            ? storage
+                                                  .map(
+                                                      partition =>
+                                                          partition.used
+                                                  )
+                                                  .reduce(
+                                                      (used, partitionUsed) =>
+                                                          used + partitionUsed
+                                                  )
+                                            : storage.used,
+                                    totalStorage:
+                                        storage && storage.length > 0
+                                            ? storage[0].size
+                                            : storage.size,
+                                    storageUsage:
+                                        storage && storage.length > 0
+                                            ? storage
+                                                  .map(
+                                                      partition => partition.use
+                                                  )
+                                                  .reduce(
+                                                      (use, partitionUse) =>
+                                                          use + partitionUse
+                                                  )
+                                            : storage.use,
+                                    mainTemp: data[3].main,
+                                    maxTemp: data[3].max,
+                                };
+                            })
+                            .then(data => {
+                                post(
+                                    apiUrl,
+                                    `monitor/${projectId}/log/${monitorId}`,
+                                    data,
+                                    apiKey,
+                                    log => {
+                                        logger.debug(log.data);
+                                        logger.info(
+                                            `${monitorId} - System Information uploaded`
+                                        );
+                                    }
+                                );
+                            })
+                            .catch(error => {
+                                logger.error(error);
+                            });
+                    }
             }
         },
         null,
@@ -183,13 +294,23 @@ const ping = (
  */
 module.exports = (config, apiUrl, apiKey, monitorId) => {
     let pingServer,
-        projectId = config;
+        projectId = config,
+        agentless,
+        interval,
+        timeout,
+        simulate,
+        simulateData;
 
     if (typeof config === 'object') {
         projectId = config.projectId;
         apiUrl = config.apiUrl;
         apiKey = config.apiKey;
         monitorId = config.monitorId;
+        agentless = config.agentless;
+        interval = config.interval;
+        timeout = config.timeout;
+        simulate = config.simulate;
+        simulateData = config.simulateData;
     }
 
     return {
@@ -207,7 +328,7 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                 return new Promise((resolve, reject) => {
                     const data = response.data;
 
-                    if (data !== null) {
+                    if (data && data !== null) {
                         if (id && typeof id === 'string') {
                             resolve(data._id);
                         } else {
@@ -239,31 +360,34 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                 });
             })
                 .then(monitorId => {
-                    if (monitorId) {
-                        logger.info('Starting Server Monitor...');
-                        pingServer = ping(
-                            projectId,
-                            monitorId,
-                            apiUrl,
-                            apiKey,
-                            config.interval,
-                            config.simulate,
-                            config.simulateData
-                        );
-                        pingServer.start();
+                    return new Promise((resolve, reject) => {
+                        if (monitorId) {
+                            logger.info('Starting Server Monitor...');
+                            pingServer = ping(
+                                projectId,
+                                monitorId,
+                                apiUrl,
+                                apiKey,
+                                agentless,
+                                interval,
+                                simulate,
+                                simulateData
+                            );
+                            pingServer.start();
 
-                        if (config.timeout) {
-                            setTimeout(() => {
-                                logger.info('Stopping Server Monitor...');
-                                pingServer.stop();
-                            }, config.timeout);
+                            if (timeout) {
+                                setTimeout(() => {
+                                    logger.info('Stopping Server Monitor...');
+                                    pingServer.stop();
+                                }, timeout);
+                            }
+
+                            resolve(pingServer);
+                        } else {
+                            logger.error('Server Monitor ID is required');
+                            reject(1);
                         }
-
-                        return pingServer;
-                    } else {
-                        logger.error('Server Monitor ID is required');
-                        throw new Error(1);
-                    }
+                    });
                 })
                 .catch(error => {
                     if (typeof error !== 'number') logger.error(error);

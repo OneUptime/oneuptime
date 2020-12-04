@@ -35,9 +35,18 @@ program
         'Use Monitor ID from monitor details'
     )
     .option('-d, --daemon [daemon]', 'Run shell as a daemon')
+    .option('-A, --agentless [agentless]', 'Run shell as agentless')
+    .option('-r, --remote [remote]', 'Run on remote server')
+    .option('-H, --host [host]', 'Remote server host')
+    .option('-P, --port [port]', 'Remote server SSH port')
+    .option('-U, --username [username]', 'Remote server username')
+    .option(
+        '-i, --identity-file [identityFile]',
+        'Remote server private key file path'
+    )
     .parse(process.argv);
 
-/** The questions to get project id, api key and monitor id. */
+/** The questions to get project id, api url, api key and monitor id. */
 const questions = [
     {
         type: 'input',
@@ -62,6 +71,42 @@ const questions = [
         type: 'list',
         name: 'monitorId',
         message: 'What is your Monitor ID?',
+    },
+    {
+        type: 'confirm',
+        name: 'daemon',
+        message: 'Want to run as a daemon?',
+    },
+    {
+        type: 'confirm',
+        name: 'agentless',
+        message: 'Want to run as agentless?',
+    },
+    {
+        type: 'confirm',
+        name: 'remote',
+        message: 'Want to run on remote server?',
+    },
+    {
+        type: 'input',
+        name: 'host',
+        message: 'What is your remote server host?',
+    },
+    {
+        type: 'number',
+        name: 'port',
+        message: 'What is your remote server SSH port?',
+        default: 22,
+    },
+    {
+        type: 'input',
+        name: 'username',
+        message: 'What is your remote server username?',
+    },
+    {
+        type: 'input',
+        name: 'identityFile',
+        message: 'What is your remote server private key file path?',
     },
 ];
 
@@ -99,8 +144,22 @@ const checkParams = params => {
 const getParamValue = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
-            if (name === 'monitorId') {
+            if (
+                name === 'monitorId' ||
+                (['host', 'port', 'username', 'identityFile'].includes(name) &&
+                    (program['agentless'] === false ||
+                        program['agentless'] === undefined ||
+                        (program['agentless'] === true &&
+                            (program['remote'] === false ||
+                                program['remote'] === undefined))))
+            ) {
                 resolve(null);
+            } else if (
+                name === 'daemon' ||
+                name === 'agentless' ||
+                name === 'remote'
+            ) {
+                resolve(program[name] === true ? true : false);
             } else {
                 prompt(params.filter(param => param.name === name)).then(
                     values => {
@@ -114,56 +173,45 @@ const getParamValue = (params, name) => {
     });
 };
 
-if (
-    process.argv &&
-    ['-p', '-u', '-a', '-m', '-d'].every(option =>
-        process.argv.includes(option)
-    )
-) {
-    process.argv.splice(process.argv.indexOf('-d'), 1);
+/** Init server monitor cli. */
+checkParams(questions).then(values => {
+    const [
+        projectId,
+        apiUrl,
+        apiKey,
+        monitorId,
+        daemon,
+        agentless,
+        remote,
+        host,
+        port,
+        username,
+        identityFile,
+    ] = values;
 
-    const child = new Monitor(`${__dirname}/server-monitor.js`, {
-        uid: 'fsm',
-        silent: true,
-        args: process.argv,
-    });
+    if (projectId && apiUrl && apiKey && monitorId && daemon) {
+        process.argv.splice(process.argv.indexOf('-d'), 1);
 
-    child.on('watch:restart', function(info) {
-        logger.warn(
-            'Fyipe Server Monitor restarting because ' + info.file + ' changed'
-        );
-    });
+        const child = new Monitor(`${__dirname}/server-monitor.js`, {
+            uid: 'fsm',
+            silent: true,
+            args: process.argv,
+        });
 
-    child.on('restart', function() {
-        logger.warn(
-            'Fyipe Server Monitor restarting for ' + child.times + ' time'
-        );
-    });
+        child.on('restart', function() {
+            logger.warn('Fyipe Server Monitor restarted');
+        });
 
-    child.on('exit:code', function(code) {
-        logger.error(
-            'Fyipe Server Monitor detected script exited with code ' + code
-        );
-    });
+        child.on('exit', function() {
+            logger.error('Fyipe Server Monitor exited');
+        });
 
-    child.on('exit', function() {
-        logger.error('Fyipe Server Monitor has exited after 3 restarts');
-    });
+        child.start();
 
-    child.start();
-
-    process.nextTick(() => {
-        process.exit();
-    });
-} else if (process.argv && process.argv.includes('-d')) {
-    logger.error(
-        'Please provide your Project ID, API URL, API Key and Monitor ID to run Fyipe Server Monitor as a daemon'
-    );
-} else {
-    /** Init server monitor cli. */
-    checkParams(questions).then(values => {
-        const [projectId, apiUrl, apiKey, monitorId] = values;
-
+        process.nextTick(() => {
+            process.exit();
+        });
+    } else {
         serverMonitor({
             projectId,
             apiUrl,
@@ -190,9 +238,21 @@ if (
                         });
                     });
                 }),
+            agentless: agentless
+                ? remote
+                    ? host && port && username && identityFile
+                        ? {
+                              host,
+                              port,
+                              username,
+                              identityFile,
+                          }
+                        : null
+                    : true
+                : null,
         }).start();
-    });
-}
+    }
+});
 
 module.exports = {
     checkParams,
