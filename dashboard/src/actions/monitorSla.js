@@ -151,3 +151,38 @@ export const setActiveMonitorSla = monitorSlaId => ({
     type: types.SET_ACTIVE_MONITOR_SLA,
     payload: monitorSlaId,
 });
+
+export const fetchDefaultMonitorSlaRequest = () => ({
+    type: types.FETCH_DEFAULT_MONITOR_SLA_REQUEST,
+});
+
+export const fetchDefaultMonitorSlaSuccess = payload => ({
+    type: types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS,
+    payload,
+});
+
+export const fetchDefaultMonitorSlaFailure = error => ({
+    type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
+    payload: error,
+});
+
+export const fetchDefaultMonitorSla = projectId => async dispatch => {
+    try {
+        dispatch(fetchDefaultMonitorSlaRequest());
+
+        const response = await getApi(
+            `monitorSla/${projectId}/defaultMonitorSla`
+        );
+        dispatch(fetchDefaultMonitorSlaSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
+    }
+};

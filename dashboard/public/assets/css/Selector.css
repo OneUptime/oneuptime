@@ -244,6 +244,23 @@
     background-repeat: no-repeat;
 }
 
+.bm__icon {
+    background-color: transparent;
+    background-size: contain;
+    height: 12px;
+    width: 12px;
+    position: absolute;
+    z-index: 1;
+    right: 20px;
+    top: 20px;
+    cursor: pointer;
+}
+
+.bm__icon--close {
+    background-image: url('../img/close.svg');
+    background-repeat: no-repeat;
+}
+
 #dropZone #fileInput {
     display: block !important;
     /* visually hide the input element and not removing it from the dom
