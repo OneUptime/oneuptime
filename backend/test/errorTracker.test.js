@@ -12,7 +12,13 @@ const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, projectId, componentId, errorTracker, errorEvent;
+let token,
+    userId,
+    projectId,
+    componentId,
+    errorTracker,
+    errorEvent,
+    errorEventTwo;
 let sampleErrorEvent = {};
 
 describe('Error Tracker API', function() {
@@ -315,6 +321,41 @@ describe('Error Tracker API', function() {
                 expect(errorEvent).to.have.property('issueId');
                 expect(errorEvent.errorTrackerId).to.be.equal(errorTracker._id);
                 done();
+            });
+    });
+    it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function(done) {
+        const authorization = `Basic ${token}`;
+        sampleErrorEvent.eventId = 'samplId';
+        sampleErrorEvent.fingerprint = ['fingerprint'];
+        sampleErrorEvent.type = 'exception';
+        sampleErrorEvent.timeline = [];
+        sampleErrorEvent.tags = [];
+        sampleErrorEvent.exception = {};
+        sampleErrorEvent.errorTrackerKey = errorTracker.key;
+        request
+            .post(`/error-tracker/${errorTracker._id}/track`)
+            .set('Authorization', authorization)
+            .send(sampleErrorEvent)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body.issueId).to.be.equal(errorEvent.issueId);
+                sampleErrorEvent.fingerprint = ['random', 'testing'];
+                request
+                    .post(`/error-tracker/${errorTracker._id}/track`)
+                    .set('Authorization', authorization)
+                    .send(sampleErrorEvent)
+                    .end(function(err, res) {
+                        expect(res).to.have.status(200);
+                        errorEventTwo = res.body;
+                        expect(errorEventTwo.type).to.be.equal(errorEvent.type);
+                        expect(errorEventTwo.fingerprintHash).to.not.be.equal(
+                            errorEvent.fingerprintHash
+                        );
+                        expect(errorEvent.issueId).to.not.be.equal(
+                            errorEventTwo.issueId
+                        );
+                        done();
+                    });
             });
     });
     // delete error tracker
