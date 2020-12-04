@@ -21,7 +21,9 @@ class AlertBilling extends Component {
                     id: messageBoxId,
                 });
             case 'Enter':
-                return 1;
+                return closeModal({
+                    id: messageBoxId,
+                });
             default:
                 return false;
         }
@@ -67,6 +69,7 @@ class AlertBilling extends Component {
                                         this.props.closeModal({
                                             id: messageBoxId,
                                         });
+                                        return false;
                                     }}
                                 >
                                     <span>Cancel</span>
@@ -78,11 +81,9 @@ class AlertBilling extends Component {
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                     type="button"
                                     id="modal-ok"
-                                    onClick={() =>
-                                        this.props.closeModal({
-                                            id: messageBoxId,
-                                        })
-                                    }
+                                    onClick={() => {
+                                        return true;
+                                    }}
                                     autoFocus={true}
                                 >
                                     <span>OK</span>
