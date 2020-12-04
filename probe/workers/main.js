@@ -8,6 +8,7 @@ const ApiMonitors = require('./apiMonitors');
 const UrlMonitors = require('./urlMonitors');
 const DeviceMonitors = require('./deviceMonitors');
 const ScriptMonitors = require('./scriptMonitors');
+const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
 const ApplicationSecurity = require('./applicationSecurity');
 const ContainerSecurity = require('./containerSecurity');
@@ -27,6 +28,8 @@ module.exports = {
                         return DeviceMonitors.ping(monitor);
                     } else if (monitor.type === 'script') {
                         return ScriptMonitors.run(monitor);
+                    } else if (monitor.type === 'server-monitor') {
+                        return ServerMonitors.run(monitor);
                     }
 
                     return null;

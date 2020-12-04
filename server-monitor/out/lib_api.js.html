@@ -42,8 +42,6 @@ dotenv.config();
 const Promise = require('promise');
 const cron = require('cron');
 const si = require('systeminformation');
-const fs = require('fs');
-const { NodeSSH } = require('node-ssh');
 const { get, post } = require('./helpers');
 const logger = require('./logger');
 const {
@@ -58,7 +56,6 @@ const {
  * @param {string} monitorId - The monitor id of the server monitor.
  * @param {string} apiUrl - The url of the api.
  * @param {string} apiKey - The api key of the project.
- * @param {Object} agentless - The agentless config.
  * @param {string} interval - The interval of the cron job, must ba a valid cron format.
  * @return {Object} The ping server cron job.
  */
@@ -67,7 +64,6 @@ const ping = (
     monitorId,
     apiUrl,
     apiKey,
-    agentless,
     interval = '* * * * *',
     simulate,
     simulateData
@@ -133,198 +129,71 @@ const ping = (
                     }
                     break;
                 default:
-                    if (agentless) {
-                        const {
-                            host,
-                            port,
-                            username,
-                            identityFIle,
-                        } = agentless;
-                        const ssh = new NodeSSH();
-
-                        ssh.connect({
-                            host,
-                            port,
-                            username,
-                            privateKey: fs.readFileSync(identityFIle, 'utf8'),
+                    Promise.all([
+                        si.currentLoad(),
+                        si.mem(),
+                        si.fsSize(),
+                        si.cpuTemperature(),
+                        si.cpu(),
+                    ])
+                        .then(data => {
+                            const storage =
+                                data[2] &amp;&amp; data[2].length > 0
+                                    ? data[2].filter(
+                                          partition =>
+                                              partition.size === data[2][0].size
+                                      )
+                                    : data[2];
+                            return {
+                                cpuLoad: data[0].currentload,
+                                avgCpuLoad: data[0].avgload * 100,
+                                cpuCores: data[4].physicalCores,
+                                memoryUsed: data[1].active,
+                                totalMemory: data[1].total,
+                                swapUsed: data[1].swapused,
+                                storageUsed:
+                                    storage &amp;&amp; storage.length > 0
+                                        ? storage
+                                              .map(partition => partition.used)
+                                              .reduce(
+                                                  (used, partitionUsed) =>
+                                                      used + partitionUsed
+                                              )
+                                        : storage.used,
+                                totalStorage:
+                                    storage &amp;&amp; storage.length > 0
+                                        ? storage[0].size
+                                        : storage.size,
+                                storageUsage:
+                                    storage &amp;&amp; storage.length > 0
+                                        ? storage
+                                              .map(partition => partition.use)
+                                              .reduce(
+                                                  (use, partitionUse) =>
+                                                      use + partitionUse
+                                              )
+                                        : storage.use,
+                                mainTemp: data[3].main,
+                                maxTemp: data[3].max,
+                            };
                         })
-                            .then(async function() {
-                                // TODO: complete commands and platform specific
-                                const { stdout: load } = await ssh.execCommand(
-                                    "top | egrep --color 'load average|%Cpu'"
-                                );
-                                const { stdout: cpu } = await ssh.execCommand(
-                                    "egrep --color 'processor|cores' /proc/cpuinfo"
-                                );
-                                const { stdout: mem } = await ssh.execCommand(
-                                    "egrep --color 'Mem|Swap' /proc/meminfo"
-                                );
-                                const { stdout: disk } = await ssh.execCommand(
-                                    "df | egrep --color '/dev/xvda1|/dev/sda'"
-                                );
-
-                                logger.debug('## Load -', load);
-
-                                const cpuLines = cpu
-                                    .replace(/\t|:/gi, '')
-                                    .split('\n')
-                                    .map(line =>
-                                        line.replace(/\s+/g, ' ').trim()
+                        .then(data => {
+                            post(
+                                apiUrl,
+                                `monitor/${projectId}/log/${monitorId}`,
+                                data,
+                                apiKey,
+                                log => {
+                                    logger.debug(log.data);
+                                    logger.info(
+                                        `${monitorId} - System Information uploaded`
                                     );
-                                const memLines = mem
-                                    .replace(/\t|:/gi, '')
-                                    .split('\n')
-                                    .map(line => {
-                                        const words = line
-                                            .replace(/\s+/g, ' ')
-                                            .trim()
-                                            .split(' ');
-                                        return words[words.length - 2];
-                                    });
-                                const diskLines = disk
-                                    .replace(/\t|:/gi, '')
-                                    .split('\n')
-                                    .map(line => {
-                                        const words = line
-                                            .replace(/\s+/g, ' ')
-                                            .trim()
-                                            .split(' ');
-                                        return {
-                                            storageUsed: words[2],
-                                            totalStorage:
-                                                parseInt(words[2]) +
-                                                parseInt(words[3]),
-                                            storageUsage: words[4].replace(
-                                                '%',
-                                                ''
-                                            ),
-                                        };
-                                    })
-                                    .reduce((disks, disk) => {
-                                        return {
-                                            storageUsed:
-                                                disks.storageUsed +
-                                                disk.storageUsed,
-                                            totalStorage:
-                                                disks.totalStorage +
-                                                disk.totalStorage,
-                                            storageUsage:
-                                                disks.storageUsage +
-                                                disk.storageUsage,
-                                        };
-                                    });
-
-                                const cpuCores = cpuLines.length / 2;
-                                const memoryUsed =
-                                    (memLines[0] - memLines[1]) * 1024;
-                                const totalMemory = memLines[0] * 1024;
-                                const swapUsed =
-                                    (memLines[4] - memLines[5]) * 1024;
-                                const storageUsed =
-                                    diskLines.storageUsed * 1024;
-                                const totalStorage =
-                                    diskLines.totalStorage * 1024;
-                                const storageUsage = diskLines.storageUsage;
-
-                                ssh.dispose();
-
-                                post(
-                                    apiUrl,
-                                    `monitor/${projectId}/log/${monitorId}`,
-                                    {
-                                        cpuCores,
-                                        memoryUsed,
-                                        totalMemory,
-                                        swapUsed,
-                                        storageUsed,
-                                        totalStorage,
-                                        storageUsage,
-                                    },
-                                    apiKey,
-                                    log => {
-                                        logger.debug(log.data);
-                                        logger.info(
-                                            `${monitorId} - System Information uploaded`
-                                        );
-                                    }
-                                );
-                            })
-                            .catch(error => {
-                                logger.error(error);
-                            });
-                    } else {
-                        Promise.all([
-                            si.currentLoad(),
-                            si.mem(),
-                            si.fsSize(),
-                            si.cpuTemperature(),
-                            si.cpu(),
-                        ])
-                            .then(data => {
-                                const storage =
-                                    data[2] &amp;&amp; data[2].length > 0
-                                        ? data[2].filter(
-                                              partition =>
-                                                  partition.size ===
-                                                  data[2][0].size
-                                          )
-                                        : data[2];
-                                return {
-                                    cpuLoad: data[0].currentload,
-                                    avgCpuLoad: data[0].avgload * 100,
-                                    cpuCores: data[4].physicalCores,
-                                    memoryUsed: data[1].active,
-                                    totalMemory: data[1].total,
-                                    swapUsed: data[1].swapused,
-                                    storageUsed:
-                                        storage &amp;&amp; storage.length > 0
-                                            ? storage
-                                                  .map(
-                                                      partition =>
-                                                          partition.used
-                                                  )
-                                                  .reduce(
-                                                      (used, partitionUsed) =>
-                                                          used + partitionUsed
-                                                  )
-                                            : storage.used,
-                                    totalStorage:
-                                        storage &amp;&amp; storage.length > 0
-                                            ? storage[0].size
-                                            : storage.size,
-                                    storageUsage:
-                                        storage &amp;&amp; storage.length > 0
-                                            ? storage
-                                                  .map(
-                                                      partition => partition.use
-                                                  )
-                                                  .reduce(
-                                                      (use, partitionUse) =>
-                                                          use + partitionUse
-                                                  )
-                                            : storage.use,
-                                    mainTemp: data[3].main,
-                                    maxTemp: data[3].max,
-                                };
-                            })
-                            .then(data => {
-                                post(
-                                    apiUrl,
-                                    `monitor/${projectId}/log/${monitorId}`,
-                                    data,
-                                    apiKey,
-                                    log => {
-                                        logger.debug(log.data);
-                                        logger.info(
-                                            `${monitorId} - System Information uploaded`
-                                        );
-                                    }
-                                );
-                            })
-                            .catch(error => {
-                                logger.error(error);
-                            });
-                    }
+                                }
+                            );
+                        })
+                        .catch(error => {
+                            logger.error(error);
+                        });
             }
         },
         null,
@@ -343,7 +212,6 @@ const ping = (
 module.exports = (config, apiUrl, apiKey, monitorId) => {
     let pingServer,
         projectId = config,
-        agentless,
         interval,
         timeout,
         simulate,
@@ -354,7 +222,6 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
         apiUrl = config.apiUrl;
         apiKey = config.apiKey;
         monitorId = config.monitorId;
-        agentless = config.agentless;
         interval = config.interval;
         timeout = config.timeout;
         simulate = config.simulate;
@@ -416,7 +283,6 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
                                 monitorId,
                                 apiUrl,
                                 apiKey,
-                                agentless,
                                 interval,
                                 simulate,
                                 simulateData
@@ -475,7 +341,7 @@ module.exports = (config, apiUrl, apiKey, monitorId) => {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Sun Nov 22 2020 14:57:45 GMT+0100 (West Africa Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.6</a> on Fri Dec 04 2020 17:35:58 GMT+0100 (West Africa Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

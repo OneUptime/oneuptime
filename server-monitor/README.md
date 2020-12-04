@@ -94,7 +94,7 @@ Main API to authenticate user, start and stop server monitoring.
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
         -   [module.exports(config, apiUrl, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apiurl-apikey-monitorid--object-)
-            -   [module.exports~ping(projectId, monitorId, apiUrl, apiKey, agentless, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apiurl-apikey-interval--object)
+            -   [module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apiurl-apikey-interval--object)
             -   [module.exports~start(id) ⇒ <code>Object</code> \| <code>number</code>](#moduleexportsstartid--object--number)
             -   [module.exports~stop() ⇒ <code>Object</code>](#moduleexportsstop--object)
 
@@ -116,7 +116,7 @@ Authenticate user and get list of server monitors if monitor id not provided.
 
 <a name="module_api--module.exports..ping"></a>
 
-#### module.exports~ping(projectId, monitorId, apiUrl, apiKey, agentless, interval) ⇒ <code>Object</code>
+#### module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>
 
 Get system information at interval and upload to server.
 
@@ -129,7 +129,6 @@ Get system information at interval and upload to server.
 | monitorId | <code>string</code> |                                         | The monitor id of the server monitor.                      |
 | apiUrl    | <code>string</code> |                                         | The url of the api.                                        |
 | apiKey    | <code>string</code> |                                         | The api key of the project.                                |
-| agentless | <code>Object</code> |                                         | The agentless config.                                      |
 | interval  | <code>string</code> | <code>&quot;\* \* \* \* \*&quot;</code> | The interval of the cron job, must ba a valid cron format. |
 
 <a name="module_api--module.exports..start"></a>

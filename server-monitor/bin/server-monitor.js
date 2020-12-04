@@ -35,15 +35,6 @@ program
         'Use Monitor ID from monitor details'
     )
     .option('-d, --daemon [daemon]', 'Run shell as a daemon')
-    .option('-A, --agentless [agentless]', 'Run shell as agentless')
-    .option('-r, --remote [remote]', 'Run on remote server')
-    .option('-H, --host [host]', 'Remote server host')
-    .option('-P, --port [port]', 'Remote server SSH port')
-    .option('-U, --username [username]', 'Remote server username')
-    .option(
-        '-i, --identity-file [identityFile]',
-        'Remote server private key file path'
-    )
     .parse(process.argv);
 
 /** The questions to get project id, api url, api key and monitor id. */
@@ -76,37 +67,6 @@ const questions = [
         type: 'confirm',
         name: 'daemon',
         message: 'Want to run as a daemon?',
-    },
-    {
-        type: 'confirm',
-        name: 'agentless',
-        message: 'Want to run as agentless?',
-    },
-    {
-        type: 'confirm',
-        name: 'remote',
-        message: 'Want to run on remote server?',
-    },
-    {
-        type: 'input',
-        name: 'host',
-        message: 'What is your remote server host?',
-    },
-    {
-        type: 'number',
-        name: 'port',
-        message: 'What is your remote server SSH port?',
-        default: 22,
-    },
-    {
-        type: 'input',
-        name: 'username',
-        message: 'What is your remote server username?',
-    },
-    {
-        type: 'input',
-        name: 'identityFile',
-        message: 'What is your remote server private key file path?',
     },
 ];
 
@@ -144,21 +104,9 @@ const checkParams = params => {
 const getParamValue = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
-            if (
-                name === 'monitorId' ||
-                (['host', 'port', 'username', 'identityFile'].includes(name) &&
-                    (program['agentless'] === false ||
-                        program['agentless'] === undefined ||
-                        (program['agentless'] === true &&
-                            (program['remote'] === false ||
-                                program['remote'] === undefined))))
-            ) {
+            if (name === 'monitorId') {
                 resolve(null);
-            } else if (
-                name === 'daemon' ||
-                name === 'agentless' ||
-                name === 'remote'
-            ) {
+            } else if (name === 'daemon') {
                 resolve(program[name] === true ? true : false);
             } else {
                 prompt(params.filter(param => param.name === name)).then(
@@ -175,19 +123,7 @@ const getParamValue = (params, name) => {
 
 /** Init server monitor cli. */
 checkParams(questions).then(values => {
-    const [
-        projectId,
-        apiUrl,
-        apiKey,
-        monitorId,
-        daemon,
-        agentless,
-        remote,
-        host,
-        port,
-        username,
-        identityFile,
-    ] = values;
+    const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (projectId && apiUrl && apiKey && monitorId && daemon) {
         process.argv.splice(process.argv.indexOf('-d'), 1);
@@ -238,18 +174,6 @@ checkParams(questions).then(values => {
                         });
                     });
                 }),
-            agentless: agentless
-                ? remote
-                    ? host && port && username && identityFile
-                        ? {
-                              host,
-                              port,
-                              username,
-                              identityFile,
-                          }
-                        : null
-                    : true
-                : null,
         }).start();
     }
 });

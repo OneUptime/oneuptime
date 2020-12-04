@@ -1096,7 +1096,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
             '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
         ],
         emailType: 'Subscriber Incident Resolved',
-        subject: '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved',
+        subject:
+            '{{projectName}} - {{componentName}}/{{monitorName}}: Incident Resolved',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
