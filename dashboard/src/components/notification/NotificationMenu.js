@@ -51,15 +51,17 @@ class NotificationMenu extends Component {
                 billingActionTaken(projectId, _id, {
                     meta: {},
                     icon: 'success',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
+                    message: `Transaction successful, your balance is now ${(
+                        balance + creditedBalance
+                    ).toFixed(2)}$`,
                 });
                 openModal({
                     id: MessageBoxId,
                     content: MessageBox,
                     title: 'Message',
-                    message: `Transaction successful, your balance is now ${balance +
-                        creditedBalance}$`,
+                    message: `Transaction successful, your balance is now ${(
+                        balance + creditedBalance
+                    ).toFixed(2)}$`,
                 });
             } else {
                 billingActionTaken(projectId, _id, {

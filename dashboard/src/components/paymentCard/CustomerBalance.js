@@ -102,8 +102,9 @@ export class CustomerBalance extends Component {
                         id: MessageBoxId,
                         content: MessageBox,
                         title: 'Message',
-                        message: `Transaction successful, your balance is now ${balance +
-                            creditedBalance}$`,
+                        message: `Transaction successful, your balance is now ${(
+                            balance + creditedBalance
+                        ).toFixed(2)}$`,
                     });
                 } else {
                     this.handlePaymentIntent(paymentIntent.client_secret);
@@ -146,8 +147,9 @@ export class CustomerBalance extends Component {
                             id: MessageBoxId,
                             content: MessageBox,
                             title: 'Message',
-                            message: `Transaction successful, your balance is now ${balance +
-                                creditedBalance}$`,
+                            message: `Transaction successful, your balance is now ${(
+                                balance + creditedBalance
+                            ).toFixed(2)}$`,
                         });
                         getProjects();
                     });
