@@ -192,7 +192,9 @@ class MonitorSlaModal extends React.Component {
                                                     }
                                                 >
                                                     <span>
-                                                        Frequency (days)
+                                                        Frequency{' '}
+                                                        {setCustomFrequency &&
+                                                            `(days)`}
                                                     </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -208,7 +210,7 @@ class MonitorSlaModal extends React.Component {
                                                                     RenderField
                                                                 }
                                                                 name="customFrequency"
-                                                                placeholder="60"
+                                                                placeholder="30"
                                                                 id="customFrequency"
                                                                 className="bs-TextInput"
                                                                 style={{
@@ -233,12 +235,6 @@ class MonitorSlaModal extends React.Component {
                                                                     RenderSelect
                                                                 }
                                                                 options={[
-                                                                    {
-                                                                        value:
-                                                                            '',
-                                                                        label:
-                                                                            'Select a Frequency',
-                                                                    },
                                                                     {
                                                                         value:
                                                                             '30',
@@ -303,7 +299,11 @@ class MonitorSlaModal extends React.Component {
                                                             : 'monitorUptimeOption'
                                                     }
                                                 >
-                                                    <span>Monitor Uptime</span>
+                                                    <span>
+                                                        Monitor Uptime{' '}
+                                                        {setCustomMonitorUptime &&
+                                                            `(%)`}
+                                                    </span>
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <div
@@ -320,7 +320,7 @@ class MonitorSlaModal extends React.Component {
                                                                     RenderField
                                                                 }
                                                                 name="customMonitorUptime"
-                                                                placeholder="60"
+                                                                placeholder="99.95"
                                                                 id="customMonitorUptime"
                                                                 className="bs-TextInput"
                                                                 style={{
