@@ -16,6 +16,7 @@ import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
+import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
 
 export class AlertAdvanceOption extends Component {
@@ -840,6 +841,16 @@ export class AlertAdvanceOption extends Component {
                                                     this.props.isRequesting
                                                 }
                                                 type="submit"
+                                                onClick={() => {
+                                                    this.props.openModal({
+                                                        id: this.state
+                                                            .MessageBoxId,
+                                                        content: AlertBilling,
+                                                        title: 'Message',
+                                                        message:
+                                                            'Transaction failed, try again later or use a different card.',
+                                                    });
+                                                }}
                                             >
                                                 <ShouldRender
                                                     if={
