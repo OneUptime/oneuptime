@@ -307,7 +307,7 @@ module.exports = {
                     averageResolved: parseInt(
                         moment
                             .duration(period.averageResolveTime)
-                            .asSeconds()
+                            .asMinutes()
                             .toFixed(0),
                         10
                     ),
