@@ -66,6 +66,7 @@ const monitorSchema = new Schema({
         ref: 'MonitorSla',
     },
     breachedMonitorSla: { type: Boolean, default: false },
+    breachClosedBy: [{ type: String, ref: 'User' }],
 });
 
 monitorSchema.virtual('project', {
