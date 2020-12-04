@@ -109,11 +109,14 @@ class ResolveTime extends Component {
                         },
                         chartArea: { left: '5%', width: '100%' },
                         hAxis: {
+                            title: 'Date',
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         vAxis: {
+                            title: 'Resolve Time (Minutes)',
+
                             minValue: 0,
                             gridlines: {
                                 minSpacing: 20,
@@ -123,7 +126,7 @@ class ResolveTime extends Component {
                                 count: 0,
                             },
                             textStyle: {
-                                color: '#757575',
+                                color: '#797979',
                             },
                         },
                         colors: ['#000000'],
