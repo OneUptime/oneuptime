@@ -478,7 +478,11 @@ router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
                 message: 'You are unauthorized to access the page.',
             });
         } else {
-            return sendItemResponse(req, res, statusPage);
+            return sendItemResponse(req, res, {
+                ...statusPage,
+                ip: req.ipItem,
+                reqItem: req.item,
+            });
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);

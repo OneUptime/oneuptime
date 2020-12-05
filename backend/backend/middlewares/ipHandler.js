@@ -64,6 +64,9 @@ const _this = {
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
 
+        req.item = req.ip;
+        req.ipItem = ip;
+
         if (!ip) {
             return null;
         }
