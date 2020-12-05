@@ -180,7 +180,11 @@ class Main extends Component {
             );
             return groupedMonitorData.map((groupedMonitors, i) => {
                 return (
-                    <div key={i} className="uptime-graph-header">
+                    <div
+                        key={i}
+                        className="uptime-graph-header"
+                        style={{ flexDirection: 'column' }}
+                    >
                         {groupedMonitors.map((monitor, i) => {
                             return (
                                 <>
@@ -343,6 +347,9 @@ class Main extends Component {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
         }
+
+        console.log('******* ip list *********', this.props.statusData.ip);
+        console.log('****** ip item *******', this.props.statusData.reqItem);
 
         return (
             <div className="page-main-wrapper" style={backgroundMain}>

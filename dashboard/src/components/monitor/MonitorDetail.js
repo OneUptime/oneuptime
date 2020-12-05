@@ -220,6 +220,8 @@ export class MonitorDetail extends Component {
         const url =
             monitor && monitor.data && monitor.data.url
                 ? monitor.data.url
+                : monitor && monitor.data && monitor.data.link
+                ? monitor.data.link
                 : null;
         const probeUrl = `/dashboard/project/${monitor.projectId._id}/settings/probe`;
 
@@ -255,7 +257,6 @@ export class MonitorDetail extends Component {
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=
                     300) ||
             !lastAlive;
-
         return (
             <div
                 className="Box-root Card-shadow--medium"
@@ -336,7 +337,8 @@ export class MonitorDetail extends Component {
                                         )}
                                     </ShouldRender>
                                     <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                        {url && (
+                                        {monitor.type !==
+                                            'incomingHttpRequest' && url ? (
                                             <span>
                                                 Currently{' '}
                                                 {isCurrentlyNotMonitoring &&
@@ -350,6 +352,19 @@ export class MonitorDetail extends Component {
                                                     {url}
                                                 </a>
                                             </span>
+                                        ) : monitor.type ===
+                                              'incomingHttpRequest' && url ? (
+                                            <span>
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {url}
+                                                </a>
+                                            </span>
+                                        ) : (
+                                            ''
                                         )}
                                         {monitor.type === 'manual' &&
                                             monitor.data &&
@@ -529,7 +544,8 @@ export class MonitorDetail extends Component {
                         if={
                             monitor.type !== 'manual' &&
                             monitor.type !== 'device' &&
-                            monitor.type !== 'server-monitor'
+                            monitor.type !== 'server-monitor' &&
+                            monitor.type !== 'incomingHttpRequest'
                         }
                     >
                         <div className="btn-group">

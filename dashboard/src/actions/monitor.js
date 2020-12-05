@@ -66,7 +66,9 @@ export function resetFetchMonitors() {
 //props -> {name: '', type, data -> { data.url}}
 export function createMonitor(projectId, values) {
     values.projectId = values.projectId._id || values.projectId;
-    return function(dispatch) {
+    /* eslint-disable no-console */
+    console.log(values);
+    /* return function(dispatch) {
         dispatch(createMonitorRequest());
         const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
@@ -90,8 +92,8 @@ export function createMonitor(projectId, values) {
             }
         );
 
-        return promise;
-    };
+       return promise;
+    };*/ return;
 }
 
 export function toggleEdit(payload) {
